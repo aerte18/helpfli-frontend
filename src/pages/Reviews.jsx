@@ -84,9 +84,10 @@ export default function Reviews() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <p className="md:hidden text-xs text-gray-500 mb-2">Przesuń palcem, aby przeglądać opinie</p>
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0 pb-2 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
           {reviews.map((review) => (
-            <div key={review._id} className="bg-white p-6 rounded-lg shadow-md">
+            <div key={review._id} className="shrink-0 w-[min(320px,90vw)] md:w-auto snap-start bg-white p-5 md:p-6 rounded-lg shadow-md max-h-[70vh] overflow-y-auto md:max-h-none md:overflow-visible">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-lg">{review.clientName}</h3>
@@ -133,32 +134,33 @@ export default function Reviews() {
         )}
 
         <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-          <h2 className="text-xl font-semibold mb-4">Dlaczego opinie są ważne?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2 md:mb-4">Dlaczego opinie są ważne?</h2>
+          <p className="md:hidden text-xs text-gray-500 mb-3">Przesuń palcem</p>
+          <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center">
                 <Search className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Transparentność</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Transparentność</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Wszystkie opinie są weryfikowane i pochodzą od rzeczywistych klientów
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
                 <Star className="w-6 h-6 fill-amber-500" />
               </div>
-              <h3 className="font-semibold mb-2">Jakość</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Jakość</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 System ocen pomaga wybrać najlepszych wykonawców w swojej dziedzinie
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Bezpieczeństwo</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Bezpieczeństwo</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Opinie pomagają uniknąć nieprofesjonalnych wykonawców
               </p>
             </div>

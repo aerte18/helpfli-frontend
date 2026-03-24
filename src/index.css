@@ -251,3 +251,10 @@ body.has-mobile-tab {
     padding-bottom: 0;
   }
 }
+
+/* Odstęp sticky pod globalnym Navbar (mobile): safe area + ~wysokość paska nawigacji */
+:root {
+  --app-nav-sticky-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+  /* /search: Navbar + dodatkowy Header ze strony */
+  --search-page-sticky-bar-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 3rem);
+}

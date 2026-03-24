@@ -6,6 +6,7 @@ import ProviderCard from '../components/ProviderCard';
 import CompareBar from '../components/CompareBar';
 import CompareModal from '../components/CompareModal';
 import useCompare from '../hooks/useCompare';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 
@@ -241,6 +242,7 @@ const ProvidersPage = () => {
   const compare = useCompare();
   const [compareModalOpen, setCompareModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  useBodyScrollLock(mobileFiltersOpen);
 
   // URL parameters
   const city = searchParams.get('city') || '';
@@ -782,7 +784,7 @@ const ProvidersPage = () => {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 py-3 mb-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+        <div className="lg:hidden sticky z-20 top-[var(--app-nav-sticky-offset)] -mx-4 px-4 py-3 mb-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}

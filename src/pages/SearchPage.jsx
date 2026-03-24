@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Filter, X } from "lucide-react";
 import Header from "../components/Header";
 import { UI } from "../i18n/pl_ui";
 import AIBar from "../components/AIBar";
@@ -9,6 +10,7 @@ import MapPanel from "../components/MapPanel";
 import CompareBar from "../components/CompareBar";
 import HowItWorks from "../components/HowItWorks";
 import useCompare from "../hooks/useCompare";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import Footer from "../components/Footer";
 
 export default function SearchPage() {
@@ -31,6 +33,20 @@ export default function SearchPage() {
     availableNow: false,
   });
   const { items: compareItems, toggle, clear } = useCompare();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  useBodyScrollLock(mobileFiltersOpen);
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (filters.level !== "all") n += 1;
+    if (filters.rating > 0) n += 1;
+    if (filters.eta !== "any") n += 1;
+    if (filters.budgetMin > 0 || filters.budgetMax < 1000) n += 1;
+    if (filters.b2b) n += 1;
+    if (filters.availableNow) n += 1;
+    if (filters.sort !== "quality") n += 1;
+    return n;
+  }, [filters]);
 
   useEffect(() => {
     const fetchProviders = async () => {
@@ -209,13 +225,30 @@ export default function SearchPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-          {/* Filtry */}
-          <div className="lg:col-span-1">
-            <SmartFilters value={filters} onChange={setFilters} />
-          </div>
+          {/* Filtry — tylko desktop */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <SmartFilters value={filters} onChange={setFilters} variant="sidebar" />
+          </aside>
 
           {/* Lista wyników */}
           <div className="lg:col-span-3">
+            <div className="lg:hidden sticky z-30 top-[var(--search-page-sticky-bar-offset)] -mx-4 px-4 py-2.5 mb-4 bg-gray-50/95 backdrop-blur border-b border-gray-200 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(true)}
+                className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm min-h-[48px] flex-1"
+              >
+                <Filter className="w-5 h-5 shrink-0 text-indigo-600" aria-hidden />
+                Filtry
+                {activeFilterCount > 0 && (
+                  <span className="ml-auto rounded-full bg-indigo-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+              <span className="text-sm text-gray-600 shrink-0">{filtered.length} wyn.</span>
+            </div>
+
             {error ? (
               <div className="rounded-lg bg-red-50 p-4 text-red-700">
                 {error}
@@ -268,6 +301,44 @@ export default function SearchPage() {
         {/* Jak to działa */}
         <HowItWorks />
       </div>
+
+      {/* Szuflada filtrów — mobile */}
+      {mobileFiltersOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Zamknij filtry"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
+              <h2 className="text-lg font-semibold text-gray-900">Filtry wyszukiwania</h2>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="rounded-lg p-2 hover:bg-gray-100"
+                aria-label="Zamknij"
+              >
+                <X className="h-6 w-6 text-gray-700" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <SmartFilters value={filters} onChange={setFilters} variant="drawer" />
+            </div>
+            <div className="border-t border-gray-200 bg-gray-50 shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-md min-h-[48px]"
+              >
+                Pokaż wyniki ({filtered.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

@@ -16,8 +16,9 @@ export default function Cooperation() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
+        <p className="md:hidden text-xs text-gray-500 mb-2">Przesuń palcem — opcje współpracy</p>
+        <div className="flex md:grid md:grid-cols-2 gap-4 md:gap-6 mb-6 overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+          <div className="shrink-0 w-[min(340px,92vw)] md:w-auto snap-start bg-white p-6 rounded-lg shadow-md">
             <div className="text-3xl mb-4">👷‍♂️</div>
             <h3 className="text-lg font-semibold mb-3">Dla wykonawców</h3>
             <p className="text-gray-700 mb-4">
@@ -38,7 +39,7 @@ export default function Cooperation() {
             </Link>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="shrink-0 w-[min(340px,92vw)] md:w-auto snap-start bg-white p-6 rounded-lg shadow-md">
             <div className="text-3xl mb-4">🏢</div>
             <h3 className="text-lg font-semibold mb-3">Dla firm</h3>
             <p className="text-gray-700 mb-4">
@@ -65,25 +66,26 @@ export default function Cooperation() {
           <p className="text-gray-700 mb-4">
             Dołącz do naszego programu partnerskiego i zarabiaj polecając naszą platformę.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
+          <p className="md:hidden text-xs text-gray-500 mb-2">Przesuń palcem — filary programu</p>
+          <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+            <div className="shrink-0 w-[min(220px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="text-2xl mb-2">💰</div>
-              <h3 className="font-semibold mb-2">Prowizje</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Prowizje</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Zarabiaj prowizje za każdego poleconego wykonawcę
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(220px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="text-2xl mb-2">📈</div>
-              <h3 className="font-semibold mb-2">Wzrost</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Wzrost</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Wspieraj rozwój platformy i zyskuj wraz z nami
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(220px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/80 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="text-2xl mb-2">🤝</div>
-              <h3 className="font-semibold mb-2">Wsparcie</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Wsparcie</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Otrzymuj pełne wsparcie w promocji platformy
               </p>
             </div>

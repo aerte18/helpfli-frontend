@@ -123,12 +123,23 @@ export function TileBecomeProvider({ onClick }) {
 export default function HelpfliActionTiles() {
   return (
     <section className="py-6 md:py-8">
-      <div className="mx-auto max-w-7xl px-6 md:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <TileCreateOrder />
-          <TileSearchProviders />
-          <TileAskAI />
-          <TileBecomeProvider />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+        <p className="sm:hidden text-xs text-center mb-2" style={{ color: 'var(--muted-foreground)' }}>
+          Przesuń palcem, aby zobaczyć wszystkie skróty
+        </p>
+        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+          <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
+            <TileCreateOrder />
+          </div>
+          <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
+            <TileSearchProviders />
+          </div>
+          <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
+            <TileAskAI />
+          </div>
+          <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
+            <TileBecomeProvider />
+          </div>
         </div>
       </div>
     </section>

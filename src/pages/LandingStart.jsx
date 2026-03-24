@@ -15,7 +15,6 @@ const UnifiedAIConcierge = lazy(() => import("../components/ai/UnifiedAIConcierg
 const FeaturedAnnouncements = lazy(() => import("../components/FeaturedAnnouncements"));
 import { SERVICES_CATALOG } from "../constants/servicesCatalog";
 const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarousel"));
-import { TileCreateOrder, TileSearchProviders, TileAskAI, TileBecomeProvider } from "../components/HelpfliActionTiles";
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, Bell } from "lucide-react";
@@ -424,37 +423,40 @@ export default function LandingStart() {
               {/* Dlaczego Helpfli */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>Dlaczego Helpfli?</h2>
-                <p className="text-sm md:text-base mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                <p className="text-sm md:text-base mb-4 md:mb-6" style={{ color: 'var(--muted-foreground)' }}>
                   Znajdź sprawdzonego wykonawcę w swojej okolicy w kilka minut. Bezpieczne rozliczenia i ochrona płatności.
                 </p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
-                      <Zap className="w-6 h-6" style={{ color: 'white' }} fill="white" />
+                <p className="md:hidden text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                  Przesuń palcem, aby zobaczyć kolejne atuty
+                </p>
+                <div className="flex sm:grid sm:grid-cols-2 gap-3 overflow-x-auto sm:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
+                      <Zap className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
-                    <h3 className="font-semibold text-sm mb-1" style={{ color: 'var(--foreground)' }}>Szybkość</h3>
-                    <p className="text-xs md:text-sm" style={{ color: 'var(--muted-foreground)' }}>Znajdziesz wykonawcę w kilka minut</p>
+                    <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Szybkość</h3>
+                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Znajdziesz wykonawcę w kilka minut</p>
                   </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
-                      <ShieldCheck className="w-6 h-6" style={{ color: 'white' }} fill="white" />
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
+                      <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
-                    <h3 className="font-semibold text-sm mb-1" style={{ color: 'var(--foreground)' }}>Gwarancja Helpfli</h3>
-                    <p className="text-xs md:text-sm" style={{ color: 'var(--muted-foreground)' }}>Ochrona płatności i bezpieczne rozliczenia</p>
+                    <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Gwarancja Helpfli</h3>
+                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Ochrona płatności i bezpieczne rozliczenia</p>
                   </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
-                      <Sparkles className="w-6 h-6" style={{ color: 'white' }} fill="white" />
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
+                      <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
-                    <h3 className="font-semibold text-sm mb-1" style={{ color: 'var(--foreground)' }}>Asystent AI</h3>
-                    <p className="text-xs md:text-sm" style={{ color: 'var(--muted-foreground)' }}>Inteligentny asystent pomoże</p>
+                    <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Asystent AI</h3>
+                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Inteligentny asystent pomoże</p>
                   </div>
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
-                      <Star className="w-6 h-6" style={{ color: 'white' }} fill="white" />
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
+                      <Star className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
-                    <h3 className="font-semibold text-sm mb-1" style={{ color: 'var(--foreground)' }}>Zweryfikowani wykonawcy</h3>
-                    <p className="text-xs md:text-sm" style={{ color: 'var(--muted-foreground)' }}>KYC i opinie klientów</p>
+                    <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Zweryfikowani wykonawcy</h3>
+                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>KYC i opinie klientów</p>
                   </div>
                 </div>
               </div>

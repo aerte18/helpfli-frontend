@@ -50,6 +50,14 @@ const SEASON_NAMES = {
   autumn: "Jesień"
 };
 
+/** Do frazy „na … porę roku” (np. wiosenną, letnią) */
+const SEASON_ADJECTIVE_FEMININE = {
+  winter: "zimową",
+  spring: "wiosenną",
+  summer: "letnią",
+  autumn: "jesienną"
+};
+
 export default function SeasonalBanner() {
   const season = useMemo(() => currentSeason(), []);
   const [services, setServices] = useState([]);
@@ -116,20 +124,20 @@ export default function SeasonalBanner() {
 
   if (loading) {
     return (
-      <section className="py-16">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
+      <section className="py-10 md:py-16">
+        <div className="text-center mb-6 md:mb-12 px-1">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 md:mb-4" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
             <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--primary)' }}></span>
             Sezon: {SEASON_NAMES[season]}
           </div>
-          <h2 className="text-4xl font-bold mb-4">Polecane usługi sezonowe</h2>
-          <p className="text-lg mb-4" style={{ color: 'var(--muted-foreground)' }}>
-            Sprawdzone usługi idealne na {SEASON_NAMES[season].toLowerCase()}ą porę roku
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4">Polecane usługi sezonowe</h2>
+          <p className="text-sm md:text-lg mb-2 md:mb-4 px-4" style={{ color: 'var(--muted-foreground)' }}>
+            Sprawdzone usługi idealne na {SEASON_ADJECTIVE_FEMININE[season]} porę roku
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl p-6 animate-pulse" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <div key={i} className="rounded-xl p-4 md:p-6 animate-pulse shrink-0 w-[min(280px,82vw)] md:w-auto snap-start" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
               <div className="h-8 rounded w-1/4 mb-2" style={{ backgroundColor: 'var(--muted)' }}></div>
               <div className="h-6 rounded w-3/4 mb-2" style={{ backgroundColor: 'var(--muted)' }}></div>
               <div className="h-4 rounded w-full mb-4" style={{ backgroundColor: 'var(--muted)' }}></div>
@@ -144,22 +152,26 @@ export default function SeasonalBanner() {
   if (!services.length) return null;
 
   return (
-    <section className="py-16">
-      <div className="text-center mb-12">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 font-medium text-sm" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
+    <section className="py-10 md:py-16">
+      <div className="text-center mb-6 md:mb-12 px-1">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 md:mb-4 font-medium text-sm" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
           <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--primary)' }}></span>
           Sezon: {SEASON_NAMES[season]}
         </span>
-        <h2 className="text-4xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>Polecane usługi sezonowe</h2>
-        <p className="text-lg mb-4 max-w-2xl mx-auto" style={{ color: 'var(--muted-foreground)' }}>
-          Sprawdzone usługi idealne na {SEASON_NAMES[season].toLowerCase()}ą porę roku
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4" style={{ color: 'var(--foreground)' }}>Polecane usługi sezonowe</h2>
+        <p className="text-sm md:text-lg mb-2 md:mb-4 max-w-2xl mx-auto px-4" style={{ color: 'var(--muted-foreground)' }}>
+          Sprawdzone usługi idealne na {SEASON_ADJECTIVE_FEMININE[season]} porę roku
+        </p>
+        <p className="md:hidden text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+          Przesuń palcem, aby zobaczyć kolejne usługi
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Mobile: karuzela pozioma; md+: siatka 3 kolumny */}
+      <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
         {services.map((svc, index) => (
           <div 
             key={svc.slug || index}
-            className="rounded-xl p-6 transition-all duration-300 h-full overflow-hidden hover:shadow-xl flex flex-col border"
+            className="rounded-xl p-4 md:p-6 transition-all duration-300 h-full overflow-hidden hover:shadow-xl flex flex-col border shrink-0 w-[min(280px,82vw)] md:w-auto snap-start"
             style={{ 
               backgroundColor: 'var(--card)', 
               borderColor: 'var(--border)', 
@@ -175,10 +187,10 @@ export default function SeasonalBanner() {
             }}
           >
             {/* Ikona i badge */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-3xl">{svc.icon}</div>
+            <div className="flex items-start justify-between mb-3 md:mb-4">
+              <div className="text-2xl md:text-3xl">{svc.icon}</div>
               <span 
-                className="text-xs font-semibold px-2 py-1 rounded-md border"
+                className="text-[10px] md:text-xs font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md border"
                 style={{ 
                   color: 'var(--primary)', 
                   borderColor: 'var(--primary)',
@@ -190,14 +202,14 @@ export default function SeasonalBanner() {
             </div>
 
             {/* Treść - zajmuje dostępną przestrzeń */}
-            <div className="space-y-2 flex-1 mb-4">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--primary)' }}>
+            <div className="space-y-1.5 md:space-y-2 flex-1 mb-3 md:mb-4">
+              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--primary)' }}>
                 SEZON: {SEASON_NAMES[season].toUpperCase()}
               </p>
-              <h3 className="text-lg font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+              <h3 className="text-base md:text-lg font-bold leading-snug line-clamp-3" style={{ color: 'var(--foreground)' }}>
                 {svc.title}
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="text-xs md:text-sm leading-relaxed line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>
                 {svc.copy}
               </p>
             </div>
@@ -205,7 +217,7 @@ export default function SeasonalBanner() {
             {/* Przycisk - zawsze na dole */}
             <Link 
               to={`/home?service=${encodeURIComponent(svc.slug)}`} 
-              className="btn-helpfli-primary w-full inline-flex items-center justify-center px-4 py-2 text-sm mt-auto"
+              className="btn-helpfli-primary w-full inline-flex items-center justify-center px-3 py-2.5 md:px-4 md:py-2 text-xs md:text-sm mt-auto min-h-[44px] md:min-h-0"
             >
               Pokaż wykonawców
             </Link>

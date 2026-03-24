@@ -35,48 +35,49 @@ export default function About() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Dlaczego Helpfli?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center mt-1">
+          <h2 className="text-xl font-semibold mb-2 md:mb-4">Dlaczego Helpfli?</h2>
+          <p className="md:hidden text-xs text-gray-500 mb-3">Przesuń palcem, aby zobaczyć kolejne punkty</p>
+          <div className="flex md:grid md:grid-cols-2 gap-4 md:gap-6 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+            <div className="shrink-0 w-[min(300px,88vw)] md:w-auto snap-start flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 md:border-0 md:bg-transparent md:p-0">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center mt-1 shrink-0">
                 <Zap className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Szybkość</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base md:text-lg mb-1">Szybkość</h3>
+                <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                   Znajdź wykonawcę w kilka minut dzięki naszemu inteligentnemu systemowi wyszukiwania.
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center mt-1">
+            <div className="shrink-0 w-[min(300px,88vw)] md:w-auto snap-start flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 md:border-0 md:bg-transparent md:p-0">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center mt-1 shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Bezpieczeństwo</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base md:text-lg mb-1">Bezpieczeństwo</h3>
+                <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                   Wykonawcy są weryfikowani, a Twoje płatności chronione przez system Helpfli.
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mt-1">
+            <div className="shrink-0 w-[min(300px,88vw)] md:w-auto snap-start flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 md:border-0 md:bg-transparent md:p-0">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mt-1 shrink-0">
                 <Star className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Jakość</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base md:text-lg mb-1">Jakość</h3>
+                <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                   System ocen i opinii pomaga wybrać najlepszych specjalistów w swojej dziedzinie.
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center mt-1">
+            <div className="shrink-0 w-[min(300px,88vw)] md:w-auto snap-start flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 md:border-0 md:bg-transparent md:p-0">
+              <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center mt-1 shrink-0">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">AI Concierge</h3>
-                <p className="text-gray-700 text-sm">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-base md:text-lg mb-1">AI Concierge</h3>
+                <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                   Nasz asystent AI podpowie zakres prac, widełki ceny i pomoże dobrać wykonawcę.
                 </p>
               </div>
@@ -85,32 +86,33 @@ export default function About() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Nasze wartości</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2 md:mb-4">Nasze wartości</h2>
+          <p className="md:hidden text-xs text-gray-500 mb-3">Przesuń palcem — trzy filary Helpfli</p>
+          <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/50 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Zaufanie</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Zaufanie</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Budujemy relacje oparte na zaufaniu między klientami a wykonawcami.
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/50 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
                 <Lightbulb className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Innowacja</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Innowacja</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Wykorzystujemy najnowsze technologie, aby ułatwić Ci życie.
               </p>
             </div>
-            <div className="text-center">
+            <div className="shrink-0 w-[min(240px,78vw)] md:w-auto snap-start text-center rounded-xl border border-gray-100 bg-gray-50/50 p-4 md:border-0 md:bg-transparent md:p-0">
               <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
                 <Target className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold mb-2">Skuteczność</h3>
-              <p className="text-gray-700 text-sm">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Skuteczność</h3>
+              <p className="text-gray-700 text-xs md:text-sm leading-relaxed">
                 Skupiamy się na dostarczaniu najlepszych rozwiązań dla naszych użytkowników.
               </p>
             </div>
