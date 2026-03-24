@@ -417,17 +417,40 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Mobile burger */}
-        <button
-          className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors"
-          style={{ color: 'var(--foreground)' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          onClick={() => setMobileOpen(true)}
-          aria-label="Otwórz menu"
-        >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-        </button>
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* Gość na mobile: te same akcje co na desktopie (prawa nawigacja jest ukryta poniżej md) */}
+          {!loading && !user && (
+            <>
+              <Link
+                to="/login"
+                className="md:hidden text-xs sm:text-sm font-medium px-2 py-1.5 rounded-md transition-colors whitespace-nowrap"
+                style={{ color: 'var(--foreground)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                Zaloguj się
+              </Link>
+              <Link
+                to="/register"
+                className="md:hidden btn-helpfli-primary px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap"
+              >
+                Zarejestruj się
+              </Link>
+            </>
+          )}
+          {/* Mobile burger */}
+          <button
+            type="button"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--foreground)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onClick={() => setMobileOpen(true)}
+            aria-label="Otwórz menu"
+          >
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+        </div>
       </div>
 
       {/* Offcanvas mobile */}
@@ -538,9 +561,14 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors" style={{ color: 'var(--foreground)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                Zaloguj się
-              </Link>
+              <div className="flex flex-col gap-3 mt-2">
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-center transition-colors border" style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}>
+                  Zaloguj się
+                </Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)} className="btn-helpfli-primary px-4 py-2 text-sm font-medium text-center">
+                  Zarejestruj się
+                </Link>
+              </div>
             )}
           </aside>
         </div>

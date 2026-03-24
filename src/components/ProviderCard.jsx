@@ -324,7 +324,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
     );
   }
 
-  // Pełny widok (jak dotychczas)
+  // Pełny widok — na mobile jedna kolumna (bez wąskiego paska), na sm+ układ dwukolumnowy
   return (
     <div ref={ref}
       className="rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border"
@@ -335,9 +335,40 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
         boxShadow: highlight || highlightActive ? '0 0 0 3px rgba(217,70,239,0.18)' : undefined
       }}
     >
-      <div className="flex">
-        {/* Lewa sekcja - tło spójne z landing page */}
-        <div className="w-1/3 flex flex-col items-center justify-center relative p-6" style={{ backgroundColor: 'var(--primary)' }}>
+      {/* Mobile: nagłówek karty — jeden avatar, pełna szerokość (jak lista w aplikacji) */}
+      <div className="sm:hidden flex gap-3 p-4 border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+        <div className="relative shrink-0">
+          {isCompany ? (
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--primary)' }}>
+              <ServiceIcon className="w-8 h-8" style={{ color: 'white' }} />
+            </div>
+          ) : (
+            <img
+              src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
+              alt={data.name}
+              className="w-14 h-14 rounded-full object-cover border-2 shadow-md"
+              style={{ borderColor: 'var(--border)' }}
+            />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={handleProfileClick}
+            className="font-bold text-left text-base w-full mb-1"
+            style={{ color: 'var(--foreground)' }}
+          >
+            {data.name}
+          </button>
+          <p className="text-sm mb-0 line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>
+            {serviceDescription}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row">
+        {/* Lewa sekcja — tylko tablet+ (na mobile pokazane wyżej) */}
+        <div className="hidden sm:flex sm:flex-col sm:w-1/3 items-center justify-center relative p-6" style={{ backgroundColor: 'var(--primary)' }}>
           {isCompany ? (
             // Dla firm - ikona usługi
             <div className="transform rotate-12">
@@ -381,9 +412,9 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
         </div>
 
         {/* Prawa sekcja - szczegóły */}
-        <div className="flex-1 p-6 flex flex-col" style={{ backgroundColor: 'var(--card)' }}>
-          {/* Informacje o providerze - AVATAR I IMIĘ NA GÓRZE */}
-          <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1 p-4 sm:p-6 flex flex-col" style={{ backgroundColor: 'var(--card)' }}>
+          {/* Desktop: avatar + nazwa (na mobile już w nagłówku karty) */}
+          <div className="hidden sm:flex items-start gap-3 mb-3">
             <img
               src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
               alt={data.name}
@@ -392,6 +423,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
             />
             <div className="flex-1 min-w-0">
               <button 
+                type="button"
                 onClick={handleProfileClick}
                 className="font-bold hover:underline text-left block mb-2"
                 style={{ color: 'var(--foreground)' }}
@@ -399,15 +431,13 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 {data.name}
               </button>
               
-              {/* Nagłówek z profilu (Konto → Profil) – pod nazwą */}
               <p className="text-sm mb-0 line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>
                 {serviceDescription}
               </p>
             </div>
           </div>
 
-          {/* Linia oddzielająca */}
-          <div className="border-t my-4" style={{ borderColor: 'var(--border)' }}></div>
+          <div className="border-t my-3 sm:my-4" style={{ borderColor: 'var(--border)' }}></div>
 
           {/* Informacje o ocenie/odległości/statusie - NA DOLE */}
           <div className="space-y-2 text-sm mb-4">
@@ -465,36 +495,50 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
             </div>
           </div>
 
-          {/* Przyciski akcji */}
-          <div className="mt-auto flex justify-end gap-3 flex-wrap">
+          {/* Przyciski — na mobile pełna szerokość, min. ~44px (Apple HIG) */}
+          <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:justify-end sm:flex-wrap sm:gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <button
+                type="button"
+                onClick={() => {
+                  onCompare?.(data);
+                }}
+                className={`min-h-[44px] sm:min-h-0 px-4 py-3 sm:py-2.5 text-sm rounded-lg border transition-colors ${
+                  isCompared
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700 font-medium'
+                    : ''
+                }`}
+                style={!isCompared ? {
+                  borderColor: 'var(--border)',
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--foreground)'
+                } : {}}
+                onMouseEnter={(e) => {
+                  if (!isCompared) {
+                    e.currentTarget.style.backgroundColor = 'var(--muted)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isCompared) {
+                    e.currentTarget.style.backgroundColor = 'var(--card)';
+                  }
+                }}
+              >
+                {isCompared ? '✓ Porównaj' : 'Porównaj'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  metrics.act(data._id || data.id, "quoteRequests");
+                  onQuote?.(data);
+                }}
+                className="btn-helpfli-primary min-h-[44px] sm:min-h-0 px-4 sm:px-6 py-3 sm:py-2.5 text-sm"
+              >
+                Zapytaj
+              </button>
+            </div>
             <button
-              onClick={() => {
-                onCompare?.(data);
-              }}
-              className={`px-4 py-2.5 text-sm rounded-lg border transition-colors ${
-                isCompared
-                  ? 'bg-emerald-100 border-emerald-300 text-emerald-700 font-medium'
-                  : ''
-              }`}
-              style={!isCompared ? {
-                borderColor: 'var(--border)',
-                backgroundColor: 'var(--card)',
-                color: 'var(--foreground)'
-              } : {}}
-              onMouseEnter={(e) => {
-                if (!isCompared) {
-                  e.currentTarget.style.backgroundColor = 'var(--muted)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isCompared) {
-                  e.currentTarget.style.backgroundColor = 'var(--card)';
-                }
-              }}
-            >
-              {isCompared ? '✓ Porównaj' : 'Porównaj'}
-            </button>
-            <button
+              type="button"
               onClick={() => {
                 const preFilledData = {
                   providerId: data._id || data.id,
@@ -509,18 +553,9 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                   } 
                 });
               }}
-              className="px-4 py-2.5 text-sm rounded-xl font-medium transition-colors bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg"
+              className="w-full sm:w-auto min-h-[46px] sm:min-h-0 px-4 py-3 sm:py-2.5 text-sm rounded-xl font-semibold transition-colors bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md active:scale-[0.99]"
             >
               Złóż zlecenie
-            </button>
-            <button
-              onClick={() => {
-                metrics.act(data._id || data.id, "quoteRequests");
-                onQuote?.(data);
-              }}
-              className="btn-helpfli-primary px-6 py-2.5 text-sm"
-            >
-              Zapytaj
             </button>
           </div>
         </div>

@@ -55,6 +55,7 @@ const AvailableOrders = lazy(() => import("./pages/AvailableOrders"));
 // Komponent nawigacji
 import Navbar from "./components/Navbar";
 import Breadcrumbs from "./components/Breadcrumbs";
+import MobileAppTabBar from "./components/MobileAppTabBar";
 
 // Komponenty ochronne
 import PrivateRoute from "./components/PrivateRoute";
@@ -141,7 +142,8 @@ function App() {
         {/* Navbar */}
         <Navbar />
         <Breadcrumbs />
-        
+        <MobileAppTabBar />
+
         {/* Router */}
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>

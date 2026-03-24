@@ -1,11 +1,6 @@
-?// Service Worker for Push Notifications
-const CACHE_NAME = 'helpfli-v3-' + new Date().getTime();
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
-];
+// Service Worker — cache powłoki PWA + manifest (Vite buduje assety z hashami)
+const CACHE_NAME = 'helpfli-v4-' + new Date().getTime();
+const urlsToCache = ['/', '/manifest.json', '/icons/icon-192x192.png'];
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -68,8 +63,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body || 'Nowe powiadomienie z Helpfli',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-96x96.png',
     vibrate: [200, 100, 200],
     data: {
       url: data.url || '/',
@@ -78,13 +73,13 @@ self.addEventListener('push', (event) => {
     actions: [
       {
         action: 'open',
-        title: 'OtwAlrz',
-        icon: '/favicon.ico'
+        title: 'Otwórz',
+        icon: '/icons/icon-192x192.png'
       },
       {
         action: 'close',
         title: 'Zamknij',
-        icon: '/favicon.ico'
+        icon: '/icons/icon-192x192.png'
       }
     ],
     requireInteraction: false,

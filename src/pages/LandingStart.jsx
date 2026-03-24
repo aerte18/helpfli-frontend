@@ -242,7 +242,7 @@ export default function LandingStart() {
       
       {/* HERO */}
       <section className="pt-5 md:pt-6 pb-4 md:pb-6 bg-gradient-to-b from-background to-secondary/20">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text + primary actions */}
             <div>
@@ -302,8 +302,8 @@ export default function LandingStart() {
 
       {/* Popularne usługi */}
       <section className="pt-6 md:pt-8 pb-2 md:pb-3">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="rounded-xl p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <PopularServices 
               onPick={(serviceName) => {
                 // serviceName to nazwa usługi (np. "Naprawa wycieku")

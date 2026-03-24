@@ -76,22 +76,22 @@ export default function HelpfliPromoCarousel() {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="mx-auto max-w-7xl px-6 md:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
         <div 
-          className="relative rounded-xl overflow-hidden"
+          className="relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 md:h-[220px]"
           style={{
             backgroundColor: 'var(--card)',
             borderColor: 'var(--border)',
             borderWidth: '1px',
-            height: '220px'
           }}
         >
-          {/* Navigation Arrows - tylko jeśli więcej niż 1 slide */}
+          {/* Strzałki — desktop (na mobile nawigacja pod slajdem) */}
           {slides.length > 1 && (
             <>
               <button
+                type="button"
                 onClick={goToPrevious}
-                className={`absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full items-center justify-center transition-all ${
                   isHovered ? 'opacity-100' : 'opacity-30'
                 }`}
                 style={{
@@ -111,8 +111,9 @@ export default function HelpfliPromoCarousel() {
               </button>
 
               <button
+                type="button"
                 onClick={goToNext}
-                className={`absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                className={`hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full items-center justify-center transition-all ${
                   isHovered ? 'opacity-100' : 'opacity-30'
                 }`}
                 style={{
@@ -141,17 +142,17 @@ export default function HelpfliPromoCarousel() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
-              className="relative h-full flex items-center"
-              style={{ paddingLeft: slides.length > 1 ? '80px' : '40px', paddingRight: slides.length > 1 ? '80px' : '40px' }}
+              className="relative h-full flex items-center py-4 md:py-0"
+              style={{ paddingLeft: 'clamp(1rem, 4vw, 2.5rem)', paddingRight: 'clamp(1rem, 4vw, 2.5rem)' }}
             >
               {/* Background Image */}
               <div className="absolute inset-0 overflow-hidden">
                 <motion.img
                   src={currentSlide.imageSrc}
                   alt={currentSlide.title}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 h-full object-contain"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100"
                   style={{
-                    maxWidth: '60%',
+                    maxWidth: '55%',
                     objectPosition: 'right center'
                   }}
                   initial={{ opacity: 0 }}
@@ -163,17 +164,18 @@ export default function HelpfliPromoCarousel() {
               </div>
 
               {/* Text Content */}
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-8 md:px-12 py-0">
-                <div className="flex-1">
-                  <h3 className="text-xl md:text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6 px-8 md:px-12 py-0 max-w-[min(100%,28rem)] md:max-w-none">
+                <div className="flex-1 min-w-0 pr-[30%] md:pr-0">
+                  <h3 className="text-lg md:text-2xl font-bold mb-2 leading-tight" style={{ color: 'var(--foreground)' }}>
                     {currentSlide.title}
                   </h3>
-                  <p className="text-sm md:text-base mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                  <p className="text-sm md:text-base mb-3 md:mb-4 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
                     {currentSlide.description}
                   </p>
                   <button
+                    type="button"
                     onClick={() => navigate(currentSlide.link)}
-                    className="btn-helpfli-primary mt-3 inline-flex items-center justify-center px-5 py-2.5 text-sm md:text-base font-semibold transition-all"
+                    className="btn-helpfli-primary mt-1 md:mt-3 inline-flex items-center justify-center px-5 py-3 text-sm md:text-base font-semibold transition-all min-h-[44px] w-full sm:w-auto"
                   >
                     {currentSlide.ctaText}
                   </button>
@@ -182,12 +184,51 @@ export default function HelpfliPromoCarousel() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Pagination Dots - tylko jeśli więcej niż 1 slide */}
+          {/* Nawigacja mobilna: strzałki + kropki */}
           {slides.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            <div className="md:hidden absolute bottom-3 left-0 right-0 z-20 flex items-center justify-center gap-6 px-4">
+              <button
+                type="button"
+                onClick={goToPrevious}
+                className="w-11 h-11 rounded-full flex items-center justify-center border shadow-sm"
+                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', touchAction: 'manipulation' }}
+                aria-label="Poprzedni slajd"
+              >
+                <ChevronLeft className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+              </button>
+              <div className="flex gap-2">
+                {slides.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => goToSlide(index)}
+                    className={`h-2 rounded-full transition-all ${
+                      index === currentIndex ? 'w-6' : 'w-2'
+                    }`}
+                    style={{
+                      backgroundColor: index === currentIndex ? 'var(--primary)' : 'rgba(0, 0, 0, 0.2)'
+                    }}
+                    aria-label={`Slajd ${index + 1}`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={goToNext}
+                className="w-11 h-11 rounded-full flex items-center justify-center border shadow-sm"
+                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', touchAction: 'manipulation' }}
+                aria-label="Następny slajd"
+              >
+                <ChevronRight className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+              </button>
+            </div>
+          )}
+          {slides.length > 1 && (
+            <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-20 gap-2">
               {slides.map((_, index) => (
                 <button
                   key={index}
+                  type="button"
                   onClick={() => goToSlide(index)}
                   className={`w-2 h-2 rounded-full transition-all ${
                     index === currentIndex ? 'w-6' : ''

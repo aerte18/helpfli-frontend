@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MapPin, Filter, SortAsc, SortDesc, Grid, List, Star, Clock, CheckCircle, Building2, Zap, Heart, MessageCircle, Eye } from 'lucide-react';
+import { MapPin, Filter, SortAsc, SortDesc, Grid, List, Star, Clock, CheckCircle, Building2, Zap, Heart, MessageCircle, Eye, X } from 'lucide-react';
 import ProviderCard from '../components/ProviderCard';
 import CompareBar from '../components/CompareBar';
 import CompareModal from '../components/CompareModal';
@@ -73,13 +73,175 @@ const DEMO_PROVIDERS = [
   },
 ];
 
+/** Pola filtrów — współdzielone przez panel desktop i szufladę mobilną */
+function ProvidersFiltersFields({ filters, updateFilter }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Usługa</label>
+        <input
+          type="text"
+          value={filters.service}
+          onChange={(e) => updateFilter('service', e.target.value)}
+          placeholder="np. hydraulik, elektryk"
+          className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Miasto</label>
+        <input
+          type="text"
+          value={filters.city}
+          onChange={(e) => updateFilter('city', e.target.value)}
+          placeholder="np. Warszawa, Kraków"
+          className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Promień: {filters.radius} km</label>
+        <input
+          type="range"
+          min="5"
+          max="100"
+          value={filters.radius}
+          onChange={(e) => updateFilter('radius', parseInt(e.target.value))}
+          className="w-full"
+        />
+      </div>
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">Szybkie filtry</label>
+        <label className="flex items-center gap-3 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={filters.availableNow}
+            onChange={(e) => updateFilter('availableNow', e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm text-gray-700">Dostępny teraz</span>
+        </label>
+        <label className="flex items-center gap-3 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={filters.verified}
+            onChange={(e) => updateFilter('verified', e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm text-gray-700">Verified/KYC</span>
+        </label>
+        <label className="flex items-center gap-3 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={filters.b2b}
+            onChange={(e) => updateFilter('b2b', e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm text-gray-700">Firma</span>
+        </label>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Poziom</label>
+        <select
+          value={filters.tier}
+          onChange={(e) => updateFilter('tier', e.target.value)}
+          className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+        >
+          <option value="all">Wszystkie</option>
+          <option value="basic">Basic</option>
+          <option value="standard">Standard</option>
+          <option value="pro">TOP</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Min. ocena: {filters.minRating}★</label>
+        <input
+          type="range"
+          min="0"
+          max="5"
+          step="0.5"
+          value={filters.minRating}
+          onChange={(e) => updateFilter('minRating', parseFloat(e.target.value))}
+          className="w-full"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Stawka wykonawcy: {filters.minPrice || 0} – {filters.maxPrice || 'bez limitu'} zł
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          Pokazuje tylko wykonawców, których cena za usługę mieści się w podanym przedziale.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={filters.minPrice || ''}
+            onChange={(e) => updateFilter('minPrice', e.target.value ? parseInt(e.target.value) : 0)}
+            placeholder="Min"
+            className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <input
+            type="number"
+            value={filters.maxPrice || ''}
+            onChange={(e) => updateFilter('maxPrice', e.target.value ? parseInt(e.target.value) : undefined)}
+            placeholder="Max (opcjonalne)"
+            className="w-full px-3 py-2.5 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Max. czas realizacji: {filters.maxTime || 'bez limitu'} dni
+        </label>
+        <input
+          type="range"
+          min="1"
+          max="30"
+          value={filters.maxTime || 30}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            updateFilter('maxTime', value < 30 ? value : undefined);
+          }}
+          className="w-full"
+        />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>1 dzień</span>
+          <span>{filters.maxTime || 30} dni</span>
+          <button type="button" onClick={() => updateFilter('maxTime', undefined)} className="text-blue-600 hover:text-blue-700">
+            Bez limitu
+          </button>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <label className="flex items-center gap-3 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={filters.instantChat}
+            onChange={(e) => updateFilter('instantChat', e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm text-gray-700">Tylko z chatem natychmiastowym</span>
+        </label>
+        <label className="flex items-center gap-3 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={filters.vatInvoice}
+            onChange={(e) => updateFilter('vatInvoice', e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
+          />
+          <span className="text-sm text-gray-700">Tylko z fakturą VAT</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 const ProvidersPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const compare = useCompare();
   const [compareModalOpen, setCompareModalOpen] = useState(false);
-  
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   // URL parameters
   const city = searchParams.get('city') || '';
   const service = searchParams.get('service') || '';
@@ -620,225 +782,90 @@ const ProvidersPage = () => {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex gap-6">
-          {/* Left sidebar - Filters */}
-          <div className="w-80 flex-shrink-0">
+        <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 py-3 mb-3 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white border-2 border-gray-200 text-gray-900 font-semibold shadow-sm active:scale-[0.99]"
+          >
+            <Filter className="w-5 h-5 shrink-0" />
+            Filtry i wyszukiwanie
+          </button>
+        </div>
+
+        {mobileFiltersOpen && (
+          <div className="fixed inset-0 z-[60] lg:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/40"
+              aria-label="Zamknij filtry"
+              onClick={() => setMobileFiltersOpen(false)}
+            />
+            <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0 pt-[max(1rem,env(safe-area-inset-top))]">
+                <h2 className="text-lg font-semibold text-gray-900">Filtry</h2>
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                  aria-label="Zamknij"
+                >
+                  <X className="w-6 h-6 text-gray-700" />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 p-6 pb-8">
+                <div className="flex justify-end mb-4">
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Wyczyść wszystko
+                  </button>
+                </div>
+                <ProvidersFiltersFields filters={filters} updateFilter={updateFilter} />
+              </div>
+              <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-semibold text-base shadow-md active:scale-[0.99]"
+                >
+                  Pokaż wyniki
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Filtry</h2>
                 <button
+                  type="button"
                   onClick={clearAllFilters}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
                   Wyczyść wszystko
                 </button>
               </div>
-              
-              <div className="space-y-6">
-                {/* Service */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Usługa
-                  </label>
-                  <input
-                    type="text"
-                    value={filters.service}
-                    onChange={(e) => updateFilter('service', e.target.value)}
-                    placeholder="np. hydraulik, elektryk"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {/* City */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Miasto
-                  </label>
-                  <input
-                    type="text"
-                    value={filters.city}
-                    onChange={(e) => updateFilter('city', e.target.value)}
-                    placeholder="np. Warszawa, Kraków"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {/* Radius */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Promień: {filters.radius} km
-                  </label>
-                  <input
-                    type="range"
-                    min="5"
-                    max="100"
-                    value={filters.radius}
-                    onChange={(e) => updateFilter('radius', parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                
-                {/* Quick filters */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Szybkie filtry
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.availableNow}
-                      onChange={(e) => updateFilter('availableNow', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Dostępny teraz</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.verified}
-                      onChange={(e) => updateFilter('verified', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Verified/KYC</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.b2b}
-                      onChange={(e) => updateFilter('b2b', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Firma</span>
-                  </label>
-                </div>
-                
-                {/* Tier */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Poziom
-                  </label>
-                  <select
-                    value={filters.tier}
-                    onChange={(e) => updateFilter('tier', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">Wszystkie</option>
-                    <option value="basic">Basic</option>
-                    <option value="standard">Standard</option>
-                    <option value="pro">TOP</option>
-                  </select>
-                </div>
-                
-                {/* Rating */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Min. ocena: {filters.minRating}★
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="0.5"
-                    value={filters.minRating}
-                    onChange={(e) => updateFilter('minRating', parseFloat(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                
-                {/* Price range – filtr po stawce wykonawcy (pole price w backendzie) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Stawka wykonawcy: {filters.minPrice || 0} – {filters.maxPrice || 'bez limitu'} zł
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Pokazuje tylko wykonawców, których cena za usługę mieści się w podanym przedziale.
-                  </p>
-                  <div className="flex space-x-2">
-                    <input
-                      type="number"
-                      value={filters.minPrice || ''}
-                      onChange={(e) => updateFilter('minPrice', e.target.value ? parseInt(e.target.value) : 0)}
-                      placeholder="Min"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="number"
-                      value={filters.maxPrice || ''}
-                      onChange={(e) => updateFilter('maxPrice', e.target.value ? parseInt(e.target.value) : undefined)}
-                      placeholder="Max (opcjonalne)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                
-                {/* Max time */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max. czas realizacji: {filters.maxTime || 'bez limitu'} dni
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="30"
-                    value={filters.maxTime || 30}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      updateFilter('maxTime', value < 30 ? value : undefined);
-                    }}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>1 dzień</span>
-                    <span>{filters.maxTime || 30} dni</span>
-                    <button
-                      onClick={() => updateFilter('maxTime', undefined)}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      Bez limitu
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Additional filters */}
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.instantChat}
-                      onChange={(e) => updateFilter('instantChat', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Tylko z chatem natychmiastowym</span>
-                  </label>
-                  
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.vatInvoice}
-                      onChange={(e) => updateFilter('vatInvoice', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Tylko z fakturą VAT</span>
-                  </label>
-                </div>
-              </div>
+              <ProvidersFiltersFields filters={filters} updateFilter={updateFilter} />
             </div>
           </div>
-          
+
           {/* Main content */}
           <div className="flex-1">
             {/* Sort and active filters */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-600">Sortuj według:</span>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                  <span className="text-sm text-gray-600 shrink-0">Sortuj według:</span>
                   <select
                     value={sort}
                     onChange={(e) => handleSortChange(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full sm:w-auto min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   >
                     <option value="relevance">Domyślne (relevance)</option>
                     <option value="rating">Ocena</option>

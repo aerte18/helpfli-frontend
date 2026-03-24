@@ -143,8 +143,9 @@ export default function PopularServices({ onPick, services = null }) {
         {list.length > 4 && (
           <>
             <button
+              type="button"
               onClick={scrollLeft}
-              className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-30 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+              className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 md:-translate-x-4 z-30 w-11 h-11 rounded-full items-center justify-center transition-all ${
                 isHovered ? 'opacity-100' : 'opacity-30'
               }`}
               style={{
@@ -164,8 +165,9 @@ export default function PopularServices({ onPick, services = null }) {
             </button>
 
             <button
+              type="button"
               onClick={scrollRight}
-              className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-30 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+              className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 md:translate-x-4 z-30 w-11 h-11 rounded-full items-center justify-center transition-all ${
                 isHovered ? 'opacity-100' : 'opacity-30'
               }`}
               style={{
@@ -187,9 +189,12 @@ export default function PopularServices({ onPick, services = null }) {
         )}
 
         {/* Scrollable Container */}
+        <p className="md:hidden text-center text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>
+          Przesuń palcem, aby zobaczyć więcej
+        </p>
         <div 
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-2 pt-2 scrollbar-hide"
+          className="flex gap-3 overflow-x-auto pb-2 pt-2 scrollbar-hide snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] pl-2 pr-2 md:pl-0 md:pr-0"
           style={{ scrollBehavior: 'smooth' }}
         >
           {list.map((s, index) => {
@@ -209,7 +214,7 @@ export default function PopularServices({ onPick, services = null }) {
                     onPick?.(name, false);
                   }
                 }}
-                className={`group flex-shrink-0 flex flex-col items-center justify-between rounded-xl p-3 transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer ${
+                className={`group flex-shrink-0 flex flex-col items-center justify-between rounded-xl p-3 transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer snap-start min-h-[120px] active:scale-[0.98] ${
                   isActive ? 'ring-2 ring-indigo-500' : ''
                 }`}
                 style={{ 

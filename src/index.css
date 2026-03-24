@@ -240,3 +240,14 @@ body {
     @apply bg-indigo-600 text-white shadow-md shadow-indigo-200;
   }
 }
+
+/* Odstęp pod fixed tab bar (mobile, zalogowany użytkownik) */
+body.has-mobile-tab {
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  body.has-mobile-tab {
+    padding-bottom: 0;
+  }
+}
