@@ -400,26 +400,30 @@ export default function LandingStart() {
 
       {/* Dlaczego Helpfli + Jak to działa */}
       <section className="py-6 md:py-8" id="jak-to-dziala">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div
+            className="rounded-xl p-4 sm:p-6 md:p-8"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+          >
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start">
             {/* Left: Image with speech bubble */}
-            <div className="relative flex justify-center lg:block max-w-[min(100%,320px)] mx-auto lg:max-w-none lg:mx-0">
+            <div className="relative flex justify-center lg:block max-w-[min(100%,280px)] mx-auto lg:max-w-none lg:mx-0 order-2 lg:order-1">
               <img
                 src="/img/quicksy-happy-user.png"
                 alt="Helpfli Platform"
-                className="w-full h-auto max-h-[min(52vh,280px)] sm:max-h-[min(48vh,320px)] lg:max-h-none object-contain object-bottom rounded-xl"
+                className="w-full h-auto max-h-[min(42vh,220px)] sm:max-h-[min(40vh,260px)] lg:max-h-none object-contain object-bottom rounded-xl"
                 style={{ mixBlendMode: 'multiply' }}
               />
               {/* Speech bubble */}
-              <div className="absolute bottom-4 left-4 right-4 bg-white rounded-2xl p-3 shadow-lg border" style={{ borderColor: 'var(--border)' }}>
-                <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                  Helpfli ogarnelo fachowca w 10 minut!
+              <div className="absolute bottom-3 left-3 right-3 bg-white rounded-2xl p-2.5 sm:p-3 shadow-lg border" style={{ borderColor: 'var(--border)' }}>
+                <p className="text-xs sm:text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  Helpfli ogarnęło fachowca w 10 minut!
                 </p>
               </div>
             </div>
 
             {/* Right: Content */}
-            <div className="space-y-5 md:space-y-6">
+            <div className="space-y-6 md:space-y-8 order-1 lg:order-2 min-w-0">
               {/* Dlaczego Helpfli */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>Dlaczego Helpfli?</h2>
@@ -429,29 +433,29 @@ export default function LandingStart() {
                 <p className="md:hidden text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
                   Przesuń palcem, aby zobaczyć kolejne atuty
                 </p>
-                <div className="flex sm:grid sm:grid-cols-2 gap-3 overflow-x-auto sm:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
-                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                <div className="flex sm:grid sm:grid-cols-2 gap-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
                       <Zap className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
                     <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Szybkość</h3>
                     <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Znajdziesz wykonawcę w kilka minut</p>
                   </div>
-                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
                       <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
                     <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Gwarancja Helpfli</h3>
                     <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Ochrona płatności i bezpieczne rozliczenia</p>
                   </div>
-                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
                       <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
                     <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Asystent AI</h3>
                     <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Inteligentny asystent pomoże</p>
                   </div>
-                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                  <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
                       <Star className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
@@ -461,32 +465,44 @@ export default function LandingStart() {
                 </div>
               </div>
 
-              {/* Jak to działa */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>Jak to działa</h2>
-                <div className="space-y-4">
+              {/* Jak to działa — ten sam „kanał” szerokości co kafelki powyżej */}
+              <div className="max-w-lg mx-auto lg:mx-0 lg:max-w-none">
+                <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--foreground)' }}>Jak to działa</h2>
+                <div className="flex flex-col gap-2.5 sm:gap-3">
                   {[
                     { step: 1, title: "Opisz problem", desc: "Krótko napisz co się dzieje. Możesz dodać zdjęcia." },
                     { step: 2, title: "AI diagnozuje", desc: "Otrzymasz wskazówki, widełki ceny i propozycję zlecenia." },
                     { step: 3, title: "Wybierz specjalistę", desc: "Wykonawcy odpowiadają, a Ty wybierasz najlepszą ofertę." }
                   ].map((item) => (
-                    <div key={item.step} className="relative p-4 rounded-lg" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                      <div className="absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                    <div
+                      key={item.step}
+                      className="flex gap-3 items-start p-3 sm:p-3.5 rounded-xl"
+                      style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}
+                    >
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                        aria-hidden
+                      >
                         {item.step}
                       </div>
-                      <h3 className="font-semibold text-sm mb-1 ml-6" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
-                      <p className="text-xs md:text-sm ml-6" style={{ color: 'var(--muted-foreground)' }}>{item.desc}</p>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <h3 className="font-semibold text-sm leading-snug mb-0.5" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
+                        <p className="text-xs sm:text-sm leading-snug" style={{ color: 'var(--muted-foreground)' }}>{item.desc}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() => nav("/create-order")}
-                  className="btn-helpfli-primary px-6 py-3 mt-4"
+                  className="btn-helpfli-primary w-full sm:w-auto px-6 py-3 mt-4"
                 >
                   Zacznij teraz
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </section>

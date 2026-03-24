@@ -85,8 +85,8 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center gap-4">
+        <div className="flex items-center gap-8 min-w-0">
           <Link 
             to={!user ? "/" : (user.role === "provider" || user.role === "company_owner" || user.role === "company_manager") ? "/provider-home" : "/home"} 
             className="flex items-center"
@@ -142,8 +142,9 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Desktop nav - prawa strona */}
-        <nav className="hidden md:flex items-center gap-3">
+        {/* Prawa strona — ml-auto wymusza brzeg prawy (niezawodniejsze niż samo justify-between) */}
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+        <nav className="hidden md:flex items-center gap-3" aria-label="Konto i narzędzia">
           {/* Mini-wyszukiwarka - tylko dla zalogowanych użytkowników i nie na LandingStart/ProviderHome */}
           {user && !hideSearch && (
             <div className="relative" ref={searchContainerRef}>
@@ -417,8 +418,7 @@ export default function Navbar() {
           )}
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Gość na mobile: te same akcje co na desktopie (prawa nawigacja jest ukryta poniżej md) */}
+          {/* Gość na mobile — w tym samym bloku co desktop, bez trzeciej kolumny flex */}
           {!loading && !user && (
             <>
               <Link
@@ -438,7 +438,6 @@ export default function Navbar() {
               </Link>
             </>
           )}
-          {/* Mobile burger */}
           <button
             type="button"
             className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors"
