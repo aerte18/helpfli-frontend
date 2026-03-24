@@ -407,11 +407,11 @@ export default function LandingStart() {
           >
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start">
             {/* Left: Image with speech bubble */}
-            <div className="relative flex justify-center lg:block max-w-[min(100%,280px)] mx-auto lg:max-w-none lg:mx-0 order-2 lg:order-1">
+            <div className="relative flex justify-start self-start w-full max-w-[min(100%,260px)] sm:max-w-[min(100%,280px)] lg:max-w-none lg:block order-2 lg:order-1">
               <img
                 src="/img/quicksy-happy-user.png"
                 alt="Helpfli Platform"
-                className="w-full h-auto max-h-[min(42vh,220px)] sm:max-h-[min(40vh,260px)] lg:max-h-none object-contain object-bottom rounded-xl"
+                className="w-full h-auto max-h-[min(42vh,220px)] sm:max-h-[min(40vh,260px)] lg:max-h-none object-contain object-left-bottom lg:object-bottom rounded-xl"
                 style={{ mixBlendMode: 'multiply' }}
               />
               {/* Speech bubble */}
@@ -466,7 +466,7 @@ export default function LandingStart() {
               </div>
 
               {/* Jak to działa — ten sam „kanał” szerokości co kafelki powyżej */}
-              <div className="max-w-lg mx-auto lg:mx-0 lg:max-w-none">
+              <div className="w-full max-w-lg lg:max-w-none">
                 <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--foreground)' }}>Jak to działa</h2>
                 <div className="flex flex-col gap-2.5 sm:gap-3">
                   {[
