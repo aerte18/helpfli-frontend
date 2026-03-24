@@ -1,0 +1,14 @@
+/* src/styles/ui.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opcjonalne klasy pomocnicze – spójne przyciski/bąbelki */
+.btn { @apply inline-flex items-center justify-center px-4 py-2 rounded-xl transition focus:outline-none focus:ring disabled:opacity-50; }
+.btn-primary { @apply bg-indigo-600 hover:bg-indigo-700 text-white; }
+.btn-secondary { @apply bg-white border border-gray-200 hover:bg-gray-50 text-gray-900; }
+.btn-ghost { @apply hover:bg-gray-50 text-gray-700; }
+
+.chip { @apply inline-flex items-center gap-2 rounded-full px-3 py-1 shadow-sm border border-gray-200 bg-white; }
+.badge { @apply inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 bg-indigo-50 text-indigo-700; }
+

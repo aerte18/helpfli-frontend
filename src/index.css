@@ -1,0 +1,242 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables - Theme Colors */
+:root {
+  --background: oklch(0.99 0.002 264);
+  --foreground: oklch(0.15 0.01 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 264);
+  --primary: oklch(0.38 0.15 264);
+  --primary-foreground: oklch(0.99 0.002 264);
+  --secondary: oklch(0.96 0.01 264);
+  --secondary-foreground: oklch(0.15 0.01 264);
+  --muted: oklch(0.97 0.005 264);
+  --muted-foreground: oklch(0.5 0.01 264);
+  --accent: oklch(0.95 0.02 264);
+  --accent-foreground: oklch(0.15 0.01 264);
+  --border: oklch(0.92 0.01 264);
+  --input: oklch(0.92 0.01 264);
+  --ring: oklch(0.38 0.15 264);
+}
+
+/* Fallback dla przeglądarek które nie obsługują oklch */
+@supports not (color: oklch(0.38 0.15 264)) {
+  :root {
+    --primary: #4F46E5;
+    --primary-foreground: #FFFFFF;
+    --background: #FFFFFF;
+    --foreground: #1F2937;
+    --card: #FFFFFF;
+    --card-foreground: #1F2937;
+    --secondary: #F3F4F6;
+    --secondary-foreground: #1F2937;
+    --muted: #F9FAFB;
+    --muted-foreground: #6B7280;
+    --accent: #F3F4F6;
+    --accent-foreground: #1F2937;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #4F46E5;
+  }
+}
+
+/* Fallback dla przeglądarek które nie obsługują oklch */
+@supports not (color: oklch(0.38 0.15 264)) {
+  :root {
+    --primary: #4F46E5;
+    --primary-foreground: #FFFFFF;
+    --background: #FFFFFF;
+    --foreground: #1F2937;
+    --card: #FFFFFF;
+    --card-foreground: #1F2937;
+    --secondary: #F3F4F6;
+    --secondary-foreground: #1F2937;
+    --muted: #F9FAFB;
+    --muted-foreground: #6B7280;
+    --accent: #F3F4F6;
+    --accent-foreground: #1F2937;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #4F46E5;
+  }
+}
+
+/* Animacje */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Płynne scrollowanie */
+html {
+  scroll-behavior: smooth;
+}
+
+
+/* Globalne style z CSS variables */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@layer components {
+  .btn-focus { @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4F46E5]; }
+  .card { @apply rounded-2xl shadow-[0_6px_16px_rgba(79,70,229,0.10)] bg-white border border-gray-100; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium; }
+
+  .input {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300;
+  }
+  .btn-primary {
+    @apply rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 active:bg-sky-800;
+  }
+  .btn-secondary {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-600 text-white
+           hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-300
+           shadow-sm transition;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white text-gray-900
+           border border-gray-300 hover:bg-gray-50 active:bg-gray-100
+           shadow-sm transition;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-gray-700
+           hover:bg-gray-100 transition;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-purple { @apply badge bg-purple-600 text-white; }
+  .badge-indigo { @apply badge bg-indigo-600 text-white; }
+  .badge-outline { @apply badge border border-gray-300 text-gray-600 bg-white; }
+  .chip {
+    @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Chat improvements */
+  .chat-message-enter {
+    animation: messageSlideIn 0.3s ease-out;
+  }
+  
+  @keyframes messageSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .btn-helpfli-primary {
+    @apply inline-flex items-center justify-center rounded-xl font-medium transition-all;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .btn-helpfli-primary:hover {
+    background-color: oklch(from var(--primary) calc(l * 0.9) c h);
+  }
+  .btn-helpfli-primary:active {
+    background-color: oklch(from var(--primary) calc(l * 0.85) c h);
+  }
+  .btn-helpfli-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-helpfli-secondary {
+    @apply inline-flex items-center justify-center rounded-xl font-medium transition-all;
+    background-color: var(--card);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+  .btn-helpfli-secondary:hover {
+    background-color: var(--muted);
+  }
+  .btn-helpfli-secondary:active {
+    background-color: oklch(from var(--muted) calc(l * 0.95) c h);
+  }
+  .btn-helpfli-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-helpfli-ghost {
+    @apply inline-flex items-center justify-center rounded-xl font-medium transition-all;
+    background-color: transparent;
+    color: var(--muted-foreground);
+  }
+  .btn-helpfli-ghost:hover {
+    background-color: var(--muted);
+    color: var(--foreground);
+  }
+  .btn-helpfli-ghost:active {
+    background-color: oklch(from var(--muted) calc(l * 0.95) c h);
+  }
+  .btn-helpfli-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Badge styles - spójne z Home.jsx */
+  .qs-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+  .qs-badge-dark {
+    @apply bg-slate-100 text-slate-700;
+  }
+  .qs-badge-success {
+    @apply bg-emerald-100 text-emerald-700;
+  }
+  .qs-badge-info {
+    @apply bg-indigo-100 text-indigo-700;
+  }
+
+  /* Chip styles - spójne z Home.jsx */
+  .qs-chip {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-colors;
+  }
+  .qs-chip.active {
+    @apply bg-indigo-600 text-white shadow-md shadow-indigo-200;
+  }
+}

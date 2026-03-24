@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+    <title>Helpfli — Znajdź pomoc w swojej okolicy</title>
+    <!-- Open Graph / Twitter -->
+    <meta property="og:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
+    <meta property="og:description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
+    <meta name="twitter:description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi." />
+    <meta name="twitter:image" content="/icons/icon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" defer></script>
+
+    <!-- Dodany link do fontu Poppins -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "Helpfli",
+      "description": "Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi.",
+      "url": "https://helpfli.pl",
+      "logo": "https://helpfli.pl/icons/icon-192x192.png",
+      "image": "https://helpfli.pl/og-image.png",
+      "telephone": "+48-XXX-XXX-XXX",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "PL"
+      },
+      "serviceArea": {
+        "@type": "Country",
+        "name": "Polska"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Usługi wykonawców",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Hydraulik",
+              "description": "Usługi hydrauliczne"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Elektryk",
+              "description": "Usługi elektryczne"
+            }
+          }
+        ]
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

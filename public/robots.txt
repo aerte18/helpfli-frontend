@@ -1,0 +1,24 @@
+﻿User-agent: *
+Allow: /
+
+Sitemap: /sitemap.xml
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://helpfli.app/sitemap.xml
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /account/
+Disallow: /orders/
+Disallow: /chat/
+Disallow: /api/
+
+# Allow public pages
+Allow: /
+Allow: /providers
+Allow: /login
+Allow: /register
+
