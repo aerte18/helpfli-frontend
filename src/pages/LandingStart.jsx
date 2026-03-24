@@ -174,6 +174,32 @@ function ServiceAutocomplete({ value, onChange, onPick }) {
   );
 }
 
+const LANDING_HOW_IT_WORKS_STEPS = [
+  { step: 1, title: "Opisz problem", desc: "Krótko napisz co się dzieje. Możesz dodać zdjęcia." },
+  { step: 2, title: "AI diagnozuje", desc: "Otrzymasz wskazówki, widełki ceny i propozycję zlecenia." },
+  { step: 3, title: "Wybierz specjalistę", desc: "Wykonawcy odpowiadają, a Ty wybierasz najlepszą ofertę." },
+];
+
+function LandingHappyUserFigure({ className = "", imageClassName = "" }) {
+  return (
+    <div className={`relative ${className}`.trim()}>
+      <img
+        src="/img/quicksy-happy-user.png"
+        alt="Użytkownik korzystający z Helpfli"
+        className={`block w-full h-auto rounded-xl ${imageClassName}`.trim()}
+        style={{ mixBlendMode: "multiply" }}
+      />
+      <div
+        className="absolute bottom-2 left-2 right-2 rounded-xl border bg-white p-2 shadow-lg sm:bottom-3 sm:left-3 sm:right-3 sm:rounded-2xl sm:p-2.5"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <p className="text-[10px] font-medium leading-snug sm:text-xs md:text-sm" style={{ color: "var(--foreground)" }}>
+          Helpfli ogarnęło fachowca w 10 minut!
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingStart() {
   const nav = useNavigate();
@@ -406,24 +432,15 @@ export default function LandingStart() {
             style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
           >
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-            {/* Left: Image with speech bubble */}
-            <div className="relative flex justify-start self-start w-full max-w-[min(100%,260px)] sm:max-w-[min(100%,280px)] lg:max-w-none lg:block order-2 lg:order-1">
-              <img
-                src="/img/quicksy-happy-user.png"
-                alt="Helpfli Platform"
-                className="w-full h-auto max-h-[min(42vh,220px)] sm:max-h-[min(40vh,260px)] lg:max-h-none object-contain object-left-bottom lg:object-bottom rounded-xl"
-                style={{ mixBlendMode: 'multiply' }}
+            {/* Obraz — tylko desktop (obok „Dlaczego…”); na mobile obraz jest przy krokach 1–3 */}
+            <div className="hidden lg:block self-start w-full min-w-0">
+              <LandingHappyUserFigure
+                className="w-full"
+                imageClassName="object-contain object-bottom max-h-none"
               />
-              {/* Speech bubble */}
-              <div className="absolute bottom-3 left-3 right-3 bg-white rounded-2xl p-2.5 sm:p-3 shadow-lg border" style={{ borderColor: 'var(--border)' }}>
-                <p className="text-xs sm:text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                  Helpfli ogarnęło fachowca w 10 minut!
-                </p>
-              </div>
             </div>
 
-            {/* Right: Content */}
-            <div className="space-y-6 md:space-y-8 order-1 lg:order-2 min-w-0">
+            <div className="space-y-6 md:space-y-8 min-w-0">
               {/* Dlaczego Helpfli */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>Dlaczego Helpfli?</h2>
@@ -465,18 +482,43 @@ export default function LandingStart() {
                 </div>
               </div>
 
-              {/* Jak to działa — ten sam „kanał” szerokości co kafelki powyżej */}
-              <div className="w-full max-w-lg lg:max-w-none">
+              {/* Jak to działa — mobile: obraz po lewej, kroki 1–3 po prawej; pod spodem „Zacznij teraz” */}
+              <div className="w-full lg:max-w-none">
                 <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--foreground)' }}>Jak to działa</h2>
-                <div className="flex flex-col gap-2.5 sm:gap-3">
-                  {[
-                    { step: 1, title: "Opisz problem", desc: "Krótko napisz co się dzieje. Możesz dodać zdjęcia." },
-                    { step: 2, title: "AI diagnozuje", desc: "Otrzymasz wskazówki, widełki ceny i propozycję zlecenia." },
-                    { step: 3, title: "Wybierz specjalistę", desc: "Wykonawcy odpowiadają, a Ty wybierasz najlepszą ofertę." }
-                  ].map((item) => (
+
+                <div className="mt-1 flex gap-3 items-start lg:hidden">
+                  <LandingHappyUserFigure
+                    className="shrink-0 w-[min(42%,11.5rem)] max-w-[200px]"
+                    imageClassName="max-h-[min(48vh,220px)] object-contain object-left-bottom"
+                  />
+                  <div className="min-w-0 flex-1 flex flex-col gap-2">
+                    {LANDING_HOW_IT_WORKS_STEPS.map((item) => (
+                      <div
+                        key={item.step}
+                        className="flex gap-2 items-start rounded-lg p-2"
+                        style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}
+                      >
+                        <div
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          aria-hidden
+                        >
+                          {item.step}
+                        </div>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <h3 className="font-semibold text-xs leading-snug mb-0.5" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
+                          <p className="text-[11px] leading-snug line-clamp-4" style={{ color: 'var(--muted-foreground)' }}>{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 hidden lg:flex lg:flex-col gap-3">
+                  {LANDING_HOW_IT_WORKS_STEPS.map((item) => (
                     <div
                       key={item.step}
-                      className="flex gap-3 items-start p-3 sm:p-3.5 rounded-xl"
+                      className="flex gap-3 items-start rounded-xl p-3 sm:p-3.5"
                       style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}
                     >
                       <div
@@ -493,10 +535,11 @@ export default function LandingStart() {
                     </div>
                   ))}
                 </div>
+
                 <button
                   type="button"
                   onClick={() => nav("/create-order")}
-                  className="btn-helpfli-primary w-full sm:w-auto px-6 py-3 mt-4"
+                  className="btn-helpfli-primary mt-4 w-full px-6 py-3 sm:w-auto"
                 >
                   Zacznij teraz
                 </button>
