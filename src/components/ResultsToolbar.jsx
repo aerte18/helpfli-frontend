@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { ShieldCheck, Users, Star, Zap, List, Map, LayoutGrid } from 'lucide-react';
 
 export default function ResultsToolbar({ 
@@ -73,154 +72,147 @@ export default function ResultsToolbar({
     transparencyClass = 'bg-white/40 backdrop-blur-lg border-gray-200/30 shadow-sm';
   }
   
+  const sortBtnSurface =
+    viewMode === 'map'
+      ? 'bg-white/50 backdrop-blur-md hover:bg-white/70 border border-gray-200/30'
+      : isScrolled
+        ? 'bg-white/60 backdrop-blur-md hover:bg-white/80 border border-gray-200/40'
+        : 'bg-gray-100 hover:bg-gray-200';
+
   return (
-    <div 
+    <div
       data-testid="results-toolbar"
-      className={`${viewMode === 'map' ? 'relative' : 'sticky top-16'} z-40 border-b transition-all duration-300 ${transparencyClass} relative`}
+      className={`${viewMode === 'map' ? 'relative' : 'sticky top-16'} z-40 w-full max-w-[100vw] border-b transition-all duration-300 ${transparencyClass} relative`}
     >
-      <div className="max-w-6xl mx-auto px-4 py-3">
-        <div className="flex flex-col gap-0">
-          <div className="flex items-center justify-between gap-4">
-          {/* Lewa strona - informacje o wynikach */}
+      <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
+        <div className="flex min-w-0 flex-col gap-2 md:gap-2.5">
+          {/* Informacja o wynikach — osobny wiersz, żeby nie ściskać filtrów */}
           {showLeftInfo && (
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-700">
-                <span className="font-medium">
-                  {searchQuery ? `${searchQuery} w ${location}` : `Wszystkie usługi w ${location}`}
-                </span>
-                <span className="text-gray-500 ml-2">• {resultsCount} wyników</span>
-              </div>
+            <div className="min-w-0 shrink-0 text-sm text-gray-700">
+              <span className="font-medium">
+                {searchQuery ? `${searchQuery} w ${location}` : `Wszystkie usługi w ${location}`}
+              </span>
+              <span className="ml-2 text-gray-500">• {resultsCount} wyników</span>
             </div>
           )}
 
-          {/* Środek - selektor kategorii + quick toggles */}
-          <div className="flex items-center gap-2">
-            {/* Wybór kategorii (opcjonalnie) */}
-            {categorySelector ? (
-              <div className="hidden md:block">
-                {categorySelector}
-              </div>
-            ) : null}
-            <button
-              onClick={() => onVerifiedOnlyChange(!verifiedOnly)}
-              className={`px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
-                verifiedOnly 
-                  ? 'text-green-700 font-medium' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Verified
-            </button>
-            <button
-              onClick={() => onB2bOnlyChange(!b2bOnly)}
-              className={`px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
-                b2bOnly 
-                  ? 'text-purple-700 font-medium' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              Firma
-            </button>
-            <button
-              onClick={() => onProOnlyChange(!proOnly)}
-              className={`px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
-                proOnly 
-                  ? 'text-orange-700 font-medium' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Star className="w-3.5 h-3.5" />
-              TOP
-            </button>
-            {onAvailableNowChange && (
+          {/* Mobile: szybkie filtry w poziomym scrollu; desktop: w jednym rzędzie z akcjami */}
+          <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+            <div className="scrollbar-hide flex min-w-0 touch-pan-x items-center gap-1.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] md:flex-1 md:overflow-visible md:pb-0">
+              {categorySelector ? <div className="hidden shrink-0 md:block">{categorySelector}</div> : null}
               <button
                 type="button"
-                onClick={() => onAvailableNowChange(!availableNow)}
-                title="Pokaż tylko wykonawców dostępnych w tej chwili"
-                className={`px-3 py-1.5 text-xs transition-colors flex items-center gap-1.5 ${
-                  availableNow 
-                    ? 'text-emerald-700 font-medium' 
-                    : 'text-gray-600 hover:text-gray-900'
+                onClick={() => onVerifiedOnlyChange(!verifiedOnly)}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
+                  verifiedOnly ? 'font-medium text-green-700' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Zap className="w-3.5 h-3.5" />
-                Dostępny teraz
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Verified
               </button>
-            )}
-          </div>
-
-          {/* Prawa strona - sortowanie i widok + slot na dodatkowe akcje */}
-          <div className="flex items-center gap-3">
-            {/* Sortowanie */}
-            <div className="relative">
               <button
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded-lg transition-colors ${
-                  viewMode === 'map'
-                    ? 'bg-white/50 backdrop-blur-md hover:bg-white/70 border border-gray-200/30'
-                    : isScrolled
-                      ? 'bg-white/60 backdrop-blur-md hover:bg-white/80 border border-gray-200/40'
-                      : 'bg-gray-100 hover:bg-gray-200'
+                type="button"
+                onClick={() => onB2bOnlyChange(!b2bOnly)}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
+                  b2bOnly ? 'font-medium text-purple-700' : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <span>Sortuj:</span>
-                <span className="font-medium">
-                  {sortOptions.find(opt => opt.value === sortBy)?.label || 'Domyślne'}
-                </span>
-                <span className="text-xs">▼</span>
+                <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Firma
               </button>
+              <button
+                type="button"
+                onClick={() => onProOnlyChange(!proOnly)}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
+                  proOnly ? 'font-medium text-orange-700' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                TOP
+              </button>
+              {onAvailableNowChange && (
+                <button
+                  type="button"
+                  onClick={() => onAvailableNowChange(!availableNow)}
+                  title="Pokaż tylko wykonawców dostępnych w tej chwili"
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
+                    availableNow ? 'font-medium text-emerald-700' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Dostępny teraz
+                </button>
+              )}
+            </div>
 
-              {showSortMenu && (
-                <div className="absolute right-0 top-full mt-1 min-w-[220px] bg-white rounded-lg shadow-lg border border-gray-200 py-1.5 z-50">
-                  {sortOptions.map((option) => (
+            {/* Sort / widok / Wszystkie filtry — zawsze mieści się w szerokości viewport */}
+            <div className="flex min-w-0 shrink-0 items-center justify-between gap-2 md:justify-end">
+              <div className="relative min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  className={`flex max-w-[min(100vw-8rem,16rem)] items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-sm text-gray-700 transition-colors sm:max-w-none sm:gap-2 sm:px-3 ${sortBtnSurface}`}
+                >
+                  <span className="hidden shrink-0 sm:inline">Sortuj:</span>
+                  <span className="min-w-0 flex-1 truncate font-medium sm:flex-none">
+                    {sortOptions.find((opt) => opt.value === sortBy)?.label || 'Domyślne'}
+                  </span>
+                  <span className="shrink-0 text-xs" aria-hidden>
+                    ▼
+                  </span>
+                </button>
+
+                {showSortMenu && (
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[min(100vw-2rem,260px)] max-w-[min(100vw-2rem,320px)] rounded-lg border border-gray-200 bg-white py-1.5 shadow-lg sm:min-w-[220px] sm:max-w-none">
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          onSortChange(option.value);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm leading-snug transition-colors hover:bg-gray-100 ${
+                          sortBy === option.value ? 'bg-indigo-50 font-medium text-indigo-800' : 'text-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {!hideViewSwitcher && (
+                <div
+                  className={`flex shrink-0 items-center rounded-lg p-1 transition-all ${
+                    viewMode === 'map'
+                      ? 'border border-gray-200/30 bg-white/50 backdrop-blur-md'
+                      : isScrolled
+                        ? 'border border-gray-200/40 bg-white/60 backdrop-blur-md'
+                        : 'bg-gray-100'
+                  }`}
+                >
+                  {viewModes.map((mode) => (
                     <button
-                      key={option.value}
-                      onClick={() => {
-                        onSortChange(option.value);
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm leading-snug hover:bg-gray-100 transition-colors ${
-                        sortBy === option.value ? 'bg-indigo-50 text-indigo-800 font-medium' : 'text-gray-700'
+                      key={mode.value}
+                      type="button"
+                      onClick={() => onViewModeChange(mode.value)}
+                      className={`rounded px-2 py-1 text-xs transition-colors ${
+                        viewMode === mode.value
+                          ? `${viewMode === 'map' ? 'bg-white/50' : isScrolled ? 'bg-white/60' : 'bg-white'} text-gray-900 shadow-sm`
+                          : 'text-gray-600 hover:text-gray-900'
                       }`}
+                      title={mode.label}
                     >
-                      {option.label}
+                      <mode.icon className="h-4 w-4 shrink-0" aria-hidden />
                     </button>
                   ))}
                 </div>
               )}
+
+              {rightExtra ? <div className="shrink-0">{rightExtra}</div> : null}
             </div>
-
-            {/* Przełącznik widoku – ukryty gdy hideViewSwitcher (renderowany nad listą / na mapie) */}
-            {!hideViewSwitcher && (
-              <div className={`flex items-center rounded-lg p-1 transition-all ${
-                viewMode === 'map'
-                  ? 'bg-white/50 backdrop-blur-md border border-gray-200/30'
-                  : isScrolled
-                    ? 'bg-white/60 backdrop-blur-md border border-gray-200/40'
-                    : 'bg-gray-100'
-              }`}>
-                {viewModes.map((mode) => (
-                  <button
-                    key={mode.value}
-                    onClick={() => onViewModeChange(mode.value)}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      viewMode === mode.value 
-                        ? `${viewMode === 'map' ? 'bg-white/50' : isScrolled ? 'bg-white/60' : 'bg-white'} text-gray-900 shadow-sm` 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    title={mode.label}
-                  >
-                    <mode.icon className="w-4 h-4 shrink-0" aria-hidden />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Wszystkie filtry */}
-            <div className="ml-auto">{rightExtra}</div>
-          </div>
           </div>
           {/* Drugi wiersz: Wyczyść filtry (tylko gdy są aktywne) */}
           {hasActiveFilters && onClearFilters && (

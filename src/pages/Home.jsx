@@ -509,8 +509,8 @@ export default function Home() {
       {/* Pasek: dropdown kategorii (dwukolumnowy) + toolbar wyników */}
       {viewMode === "map" ? (
         // Tryb mapy - fixed toolbar na górze
-        <div className="fixed top-16 left-0 right-0 z-50 border-b border-gray-200/20 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 py-3">
+        <div className="fixed left-0 right-0 top-16 z-50 max-w-[100vw] border-b border-gray-200/20 shadow-sm">
+          <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
             <ResultsToolbar
               searchQuery={filters.search}
               resultsCount={list.length}
@@ -553,12 +553,12 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowAdvancedFilters(true)}
-                  className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm hover:bg-slate-50 transition-colors"
+                  className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 sm:px-3 sm:py-2 sm:text-sm"
                 >
-                  Wszystkie filtry
+                  <span className="sm:hidden">Filtry</span>
+                  <span className="hidden sm:inline">Wszystkie filtry</span>
                 </button>
               }
-              scrolledDown={false}
               hideViewSwitcher
             />
           </div>
@@ -610,9 +610,10 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setShowAdvancedFilters(true)}
-                className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm hover:bg-slate-50 transition-colors"
+                className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 sm:px-3 sm:py-2 sm:text-sm"
               >
-                Wszystkie filtry
+                <span className="sm:hidden">Filtry</span>
+                <span className="hidden sm:inline">Wszystkie filtry</span>
               </button>
             }
           />
