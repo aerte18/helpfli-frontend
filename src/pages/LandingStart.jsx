@@ -403,11 +403,11 @@ export default function LandingStart() {
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Image with speech bubble */}
-            <div className="relative">
+            <div className="relative flex justify-center lg:block max-w-[min(100%,320px)] mx-auto lg:max-w-none lg:mx-0">
               <img
                 src="/img/quicksy-happy-user.png"
                 alt="Helpfli Platform"
-                className="w-full h-auto rounded-xl"
+                className="w-full h-auto max-h-[min(52vh,280px)] sm:max-h-[min(48vh,320px)] lg:max-h-none object-contain object-bottom rounded-xl"
                 style={{ mixBlendMode: 'multiply' }}
               />
               {/* Speech bubble */}
