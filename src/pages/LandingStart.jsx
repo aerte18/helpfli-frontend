@@ -17,7 +17,7 @@ import { SERVICES_CATALOG } from "../constants/servicesCatalog";
 const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarousel"));
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
 import SponsorAdBanner from "../components/SponsorAdBanner";
-import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, Bell } from "lucide-react";
+import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, Bell, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 function useDebouncedValue(value, delay = 200) {
@@ -270,17 +270,29 @@ export default function LandingStart() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text + primary actions */}
-            <div>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
+            <div className="min-w-0">
+              <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl" style={{ color: 'var(--foreground)' }}>
                 Znajdź pomoc<br />
                 w kilka sekund
               </h1>
-              <p className="text-lg mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                Opisz problem lub zapytaj AI, a otrzymasz dopasowane oferty od zweryfikowanych specjalistów w Twojej okolicy.
-              </p>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div
+                className="rounded-2xl border px-4 py-3.5 mb-5 sm:px-5 sm:py-4 sm:mb-6"
+                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                  Szybki start
+                </p>
+                <p className="text-sm sm:text-[15px] leading-snug sm:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                  Opisz, co jest do zrobienia, albo{' '}
+                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}>zapytaj AI</span>
+                  {' '}— pokażemy dopasowane oferty od zweryfikowanych specjalistów w Twojej okolicy.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row md:items-stretch md:gap-3 lg:max-w-2xl">
                 <button
+                  type="button"
                   onClick={() => {
                     const seedValue = query || "";
                     if (user?.role === "provider") {
@@ -294,12 +306,18 @@ export default function LandingStart() {
                       setAiOpen(true);
                     }
                   }}
-                  className="btn-helpfli-primary px-6 py-3 flex items-center justify-center gap-2 text-sm md:text-base"
+                  className="btn-helpfli-primary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left shadow-md shadow-indigo-900/10 active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Zapytaj Asystenta AI</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                      <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
+                    </span>
+                    <span className="min-w-0 text-[15px] font-semibold leading-tight">Zapytaj Asystenta AI</span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 opacity-85" aria-hidden />
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     if (user?.role === "provider") {
                       nav("/provider-home");
@@ -307,12 +325,20 @@ export default function LandingStart() {
                       nav("/home");
                     }
                   }}
-                  className="px-6 py-3 rounded-xl border border-gray-300 bg-white text-sm md:text-base text-gray-800 hover:bg-gray-50 flex items-center justify-center gap-2"
+                  className="btn-helpfli-secondary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
                 >
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full" style={{ backgroundColor: 'oklch(0.92 0.05 240)' }}>
-                    <MapPin className="w-4 h-4 text-indigo-600" />
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: 'oklch(0.92 0.05 240)' }}
+                    >
+                      <MapPin className="h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
+                    </span>
+                    <span className="min-w-0 text-[15px] font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
+                      {user?.role === "provider" ? "Znajdź oferty w okolicy" : "Znajdź specjalistę w okolicy"}
+                    </span>
                   </span>
-                  <span>{user?.role === "provider" ? "Znajdź oferty w okolicy" : "Znajdź specjalistę w okolicy"}</span>
+                  <ChevronRight className="h-5 w-5 shrink-0 opacity-45" style={{ color: 'var(--muted-foreground)' }} aria-hidden />
                 </button>
               </div>
             </div>
@@ -388,31 +414,38 @@ export default function LandingStart() {
         </div>
       </section>
 
-      {/* Baner sezonowy */}
-      <section className="pt-2 md:pt-3 pb-6 md:pb-8">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+      {/* Baner sezonowy — ciaśniejszy wrapper na mobile (aplikacyjny panel) */}
+      <section className="pt-1 pb-4 md:pt-3 md:pb-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div
+            className="rounded-2xl border p-3 sm:p-4 md:p-8 md:rounded-xl"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+          >
             <SeasonalBanner />
           </div>
         </div>
       </section>
 
-      {/* CTA dla wykonawców */}
-      <section className="py-6 md:py-8">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-            <div className="rounded-xl p-6 md:p-8" style={{ background: 'linear-gradient(to right, var(--primary), oklch(from var(--primary) calc(l * 1.1) calc(c * 1.2) h))', color: 'var(--primary-foreground)' }}>
-              <div className="flex flex-col items-center text-center gap-6 sm:flex-row sm:text-left">
-                <div className="flex-1">
-                  <h3 className="text-xl md:text-2xl font-bold mb-3">Jesteś usługodawcą?</h3>
-                  <p className="text-base md:text-lg opacity-90">
+      {/* CTA dla wykonawców — niższy w pionie na mobile */}
+      <section className="py-4 md:py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="rounded-xl border p-3 md:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <div
+              className="rounded-xl px-4 py-4 md:px-8 md:py-8"
+              style={{ background: 'linear-gradient(to right, var(--primary), oklch(from var(--primary) calc(l * 1.1) calc(c * 1.2) h))', color: 'var(--primary-foreground)' }}
+            >
+              <div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold leading-snug md:text-2xl md:mb-2">Jesteś usługodawcą?</h3>
+                  <p className="mt-1 text-sm leading-snug opacity-90 md:mt-0 md:text-base lg:text-lg">
                     Dołącz do Helpfli i pozyskuj zlecenia. Wyróżnienia, pakiety PRO i gwarancja.
                   </p>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="shrink-0 w-full sm:w-auto">
                   <button
+                    type="button"
                     onClick={() => nav("/register?role=provider")}
-                    className="btn-helpfli-primary px-6 py-3"
+                    className="btn-helpfli-primary w-full min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold sm:w-auto md:px-6 md:py-3 md:text-base"
                     style={{ backgroundColor: 'var(--primary-foreground)', color: 'var(--primary)' }}
                   >
                     Zarejestruj się jako wykonawca

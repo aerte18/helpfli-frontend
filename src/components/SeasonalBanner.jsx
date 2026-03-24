@@ -124,24 +124,24 @@ export default function SeasonalBanner() {
 
   if (loading) {
     return (
-      <section className="py-10 md:py-16">
-        <div className="text-center mb-6 md:mb-12 px-1">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 md:mb-4" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
-            <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--primary)' }}></span>
+      <section className="py-1 md:py-4">
+        <div className="mb-3 rounded-2xl border p-3 text-left md:mb-10 md:p-0 md:text-center md:border-0" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, oklch(0.96 0.04 264 / 0.5), oklch(0.95 0.06 290 / 0.35))' }}>
+          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold md:mb-4 md:px-4 md:py-2 md:text-sm" style={{ backgroundColor: 'var(--card)', color: 'var(--primary)', boxShadow: '0 1px 0 rgba(0,0,0,0.06)' }}>
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
             Sezon: {SEASON_NAMES[season]}
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4">Polecane usługi sezonowe</h2>
-          <p className="text-sm md:text-lg mb-2 md:mb-4 px-4" style={{ color: 'var(--muted-foreground)' }}>
-            Sprawdzone usługi idealne na {SEASON_ADJECTIVE_FEMININE[season]} porę roku
+          <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl md:mt-0 md:text-4xl" style={{ color: 'var(--foreground)' }}>Polecane usługi sezonowe</h2>
+          <p className="mt-1 text-xs leading-snug sm:text-sm md:mt-2 md:text-lg md:px-4" style={{ color: 'var(--muted-foreground)' }}>
+            Na {SEASON_ADJECTIVE_FEMININE[season]} porę roku — przesuń karty w bok
           </p>
         </div>
-        <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
           {[1, 2, 3].map(i => (
-            <div key={i} className="rounded-xl p-4 md:p-6 animate-pulse shrink-0 w-[min(280px,82vw)] md:w-auto snap-start" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-              <div className="h-8 rounded w-1/4 mb-2" style={{ backgroundColor: 'var(--muted)' }}></div>
-              <div className="h-6 rounded w-3/4 mb-2" style={{ backgroundColor: 'var(--muted)' }}></div>
-              <div className="h-4 rounded w-full mb-4" style={{ backgroundColor: 'var(--muted)' }}></div>
-              <div className="h-10 rounded w-full" style={{ backgroundColor: 'var(--muted)' }}></div>
+            <div key={i} className="w-[min(300px,86vw)] shrink-0 snap-start rounded-2xl border p-3 shadow-md animate-pulse md:w-auto md:rounded-xl md:p-6 md:shadow-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+              <div className="mb-2 h-6 w-1/4 rounded" style={{ backgroundColor: 'var(--muted)' }} />
+              <div className="mb-2 h-5 w-4/5 rounded" style={{ backgroundColor: 'var(--muted)' }} />
+              <div className="mb-3 h-3 w-full rounded" style={{ backgroundColor: 'var(--muted)' }} />
+              <div className="h-10 w-full rounded-xl" style={{ backgroundColor: 'var(--muted)' }} />
             </div>
           ))}
         </div>
@@ -152,72 +152,73 @@ export default function SeasonalBanner() {
   if (!services.length) return null;
 
   return (
-    <section className="py-10 md:py-16">
-      <div className="text-center mb-6 md:mb-12 px-1">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-3 md:mb-4 font-medium text-sm" style={{ backgroundColor: 'oklch(0.95 0.05 264)', color: 'var(--primary)' }}>
-          <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--primary)' }}></span>
+    <section className="py-1 md:py-4">
+      {/* Mobile: panel jak ekran w apce — wyraźniejszy nagłówek; desktop: klasycznie wyśrodkowany */}
+      <div
+        className="mb-3 rounded-2xl border p-3 text-left md:mb-10 md:border-0 md:bg-transparent md:p-0 md:text-center"
+        style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, oklch(0.96 0.04 264 / 0.55), oklch(0.95 0.06 290 / 0.4))' }}
+      >
+        <span
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold shadow-sm md:mb-4 md:px-4 md:py-2 md:text-sm"
+          style={{ backgroundColor: 'var(--card)', color: 'var(--primary)' }}
+        >
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
           Sezon: {SEASON_NAMES[season]}
         </span>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4" style={{ color: 'var(--foreground)' }}>Polecane usługi sezonowe</h2>
-        <p className="text-sm md:text-lg mb-2 md:mb-4 max-w-2xl mx-auto px-4" style={{ color: 'var(--muted-foreground)' }}>
-          Sprawdzone usługi idealne na {SEASON_ADJECTIVE_FEMININE[season]} porę roku
-        </p>
-        <p className="md:hidden text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
-          Przesuń palcem, aby zobaczyć kolejne usługi
+        <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl md:mt-0 md:text-4xl" style={{ color: 'var(--foreground)' }}>
+          Polecane usługi sezonowe
+        </h2>
+        <p className="mt-1 max-w-2xl text-xs leading-snug sm:text-sm md:mx-auto md:mt-2 md:text-lg md:px-4" style={{ color: 'var(--muted-foreground)' }}>
+          Sprawdzone usługi na {SEASON_ADJECTIVE_FEMININE[season]} porę roku.
+          <span className="md:hidden"> Przesuń palcem w bok.</span>
         </p>
       </div>
-      {/* Mobile: karuzela pozioma; md+: siatka 3 kolumny */}
-      <div className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+
+      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
         {services.map((svc, index) => (
-          <div 
+          <div
             key={svc.slug || index}
-            className="rounded-xl p-4 md:p-6 transition-all duration-300 h-full overflow-hidden hover:shadow-xl flex flex-col border shrink-0 w-[min(280px,82vw)] md:w-auto snap-start"
-            style={{ 
-              backgroundColor: 'var(--card)', 
-              borderColor: 'var(--border)', 
-              borderWidth: '1px' 
+            className="flex h-full min-h-0 w-[min(300px,86vw)] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:w-auto md:rounded-xl md:p-6 md:shadow-none"
+            style={{
+              backgroundColor: 'var(--card)',
+              borderColor: 'var(--border)',
+              borderWidth: '1px',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'var(--primary)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.boxShadow = '';
             }}
           >
-            {/* Ikona i badge */}
-            <div className="flex items-start justify-between mb-3 md:mb-4">
-              <div className="text-2xl md:text-3xl">{svc.icon}</div>
-              <span 
-                className="text-[10px] md:text-xs font-semibold px-1.5 py-0.5 md:px-2 md:py-1 rounded-md border"
-                style={{ 
-                  color: 'var(--primary)', 
+            <div className="mb-2 flex items-start justify-between md:mb-4">
+              <div className="text-2xl leading-none md:text-3xl">{svc.icon}</div>
+              <span
+                className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold md:px-2 md:py-1 md:text-xs"
+                style={{
+                  color: 'var(--primary)',
                   borderColor: 'var(--primary)',
-                  backgroundColor: 'transparent'
+                  backgroundColor: 'transparent',
                 }}
               >
                 {SEASON_NAMES[season].toUpperCase()}
               </span>
             </div>
 
-            {/* Treść - zajmuje dostępną przestrzeń */}
-            <div className="space-y-1.5 md:space-y-2 flex-1 mb-3 md:mb-4">
-              <p className="text-[10px] md:text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--primary)' }}>
-                SEZON: {SEASON_NAMES[season].toUpperCase()}
-              </p>
-              <h3 className="text-base md:text-lg font-bold leading-snug line-clamp-3" style={{ color: 'var(--foreground)' }}>
+            <div className="mb-2 flex flex-1 flex-col space-y-1 md:mb-4 md:space-y-2">
+              <h3 className="line-clamp-3 text-[15px] font-bold leading-snug md:text-lg" style={{ color: 'var(--foreground)' }}>
                 {svc.title}
               </h3>
-              <p className="text-xs md:text-sm leading-relaxed line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="line-clamp-2 text-xs leading-snug md:line-clamp-3 md:text-sm md:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
                 {svc.copy}
               </p>
             </div>
 
-            {/* Przycisk - zawsze na dole */}
-            <Link 
-              to={`/home?service=${encodeURIComponent(svc.slug)}`} 
-              className="btn-helpfli-primary w-full inline-flex items-center justify-center px-3 py-2.5 md:px-4 md:py-2 text-xs md:text-sm mt-auto min-h-[44px] md:min-h-0"
+            <Link
+              to={`/home?service=${encodeURIComponent(svc.slug)}`}
+              className="btn-helpfli-primary mt-auto inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-3 py-2.5 text-xs font-semibold md:min-h-0 md:rounded-xl md:px-4 md:py-2 md:text-sm"
             >
               Pokaż wykonawców
             </Link>
