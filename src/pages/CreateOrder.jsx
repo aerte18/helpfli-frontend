@@ -163,11 +163,12 @@ export default function CreateOrder() {
         const data = await response.json();
         setAttachments(prev => [...prev, ...data.attachments]);
       } else {
-        throw new Error('Błąd uploadu plików');
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Błąd uploadu plików');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setError('Błąd podczas dodawania plików');
+      setError(error.message || 'Błąd podczas dodawania plików');
     } finally {
       setUploadingFiles(false);
     }
@@ -1137,7 +1138,7 @@ export default function CreateOrder() {
             <input
               type="file"
               multiple
-              accept="image/*,.pdf,.doc,.docx,.txt"
+              accept="image/*,.webp,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx"
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
               id="file-upload"
@@ -1154,7 +1155,7 @@ export default function CreateOrder() {
                   <Upload className="h-8 w-8 mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
                   <p className="text-sm mb-1" style={{ color: 'var(--muted-foreground)' }}>Kliknij, aby dodać zdjęcia lub dokumenty</p>
                   <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    Obsługujemy pliki .JPG, .PNG, .PDF, .DOC, .DOCX, .XLS (.XLSX)
+                    Obsługujemy pliki .JPG, .PNG, .WEBP, .HEIC/.HEIF, .PDF, .DOC, .DOCX, .XLS, .XLSX
                   </p>
                 </>
               )}
@@ -1167,9 +1168,17 @@ export default function CreateOrder() {
                 {attachments.map((attachment, index) => (
                   <div key={index} className="flex items-center justify-between rounded-lg p-3 border" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-3">
-                      <div className="text-lg">
-                        {attachment.type?.startsWith('image/') ? '🖼️' : '📄'}
-                      </div>
+                      {attachment.type?.startsWith('image/') ? (
+                        <img
+                          src={apiUrl(attachment.url)}
+                          alt={attachment.filename}
+                          className="w-12 h-12 rounded object-cover border"
+                          style={{ borderColor: 'var(--border)' }}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="text-lg">📄</div>
+                      )}
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{attachment.filename}</div>
                         <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
