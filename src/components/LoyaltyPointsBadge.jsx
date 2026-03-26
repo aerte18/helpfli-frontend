@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 
 /**
@@ -20,7 +21,7 @@ export default function LoyaltyPointsBadge({
   async function fetchPoints() {
     if (!token) return;
     try {
-      const res = await fetch("/api/auth/me", {
+      const res = await fetch(apiUrl("/api/auth/me"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

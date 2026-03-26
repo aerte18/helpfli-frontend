@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, Search, Filter, Eye, EyeOff } from 'lucide-react';
@@ -25,7 +26,7 @@ export default function AdminKBManager() {
   const fetchArticles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/kb/articles');
+      const response = await fetch(apiUrl('/api/kb/articles'));
       if (response.ok) {
         const data = await response.json();
         setArticles(data);
@@ -88,7 +89,7 @@ export default function AdminKBManager() {
   const handleDelete = async (id) => {
     if (window.confirm('Czy na pewno chcesz usunąć ten artykuł?')) {
       try {
-        const response = await fetch(`/api/kb/articles/${id}`, {
+        const response = await fetch(apiUrl(`/api/kb/articles/${id}`), {
           method: 'DELETE',
         });
         if (response.ok) {
@@ -102,7 +103,7 @@ export default function AdminKBManager() {
 
   const toggleActive = async (id, currentStatus) => {
     try {
-      const response = await fetch(`/api/kb/articles/${id}`, {
+      const response = await fetch(apiUrl(`/api/kb/articles/${id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

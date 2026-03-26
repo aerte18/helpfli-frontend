@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -23,7 +24,7 @@ export default function NotificationsPage() {
       try {
         const token = localStorage.getItem('token');
         const skip = (page - 1) * limit;
-        const res = await fetch(`${API}/api/notifications?limit=${limit}&skip=${skip}`, {
+        const res = await fetch(apiUrl(`/api/notifications?limit=${limit}&skip=${skip}`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -50,7 +51,7 @@ export default function NotificationsPage() {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API}/api/notifications/${notificationId}/read`, {
+      await fetch(apiUrl(`/api/notifications/${notificationId}/read`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,7 +68,7 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API}/api/notifications/read-all`, {
+      await fetch(apiUrl(`/api/notifications/read-all`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -82,7 +83,7 @@ export default function NotificationsPage() {
   const deleteNotification = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API}/api/notifications/${notificationId}`, {
+      await fetch(apiUrl(`/api/notifications/${notificationId}`), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

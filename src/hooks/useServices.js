@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 
 const authHeaders = () => {
@@ -15,8 +16,7 @@ export default function useServices() {
   useEffect(() => {
     (async () => {
       try {
-        const API = import.meta.env.VITE_API_URL || "";
-        const res = await fetch(`${API}/api/services`, { headers: authHeaders() });
+        const res = await fetch(apiUrl("/api/services"), { headers: authHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || "Nie udało się pobrać usług");
         setServices(data.items || data || []);

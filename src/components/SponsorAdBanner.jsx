@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 
 /**
@@ -53,7 +54,7 @@ export default function SponsorAdBanner({
         params.append("context", JSON.stringify(context));
       }
 
-      const response = await fetch(`/api/sponsor-ads?${params.toString()}`);
+      const response = await fetch(apiUrl(`/api/sponsor-ads?${params.toString()}`));
       if (!response.ok) {
         setAds([]);
         return;
@@ -82,7 +83,7 @@ export default function SponsorAdBanner({
   const handleClick = async (ad) => {
     try {
       // Track click
-      await fetch(`/api/sponsor-ads/${ad._id}/click`, {
+      await fetch(apiUrl(`/api/sponsor-ads/${ad._id}/click`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +110,7 @@ export default function SponsorAdBanner({
 
   const trackImpression = async (ad) => {
     try {
-      await fetch(`/api/sponsor-ads/${ad._id}/impression`, {
+      await fetch(apiUrl(`/api/sponsor-ads/${ad._id}/impression`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

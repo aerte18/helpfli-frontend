@@ -1,5 +1,6 @@
+import { apiUrl } from "@/lib/apiUrl";
 export async function getOfferHint({ token, orderId }) {
-  const res = await fetch(`/api/offers/hint?orderId=${encodeURIComponent(orderId)}`, {
+  const res = await fetch(apiUrl(`/api/offers/hint?orderId=${encodeURIComponent(orderId)}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -11,7 +12,7 @@ export async function getOfferHint({ token, orderId }) {
 }
 
 export async function postOffer({ token, payload }) {
-  const res = await fetch(`/api/offers`, {
+  const res = await fetch(apiUrl(`/api/offers`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,7 +32,7 @@ export async function postOffer({ token, payload }) {
 }
 
 export async function boostOffer({ token, offerId, durationHours = 24 }) {
-  const res = await fetch(`/api/offers/${offerId}/boost`, {
+  const res = await fetch(apiUrl(`/api/offers/${offerId}/boost`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,7 +46,7 @@ export async function boostOffer({ token, offerId, durationHours = 24 }) {
 }
 
 export async function getOffersOfOrder({ token, orderId }) {
-  const res = await fetch(`/api/offers/of-order?orderId=${encodeURIComponent(orderId)}`, {
+  const res = await fetch(apiUrl(`/api/offers/of-order?orderId=${encodeURIComponent(orderId)}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -57,7 +58,7 @@ export async function getOffersOfOrder({ token, orderId }) {
 }
 
 export async function acceptOffer({ token, offerId }) {
-  const res = await fetch(`/api/offers/${offerId}/accept`, {
+  const res = await fetch(apiUrl(`/api/offers/${offerId}/accept`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -70,7 +71,7 @@ export async function acceptOffer({ token, offerId }) {
 }
 
 export async function updateOffer({ token, offerId, payload }) {
-  const res = await fetch(`/api/offers/${offerId}`, {
+  const res = await fetch(apiUrl(`/api/offers/${offerId}`), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -84,7 +85,7 @@ export async function updateOffer({ token, offerId, payload }) {
 }
 
 export async function cancelOffer({ token, offerId }) {
-  const res = await fetch(`/api/offers/${offerId}`, {
+  const res = await fetch(apiUrl(`/api/offers/${offerId}`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -97,7 +98,7 @@ export async function cancelOffer({ token, offerId }) {
 }
 
 export async function getMyOffer({ token, orderId }) {
-  const res = await fetch(`/api/offers/my?orderId=${encodeURIComponent(orderId)}`, {
+  const res = await fetch(apiUrl(`/api/offers/my?orderId=${encodeURIComponent(orderId)}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -110,7 +111,7 @@ export async function getMyOffer({ token, orderId }) {
 
 // Pobierz wszystkie oferty providera
 export async function getMyOffers({ token }) {
-  const res = await fetch(`/api/offers/my`, {
+  const res = await fetch(apiUrl(`/api/offers/my`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

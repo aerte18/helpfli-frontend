@@ -1,9 +1,9 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import L from 'leaflet';
 
 export default function AdminAnalytics() {
-  const API = import.meta.env.VITE_API_URL || '';
   const token = localStorage.getItem('token');
 
   const [from, setFrom] = useState(() => new Date(Date.now()-30*864e5).toISOString().slice(0,10));
@@ -15,7 +15,7 @@ export default function AdminAnalytics() {
   const [funnel, setFunnel] = useState([]);
 
   const load = async () => {
-    const res = await fetch(`${API}/api/admin/analytics/summary?from=${from}&to=${to}`, {
+    const res = await fetch(apiUrl(`/api/admin/analytics/summary?from=${from}&to=${to}`), {
       headers: { Authorization: `Bearer ${token}` }
     });
     const d = await res.json();
@@ -24,7 +24,7 @@ export default function AdminAnalytics() {
 
     // Monetization summary
     try {
-      const mRes = await fetch(`${API}/api/admin/analytics/monetization-summary?from=${from}&to=${to}`, {
+      const mRes = await fetch(apiUrl(`/api/admin/analytics/monetization-summary?from=${from}&to=${to}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (mRes.ok) {
@@ -39,9 +39,7 @@ export default function AdminAnalytics() {
 
     // Conversion funnel (CreateOrder / OfferForm / płatności)
     try {
-      const funnelRes = await fetch(
-        `${API}/api/telemetry/funnel?startDate=${from}T00:00:00.000Z&endDate=${to}T23:59:59.999Z`,
-        {
+      const funnelRes = await fetch(apiUrl(`/api/telemetry/funnel?startDate=${from}T00:00:00.000Z&endDate=${to}T23:59:59.999Z`), {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
@@ -78,7 +76,7 @@ export default function AdminAnalytics() {
   };
 
   const downloadCsv = async (dataset) => {
-    const url = `${API}/api/admin/analytics/export?dataset=${dataset}&from=${from}&to=${to}`;
+    const url = apiUrl(`/api/admin/analytics/export?dataset=${dataset}&from=${from}&to=${to}`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }});
     if (!res.ok) return alert('Błąd eksportu');
     const blob = await res.blob();
@@ -90,7 +88,7 @@ export default function AdminAnalytics() {
   };
 
   const downloadMonthlyPdf = async (month) => {
-    const url = `${API}/api/admin/reports/monthly.pdf?month=${month}`;
+    const url = apiUrl(`/api/admin/reports/monthly.pdf?month=${month}`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }});
     if (!res.ok) return alert('Błąd generowania PDF');
     const blob = await res.blob();
@@ -102,7 +100,7 @@ export default function AdminAnalytics() {
   };
 
   const downloadMonthlyCitiesPdf = async (month, limit=10) => {
-    const url = `${API}/api/admin/reports/monthly_cities.pdf?month=${month}&limit=${limit}`;
+    const url = apiUrl(`/api/admin/reports/monthly_cities.pdf?month=${month}&limit=${limit}`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }});
     if (!res.ok) return alert('Błąd generowania PDF per miasto');
     const blob = await res.blob();
@@ -114,7 +112,7 @@ export default function AdminAnalytics() {
   };
 
   const downloadMonthlyServicesPdf = async (month, limit=15, lang='pl') => {
-    const url = `${API}/api/admin/reports/monthly_services.pdf?month=${month}&limit=${limit}&lang=${lang}`;
+    const url = apiUrl(`/api/admin/reports/monthly_services.pdf?month=${month}&limit=${limit}&lang=${lang}`);
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }});
     if (!res.ok) return alert('Błąd generowania PDF per usługa');
     const blob = await res.blob();
@@ -126,7 +124,7 @@ export default function AdminAnalytics() {
   };
 
   const loadSegments = async () => {
-    const res = await fetch(`${API}/api/admin/analytics/segment?dim=${segDim}&from=${from}&to=${to}`, {
+    const res = await fetch(apiUrl(`/api/admin/analytics/segment?dim=${segDim}&from=${from}&to=${to}`), {
       headers: { Authorization: `Bearer ${token}` }
     });
     const d = await res.json();
@@ -146,7 +144,7 @@ export default function AdminAnalytics() {
     setRefundMsg("");
     setRefundLoading(true);
     try {
-      const res = await fetch(`${API}/api/payments/refund`, {
+      const res = await fetch(apiUrl(`/api/payments/refund`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

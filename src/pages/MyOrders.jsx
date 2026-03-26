@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import { Clock, AlertCircle, CheckCircle } from "lucide-react";
@@ -12,7 +13,7 @@ const MyOrders = () => {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("/api/orders", {
+        const res = await fetch(apiUrl("/api/orders"), {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -36,7 +37,7 @@ const MyOrders = () => {
     setExtendingOrderId(orderId);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/orders/${orderId}/extend`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/extend`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +49,7 @@ const MyOrders = () => {
       if (!res.ok) throw new Error(data?.message || "Błąd wydłużania zlecenia");
       
       // Odśwież listę zleceń
-      const resRefresh = await fetch("/api/orders", {
+      const resRefresh = await fetch(apiUrl("/api/orders"), {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 
 export default function ServiceSelector({ value, onChange, label, includeAll = true }) {
@@ -9,7 +10,7 @@ export default function ServiceSelector({ value, onChange, label, includeAll = t
       try {
         const token = localStorage.getItem('token');
         const API = import.meta.env.VITE_API_URL || "";
-        const res = await fetch(`${API}/api/services`, {
+        const res = await fetch(apiUrl(`/api/services`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

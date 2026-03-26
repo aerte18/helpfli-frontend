@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 
 const Inbox = ({ onSelectConversation }) => {
@@ -6,7 +7,7 @@ const Inbox = ({ onSelectConversation }) => {
   const fetchInbox = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/messages", {
+      const res = await fetch(apiUrl("/api/messages"), {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

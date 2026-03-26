@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
@@ -5,7 +6,7 @@ import Logo from "../components/Logo";
 function LoyaltyWidgetInner(){
   const token = localStorage.getItem('token');
   const [me, setMe] = useState(null);
-  useEffect(()=>{ (async()=>{ try{ const r=await fetch('/api/auth/me',{ headers:{ Authorization:`Bearer ${token}` } }); if(r.ok) setMe(await r.json()); }catch{} })(); },[]);
+  useEffect(()=>{ (async()=>{ try{ const r=await fetch(apiUrl('/api/auth/me'),{ headers:{ Authorization:`Bearer ${token}` } }); if(r.ok) setMe(await r.json()); }catch{} })(); },[]);
   if(!me) return null;
   return (
     <div className="p-4 rounded-xl border bg-white mt-4">

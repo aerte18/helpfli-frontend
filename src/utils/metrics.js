@@ -1,7 +1,8 @@
+import { apiUrl } from "@/lib/apiUrl";
 export const metrics = {
   hit: (providerId, field) => {
     if (!providerId || !field) return;
-    return fetch("/api/metrics/hit", {
+    return fetch(apiUrl("/api/metrics/hit"), {
       method: "POST", 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ providerId, field })
@@ -13,7 +14,7 @@ export const metrics = {
     const token = localStorage.getItem("token");
     if (!token) return;
     
-    return fetch("/api/metrics/act", {
+    return fetch(apiUrl("/api/metrics/act"), {
       method: "POST", 
       headers: { 
         "Content-Type": "application/json", 

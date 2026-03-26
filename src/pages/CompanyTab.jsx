@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -17,7 +18,7 @@ export default function CompanyTab({ user }) {
 
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/companies/${user.company}`, {
+        const res = await fetch(apiUrl(`/api/companies/${user.company}`), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

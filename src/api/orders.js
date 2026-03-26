@@ -1,6 +1,7 @@
+import { apiUrl } from "@/lib/apiUrl";
 // src/api/orders.js
 export async function createOrder({ token, payload }) {
-  const res = await fetch("/api/orders", {
+  const res = await fetch(apiUrl("/api/orders"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

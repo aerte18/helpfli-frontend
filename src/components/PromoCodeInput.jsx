@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 
 export default function PromoCodeInput({ onValidate, baseAmount = 0, serviceKey }) {
@@ -11,7 +12,7 @@ export default function PromoCodeInput({ onValidate, baseAmount = 0, serviceKey 
     if (!code) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/promo/validate', {
+      const res = await fetch(apiUrl('/api/promo/validate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ code, baseAmount, serviceKey })

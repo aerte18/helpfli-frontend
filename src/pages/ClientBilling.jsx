@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import PromoCodeInput from "../components/PromoCodeInput";
 
@@ -10,9 +11,9 @@ export default function ClientBilling() {
 
   const fetchAll = async () => {
     const [meRes, plansRes, subRes] = await Promise.all([
-      fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` }}),
-      fetch("/api/subscriptions/plans"),
-      fetch("/api/subscriptions/me", { headers: { Authorization: `Bearer ${token}` }})
+      fetch(apiUrl("/api/auth/me"), { headers: { Authorization: `Bearer ${token}` }}),
+      fetch(apiUrl("/api/subscriptions/plans")),
+      fetch(apiUrl("/api/subscriptions/me"), { headers: { Authorization: `Bearer ${token}` }})
     ]);
     setMe(await meRes.json());
     setPlans(await plansRes.json());
@@ -22,7 +23,7 @@ export default function ClientBilling() {
   useEffect(() => { fetchAll(); }, []);
 
   const subscribe = async (planKey) => {
-    const res = await fetch("/api/subscriptions/subscribe", {
+    const res = await fetch(apiUrl("/api/subscriptions/subscribe"), {
       method: "POST",
       headers: { "Content-Type":"application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ planKey })
@@ -33,7 +34,7 @@ export default function ClientBilling() {
   };
 
   const cancel = async () => {
-    const res = await fetch("/api/subscriptions/cancel", {
+    const res = await fetch(apiUrl("/api/subscriptions/cancel"), {
       method: "POST",
       headers: { "Content-Type":"application/json", Authorization: `Bearer ${token}` }
     });

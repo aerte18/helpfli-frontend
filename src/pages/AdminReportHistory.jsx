@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 const TYPE_LABEL = {
@@ -7,7 +8,6 @@ const TYPE_LABEL = {
 };
 
 export default function AdminReportHistory() {
-  const API = import.meta.env.VITE_API_URL || '';
   const token = localStorage.getItem('token');
 
   const [items, setItems] = useState([]);
@@ -35,7 +35,7 @@ export default function AdminReportHistory() {
     if (filters.type) q.set('type', filters.type);
     if (filters.month) q.set('month', filters.month);
     if (filters.status) q.set('status', filters.status);
-    const res = await fetch(`${API}/api/admin/reports/logs?` + q.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(apiUrl(`/api/admin/reports/logs?` + q.toString()), { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
     setItems(data.items || []);
     setPage(data.page || 1);
@@ -45,12 +45,12 @@ export default function AdminReportHistory() {
 
   useEffect(()=>{ load(1); /* eslint-disable-next-line */ }, []);
 
-  const previewUrl = (id) => `${API}/api/admin/reports/logs/${id}/preview.pdf`;
+  const previewUrl = (id) => apiUrl(`/api/admin/reports/logs/${id}/preview.pdf`);
 
   const openSvcModal = async (logId) => {
     setSvcBusy(true);
     try {
-      const res = await fetch(`${API}/api/admin/reports/logs/${logId}/services`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl(`/api/admin/reports/logs/${logId}/services`), { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd pobierania usług');
       setSvcOptions(data.items || []);
@@ -66,7 +66,7 @@ export default function AdminReportHistory() {
 
   const openSvcPreview = () => {
     if (!svcSelected) return;
-    const url = `${API}/api/admin/reports/logs/${svcModalLogId}/preview.pdf?variant=single&serviceKey=${encodeURIComponent(svcSelected)}`;
+    const url = apiUrl(`/api/admin/reports/logs/${svcModalLogId}/preview.pdf?variant=single&serviceKey=${encodeURIComponent(svcSelected)}`);
     window.open(url, '_blank');
   };
 
@@ -74,7 +74,7 @@ export default function AdminReportHistory() {
     if (!confirm('Wysłać ponownie ten raport do oryginalnych odbiorców?')) return;
     setBusy(true);
     try {
-      const res = await fetch(`${API}/api/admin/reports/logs/${id}/resend`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl(`/api/admin/reports/logs/${id}/resend`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd wysyłki');
       alert('Wysłano ponownie.');
@@ -98,7 +98,7 @@ export default function AdminReportHistory() {
     if (!rec.length) { alert('Podaj co najmniej jeden e-mail'); return; }
     setSendingCustom(true);
     try {
-      const url = `${API}/api/admin/reports/logs/${modalId}/resend?recipients=${encodeURIComponent(rec.join(','))}`;
+      const url = apiUrl(`/api/admin/reports/logs/${modalId}/resend?recipients=${encodeURIComponent(rec.join(','))}`);
       const res = await fetch(url, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd wysyłki');
@@ -166,7 +166,7 @@ export default function AdminReportHistory() {
                 <td className="p-2 space-x-2">
                   {it.type === 'monthly_services_batch' ? (
                     <>
-                      <a href={`${API}/api/admin/reports/logs/${it._id}/preview.pdf`} target="_blank" rel="noreferrer" className="px-3 py-1 rounded border">Podgląd (zbiorczy)</a>
+                      <a href={apiUrl(`/api/admin/reports/logs/${it._id}/preview.pdf`)} target="_blank" rel="noreferrer" className="px-3 py-1 rounded border">Podgląd (zbiorczy)</a>
                       <button onClick={()=>openSvcModal(it._id)} disabled={svcBusy} className="px-3 py-1 rounded border">Podgląd (usługa)</button>
                       <button disabled={busy} onClick={()=>resend(it._id)} className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-60">Wyślij ponownie</button>
                       <button onClick={()=>openCustomModal(it._id, it.recipients || [])} className="px-3 py-1 rounded bg-emerald-600 text-white">Wyślij do…</button>

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import PromoCodeInput from "../components/PromoCodeInput";
 
@@ -8,7 +9,7 @@ export default function BillingBenefits() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(apiUrl("/api/auth/me"), { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) setMe(await res.json());
       } catch {}
     })();

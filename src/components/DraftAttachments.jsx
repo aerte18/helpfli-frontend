@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 
 export default function DraftAttachments({ draftId, attachments, onUpdated }) {
@@ -11,7 +12,7 @@ export default function DraftAttachments({ draftId, attachments, onUpdated }) {
     for (const f of files) fd.append('files', f);
     setBusy(true);
     try {
-      const res = await fetch(`${API}/api/ai/drafts/${draftId}/attachments`, {
+      const res = await fetch(apiUrl(`/api/ai/drafts/${draftId}/attachments`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: fd
@@ -29,7 +30,7 @@ export default function DraftAttachments({ draftId, attachments, onUpdated }) {
   const remove = async (attId) => {
     setBusy(true);
     try {
-      const res = await fetch(`${API}/api/ai/drafts/${draftId}/attachments/${attId}`, {
+      const res = await fetch(apiUrl(`/api/ai/drafts/${draftId}/attachments/${attId}`), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

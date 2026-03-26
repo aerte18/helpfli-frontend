@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useRef, useEffect } from 'react';
 import { sortCategoriesByOrder, sortSubcategories } from '../constants/categoryOrder';
 
@@ -73,9 +74,8 @@ export default function ServiceCategorySelector({
     const fetchServices = async () => {
       try {
         const token = localStorage.getItem('token');
-        const API = import.meta.env.VITE_API_URL || "";
         const limit = 1000;
-        const servicesUrl = API ? `${API}/api/services?limit=${limit}` : `/api/services?limit=${limit}`;
+        const servicesUrl = apiUrl(`/api/services?limit=${limit}`);
         const res = await fetch(servicesUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });

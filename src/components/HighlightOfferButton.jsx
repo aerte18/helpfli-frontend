@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 import { Star, Sparkles } from 'lucide-react';
 
@@ -11,7 +12,7 @@ export default function HighlightOfferButton({ offer, orderId, onHighlighted }) 
       setError(null);
       
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/offers/${offer._id}/boost`, {
+      const res = await fetch(apiUrl(`/api/offers/${offer._id}/boost`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -16,8 +17,7 @@ export default function AdminSponsorAds() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const API = import.meta.env.VITE_API_URL || "";
-      const url = new URL(`${API}/api/sponsor-ads`);
+      const url = new URL(apiUrl("/api/sponsor-ads"));
       if (filter !== "all") {
         url.searchParams.append("status", filter);
       }
@@ -46,7 +46,7 @@ export default function AdminSponsorAds() {
     try {
       const token = localStorage.getItem("token");
       const API = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${API}/api/sponsor-ads/${adId}/approve`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${adId}/approve`), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -78,7 +78,7 @@ export default function AdminSponsorAds() {
     try {
       const token = localStorage.getItem("token");
       const API = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${API}/api/sponsor-ads/${adId}/reject`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${adId}/reject`), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@ export default function AdminSponsorAds() {
     try {
       const token = localStorage.getItem("token");
       const API = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${API}/api/sponsor-ads/${adId}`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${adId}`), {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -337,7 +337,7 @@ export default function AdminSponsorAds() {
                           try {
                             const token = localStorage.getItem("token");
                             const API = import.meta.env.VITE_API_URL || "";
-                            await fetch(`${API}/api/sponsor-ads/${ad._id}`, {
+                            await fetch(apiUrl(`/api/sponsor-ads/${ad._id}`), {
                               method: "PUT",
                               headers: {
                                 Authorization: `Bearer ${token}`,

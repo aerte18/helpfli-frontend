@@ -1,4 +1,5 @@
 // Integracje kalendarzowe (Google, Outlook)
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { 
   getCalendarIntegrations, 
@@ -32,7 +33,7 @@ export default function CalendarIntegrations() {
   const handleConnect = async (provider) => {
     try {
       // Otwórz okno OAuth
-      const authUrl = `${import.meta.env.VITE_API_URL || ''}/api/integrations/calendar/auth/${provider}`;
+      const authUrl = apiUrl(`/api/integrations/calendar/auth/${provider}`);
       const popup = window.open(
         authUrl,
         'Calendar Auth',

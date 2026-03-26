@@ -1,7 +1,7 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ensureNotifyPermission, notify } from "../../utils/notify";
 
-const API = import.meta.env.VITE_API_URL || "";
 const GW = import.meta.env.VITE_GATEWAY_AI_BASE || "";
 const USE_STREAM = true; // Enable streaming
 
@@ -31,7 +31,7 @@ export default function useAIConcierge() {
     setIsThinking(true);
     try {
       // Prefer Gateway AI if configured; fall back to legacy backend endpoint
-      const target = GW ? `${GW}/ai/concierge` : `${API}/api/ai/concierge`;
+      const target = GW ? `${GW}/ai/concierge` : apiUrl("/api/ai/concierge");
       const body = GW ? { message: description, history: messages.map(m=>({role:m.role, content:m.text})), riskHigh: /gaz|prąd|wyciek/i.test(description) } : { problemText: description, language };
       const res = await fetch(target, {
         method: 'POST',
@@ -186,7 +186,7 @@ export default function useAIConcierge() {
 
   async function toggleStep(i, done) {
     if (!draft?.id) return;
-    await fetch(`${API}/api/ai/drafts/${draft.id}/steps`, {
+    await fetch(apiUrl(`/api/ai/drafts/${draft.id}/steps`), {
       method: 'PATCH',
       headers: { 'Content-Type':'application/json', Authorization: `Bearer ${tokenRef.current}` },
       body: JSON.stringify({ index: i, done })
@@ -200,7 +200,7 @@ export default function useAIConcierge() {
     const fd = new FormData();
     [...files].slice(0, 5).forEach(f => fd.append('files', f));
     
-    const r = await fetch(`${API}/api/ai/drafts/${draft.id}/attachments`, {
+    const r = await fetch(apiUrl(`/api/ai/drafts/${draft.id}/attachments`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokenRef.current}` },
       body: fd
@@ -222,7 +222,7 @@ export default function useAIConcierge() {
 
   async function submitOrder() {
     if (!draft?.id) return;
-    const res = await fetch(`${API}/api/ai/drafts/${draft.id}/submit`, {
+    const res = await fetch(apiUrl(`/api/ai/drafts/${draft.id}/submit`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${tokenRef.current}` }
     });
@@ -232,7 +232,7 @@ export default function useAIConcierge() {
 
     // prefill czatu (jeśli masz endpoint)
     try {
-      await fetch(`${API}/api/chat/${data.orderId}/messages/prefill`, {
+      await fetch(apiUrl(`/api/chat/${data.orderId}/messages/prefill`), {
         method:'POST', headers:{ Authorization:`Bearer ${tokenRef.current}` }
       });
     } catch {}

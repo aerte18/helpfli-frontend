@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -11,7 +12,7 @@ export default function ProviderPromoBanner() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/api/promo/me", {
+        const r = await fetch(apiUrl("/api/promo/me"), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (r.ok) setData(await r.json());

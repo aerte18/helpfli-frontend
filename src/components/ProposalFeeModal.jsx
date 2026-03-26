@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
 import { getMySubscription, getMyPoints, redeemPoints, getBoostOptions } from "../api/subscriptions";
 import { DollarSign, Clock, MessageSquare, X, Zap, CheckCircle2 } from "lucide-react";
@@ -34,7 +35,7 @@ export default function ProposalFeeModal({ open, onClose, order, onSubmitted }) 
           getMySubscription().catch(() => null),
           getMyPoints().catch(() => ({ balance: 0 })),
           getBoostOptions().catch(() => ({ options: [] })),
-          fetch('/api/provider-stats/free-replies-left', { headers: { Authorization: `Bearer ${token}` }}).then(r=>r.json()).catch(()=>({ freeRepliesLeft: null }))
+          fetch(apiUrl('/api/provider-stats/free-replies-left'), { headers: { Authorization: `Bearer ${token}` }}).then(r=>r.json()).catch(()=>({ freeRepliesLeft: null }))
         ]);
         setSubscription(sub);
         setPoints(pts?.balance || 0);
@@ -85,7 +86,7 @@ export default function ProposalFeeModal({ open, onClose, order, onSubmitted }) 
         await redeemPoints(-feePLN, "proposal_fee");
       }
 
-      const res = await fetch(`/api/orders/${orderId}/proposals`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/proposals`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -48,7 +49,7 @@ export default function ServiceManager({ user, onServicesUpdate }) {
       try {
         const token = localStorage.getItem('token');
         const API = import.meta.env.VITE_API_URL || "";
-        const res = await fetch(`${API}/api/services`, {
+        const res = await fetch(apiUrl(`/api/services`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -86,7 +87,7 @@ export default function ServiceManager({ user, onServicesUpdate }) {
       try {
         const token = localStorage.getItem('token');
         const API = import.meta.env.VITE_API_URL || "";
-        const res = await fetch(`${API}/api/user-services`, {
+        const res = await fetch(apiUrl(`/api/user-services`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -155,7 +156,7 @@ export default function ServiceManager({ user, onServicesUpdate }) {
     try {
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${API}/api/user-services`, {
+      const res = await fetch(apiUrl(`/api/user-services`), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ export default function ServiceManager({ user, onServicesUpdate }) {
         // Zaktualizuj główną usługę (pierwsza wybrana kategoria)
         if (userCategories.length > 0) {
           const firstCategoryName = getCategoryName(userCategories[0]);
-          await fetch(`${API}/api/users/me/profile`, {
+          await fetch(apiUrl(`/api/users/me/profile`), {
             method: 'PUT',
             headers: { 
               'Content-Type': 'application/json',

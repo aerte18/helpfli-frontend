@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AskQuoteModal from "../components/AskQuoteModal";
@@ -64,7 +65,7 @@ export default function ProviderProfile() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiGet(`${import.meta.env.VITE_API_URL || ''}/api/ratings/avg/${id}`);
+        const r = await apiGet(apiUrl(`/api/ratings/avg/${id}`));
         setAvgRating(r?.avg || r?.average || null);
       } catch {
         // brak ocen nie jest błędem blokującym
@@ -91,7 +92,7 @@ export default function ProviderProfile() {
       try {
         const token = localStorage.getItem('token');
         if (!token) return setCanRate(false);
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ratings/eligible?otherUser=${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(apiUrl(`/api/ratings/eligible?otherUser=${id}`), { headers: { Authorization: `Bearer ${token}` } });
         const j = await res.json();
         setCanRate(!!j.eligible);
       } catch { setCanRate(false); }
@@ -100,10 +101,9 @@ export default function ProviderProfile() {
 
   // 3) Zawsze pobierz pełne dane providera (populated services) – także gdy przyszły z listy
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL || '';
     (async () => {
       try {
-        const r = await apiGet(`${API}/api/users/${id}`);
+        const r = await apiGet(apiUrl(`/api/users/${id}`));
         setProvider(r);
       } catch (e) {
         if (!provider) setError("Nie udało się pobrać profilu wykonawcy.");
@@ -608,7 +608,7 @@ export default function ProviderProfile() {
         onClose={() => setOpenRate(false)}
         providerId={provider._id}
         onSubmitted={() => {
-          fetch(`${import.meta.env.VITE_API_URL || ''}/api/ratings/avg/${provider._id}`)
+          fetch(apiUrl(`/api/ratings/avg/${provider._id}`))
             .then(r => r.json())
             .then(d => setAvgRating(d?.avg || d?.average || avgRating))
             .catch(()=>{});

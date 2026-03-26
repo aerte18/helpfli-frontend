@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from 'react';
 import { Search, Bell, ClipboardList, Building2, X, Wrench, Plus } from "lucide-react";
@@ -43,7 +44,7 @@ export default function Navbar() {
       try {
         const token = localStorage.getItem('token');
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/notifications/unread/count`, {
+        const res = await fetch(apiUrl(`/api/notifications/unread/count`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

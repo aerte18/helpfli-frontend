@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -479,9 +480,8 @@ const ProvidersPage = () => {
         searchParams.set('maxTime', String(filters.maxTime));
       }
       
-      const API = import.meta.env.VITE_API_URL || "";
       const token = localStorage.getItem("token");
-      const url = `${API}/api/search?${searchParams.toString()}`;
+      const url = apiUrl(`/api/search?${searchParams.toString()}`);
       const response = await fetch(url, {
         headers: {
           "Content-Type": "application/json",

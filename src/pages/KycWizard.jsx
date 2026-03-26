@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function KycWizard() {
@@ -10,7 +11,7 @@ export default function KycWizard() {
   const [message, setMessage] = useState('');
 
   const fetchMe = async () => {
-    const res = await fetch(`${API}/api/kyc/me`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(apiUrl(`/api/kyc/me`), { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
     setMe(data);
     // preset form z backendu
@@ -30,7 +31,7 @@ export default function KycWizard() {
 
   const saveData = async () => {
     setSaving(true); setMessage('');
-    const res = await fetch(`${API}/api/kyc/save`, {
+    const res = await fetch(apiUrl(`/api/kyc/save`), {
       method: 'POST',
       headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(form),
@@ -50,7 +51,7 @@ export default function KycWizard() {
     if (files.selfie) fd.append('selfie', files.selfie);
     if (form.type === 'company' && files.companyDoc) fd.append('companyDoc', files.companyDoc);
 
-    const res = await fetch(`${API}/api/kyc/upload`, {
+    const res = await fetch(apiUrl(`/api/kyc/upload`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
@@ -64,7 +65,7 @@ export default function KycWizard() {
 
   const submit = async () => {
     setSaving(true); setMessage('');
-    const res = await fetch(`${API}/api/kyc/submit`, {
+    const res = await fetch(apiUrl(`/api/kyc/submit`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });

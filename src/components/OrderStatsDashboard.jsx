@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -19,7 +20,7 @@ export default function OrderStatsDashboard({ userRole, userId }) {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/orders/my/stats', {
+        const res = await fetch(apiUrl('/api/orders/my/stats'), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

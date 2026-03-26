@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp } from "lucide-react";
@@ -44,7 +45,7 @@ export default function Account() {
       if (user?.role !== 'provider') return;
       
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/provider-stats`, {
+        const res = await fetch(apiUrl(`/api/provider-stats`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -695,7 +696,7 @@ function OrdersTab({ user }) {
         const token = localStorage.getItem('token');
         // Pobierz wszystkie zlecenia - filtrowanie po stronie klienta (podobnie jak dla providera)
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/orders/my`, {
+        const res = await fetch(apiUrl(`/api/orders/my`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -1392,7 +1393,7 @@ function BillingTab({ user }) {
         if (filter !== 'all') params.append('status', filter);
         
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/revenue/user?${params}`, {
+        const res = await fetch(apiUrl(`/api/revenue/user?${params}`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -1578,7 +1579,7 @@ function RatingsTab({ user }) {
   useEffect(() => {
     const id = user?._id || user?.id;
     if (!id) return;
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/ratings/avg/${id}`)
+    fetch(apiUrl(`/api/ratings/avg/${id}`))
       .then(r => r.json())
       .then(setData)
       .catch(()=>{});
@@ -1704,7 +1705,7 @@ function ProfileTab({ user, fetchMe }) {
     setProfileSaved(false);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/users/me/profile`, {
+      const res = await fetch(apiUrl(`/api/users/me/profile`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1736,7 +1737,7 @@ function ProfileTab({ user, fetchMe }) {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('avatar', file);
-      const res = await fetch(`${API}/api/users/me/avatar`, {
+      const res = await fetch(apiUrl(`/api/users/me/avatar`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -2045,7 +2046,7 @@ function generatePDF() {
   }
   
   // Pobierz raport PDF
-  fetch(`${import.meta.env.VITE_API_URL || ''}/api/provider-stats/pdf`, {
+  fetch(apiUrl(`/api/provider-stats/pdf`), {
     headers: { Authorization: `Bearer ${token}` }
   })
   .then(response => {
@@ -2140,7 +2141,7 @@ function PaymentsTab({ user, fetchMe }) {
       setSavingPaymentPref(true);
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/users/me`, {
+      const res = await fetch(apiUrl(`/api/users/me`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2167,7 +2168,7 @@ function PaymentsTab({ user, fetchMe }) {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/payments/connect/create-account`, {
+      const res = await fetch(apiUrl(`/api/payments/connect/create-account`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2201,7 +2202,7 @@ function PaymentsTab({ user, fetchMe }) {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/payments/connect/account-link`, {
+      const res = await fetch(apiUrl(`/api/payments/connect/account-link`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -2404,7 +2405,7 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
       setSavingAccount(true);
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/users/me`, {
+      const res = await fetch(apiUrl(`/api/users/me`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2438,7 +2439,7 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
       setSavingB2B(true);
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/users/me`, {
+      const res = await fetch(apiUrl(`/api/users/me`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -2494,7 +2495,7 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
       setSavingBilling(true);
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/users/me/billing`, {
+      const res = await fetch(apiUrl(`/api/users/me/billing`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

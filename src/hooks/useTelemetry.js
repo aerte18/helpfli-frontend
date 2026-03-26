@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -57,7 +58,7 @@ export function useTelemetry() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      await fetch('/api/telemetry/batch', {
+      await fetch(apiUrl('/api/telemetry/batch'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

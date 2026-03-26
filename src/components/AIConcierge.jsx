@@ -1,4 +1,5 @@
 // src/components/AIConcierge.jsx
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAIConcierge } from "../hooks/useAIConcierge";
 import { useAIPricing } from "../hooks/useAIPricing";
@@ -259,7 +260,7 @@ export default function AIConcierge({ token, onCreateOrder, defaultText = "" }) 
                             // PATCH /api/ai/drafts/:id/steps
                             if (result?.draftId) {
                               try {
-                                await fetch(`/api/ai/drafts/${result.draftId}/steps`, {
+                                await fetch(apiUrl(`/api/ai/drafts/${result.draftId}/steps`), {
                                   method: 'PATCH',
                                   headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
                                   body: JSON.stringify({ index: i, done: e.target.checked })

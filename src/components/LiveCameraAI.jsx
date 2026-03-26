@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -367,7 +368,7 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
       formData.append('files', blob, 'camera-capture.jpg');
       
       const token = localStorage.getItem('token');
-      const uploadRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ai/concierge/upload`, {
+      const uploadRes = await fetch(apiUrl(`/api/ai/concierge/upload`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -391,7 +392,7 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
       const fullDescription = description.trim() || 
         (voiceInput ? `Pokazuję: ${voiceInput}` : 'Zobacz co to jest i pomóż mi to naprawić.');
       
-      const analyzeRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ai/concierge/analyze`, {
+      const analyzeRes = await fetch(apiUrl(`/api/ai/concierge/analyze`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -469,7 +470,7 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
       }
       
       // Upload wszystkich klatek
-      const uploadRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ai/concierge/upload`, {
+      const uploadRes = await fetch(apiUrl(`/api/ai/concierge/upload`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -483,7 +484,7 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
       const imageUrls = uploadData.files?.map(f => f.url) || [];
       
       // Analiza sekwencji
-      const analyzeRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ai/concierge/analyze`, {
+      const analyzeRes = await fetch(apiUrl(`/api/ai/concierge/analyze`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -520,9 +521,7 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
     setLoadingProviders(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/search/providers?service=${serviceCode}&lat=${location.lat}&lon=${location.lon}&limit=5`,
-        {
+      const res = await fetch(apiUrl(`/api/search/providers?service=${serviceCode}&lat=${location.lat}&lon=${location.lon}&limit=5`), {
           headers: {
             'Authorization': `Bearer ${token}`
           }

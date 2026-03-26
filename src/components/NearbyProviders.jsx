@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import MapView from './MapView';
 import { Link } from 'react-router-dom';
@@ -62,7 +63,7 @@ export default function NearbyProviders() {
       
       console.log("Fetching providers from API /api/search...", qs.toString());
       const API = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${API}/api/search?${qs.toString()}`, {
+      const response = await fetch(apiUrl(`/api/search?${qs.toString()}`), {
         headers: { "Content-Type": "application/json" }
       });
       console.log("Response status:", response.status);

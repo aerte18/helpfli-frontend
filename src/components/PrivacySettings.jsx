@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { Shield, Download, Trash2, AlertTriangle, CheckCircle, X } from 'lucide-react';
 
@@ -21,7 +22,7 @@ export default function PrivacySettings() {
   const fetchConsentStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/privacy/consent-status', {
+      const res = await fetch(apiUrl('/api/privacy/consent-status'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -37,7 +38,7 @@ export default function PrivacySettings() {
   const fetchCanDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/privacy/can-delete', {
+      const res = await fetch(apiUrl('/api/privacy/can-delete'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -58,7 +59,7 @@ export default function PrivacySettings() {
       const token = localStorage.getItem('token');
       const newConsent = { ...consentStatus, [type]: value };
       
-      const res = await fetch('/api/privacy/consent', {
+      const res = await fetch(apiUrl('/api/privacy/consent'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export default function PrivacySettings() {
     
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/privacy/data-export', {
+      const res = await fetch(apiUrl('/api/privacy/data-export'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -94,7 +95,7 @@ export default function PrivacySettings() {
         const data = await res.json();
         
         // Pobierz politykę prywatności
-        const policyRes = await fetch('/api/privacy/policy');
+        const policyRes = await fetch(apiUrl('/api/privacy/policy'));
         const policy = policyRes.ok ? await policyRes.json() : null;
         
         // Stwórz plik do pobrania
@@ -139,7 +140,7 @@ export default function PrivacySettings() {
     
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/privacy/anonymize', {
+      const res = await fetch(apiUrl('/api/privacy/anonymize'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

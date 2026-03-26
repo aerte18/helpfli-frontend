@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,12 +19,11 @@ export default function AdminInvoices() {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('token');
-      const API = import.meta.env.VITE_API_URL || '';
       const params = new URLSearchParams();
       if (filter.ownerType) params.append('ownerType', filter.ownerType);
       if (filter.status) params.append('status', filter.status);
 
-      const res = await fetch(`${API}/api/admin/invoices?${params.toString()}`, {
+      const res = await fetch(apiUrl(`/api/admin/invoices?${params.toString()}`), {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'

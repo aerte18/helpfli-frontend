@@ -1,4 +1,5 @@
 // src/utils/chatFlow.js
+import { apiUrl } from "@/lib/apiUrl";
 import { useChatStore } from "../store/chatStore";
 
 export const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -16,7 +17,7 @@ export async function startQuoteFlow({ provider, token, navigate }) {
     return;
   }
 
-  const res = await fetch("/api/orders/quote-draft", {
+  const res = await fetch(apiUrl("/api/orders/quote-draft"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ providerId: provider._id || provider.id, serviceId }),

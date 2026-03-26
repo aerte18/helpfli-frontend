@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Clock, Star } from "lucide-react";
 import { getOffersOfOrder, acceptOffer, boostOffer } from "../api/offers";
@@ -149,7 +150,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         // Pobierz dane zlecenia dla teleporad
         if (orderId) {
           try {
-            const orderRes = await fetch(`/api/orders/${orderId}`, {
+            const orderRes = await fetch(apiUrl(`/api/orders/${orderId}`), {
               headers: {
                 "Content-Type": "application/json",
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -314,7 +315,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
       setInfo("");
       
       // Wyślij dane akceptacji do backendu
-      const res = await fetch(`/api/offers/${acceptData.offerId}/accept`, {
+      const res = await fetch(apiUrl(`/api/offers/${acceptData.offerId}/accept`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -361,7 +362,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
       } else if (acceptResult.paymentMethod === 'external' && acceptResult.breakdown?.platformFee > 0) {
         // Płatność poza systemem, ale klient musi opłacić prowizję platformy w systemie
         try {
-          const commissionRes = await fetch(`/api/payments/create-commission-intent`, {
+          const commissionRes = await fetch(apiUrl(`/api/payments/create-commission-intent`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

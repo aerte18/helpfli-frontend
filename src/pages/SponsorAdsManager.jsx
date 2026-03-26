@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import SponsorAdBanner from "../components/SponsorAdBanner";
@@ -18,7 +19,7 @@ export default function SponsorAdsManager() {
   const loadAds = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/sponsor-ads", {
+      const res = await fetch(apiUrl("/api/sponsor-ads"), {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -49,7 +50,7 @@ export default function SponsorAdsManager() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sponsor-ads/${adId}`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${adId}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -261,8 +262,7 @@ export default function SponsorAdsManager() {
                                 onChange={async (e) => {
                                   try {
                                     const token = localStorage.getItem("token");
-                                    const res = await fetch(
-                                      `/api/sponsor-ads/${ad._id}/toggle-auto-renew`,
+                                    const res = await fetch(apiUrl(`/api/sponsor-ads/${ad._id}/toggle-auto-renew`),
                                       {
                                         method: "POST",
                                         headers: {
@@ -425,8 +425,8 @@ function CreateAdModal({ ad, onClose, onSuccess }) {
       }
 
       const url = ad
-        ? `/api/sponsor-ads/${ad._id}`
-        : "/api/sponsor-ads";
+        ? apiUrl(`/api/sponsor-ads/${ad._id}`)
+        : apiUrl("/api/sponsor-ads");
       const method = ad ? "PUT" : "POST";
 
       const res = await fetch(url, {

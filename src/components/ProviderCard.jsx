@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UI } from "../i18n/pl_ui";
@@ -68,7 +69,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
     if (inView && data?._sponsored && data?._campaignId) {
       const token = localStorage.getItem("token");
       if (token) {
-        fetch("/api/metrics/sponsor/imp", {
+        fetch(apiUrl("/api/metrics/sponsor/imp"), {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ campaignId: data._campaignId, providerId: data._id || data.id })

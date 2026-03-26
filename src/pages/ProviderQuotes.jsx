@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function ProviderQuotes() {
@@ -6,7 +7,7 @@ export default function ProviderQuotes() {
   const [items, setItems] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const load = async () => {
-    const res = await fetch(`${API}/api/ai/provider/quotes?status=pending,quoted`, {
+    const res = await fetch(apiUrl(`/api/ai/provider/quotes?status=pending,quoted`), {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
@@ -18,7 +19,7 @@ export default function ProviderQuotes() {
     setBusyId(quoteId);
     try {
       const body = { action, amount, message };
-      const res = await fetch(`${API}/api/ai/drafts/${draftId}/quotes/${quoteId}/respond`, {
+      const res = await fetch(apiUrl(`/api/ai/drafts/${draftId}/quotes/${quoteId}/respond`), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body)

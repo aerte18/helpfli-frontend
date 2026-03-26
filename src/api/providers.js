@@ -1,5 +1,6 @@
+import { apiUrl } from "@/lib/apiUrl";
 export async function getProviderMini({ token, providerId }) {
-  const res = await fetch(`/api/providers/${providerId}/mini`, {
+  const res = await fetch(apiUrl(`/api/providers/${providerId}/mini`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

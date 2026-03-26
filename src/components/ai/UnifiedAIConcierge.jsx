@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -50,7 +51,7 @@ export default function UnifiedAIConcierge({
     }
     if (companyId !== undefined) return; // już mamy wynik
     const token = localStorage.getItem('token');
-    fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies`, {
+    fetch(apiUrl(`/api/companies`), {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then((r) => r.json())
@@ -121,7 +122,7 @@ export default function UnifiedAIConcierge({
       const formData = new FormData();
       Array.from(files).forEach(file => formData.append('files', file));
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/ai/concierge/upload`, {
+      const res = await fetch(apiUrl(`/api/ai/concierge/upload`), {
         method: "POST",
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

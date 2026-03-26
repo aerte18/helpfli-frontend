@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from "react";
 
 export default function useAIFlow({ onProvidersPicked } = {}) {
@@ -12,7 +13,7 @@ export default function useAIFlow({ onProvidersPicked } = {}) {
     setLastProblem(text); // 👈 zapamiętujemy opis problemu
     setLoading(true);
     try {
-      const r = await fetch("/api/ai/assist", {
+      const r = await fetch(apiUrl("/api/ai/assist"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
@@ -47,7 +48,7 @@ export default function useAIFlow({ onProvidersPicked } = {}) {
       ratingMin: extra.ratingMin || "",
     }).toString();
 
-    const r = await fetch(`/api/search?${params}`);
+    const r = await fetch(apiUrl(`/api/search?${params}`));
     const { results = [] } = await r.json();
 
     if (typeof onProvidersPicked === "function") onProvidersPicked(results);

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ChatBox from "../components/ChatBox";
@@ -177,10 +178,10 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
         
         // Użyj istniejących endpointów do analizy oferty
         const [predictionRes, pricingRes] = await Promise.all([
-          fetch(`${API}/api/ai/advanced/order-prediction/${orderId}`, {
+          fetch(apiUrl(`/api/ai/advanced/order-prediction/${orderId}`), {
             headers: { Authorization: `Bearer ${token}` }
           }).catch(() => null),
-          myOffer.amount ? fetch(`${API}/api/ai/advanced/pricing-advice`, {
+          myOffer.amount ? fetch(apiUrl(`/api/ai/advanced/pricing-advice`), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -226,7 +227,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
         
         if (offerList.length > 0) {
           try {
-            const aiRes = await fetch(`${API}/api/ai/advanced/analyze-offers`, {
+            const aiRes = await fetch(apiUrl(`/api/ai/advanced/analyze-offers`), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1217,7 +1218,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
     try {
       const token = localStorage.getItem('token');
       const API = import.meta.env.VITE_API_URL || '';
-      await fetch(`${API}/api/orders/${orderId}/notes`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/notes`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1421,7 +1422,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                             const token = localStorage.getItem("token");
                             const API = import.meta.env.VITE_API_URL || '';
                             // Najpierw zaakceptuj zakończenie z dopłatą
-                            await fetch(`${API}/api/orders/${orderId}/accept-completion`, {
+                            await fetch(apiUrl(`/api/orders/${orderId}/accept-completion`), {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -1576,7 +1577,7 @@ function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId,
       formData.append('invoice', invoiceFile);
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/orders/${orderId}/invoice`, {
+      const response = await fetch(apiUrl(`/api/orders/${orderId}/invoice`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -2181,7 +2182,7 @@ export default function OrderDetails() {
             try {
               const token = localStorage.getItem("token");
               const API = import.meta.env.VITE_API_URL || '';
-              const meRes = await fetch(`${API}/api/auth/me`, {
+              const meRes = await fetch(apiUrl(`/api/auth/me`), {
                 headers: { Authorization: `Bearer ${token}` }
               });
               if (meRes.ok) {
@@ -2249,7 +2250,7 @@ export default function OrderDetails() {
         if (meRes?.role === "client" || meRes?.user?.role === "client") {
           try {
             const API = import.meta.env.VITE_API_URL || "";
-            const invRes = await fetch(`${API}/api/billing/invoices`, {
+            const invRes = await fetch(apiUrl(`/api/billing/invoices`), {
               headers: authHeaders(),
             });
             // 404 traktuj jako "brak faktur" zamiast błędu
@@ -2456,7 +2457,7 @@ export default function OrderDetails() {
         }
 
         // 2) Konwersacje usera (filtrujemy po orderId)
-        const convRes = await fetch(`/api/chat/conversations`, { headers: authHeaders() });
+        const convRes = await fetch(apiUrl(`/api/chat/conversations`), { headers: authHeaders() });
         const convos = convRes.ok ? await convRes.json() : [];
         const byOrder = Array.isArray(convos) ? convos.filter((c) => String(c.order) === String(orderId)) : [];
         setOrderConversations(byOrder);
@@ -2483,7 +2484,7 @@ export default function OrderDetails() {
           const otherId = String(meId) === String(clientId) ? providerAssignedId : clientId;
           let convo = findConvo(meId, otherId);
           if (!convo) {
-            const createRes = await fetch(`/api/chat/conversations`, {
+            const createRes = await fetch(apiUrl(`/api/chat/conversations`), {
               method: "POST",
               headers: authHeaders(),
               body: JSON.stringify({ participantIds: [otherId], orderId }),
@@ -2507,7 +2508,7 @@ export default function OrderDetails() {
 
           let convo = findConvo(meId, selectedProviderId);
           if (!convo) {
-            const createRes = await fetch(`/api/chat/conversations`, {
+            const createRes = await fetch(apiUrl(`/api/chat/conversations`), {
               method: "POST",
               headers: authHeaders(),
               body: JSON.stringify({ participantIds: [selectedProviderId], orderId }),
@@ -2522,7 +2523,7 @@ export default function OrderDetails() {
         if (clientId && meId && String(meId) !== String(clientId)) {
           let convo = findConvo(meId, clientId);
           if (!convo) {
-            const createRes = await fetch(`/api/chat/conversations`, {
+            const createRes = await fetch(apiUrl(`/api/chat/conversations`), {
               method: "POST",
               headers: authHeaders(),
               body: JSON.stringify({ participantIds: [clientId], orderId }),

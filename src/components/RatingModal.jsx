@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useToast } from './toast/ToastProvider';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -26,7 +27,7 @@ export default function RatingModal({ open, onClose, providerId, orderId, onSubm
     if (!providerId || !stars) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/ratings', {
+      const res = await fetch(apiUrl('/api/ratings'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

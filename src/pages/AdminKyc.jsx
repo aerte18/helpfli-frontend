@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function AdminKyc() {
@@ -6,7 +7,7 @@ export default function AdminKyc() {
   const [items, setItems] = useState([]);
 
   const load = async () => {
-    const res = await fetch(`${API}/api/kyc/admin/list?status=submitted`, {
+    const res = await fetch(apiUrl(`/api/kyc/admin/list?status=submitted`), {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
@@ -16,12 +17,12 @@ export default function AdminKyc() {
   useEffect(() => { load(); }, []);
 
   const approve = async (id) => {
-    await fetch(`${API}/api/kyc/admin/${id}/approve`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    await fetch(apiUrl(`/api/kyc/admin/${id}/approve`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
     load();
   };
   const reject = async (id) => {
     const reason = prompt('Powód odrzucenia:', 'Nieczytelny dokument');
-    await fetch(`${API}/api/kyc/admin/${id}/reject`, { 
+    await fetch(apiUrl(`/api/kyc/admin/${id}/reject`), { 
       method: 'POST', 
       headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ reason })

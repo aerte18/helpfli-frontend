@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -130,7 +131,7 @@ export default function WhyPro() {
                           if (e.message?.includes('nie istnieje') || e.message?.includes('404')) {
                             try {
                               // Spróbuj utworzyć plany przez endpoint seed
-                              const seedResponse = await fetch('/api/subscriptions/seed', { method: 'POST' });
+                              const seedResponse = await fetch(apiUrl('/api/subscriptions/seed'), { method: 'POST' });
                               if (seedResponse.ok) {
                                 // Po utworzeniu planów, odśwież listę planów
                                 const audience = isProvider ? 'provider' : 'client';
@@ -333,7 +334,7 @@ export default function WhyPro() {
               if (e.message?.includes('nie istnieje') || e.message?.includes('404')) {
                 try {
                   // Spróbuj utworzyć plany przez endpoint seed
-                  const seedResponse = await fetch('/api/subscriptions/seed', { method: 'POST' });
+                  const seedResponse = await fetch(apiUrl('/api/subscriptions/seed'), { method: 'POST' });
                   if (seedResponse.ok) {
                     // Po utworzeniu planów, odśwież listę planów
                     const audience = isProvider ? 'provider' : 'client';

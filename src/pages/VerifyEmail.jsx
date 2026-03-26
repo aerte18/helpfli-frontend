@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Logo from "../components/Logo";
@@ -22,7 +23,7 @@ export default function VerifyEmail() {
 
   const verifyEmail = async (token) => {
     try {
-      const response = await fetch("/api/auth/verify-email", {
+      const response = await fetch(apiUrl("/api/auth/verify-email"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +59,7 @@ export default function VerifyEmail() {
 
     setResending(true);
     try {
-      const response = await fetch("/api/auth/resend-verification", {
+      const response = await fetch(apiUrl("/api/auth/resend-verification"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

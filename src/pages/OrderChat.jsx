@@ -1,4 +1,5 @@
 // src/pages/OrderChat.jsx
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { UI } from "../i18n/pl_ui";
 import { useParams, useNavigate } from "react-router-dom";
@@ -27,7 +28,7 @@ export default function OrderChat() {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/orders/${orderId}`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -46,7 +47,7 @@ export default function OrderChat() {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/messages/${orderId}`, {
+      const res = await fetch(apiUrl(`/api/messages/${orderId}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -100,7 +101,7 @@ export default function OrderChat() {
         to: null // Backend znajdzie odbiorcę na podstawie zlecenia
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/messages`, {
+      const res = await fetch(apiUrl(`/api/messages`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +172,7 @@ export default function OrderChat() {
     setSuggestLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/api/ai/chat-suggest-reply`, {
+      const res = await fetch(apiUrl(`/api/ai/chat-suggest-reply`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ orderId }),

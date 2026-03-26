@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -13,7 +14,7 @@ function RateUser() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch("/api/ratings", {
+      const res = await fetch(apiUrl("/api/ratings"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

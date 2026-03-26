@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { api } from "./client";
 
 /**
@@ -96,7 +97,7 @@ export const exportCompanyData = async (companyId, format, dataset, dateRange = 
     ...dateRange
   }).toString();
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${companyId}/analytics/export?${params}`, {
+  const response = await fetch(apiUrl(`/api/companies/${companyId}/analytics/export?${params}`), {
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
@@ -457,7 +458,7 @@ export default function ProviderHome() {
     const fetchServices = async () => {
       try {
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/services`);
+        const res = await fetch(apiUrl(`/api/services`));
         if (res.ok) {
           const data = await res.json();
           setAllServices(data.items || data || []);
@@ -600,7 +601,7 @@ export default function ProviderHome() {
     (async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/provider-stats/free-replies-left', { headers: { Authorization: `Bearer ${token}` }});
+        const res = await fetch(apiUrl('/api/provider-stats/free-replies-left'), { headers: { Authorization: `Bearer ${token}` }});
         const data = await res.json();
         if (res.ok) setFreeRepliesLeft(data.freeRepliesLeft);
       } catch {}
@@ -612,7 +613,7 @@ export default function ProviderHome() {
     if (!user || (user.role !== 'provider' && user.role !== 'company_owner')) return;
     const API = import.meta.env.VITE_API_URL || '';
     setRecommendedLoading(true);
-    fetch(`${API}/api/orders/recommended-for-provider`, {
+    fetch(apiUrl(`/api/orders/recommended-for-provider`), {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((res) => res.ok ? res.json() : { orders: [] })
@@ -857,7 +858,7 @@ export default function ProviderHome() {
     setStatus(next);
     try {
       const token = localStorage.getItem("token");
-      await fetch("/api/providers/me/status", { 
+      await fetch(apiUrl("/api/providers/me/status"), { 
         method: "PATCH", 
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: next }) 
@@ -876,7 +877,7 @@ export default function ProviderHome() {
       try {
         const token = localStorage.getItem('token');
         const companyId = typeof user.company === 'string' ? user.company : user.company._id;
-        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${companyId}`, {
+        const response = await fetch(apiUrl(`/api/companies/${companyId}`), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

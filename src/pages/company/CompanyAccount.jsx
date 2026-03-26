@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -65,7 +66,7 @@ export default function CompanyAccount() {
   const fetchCompanyData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies`, {
+      const response = await fetch(apiUrl(`/api/companies`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -390,7 +391,7 @@ function TeamTab({ company, canManage, currentUserId, roles, onRefresh }) {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/invite`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/invite`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -425,7 +426,7 @@ function TeamTab({ company, canManage, currentUserId, roles, onRefresh }) {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/members/${userId}`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/members/${userId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

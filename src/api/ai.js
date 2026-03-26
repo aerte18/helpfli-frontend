@@ -1,6 +1,7 @@
+import { apiUrl } from "@/lib/apiUrl";
 // src/api/ai.js
 export async function postConcierge({ token, problemText, location }) {
-  const res = await fetch("/api/ai/concierge/analyze", {
+  const res = await fetch(apiUrl("/api/ai/concierge/analyze"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -23,7 +24,7 @@ export async function searchProviders({ service, city, lat, lng, limit = 3, toke
     limit: String(limit),
     verifiedOnly: String(verifiedOnly),
   });
-  const res = await fetch(`/api/search?${qs.toString()}`, {
+  const res = await fetch(apiUrl(`/api/search?${qs.toString()}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -42,7 +43,7 @@ export async function getPricing({ token, service, city, lat, lng, urgency = "no
     ...(lng != null ? { lng: String(lng) } : {}),
     urgency,
   });
-  const res = await fetch(`/api/ai/pricing?${qs.toString()}`, {
+  const res = await fetch(apiUrl(`/api/ai/pricing?${qs.toString()}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -55,7 +56,7 @@ export async function getPricing({ token, service, city, lat, lng, urgency = "no
 
 // MVP: AI Triage endpoint
 export async function postTriage({ token, description, location, service }) {
-  const res = await fetch("/api/ai/triage", {
+  const res = await fetch(apiUrl("/api/ai/triage"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

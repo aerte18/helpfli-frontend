@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useRef } from "react";
 
 const useChat = (orderId, recipientId) => {
@@ -13,7 +14,7 @@ const useChat = (orderId, recipientId) => {
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/messages/${orderId}`, {
+      const res = await fetch(apiUrl(`/api/messages/${orderId}`), {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -39,7 +40,7 @@ const useChat = (orderId, recipientId) => {
 
     try {
       const token = localStorage.getItem("token");
-      await fetch("/api/messages", {
+      await fetch(apiUrl("/api/messages"), {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

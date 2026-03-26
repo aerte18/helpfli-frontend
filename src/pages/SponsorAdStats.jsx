@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -19,7 +20,7 @@ export default function SponsorAdStats() {
   const loadPixelCode = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sponsor-ads/${id}/pixel-code`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${id}/pixel-code`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -36,7 +37,7 @@ export default function SponsorAdStats() {
   const loadAd = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sponsor-ads/${id}`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${id}`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -53,7 +54,7 @@ export default function SponsorAdStats() {
   const loadStats = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sponsor-ads/${id}/stats`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads/${id}/stats`), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -125,7 +126,7 @@ export default function SponsorAdStats() {
                   try {
                     const token = localStorage.getItem("token");
                     const API = import.meta.env.VITE_API_URL || "";
-                    const res = await fetch(`${API}/api/sponsor-ads/${id}/report/pdf`, {
+                    const res = await fetch(apiUrl(`/api/sponsor-ads/${id}/report/pdf`), {
                       headers: {
                         Authorization: `Bearer ${token}`
                       }

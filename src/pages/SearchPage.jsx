@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Filter, X } from "lucide-react";
@@ -58,8 +59,9 @@ export default function SearchPage() {
         const params = new URLSearchParams();
         if (query) params.append('q', query);
         if (service) params.append('service', service);
-        const API = import.meta.env.VITE_API_URL || '';
-        const url = params.toString() ? `${API}/api/providers?${params.toString()}` : `${API}/api/providers`;
+        const url = params.toString()
+          ? apiUrl(`/api/providers?${params.toString()}`)
+          : apiUrl("/api/providers");
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const json = await response.json();

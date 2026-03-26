@@ -1,7 +1,6 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const API = import.meta.env.VITE_API_URL || '';
 
 export default function NotificationsDropdown({ userId, onClose }) {
   const [notifications, setNotifications] = useState([]);
@@ -20,7 +19,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
           setLoading(false);
           return;
         }
-        const url = `${API}/api/notifications?limit=10`;
+        const url = apiUrl("/api/notifications?limit=10");
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -45,7 +44,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API}/api/notifications/${notificationId}/read`, {
+      await fetch(apiUrl(`/api/notifications/${notificationId}/read`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -62,7 +61,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API}/api/notifications/read-all`, {
+      await fetch(apiUrl(`/api/notifications/read-all`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });

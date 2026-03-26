@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -24,7 +25,7 @@ export default function Blog() {
       params.append('limit', '9');
       params.append('page', searchParams.get('page') || '1');
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/blog?${params}`);
+      const res = await fetch(apiUrl(`/api/blog?${params}`));
       if (res.ok) {
         const data = await res.json();
         setPosts(data.posts || []);
@@ -39,7 +40,7 @@ export default function Blog() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/blog/categories/list`);
+      const res = await fetch(apiUrl(`/api/blog/categories/list`));
       if (res.ok) {
         const data = await res.json();
         setCategories(data.categories || []);

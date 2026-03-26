@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from 'react';
 
 export default function OrderPricingPreview({ orderId, baseAmount, extras, promoCode, pointsToUse, onFinalize }) {
@@ -12,7 +13,7 @@ export default function OrderPricingPreview({ orderId, baseAmount, extras, promo
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/checkout/preview', {
+      const res = await fetch(apiUrl('/api/checkout/preview'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -34,7 +35,7 @@ export default function OrderPricingPreview({ orderId, baseAmount, extras, promo
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/checkout/finalize', {
+      const res = await fetch(apiUrl('/api/checkout/finalize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ orderId, ...payload })

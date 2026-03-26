@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { CATEGORY_ICONS } from "./icons/HelpfliCategoryIcons";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -34,9 +35,7 @@ export default function PopularServices({ onPick, services = null }) {
   useEffect(() => {
     const fetchPopularServices = async () => {
       try {
-        const API = import.meta.env.VITE_API_URL || "";
-        console.log('PopularServices - fetching from:', `${API}/api/services?is_top=1&limit=18`);
-        const res = await fetch(`${API}/api/services?is_top=1&limit=18`);
+        const res = await fetch(apiUrl("/api/services?is_top=1&limit=18"));
         console.log('PopularServices - response status:', res.status);
         if (res.ok) {
           const result = await res.json();

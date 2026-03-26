@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../components/toast/ToastProvider";
 
@@ -21,7 +22,7 @@ export default function ProviderSponsored(){
   const amount = useMemo(()=> positions.reduce((s,p)=> s + (PRICE_PER_DAY[p]||0)*Math.max(0,days), 0), [positions, days]);
 
   const load = async ()=>{
-    const r = await fetch('/api/sponsor/me', { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(apiUrl('/api/sponsor/me'), { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) setList(await r.json());
   };
 
@@ -42,7 +43,7 @@ export default function ProviderSponsored(){
   const pay = async ()=>{
     if (!positions.length){ push({ title:'Wybierz sloty (#2/#7)', variant:'error' }); return; }
     if (days<1 || days>62){ push({ title:'Zakres 1–62 dni', variant:'error' }); return; }
-    const r = await fetch('/api/sponsor/checkout',{
+    const r = await fetch(apiUrl('/api/sponsor/checkout'),{
       method:'POST',
       headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
       body: JSON.stringify({ service, positions, startAt, endAt })

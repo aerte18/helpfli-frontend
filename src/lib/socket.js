@@ -1,8 +1,12 @@
 import { io } from "socket.io-client";
 
-// Użyj proxy Vite dla socket.io (relatywny URL) zamiast bezpośredniego połączenia
-// Vite proxy automatycznie przekierowuje /socket.io na backend
-const SOCKET_URL = window.location.origin; // Użyj proxy Vite
+// Produkcja: ustaw VITE_SOCKET_URL na pełny URL API (np. https://api.helpfli.pl).
+// Dev: puste → window.location.origin + proxy Vite (vite.config.js → /socket.io → backend).
+const rawSocketUrl = import.meta.env.VITE_SOCKET_URL;
+const SOCKET_URL =
+  (typeof rawSocketUrl === "string" && rawSocketUrl.trim() !== "")
+    ? rawSocketUrl.trim()
+    : window.location.origin;
 
 // Wyłącz socket.io jeśli backend nie działa (zmienna środowiskowa)
 const SOCKET_ENABLED = import.meta.env.VITE_ENABLE_SOCKET !== 'false';
@@ -28,6 +32,7 @@ export function getSocket() {
     
     socket = io(SOCKET_URL, {
       path: '/socket.io',
+      withCredentials: true,
       auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getOfferHint, postOffer } from "../api/offers";
 import { useAuth } from "../context/AuthContext";
@@ -101,7 +102,7 @@ export default function OfferForm({
       setLoadingAiSuggestions(true);
       try {
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/offers/analyze-order?orderId=${orderId}`, {
+        const res = await fetch(apiUrl(`/api/offers/analyze-order?orderId=${orderId}`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

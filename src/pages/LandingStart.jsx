@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -57,8 +58,7 @@ function ServiceAutocomplete({ value, onChange, onPick }) {
     async function run() {
       try {
         // Pobierz z API tylko gdy jest tekst
-        const API = import.meta.env.VITE_API_URL || '';
-        const url = `${API}/api/services?query=${encodeURIComponent(q)}`;
+        const url = apiUrl(`/api/services?query=${encodeURIComponent(q)}`);
         const res = await fetch(url, { signal: controller.signal });
         const data = await res.json();
         const apiList = Array.isArray(data)

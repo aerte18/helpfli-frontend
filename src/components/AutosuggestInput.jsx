@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -53,7 +54,7 @@ export default function AutosuggestInput({
     (async () => {
       try {
         setLoading(true);
-        const r = await fetch(`${API}/api/services/suggest?q=${encodeURIComponent(qDeb)}&seasonal=${season}&limit=8`);
+        const r = await fetch(apiUrl(`/api/services/suggest?q=${encodeURIComponent(qDeb)}&seasonal=${season}&limit=8`));
         const j = await r.json();
         setSuggest(j);
         setOpen(true);

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 import { Zap, Sparkles } from 'lucide-react';
 
@@ -12,7 +13,7 @@ export default function BoostOrderButton({ order, onBoosted }) {
       setError(null);
       
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/orders/${order._id}/boost`, {
+      const res = await fetch(apiUrl(`/api/orders/${order._id}/boost`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

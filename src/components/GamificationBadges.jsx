@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,7 +11,7 @@ export default function GamificationBadges() {
     const fetchGamification = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/gamification/me`, {
+        const res = await fetch(apiUrl(`/api/gamification/me`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

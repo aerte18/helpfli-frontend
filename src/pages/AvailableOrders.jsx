@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import SponsorAdBanner from "../components/SponsorAdBanner";
 
@@ -8,7 +9,7 @@ function AvailableOrders() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch("/api/orders/available", {
+    fetch(apiUrl("/api/orders/available"), {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -23,7 +24,7 @@ function AvailableOrders() {
 
   const handleAccept = async (orderId) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/accept`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/accept`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

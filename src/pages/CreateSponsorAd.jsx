@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -271,7 +272,7 @@ export default function CreateSponsorAd() {
         formDataToSend.append("logo", logoInput.files[0]);
       }
 
-      const res = await fetch(`${API}/api/sponsor-ads`, {
+      const res = await fetch(apiUrl(`/api/sponsor-ads`), {
         method: "POST",
         body: formDataToSend,
       });

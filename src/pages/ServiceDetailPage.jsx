@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -24,7 +25,7 @@ export default function ServiceDetailPage() {
 
         // Pobierz szczegóły usługi
         console.log('ServiceDetailPage: fetching service for slug:', slug);
-        const serviceResponse = await fetch(`${API}/api/services?slug=${slug}&limit=1`);
+        const serviceResponse = await fetch(apiUrl(`/api/services?slug=${slug}&limit=1`));
         const serviceData = await serviceResponse.json();
         console.log('ServiceDetailPage: service data:', serviceData);
         
@@ -36,7 +37,7 @@ export default function ServiceDetailPage() {
         }
 
         // Pobierz top providerów w kategorii
-        const providersResponse = await fetch(`${API}/api/providers?service=${serviceData.items[0]._id}&limit=6`);
+        const providersResponse = await fetch(apiUrl(`/api/providers?service=${serviceData.items[0]._id}&limit=6`));
         const providersData = await providersResponse.json();
         setTopProviders(providersData.items || []);
 

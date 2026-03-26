@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -80,7 +81,7 @@ const fetchOpenOrders = async (userLocation, maxDistance, selectedServices) => {
       ...(selectedServices.length > 0 && { services: selectedServices.join(',') })
     });
 
-    const response = await fetch(`/api/orders/open?${params}`, {
+    const response = await fetch(apiUrl(`/api/orders/open?${params}`), {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -254,7 +255,7 @@ export default function ProviderHomeNew() {
   // Funkcja do składania propozycji
   const submitProposal = async (orderId, amount, message) => {
     try {
-      const response = await fetch('/api/offers', {
+      const response = await fetch(apiUrl('/api/offers'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

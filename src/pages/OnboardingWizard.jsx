@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -80,7 +81,7 @@ export default function OnboardingWizard() {
         })
       };
 
-      const res = await fetch("/api/users/me/profile", {
+      const res = await fetch(apiUrl("/api/users/me/profile"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -114,7 +115,7 @@ export default function OnboardingWizard() {
       const token = localStorage.getItem("token");
       
       // Zapisz usługi
-      await fetch("/api/user-services", {
+      await fetch(apiUrl("/api/user-services"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,13 +126,13 @@ export default function OnboardingWizard() {
 
       // Ustaw główną usługę
       if (profileData.services.length > 0) {
-        const firstServiceRes = await fetch(`/api/services/${profileData.services[0]}`, {
+        const firstServiceRes = await fetch(apiUrl(`/api/services/${profileData.services[0]}`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         
         if (firstServiceRes.ok) {
           const firstService = await firstServiceRes.json();
-          await fetch("/api/users/me/profile", {
+          await fetch(apiUrl("/api/users/me/profile"), {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -153,7 +154,7 @@ export default function OnboardingWizard() {
   const completeOnboarding = async () => {
     try {
       const token = localStorage.getItem("token");
-      await fetch("/api/users/me/onboarding", {
+      await fetch(apiUrl("/api/users/me/onboarding"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -445,7 +446,7 @@ function ServiceSelector({ selectedServices, onServicesChange }) {
     const fetchServices = async () => {
       try {
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API}/api/services`);
+        const res = await fetch(apiUrl(`/api/services`));
         if (res.ok) {
           const data = await res.json();
           // API zwraca {items: [...], total: 50, hasMore: true}

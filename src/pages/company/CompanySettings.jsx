@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 // Proste ikony zastępujące Heroicons
@@ -36,7 +37,7 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
   const fetchCompanyData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${companyId}`, {
+      const response = await fetch(apiUrl(`/api/companies/${companyId}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -100,7 +101,7 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${companyId}`, {
+      const response = await fetch(apiUrl(`/api/companies/${companyId}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

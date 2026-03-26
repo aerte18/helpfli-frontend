@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,7 +23,7 @@ export default function ProviderOnboarding() {
     try {
       if (step === 1) {
         // dodaj wybrane usługi
-        await fetch("/api/user-services", {
+        await fetch(apiUrl("/api/user-services"), {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ services }), // [{serviceId}, ...] – dopasuj do Twojego formatu
@@ -31,12 +32,12 @@ export default function ProviderOnboarding() {
         // Ustaw główną usługę (pierwszą wybraną) jako string
         if (services.length > 0) {
           // Pobierz nazwę pierwszej usługi
-          const firstServiceRes = await fetch(`/api/services/${services[0]}`, {
+          const firstServiceRes = await fetch(apiUrl(`/api/services/${services[0]}`), {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (firstServiceRes.ok) {
             const firstService = await firstServiceRes.json();
-            await fetch("/api/users/me/profile", {
+            await fetch(apiUrl("/api/users/me/profile"), {
               method: "PUT",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({ service: firstService.name }),
@@ -45,7 +46,7 @@ export default function ProviderOnboarding() {
         }
       }
       if (step === 2) {
-        await fetch("/api/users/me/profile", {
+        await fetch(apiUrl("/api/users/me/profile"), {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ priceNote, bio, headline }),
@@ -64,7 +65,7 @@ export default function ProviderOnboarding() {
 
   const finishOnboarding = async () => {
     // oznacz zakończony onboarding
-    await fetch("/api/users/me/onboarding", {
+    await fetch(apiUrl("/api/users/me/onboarding"), {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ onboardingCompleted: true }),
@@ -170,7 +171,7 @@ function MultiSelect({ services, setServices, token }) {
   const [all, setAll] = useState([]);
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/services", {
+      const res = await fetch(apiUrl("/api/services"), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

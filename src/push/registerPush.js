@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 export async function registerPush({ token, vapidPublicKey }) {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, reason: "unsupported" };
@@ -20,7 +21,7 @@ export async function registerPush({ token, vapidPublicKey }) {
     });
     
     // 4) wyślij na backend
-    await fetch("/api/notifications/subscribe", {
+    await fetch(apiUrl("/api/notifications/subscribe"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

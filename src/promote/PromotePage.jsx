@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function PromotePage() {
@@ -12,8 +13,8 @@ export default function PromotePage() {
   const load = async () => {
     try {
       const [pRes, sRes] = await Promise.all([
-        fetch(`${API}/api/promote/plans`),
-        fetch(`${API}/api/promote/me/status`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(apiUrl(`/api/promote/plans`)),
+        fetch(apiUrl(`/api/promote/me/status`), { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       setPlans((await pRes.json()).items || []);
       setStatus(await sRes.json());
@@ -37,7 +38,7 @@ export default function PromotePage() {
 
       await Promise.all((plans || []).map(async (plan) => {
         try {
-          const res = await fetch(`${API}/api/coupons/apply`, {
+          const res = await fetch(apiUrl(`/api/coupons/apply`), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export default function PromotePage() {
   const buy = async (planId) => {
     try {
       setLoadingId(planId);
-      const res = await fetch(`${API}/api/promote/create-intent`, {
+      const res = await fetch(apiUrl(`/api/promote/create-intent`), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ planId, couponCode: couponCode || undefined, requestInvoice }),

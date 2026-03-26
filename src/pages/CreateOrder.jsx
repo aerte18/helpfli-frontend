@@ -1,4 +1,5 @@
 
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ServiceCategoryDropdown from '../components/ServiceCategoryDropdown';
 import { useLocation, useNavigate } from "react-router-dom";
@@ -49,7 +50,7 @@ export default function CreateOrder() {
       (async () => {
         try {
           const token = localStorage.getItem("token");
-          const res = await fetch(`${API}/api/user-services/provider/${selectedProvider.id}`, {
+          const res = await fetch(apiUrl(`/api/user-services/provider/${selectedProvider.id}`), {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`
@@ -150,7 +151,7 @@ export default function CreateOrder() {
         formData.append('files', file);
       });
       
-      const response = await fetch(`${API}/api/orders/temp-upload`, {
+      const response = await fetch(apiUrl(`/api/orders/temp-upload`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -199,7 +200,7 @@ export default function CreateOrder() {
         params.set("lat", String(userLocation.lat));
         params.set("lon", String(userLocation.lng));
       }
-      const res = await fetch(`${API}/api/ai/match-top-providers?${params}`, {
+      const res = await fetch(apiUrl(`/api/ai/match-top-providers?${params}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json().catch(() => ({}));
@@ -319,7 +320,7 @@ export default function CreateOrder() {
         payload.locationLon = userLocation.lng;
       }
 
-      const r = await fetch(`${API}/api/orders`, {
+      const r = await fetch(apiUrl(`/api/orders`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -729,7 +730,7 @@ export default function CreateOrder() {
                     if (e.target.value.length > 2) {
                       // Wyszukaj providerów
                       const token = localStorage.getItem("token");
-                      fetch(`${API}/api/search?q=${encodeURIComponent(e.target.value)}&limit=5`, {
+                      fetch(apiUrl(`/api/search?q=${encodeURIComponent(e.target.value)}&limit=5`), {
                         headers: {
                           "Content-Type": "application/json",
                           Authorization: `Bearer ${token}`

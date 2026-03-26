@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { useToast } from "../components/toast/ToastProvider";
@@ -31,7 +32,7 @@ export default function ProviderPromote() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/promo/me", {
+      const res = await fetch(apiUrl("/api/promo/me"), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -90,7 +91,7 @@ export default function ProviderPromote() {
 
   const checkout = async (productKey) => {
     try {
-      const res = await fetch("/api/promo/checkout", {
+      const res = await fetch(apiUrl("/api/promo/checkout"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ 
@@ -270,7 +271,7 @@ export default function ProviderPromote() {
             className="btn-secondary ml-3"
             onClick={async () => {
               try {
-                const res = await fetch("/api/promo/autorenew/cancel", {
+                const res = await fetch(apiUrl("/api/promo/autorenew/cancel"), {
                   method: "POST",
                   headers: { Authorization: `Bearer ${token}` }
                 });
@@ -330,7 +331,7 @@ export default function ProviderPromote() {
         className="mt-4 text-sm text-gray-600 underline"
         onClick={async () => {
           try {
-            await fetch("/api/promo/metrics/reset", {
+            await fetch(apiUrl("/api/promo/metrics/reset"), {
               method: "POST",
               headers: { Authorization: `Bearer ${token}` }
             });

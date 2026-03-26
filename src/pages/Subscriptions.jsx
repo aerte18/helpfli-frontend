@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
@@ -67,7 +68,7 @@ export default function Subscriptions() {
             } else {
               try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies`, {
+                const response = await fetch(apiUrl(`/api/companies`), {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -115,7 +116,7 @@ export default function Subscriptions() {
           // Jeśli nie ma w kontekście, pobierz z API
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies`, {
+            const response = await fetch(apiUrl(`/api/companies`), {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'

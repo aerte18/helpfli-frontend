@@ -32,7 +32,7 @@ function Login() {
     setTwoFactorError("");
 
     try {
-      console.log("Attempting login with:", { email, password });
+      console.log("Attempting login with:", { email });
       const data = await apiPost("/api/auth/login", { email, password }, { credentials: "omit" });
 
       // Sprawdź czy wymagany jest kod 2FA

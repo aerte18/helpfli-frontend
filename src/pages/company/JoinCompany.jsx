@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -34,7 +35,7 @@ export default function JoinCompany() {
     
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/companies/search?q=${encodeURIComponent(searchQuery)}`, {
+      const res = await fetch(apiUrl(`/api/companies/search?q=${encodeURIComponent(searchQuery)}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -71,7 +72,7 @@ export default function JoinCompany() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/companies/${selectedCompany._id}/join-request`, {
+      const res = await fetch(apiUrl(`/api/companies/${selectedCompany._id}/join-request`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

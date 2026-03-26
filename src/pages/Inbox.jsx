@@ -1,4 +1,5 @@
 // src/pages/Inbox.jsx
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   fetchConversations,
@@ -102,7 +103,7 @@ function ChatWindow({ conversation, meId }) {
     
     try {
       // Tu dodaj endpoint do uploadu plików
-      const response = await fetch(`/api/chat/${conversation._id}/upload`, {
+      const response = await fetch(apiUrl(`/api/chat/${conversation._id}/upload`), {
         method: 'POST',
         body: formData,
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -124,7 +125,7 @@ function ChatWindow({ conversation, meId }) {
     if (!editText.trim()) return;
     
     try {
-      const response = await fetch(`/api/chat/messages/${msgId}/edit`, {
+      const response = await fetch(apiUrl(`/api/chat/messages/${msgId}/edit`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +150,7 @@ function ChatWindow({ conversation, meId }) {
     if (!confirm('Czy na pewno chcesz usunąć tę wiadomość?')) return;
     
     try {
-      const response = await fetch(`/api/chat/messages/${msgId}`, {
+      const response = await fetch(apiUrl(`/api/chat/messages/${msgId}`), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });

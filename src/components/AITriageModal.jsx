@@ -1,5 +1,6 @@
 // src/components/AITriageModal.jsx
 // MVP: AI Triage Modal - analizuje problem i sugeruje rozwiązanie
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
@@ -50,7 +51,7 @@ export default function AITriageModal({ isOpen, onClose, onProceed, initialDescr
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/ai/triage', {
+      const response = await fetch(apiUrl('/api/ai/triage'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 import { CreditCard, Smartphone, Banknote, FileText } from 'lucide-react';
 
@@ -9,7 +10,7 @@ export default function CheckoutButton({ orderId, methodHint = 'card', requestIn
   const start = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/payments/create-intent`, {
+      const res = await fetch(apiUrl(`/api/payments/create-intent`), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ orderId, methodHint: selectedMethod, requestInvoice }),

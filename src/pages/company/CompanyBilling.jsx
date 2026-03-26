@@ -1,4 +1,5 @@
 // Centralne rozliczenia dla firm
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getBillingSummary, getCompanyOrderInvoices, getCompanyHelpfliInvoices } from '../../api/companies';
@@ -75,9 +76,7 @@ export default function CompanyBilling({ companyId: propCompanyId }) {
                   to: dateRange.to,
                   format: 'csv'
                 });
-                const res = await fetch(
-                  `${import.meta.env.VITE_API_URL || ''}/api/companies/${companyId}/billing/summary?${params}`,
-                  { credentials: 'include' }
+                const res = await fetch(apiUrl(`/api/companies/${companyId}/billing/summary?${params}`), { credentials: 'include' }
                 );
                 if (!res.ok) {
                   throw new Error('Błąd eksportu CSV');

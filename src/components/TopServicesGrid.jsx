@@ -1,7 +1,6 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-
-const API = import.meta.env.VITE_API_URL || "";
 
 function currentSeason() {
   const m = new Date().getMonth() + 1; // 1..12
@@ -38,7 +37,7 @@ export default function TopServicesGrid({
         
         if (parent) qs.set("parent", parent);
         
-        let response = await fetch(`${API}/api/services?` + qs.toString());
+        let response = await fetch(apiUrl("/api/services?" + qs.toString()));
         let result = await response.json();
         
         let services = result.items || [];

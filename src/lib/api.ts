@@ -1,14 +1,8 @@
 // frontend/src/lib/api.ts
-// Użyj relatywnego URL (proxy w Vite) lub bezpośredniego jeśli VITE_API_URL jest ustawione
-const API_BASE = (import.meta as any).env?.VITE_API_URL?.trim() || ""; // Pusty string = użyj proxy
+import { apiUrl as resolveApiUrl } from "./apiUrl.js";
 
 function absolute(path: string) {
-  // Jeśli path już jest pełnym URL, zwróć go
-  if (path.startsWith("http")) return path;
-  // Jeśli API_BASE jest pusty, użyj relatywnego URL (proxy w Vite)
-  if (!API_BASE) return path;
-  // W przeciwnym razie dodaj base URL
-  return `${API_BASE}${path}`;
+  return resolveApiUrl(path);
 }
 
 async function parseJsonSafe(res: Response) {

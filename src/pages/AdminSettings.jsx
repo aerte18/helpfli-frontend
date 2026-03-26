@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function AdminSettings() {
@@ -20,17 +21,17 @@ export default function AdminSettings() {
 
   const load = async () => {
     // anomaly
-    const r1 = await fetch(`${API}/api/admin/settings/anomalyThresholds`, { headers: { Authorization: `Bearer ${token}` }});
+    const r1 = await fetch(apiUrl(`/api/admin/settings/anomalyThresholds`), { headers: { Authorization: `Bearer ${token}` }});
     const d1 = await r1.json();
     setThr({ minOrders: 30, absDropPp: 10, relDropPct: 20, ...d1.value });
     // monthlyServiceReports
-    const r2 = await fetch(`${API}/api/admin/settings/monthlyServiceReports`, { headers: { Authorization: `Bearer ${token}` }});
+    const r2 = await fetch(apiUrl(`/api/admin/settings/monthlyServiceReports`), { headers: { Authorization: `Bearer ${token}` }});
     const d2 = await r2.json();
     setSvcCfg({ enabled: d2.value?.enabled !== false, limit: d2.value?.limit ?? 10, lang: d2.value?.lang || 'pl', separate: d2.value?.separate !== false, includeCombined: d2.value?.includeCombined !== false, recipients: d2.value?.recipients || '' });
   };
 
   const loadCacheInfo = async () => {
-    const res = await fetch(`${API}/api/admin/cache/info`, { headers: { Authorization: `Bearer ${token}` }});
+    const res = await fetch(apiUrl(`/api/admin/cache/info`), { headers: { Authorization: `Bearer ${token}` }});
     const d = await res.json();
     setCacheInfo(d);
   };
@@ -40,7 +41,7 @@ export default function AdminSettings() {
   const saveAnomaly = async () => {
     setBusy(true);
     try {
-      await fetch(`${API}/api/admin/settings/anomalyThresholds`, { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ value: thr }) });
+      await fetch(apiUrl(`/api/admin/settings/anomalyThresholds`), { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ value: thr }) });
       alert('Zapisano progi ✅');
     } catch (e) { alert('Błąd zapisu'); } finally { setBusy(false); }
   };
@@ -48,7 +49,7 @@ export default function AdminSettings() {
   const saveSvcCfg = async () => {
     setBusySvc(true);
     try {
-      await fetch(`${API}/api/admin/settings/monthlyServiceReports`, { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ value: svcCfg }) });
+      await fetch(apiUrl(`/api/admin/settings/monthlyServiceReports`), { method: 'PUT', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ value: svcCfg }) });
       alert('Zapisano ustawienia planera ✅');
     } catch (e) { alert('Błąd zapisu'); } finally { setBusySvc(false); }
   };
@@ -56,7 +57,7 @@ export default function AdminSettings() {
   const sendNow = async () => {
     setBusySvc(true);
     try {
-      const res = await fetch(`${API}/api/admin/reports/monthly_services/send-now?month=${month}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl(`/api/admin/reports/monthly_services/send-now?month=${month}`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd wysyłki');
       alert(`Wysłano raporty (${data.sent} załączników)`);
@@ -67,7 +68,7 @@ export default function AdminSettings() {
     if (!cachePrefix.trim()) { alert('Podaj prefix'); return; }
     setFlushing(true);
     try {
-      const res = await fetch(`${API}/api/admin/cache/flush`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ prefix: cachePrefix.trim() }) });
+      const res = await fetch(apiUrl(`/api/admin/cache/flush`), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ prefix: cachePrefix.trim() }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd czyszczenia');
       alert(`OK. Usunięto (LRU: ${data.lruDeleted}, Redis: ${data.redisDeleted ?? '-'})`);
@@ -79,7 +80,7 @@ export default function AdminSettings() {
     if (!confirm('Na pewno wyczyścić CAŁY cache? (Redis + LRU)')) return;
     setFlushing(true);
     try {
-      const res = await fetch(`${API}/api/admin/cache/flush?all=true`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(apiUrl(`/api/admin/cache/flush?all=true`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd czyszczenia');
       alert('Cache wyczyszczony.');

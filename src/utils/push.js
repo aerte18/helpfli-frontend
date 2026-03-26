@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 export function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -17,14 +18,14 @@ export async function subscribePush() {
 
   try {
     const reg = await navigator.serviceWorker.ready;
-    const { key } = await fetch('/api/push/config').then(r => r.json());
+    const { key } = await fetch(apiUrl('/api/push/config')).then(r => r.json());
     
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(key)
     });
 
-    await fetch('/api/push/subscribe', {
+    await fetch(apiUrl('/api/push/subscribe'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub })
@@ -49,7 +50,7 @@ export async function unsubscribePush() {
     
     if (sub) {
       await sub.unsubscribe();
-      await fetch('/api/push/unsubscribe', {
+      await fetch(apiUrl('/api/push/unsubscribe'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub.endpoint })
@@ -66,7 +67,7 @@ export async function unsubscribePush() {
 
 export async function testPush() {
   try {
-    const response = await fetch('/api/push/test', {
+    const response = await fetch(apiUrl('/api/push/test'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

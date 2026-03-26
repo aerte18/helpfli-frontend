@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, CreditCard, Package, AlertCircle, XCircle } from 'lucide-react';
 
@@ -9,7 +10,7 @@ export default function OrderStatusTimeline({ orderId }) {
     const fetchTimeline = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/orders/${orderId}/timeline`, {
+        const res = await fetch(apiUrl(`/api/orders/${orderId}/timeline`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -31,7 +32,7 @@ export default function OrderStatusTimeline({ orderId }) {
   const generateTimelineFromOrder = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {

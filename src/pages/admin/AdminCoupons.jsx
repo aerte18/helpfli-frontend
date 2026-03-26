@@ -1,7 +1,7 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 
 export default function AdminCoupons() {
-  const API = import.meta.env.VITE_API_URL || '';
   const token = localStorage.getItem('token');
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ export default function AdminCoupons() {
 
   const loadCoupons = async () => {
     try {
-      const res = await fetch(`${API}/api/coupons`, {
+      const res = await fetch(apiUrl(`/api/coupons`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -48,7 +48,9 @@ export default function AdminCoupons() {
         validTo: formData.validTo ? new Date(formData.validTo) : null,
       };
 
-      const url = editingCoupon ? `${API}/api/coupons/${editingCoupon._id}` : `${API}/api/coupons`;
+      const url = editingCoupon
+        ? apiUrl(`/api/coupons/${editingCoupon._id}`)
+        : apiUrl("/api/coupons");
       const method = editingCoupon ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -102,7 +104,7 @@ export default function AdminCoupons() {
   const handleDelete = async (id) => {
     if (!confirm('Czy na pewno chcesz usunąć ten kupon?')) return;
     try {
-      const res = await fetch(`${API}/api/coupons/${id}`, {
+      const res = await fetch(apiUrl(`/api/coupons/${id}`), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

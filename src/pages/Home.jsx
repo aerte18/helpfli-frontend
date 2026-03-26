@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
@@ -374,7 +375,7 @@ export default function Home() {
 
     (async () => {
       try {
-        const res = await fetch(`${API}/api/search?${qs.toString()}`, {
+        const res = await fetch(apiUrl(`/api/search?${qs.toString()}`), {
           signal: controller.signal,
           headers: {
             "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 /* ChatPanel: wysuwany panel czatu z uploadem plików (S3) + miniaturami */
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isImage, iconForMime, formatSize } from "../utils/fileIcons";
 import { getSocket } from "../lib/socket";
@@ -221,7 +222,7 @@ export default function ChatPanel({
     try {
       const fd = new FormData();
       [...fileList].forEach((f) => fd.append("files", f));
-      const res = await fetch("/api/chat/upload", {
+      const res = await fetch(apiUrl("/api/chat/upload"), {
         method: "POST",
         body: fd,
       });

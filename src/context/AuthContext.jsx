@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { createContext, useContext, useEffect, useState } from "react";
 import { subscribePush } from "../utils/push";
 
@@ -19,7 +20,7 @@ export function AuthProvider({ children }) {
     if (!t) { setUser(null); setLoading(false); return; }
     try {
       console.log("AuthContext - fetchMe - calling /api/auth/me");
-      const res = await fetch("/api/auth/me", {
+      const res = await fetch(apiUrl("/api/auth/me"), {
         headers: { Authorization: `Bearer ${t}` }
       });
       console.log("AuthContext - fetchMe - response status:", res.status);
@@ -63,7 +64,7 @@ export function AuthProvider({ children }) {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-        await fetch("/api/auth/logout", {
+        await fetch(apiUrl("/api/auth/logout"), {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
         });

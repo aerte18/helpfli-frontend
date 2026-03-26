@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
 import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
 
@@ -15,15 +16,10 @@ function ManageServices() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Użyj proxy Vite jeśli VITE_API_URL nie jest ustawiony
-        const API = import.meta.env.VITE_API_URL || '';
-        
-        // Pobierz więcej usług (limit=500) żeby mieć wszystkie kategorie
-        // Jeśli API jest puste, użyj relatywnych ścieżek (proxy Vite)
         const limit = 1000;
-        const servicesUrl = API ? `${API}/api/services?limit=${limit}` : `/api/services?limit=${limit}`;
-        const userServicesUrl = API ? `${API}/api/user-services` : '/api/user-services';
-        const categoriesUrl = API ? `${API}/api/services/categories` : '/api/services/categories';
+        const servicesUrl = apiUrl(`/api/services?limit=${limit}`);
+        const userServicesUrl = apiUrl("/api/user-services");
+        const categoriesUrl = apiUrl("/api/services/categories");
         let servicesRes, userServicesRes, categoriesRes;
         try {
           [servicesRes, userServicesRes, categoriesRes] = await Promise.all([
@@ -269,7 +265,7 @@ function ManageServices() {
   const handleAdd = async (serviceId) => {
     try {
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/user-services/add/${serviceId}`, {
+      const res = await fetch(apiUrl(`/api/user-services/add/${serviceId}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -289,7 +285,7 @@ function ManageServices() {
   const handleRemove = async (serviceId) => {
     try {
       const API = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API}/api/user-services/${serviceId}`, {
+      const res = await fetch(apiUrl(`/api/user-services/${serviceId}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

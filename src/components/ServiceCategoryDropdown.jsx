@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { IconByCategory } from "./icons/HelpfliCategoryIcons";
 import { UI } from "../i18n/pl_ui";
@@ -244,7 +245,7 @@ export default function ServiceCategoryDropdown({
       (async () => {
         try {
           const API = import.meta.env.VITE_API_URL || '';
-          const res = await fetch(`${API}/api/services?limit=1000`);
+          const res = await fetch(apiUrl(`/api/services?limit=1000`));
           if (res.ok) {
             const data = await res.json();
             const services = data.items || data || [];

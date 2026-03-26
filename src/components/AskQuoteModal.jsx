@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState } from "react";
 import { X, MessageSquare, DollarSign, Clock } from "lucide-react";
 
@@ -33,7 +34,7 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
         type: "direct",
         status: "quote_requested",
       };
-      const res = await fetch("/api/orders", {
+      const res = await fetch(apiUrl("/api/orders"), {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(payload),

@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useEffect, useState } from "react";
 import Footer from "../components/Footer";
 import { Star, Search, ShieldCheck } from "lucide-react";
@@ -9,7 +10,7 @@ export default function Reviews() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await fetch('/api/reviews');
+        const response = await fetch(apiUrl('/api/reviews'));
         const data = await response.json();
         setReviews(data.reviews || []);
       } catch (error) {

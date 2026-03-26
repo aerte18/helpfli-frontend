@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useState, useRef } from "react";
 
 export default function ReportAbuseButton({ reportedUserId, onReported }) {
@@ -40,7 +41,7 @@ export default function ReportAbuseButton({ reportedUserId, onReported }) {
         formData.append('attachments', file);
       });
 
-      const res = await fetch("/api/reports", {
+      const res = await fetch(apiUrl("/api/reports"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

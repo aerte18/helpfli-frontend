@@ -1,7 +1,8 @@
+import { apiUrl } from "@/lib/apiUrl";
 // src/api/changeRequests.js
 
 export async function createChangeRequest({ token, orderId, payload }) {
-  const res = await fetch(`/api/change-requests/orders/${orderId}/change-request`, {
+  const res = await fetch(apiUrl(`/api/change-requests/orders/${orderId}/change-request`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -15,7 +16,7 @@ export async function createChangeRequest({ token, orderId, payload }) {
 }
 
 export async function acceptChangeRequest({ token, changeRequestId, message }) {
-  const res = await fetch(`/api/change-requests/${changeRequestId}/accept`, {
+  const res = await fetch(apiUrl(`/api/change-requests/${changeRequestId}/accept`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -29,7 +30,7 @@ export async function acceptChangeRequest({ token, changeRequestId, message }) {
 }
 
 export async function rejectChangeRequest({ token, changeRequestId, message }) {
-  const res = await fetch(`/api/change-requests/${changeRequestId}/reject`, {
+  const res = await fetch(apiUrl(`/api/change-requests/${changeRequestId}/reject`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -43,7 +44,7 @@ export async function rejectChangeRequest({ token, changeRequestId, message }) {
 }
 
 export async function getChangeRequests({ token, orderId }) {
-  const res = await fetch(`/api/change-requests/order/${orderId}`, {
+  const res = await fetch(apiUrl(`/api/change-requests/order/${orderId}`), {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

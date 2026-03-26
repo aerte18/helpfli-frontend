@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ResourcePoolManagement from '../../components/company/ResourcePoolManagement';
@@ -84,7 +85,7 @@ const CompanyDashboard = () => {
   const fetchCompanyData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies`, {
+      const response = await fetch(apiUrl(`/api/companies`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -113,7 +114,7 @@ const CompanyDashboard = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/invite`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/invite`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -148,7 +149,7 @@ const CompanyDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/members/${userId}`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/members/${userId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -172,7 +173,7 @@ const CompanyDashboard = () => {
     try {
       setLoadingRequests(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/join-requests?status=pending`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/join-requests?status=pending`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -192,7 +193,7 @@ const CompanyDashboard = () => {
   const handleApproveRequest = async (requestId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/join-requests/${requestId}/approve`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/join-requests/${requestId}/approve`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +220,7 @@ const CompanyDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/join-requests/${requestId}/reject`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/join-requests/${requestId}/reject`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -243,7 +244,7 @@ const CompanyDashboard = () => {
   const handleChangeRole = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/companies/${company._id}/members/${userId}/role-old`, {
+      const response = await fetch(apiUrl(`/api/companies/${company._id}/members/${userId}/role-old`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
