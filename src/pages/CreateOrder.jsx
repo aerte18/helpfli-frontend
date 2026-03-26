@@ -102,6 +102,13 @@ export default function CreateOrder() {
   const orderFormTrackedStep = useRef(0);
   const orderFormSubmitted = useRef(false);
 
+  const isImageAttachment = (attachment) => {
+    const mime = String(attachment?.type || '').toLowerCase();
+    if (mime.startsWith('image/')) return true;
+    const filename = String(attachment?.filename || '').toLowerCase();
+    return /\.(jpg|jpeg|png|webp|heic|heif)$/i.test(filename);
+  };
+
   // Sprawdź czy użytkownik jest klientem
   useEffect(() => {
     if (user && user.role === 'provider') {
@@ -1168,7 +1175,7 @@ export default function CreateOrder() {
                 {attachments.map((attachment, index) => (
                   <div key={index} className="flex items-center justify-between rounded-lg p-3 border" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-3">
-                      {attachment.type?.startsWith('image/') ? (
+                      {isImageAttachment(attachment) ? (
                         <img
                           src={apiUrl(attachment.url)}
                           alt={attachment.filename}
