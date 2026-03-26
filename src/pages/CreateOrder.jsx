@@ -103,7 +103,7 @@ export default function CreateOrder() {
   const orderFormSubmitted = useRef(false);
 
   const isImageAttachment = (attachment) => {
-    const mime = String(attachment?.type || '').toLowerCase();
+    const mime = String(attachment?.mimeType || attachment?.type || '').toLowerCase();
     if (mime.startsWith('image/')) return true;
     const filename = String(attachment?.filename || '').toLowerCase();
     return /\.(jpg|jpeg|png|webp|heic|heif)$/i.test(filename);

@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ChatBox from "../components/ChatBox";
 import { useAuth } from "../context/AuthContext";
@@ -67,6 +67,53 @@ const apiPatch = async (path, body) => {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.message || `PATCH ${path} failed`);
   return data;
+};
+
+const normalizeOrderPayload = (raw) => {
+  const source = raw?.order || raw?.data?.order || raw?.data || raw;
+  if (!source || typeof source !== "object") return source;
+
+  const normalized = { ...source };
+
+  if (!normalized.service && typeof normalized.serviceName === "string") {
+    normalized.service = normalized.serviceName;
+  }
+  if (!normalized.description && typeof normalized.desc === "string") {
+    normalized.description = normalized.desc;
+  }
+  if (!normalized.location && typeof normalized.address === "string") {
+    normalized.location = { address: normalized.address };
+  }
+
+  if (!Array.isArray(normalized.offers)) {
+    normalized.offers = [];
+  }
+
+  let attachments = normalized.attachments;
+  if (typeof attachments === "string") {
+    try {
+      attachments = JSON.parse(attachments);
+    } catch (_e) {
+      attachments = [];
+    }
+  }
+  if (!Array.isArray(attachments)) attachments = [];
+  normalized.attachments = attachments
+    .map((att) => {
+      if (!att) return null;
+      if (typeof att === "string") return { url: att, mimeType: "", filename: "", size: 0 };
+      if (typeof att !== "object") return null;
+      return {
+        ...att,
+        url: att.url || "",
+        mimeType: att.mimeType || att.type || "",
+        filename: att.filename || "",
+        size: Number(att.size) || 0,
+      };
+    })
+    .filter((att) => att && att.url);
+
+  return normalized;
 };
 
 function StatusBadge({ status }) {
@@ -529,9 +576,9 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                 <span className="text-sm font-medium text-gray-600 mb-2 block">Załączniki (zdjęcia/filmy):</span>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                   {order.attachments.map((att, idx) => {
-                    const mime = String(att.type || '').toLowerCase();
+                    const mime = String(att.mimeType || att.type || '').toLowerCase();
                     const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
-                    const isVideo = att.type === 'video' || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
+                    const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
                     
                     return (
                       <div key={idx} className="relative group">
@@ -1709,7 +1756,13 @@ export default function OrderDetails() {
   const [tab, setTab] = useState(tabFromUrl === "offers" ? "offers" : (tabFromUrl === "chat" ? "chat" : (tabFromUrl === "my_offer" ? "my_offer" : "details")));
 
   const [me, setMe] = useState(null);
-  const [order, setOrder] = useState(null);
+  const [order, setOrderState] = useState(null);
+  const setOrder = useCallback((next) => {
+    setOrderState((prev) => {
+      const resolved = typeof next === "function" ? next(prev) : next;
+      return normalizeOrderPayload(resolved);
+    });
+  }, []);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -3954,9 +4007,9 @@ export default function OrderDetails() {
                               <label className="text-sm font-medium text-gray-700 mb-2 block">Załączniki (zdjęcia/filmy)</label>
                               <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {order.attachments.map((att, idx) => {
-                                  const mime = String(att.type || '').toLowerCase();
+                                  const mime = String(att.mimeType || att.type || '').toLowerCase();
                                   const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
-                                  const isVideo = att.type === 'video' || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
+                                  const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
                                   
                                   return (
                                     <div key={idx} className="relative group">
