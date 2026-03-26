@@ -4,6 +4,7 @@ import {
   buildProviderServiceCategories,
   getExpandedSlugsForSelection,
 } from "../utils/buildProviderServiceCategories";
+import { getServiceSelectionKey } from "../utils/serviceSelectionKeys";
 
 /**
  * Wybór usług jak w „Zarządzanie usługami”: kategorie → rozwijane podkategorie.
@@ -17,6 +18,8 @@ export default function ProviderServiceCategoryPicker({
   const [mainCategories, setMainCategories] = useState([]);
   const [subcategories, setSubcategories] = useState({});
   const [expandedCategories, setExpandedCategories] = useState(() => new Set());
+
+  const selected = selectedIds ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +88,7 @@ export default function ProviderServiceCategoryPicker({
     if (loading || Object.keys(subcategories).length === 0) return;
     setExpandedCategories((prev) => {
       const next = new Set(prev);
-      getExpandedSlugsForSelection(subcategories, selectedIds).forEach((s) =>
+      getExpandedSlugsForSelection(subcategories, selected).forEach((s) =>
         next.add(s)
       );
       return next;
@@ -94,17 +97,21 @@ export default function ProviderServiceCategoryPicker({
 
   const isMainCategorySelected = (categorySlug) => {
     const categorySubs = subcategories[categorySlug] || [];
-    const ids = categorySubs.map((s) => s._id).filter(Boolean).map(String);
-    if (ids.length === 0) return false;
-    return ids.every((id) => selectedIds.includes(id));
+    const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
+    if (selectable.length === 0) return false;
+    return selectable.every((sub) =>
+      selected.includes(getServiceSelectionKey(sub))
+    );
   };
 
   const isMainCategoryPartial = (categorySlug) => {
     const categorySubs = subcategories[categorySlug] || [];
-    const ids = categorySubs.map((s) => s._id).filter(Boolean).map(String);
-    if (ids.length === 0) return false;
-    const n = ids.filter((id) => selectedIds.includes(id)).length;
-    return n > 0 && n < ids.length;
+    const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
+    if (selectable.length === 0) return false;
+    const n = selectable.filter((sub) =>
+      selected.includes(getServiceSelectionKey(sub))
+    ).length;
+    return n > 0 && n < selectable.length;
   };
 
   const toggleCategoryExpand = (categorySlug) => {
@@ -118,29 +125,32 @@ export default function ProviderServiceCategoryPicker({
 
   const handleMainCategoryToggle = (categorySlug) => {
     const categorySubs = subcategories[categorySlug] || [];
-    const ids = categorySubs.map((s) => s._id).filter(Boolean).map(String);
-    const allSelected = ids.length > 0 && ids.every((id) => selectedIds.includes(id));
+    const keys = categorySubs
+      .map(getServiceSelectionKey)
+      .filter(Boolean);
+    const allSelected =
+      keys.length > 0 && keys.every((k) => selected.includes(k));
 
     if (!expandedCategories.has(categorySlug)) {
       setExpandedCategories((prev) => new Set(prev).add(categorySlug));
     }
 
     if (allSelected) {
-      onSelectedIdsChange(selectedIds.filter((id) => !ids.includes(id)));
+      onSelectedIdsChange(selected.filter((id) => !keys.includes(id)));
     } else {
-      const set = new Set(selectedIds);
-      ids.forEach((id) => set.add(id));
+      const set = new Set(selected);
+      keys.forEach((k) => set.add(k));
       onSelectedIdsChange([...set]);
     }
   };
 
-  const toggleSub = (serviceId) => {
-    const id = String(serviceId);
-    if (!serviceId) return;
-    if (selectedIds.includes(id)) {
-      onSelectedIdsChange(selectedIds.filter((x) => x !== id));
+  const toggleSub = (sub) => {
+    const key = getServiceSelectionKey(sub);
+    if (!key) return;
+    if (selected.includes(key)) {
+      onSelectedIdsChange(selected.filter((x) => x !== key));
     } else {
-      onSelectedIdsChange([...selectedIds, id]);
+      onSelectedIdsChange([...selected, key]);
     }
   };
 
@@ -238,11 +248,11 @@ export default function ProviderServiceCategoryPicker({
                   }`}
                 >
                   {categorySubs.map((sub) => {
-                    const sid = sub._id != null ? String(sub._id) : "";
-                    const isSubSelected = sid && selectedIds.includes(sid);
+                    const rowKey = getServiceSelectionKey(sub);
+                    const isSubSelected = rowKey && selected.includes(rowKey);
                     return (
                       <div
-                        key={sid || sub.slug}
+                        key={rowKey || sub.slug || sub.name_pl}
                         className={`flex items-center p-2 rounded-lg transition-colors ${
                           isSubSelected
                             ? "bg-indigo-50 border border-indigo-200"
@@ -252,13 +262,13 @@ export default function ProviderServiceCategoryPicker({
                         <input
                           type="checkbox"
                           checked={!!isSubSelected}
-                          disabled={!sid}
-                          onChange={() => sid && toggleSub(sub._id)}
+                          disabled={!rowKey}
+                          onChange={() => rowKey && toggleSub(sub)}
                           className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer disabled:opacity-40"
                         />
                         <label
                           className="ml-3 text-sm text-slate-700 cursor-pointer flex-1"
-                          onClick={() => sid && toggleSub(sub._id)}
+                          onClick={() => rowKey && toggleSub(sub)}
                         >
                           {sub.name_pl}
                         </label>
@@ -272,10 +282,10 @@ export default function ProviderServiceCategoryPicker({
         })}
       </div>
 
-      {selectedIds.length > 0 && (
+      {selected.length > 0 && (
         <p className="text-sm text-gray-600 text-center">
-          Wybrano {selectedIds.length}{" "}
-          {selectedIds.length === 1 ? "usługę" : selectedIds.length < 5 ? "usługi" : "usług"}
+          Wybrano {selected.length}{" "}
+          {selected.length === 1 ? "usługę" : selected.length < 5 ? "usługi" : "usług"}
         </p>
       )}
     </div>

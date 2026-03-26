@@ -4,6 +4,18 @@ import {
   buildProviderServiceCategories,
   getExpandedSlugsForSelection,
 } from "../utils/buildProviderServiceCategories";
+import {
+  getServiceSelectionKey,
+  isMongoObjectId,
+} from "../utils/serviceSelectionKeys";
+
+function userHasService(userServices, sub) {
+  const k = getServiceSelectionKey(sub);
+  if (!k) return false;
+  return userServices.some(
+    (us) => String(us._id) === k || (us.slug && String(us.slug) === k)
+  );
+}
 
 function ManageServices() {
   
@@ -120,23 +132,20 @@ function ManageServices() {
   // Sprawdź czy kategoria główna jest zaznaczona (ma wszystkie podkategorie)
   const isMainCategorySelected = (categorySlug) => {
     const categorySubs = subcategories[categorySlug] || [];
-    if (categorySubs.length === 0) return false;
-    
-    return categorySubs.every(sub => 
-      userServices.some(userService => userService._id === sub._id)
-    );
+    const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
+    if (selectable.length === 0) return false;
+    return selectable.every((sub) => userHasService(userServices, sub));
   };
 
   // Sprawdź czy kategoria główna jest częściowo zaznaczona
   const isMainCategoryPartial = (categorySlug) => {
     const categorySubs = subcategories[categorySlug] || [];
-    if (categorySubs.length === 0) return false;
-    
-    const selectedCount = categorySubs.filter(sub => 
-      userServices.some(userService => userService._id === sub._id)
+    const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
+    if (selectable.length === 0) return false;
+    const selectedCount = selectable.filter((sub) =>
+      userHasService(userServices, sub)
     ).length;
-    
-    return selectedCount > 0 && selectedCount < categorySubs.length;
+    return selectedCount > 0 && selectedCount < selectable.length;
   };
 
   // Obsługa rozwijania/zwijania kategorii
@@ -163,22 +172,32 @@ function ManageServices() {
     }
     
     if (isCurrentlySelected) {
-      // Odznacz wszystkie podkategorie
       for (const sub of categorySubs) {
-        await handleRemove(sub._id);
+        const key = getServiceSelectionKey(sub);
+        if (key) await handleRemove(key);
       }
     } else {
-      // Zaznacz wszystkie podkategorie
       for (const sub of categorySubs) {
-        if (!userServices.some(userService => userService._id === sub._id)) {
-          await handleAdd(sub._id);
-        }
+        if (userHasService(userServices, sub)) continue;
+        const key = getServiceSelectionKey(sub);
+        if (key) await handleAdd(key);
       }
     }
   };
 
-  const handleAdd = async (serviceId) => {
+  const handleAdd = async (serviceIdOrSlug) => {
     try {
+      let serviceId = serviceIdOrSlug;
+      if (serviceId != null && !isMongoObjectId(serviceId)) {
+        const lookup = await fetch(
+          apiUrl(`/api/services/${encodeURIComponent(serviceId)}`)
+        );
+        if (!lookup.ok) return;
+        const doc = await lookup.json();
+        serviceId = doc._id;
+      }
+      if (!isMongoObjectId(serviceId)) return;
+
       const API = import.meta.env.VITE_API_URL || '';
       const res = await fetch(apiUrl(`/api/user-services/add/${serviceId}`), {
         method: "POST",
@@ -197,8 +216,19 @@ function ManageServices() {
     }
   };
 
-  const handleRemove = async (serviceId) => {
+  const handleRemove = async (serviceIdOrSlug) => {
     try {
+      let serviceId = serviceIdOrSlug;
+      if (serviceId != null && !isMongoObjectId(serviceId)) {
+        const lookup = await fetch(
+          apiUrl(`/api/services/${encodeURIComponent(serviceId)}`)
+        );
+        if (!lookup.ok) return;
+        const doc = await lookup.json();
+        serviceId = doc._id;
+      }
+      if (!isMongoObjectId(serviceId)) return;
+
       const API = import.meta.env.VITE_API_URL || '';
       const res = await fetch(apiUrl(`/api/user-services/${serviceId}`), {
         method: "DELETE",
@@ -308,10 +338,11 @@ function ManageServices() {
                   }`}
                 >
                   {categorySubs.map((sub) => {
-                    const isSubSelected = userServices.some(userService => userService._id === sub._id);
+                    const isSubSelected = userHasService(userServices, sub);
+                    const key = getServiceSelectionKey(sub);
                     return (
                       <div 
-                        key={sub._id} 
+                        key={key || sub.slug || sub.name_pl} 
                         className={`flex items-center p-2 rounded-lg transition-colors ${
                           isSubSelected ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50'
                         }`}
@@ -319,12 +350,19 @@ function ManageServices() {
                         <input
                           type="checkbox"
                           checked={isSubSelected}
-                          onChange={() => isSubSelected ? handleRemove(sub._id) : handleAdd(sub._id)}
-                          className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer"
+                          disabled={!key}
+                          onChange={() =>
+                            key &&
+                            (isSubSelected ? handleRemove(key) : handleAdd(key))
+                          }
+                          className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer disabled:opacity-40"
                         />
                         <label 
                           className="ml-3 text-sm text-slate-700 cursor-pointer flex-1" 
-                          onClick={() => isSubSelected ? handleRemove(sub._id) : handleAdd(sub._id)}
+                          onClick={() =>
+                            key &&
+                            (isSubSelected ? handleRemove(key) : handleAdd(key))
+                          }
                         >
                           {sub.name_pl}
                         </label>

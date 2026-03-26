@@ -1,8 +1,19 @@
 import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
+import { getServiceSelectionKey } from "./serviceSelectionKeys";
 
 /** Jak w categoryOrder: jedna forma slugów (myślniki, małe litery). */
 function normalizeSlug(slug = "") {
   return String(slug).replace(/_/g, "-").toLowerCase().trim();
+}
+
+/** Synonimy parent_slug (katalog JSON vs services_catalog / Mongo). */
+const PARENT_CANONICAL = {
+  "24h": "pomoc-24-7",
+};
+
+function canonicalParentSlug(slug) {
+  const n = normalizeSlug(slug);
+  return PARENT_CANONICAL[n] || n;
 }
 
 function isMongoObjectId(id) {
@@ -111,7 +122,7 @@ export function buildProviderServiceCategories(services, categoriesPayload) {
   // Dołącz wszystkie usługi z API do właściwej kategorii (po znormalizowanym parent_slug)
   for (const service of servicesList) {
     if (!service.parent_slug) continue;
-    const parentNorm = normalizeSlug(service.parent_slug);
+    const parentNorm = canonicalParentSlug(service.parent_slug);
     const cat = categoryBySlug.get(parentNorm);
     if (!cat) continue;
     const sk = normalizeSlug(service.slug || "");
@@ -134,7 +145,7 @@ export function buildProviderServiceCategories(services, categoriesPayload) {
   const extraSubs = {};
   for (const service of servicesList) {
     if (!service.parent_slug) continue;
-    const parentNorm = normalizeSlug(service.parent_slug);
+    const parentNorm = canonicalParentSlug(service.parent_slug);
     if (jsonCategorySlugs.has(parentNorm)) continue;
 
     if (!extraSubs[parentNorm]) extraSubs[parentNorm] = [];
@@ -168,7 +179,7 @@ export function buildProviderServiceCategories(services, categoriesPayload) {
     const fallbackMap = {};
     servicesList.forEach((service) => {
       if (!service.parent_slug) return;
-      const p = normalizeSlug(service.parent_slug);
+      const p = canonicalParentSlug(service.parent_slug);
       if (!fallbackMap[p]) {
         fallbackMap[p] = {
           _id: `fallback_${p}`,
@@ -199,13 +210,16 @@ export function buildProviderServiceCategories(services, categoriesPayload) {
   };
 }
 
-/** Rozwiń kategorie, w których jest coś zaznaczone (id usług z Mongo). */
+/** Rozwiń kategorie, w których jest coś zaznaczone (ObjectId lub slug). */
 export function getExpandedSlugsForSelection(subcategories, selectedIds) {
   const idSet = new Set((selectedIds || []).map(String));
   const expanded = new Set();
   Object.entries(subcategories || {}).forEach(([slug, subs]) => {
     if (
-      (subs || []).some((sub) => sub._id != null && idSet.has(String(sub._id)))
+      (subs || []).some((sub) => {
+        const k = getServiceSelectionKey(sub);
+        return k && idSet.has(k);
+      })
     ) {
       expanded.add(slug);
     }

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { User, Briefcase, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import ProviderServiceCategoryPicker from "../components/ProviderServiceCategoryPicker";
+import { resolveSelectionKeysToMongoIds } from "../utils/serviceSelectionKeys";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -104,7 +105,8 @@ export default function OnboardingWizard() {
   };
 
   const handleServicesUpdate = async () => {
-    if (role !== "provider" || profileData.services.length === 0) {
+    const chosen = profileData.services ?? [];
+    if (role !== "provider" || chosen.length === 0) {
       await completeOnboarding();
       return;
     }
@@ -114,32 +116,41 @@ export default function OnboardingWizard() {
 
     try {
       const token = localStorage.getItem("token");
-      
-      // Zapisz usługi
-      await fetch(apiUrl("/api/user-services"), {
+
+      const listRes = await fetch(apiUrl("/api/services?limit=1000"));
+      const listData = await listRes.json().catch(() => ({}));
+      const items = Array.isArray(listData.items) ? listData.items : [];
+
+      const mongoIds = resolveSelectionKeysToMongoIds(chosen, items);
+
+      const postRes = await fetch(apiUrl("/api/user-services"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ services: profileData.services })
+        body: JSON.stringify({ services: mongoIds })
       });
 
-      // Ustaw główną usługę
-      if (profileData.services.length > 0) {
-        const firstServiceRes = await fetch(apiUrl(`/api/services/${profileData.services[0]}`), {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (firstServiceRes.ok) {
-          const firstService = await firstServiceRes.json();
+      if (!postRes.ok) {
+        const errText = await postRes.text().catch(() => "");
+        throw new Error(
+          errText || "Nie udało się zapisać usług. Spróbuj ponownie."
+        );
+      }
+
+      if (mongoIds.length > 0) {
+        const first = items.find((s) => String(s._id) === mongoIds[0]);
+        if (first) {
           await fetch(apiUrl("/api/users/me/profile"), {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify({ service: firstService.name })
+            body: JSON.stringify({
+              service: first.name_pl || first.name || ""
+            })
           });
         }
       }
@@ -351,15 +362,15 @@ export default function OnboardingWizard() {
       {role === "provider" ? (
         <div className="space-y-4">
           <ProviderServiceCategoryPicker
-            selectedIds={profileData.services}
+            selectedIds={profileData.services ?? []}
             onSelectedIdsChange={(services) =>
-              setProfileData((prev) => ({ ...prev, services }))
+              setProfileData((prev) => ({ ...prev, services: services ?? [] }))
             }
           />
           
           <button
             onClick={handleServicesUpdate}
-            disabled={loading || profileData.services.length === 0}
+            disabled={loading || (profileData.services ?? []).length === 0}
             className="w-full max-w-md mx-auto flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Zapisywanie..." : "Zakończ konfigurację"}
