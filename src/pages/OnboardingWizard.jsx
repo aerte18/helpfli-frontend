@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { User, Briefcase, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import ProviderServiceCategoryPicker from "../components/ProviderServiceCategoryPicker";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -349,9 +350,11 @@ export default function OnboardingWizard() {
 
       {role === "provider" ? (
         <div className="space-y-4">
-          <ServiceSelector
-            selectedServices={profileData.services}
-            onServicesChange={(services) => setProfileData(prev => ({ ...prev, services }))}
+          <ProviderServiceCategoryPicker
+            selectedIds={profileData.services}
+            onSelectedIdsChange={(services) =>
+              setProfileData((prev) => ({ ...prev, services }))
+            }
           />
           
           <button
@@ -436,85 +439,3 @@ export default function OnboardingWizard() {
     </div>
   );
 }
-
-// Komponent do wyboru usług (uproszczony)
-function ServiceSelector({ selectedServices, onServicesChange }) {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(apiUrl(`/api/services`));
-        if (res.ok) {
-          const data = await res.json();
-          // API zwraca {items: [...], total: 50, hasMore: true}
-          const servicesArray = Array.isArray(data.items) ? data.items : 
-                              (Array.isArray(data) ? data : []);
-          setServices(servicesArray);
-        } else {
-          console.error("Błąd pobierania usług:", res.status, res.statusText);
-          setServices([]); // Ustaw pustą tablicę w przypadku błędu
-        }
-      } catch (err) {
-        console.error("Błąd pobierania usług:", err);
-        setServices([]); // Ustaw pustą tablicę w przypadku błędu
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchServices();
-  }, []);
-
-  const handleServiceToggle = (serviceId) => {
-    const newServices = selectedServices.includes(serviceId)
-      ? selectedServices.filter(id => id !== serviceId)
-      : [...selectedServices, serviceId];
-    onServicesChange(newServices);
-  };
-
-  if (loading) {
-    return <div className="text-center py-8">Ładowanie usług...</div>;
-  }
-
-  // Upewnij się, że services jest tablicą
-  if (!Array.isArray(services)) {
-    console.error("Services is not an array:", services);
-    return <div className="text-center py-8 text-red-600">Błąd: Nie udało się pobrać usług</div>;
-  }
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-center">Wybierz usługi, które oferujesz</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-        {services.length === 0 ? (
-          <div className="col-span-full text-center py-4 text-gray-500">
-            Brak dostępnych usług
-          </div>
-        ) : (
-          services.map((service) => (
-            <button
-              key={service._id || service.slug}
-              onClick={() => handleServiceToggle(service._id || service.slug)}
-              className={`p-3 text-left border rounded-lg transition-all ${
-                selectedServices.includes(service._id || service.slug)
-                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="font-medium text-sm">{service.name_pl || service.name}</div>
-            </button>
-          ))
-        )}
-      </div>
-      {selectedServices.length > 0 && (
-        <p className="text-sm text-gray-600 text-center">
-          Wybrano {selectedServices.length} usług
-        </p>
-      )}
-    </div>
-  );
-}
-

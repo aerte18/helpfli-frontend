@@ -1,6 +1,9 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
-import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
+import {
+  buildProviderServiceCategories,
+  getExpandedSlugsForSelection,
+} from "../utils/buildProviderServiceCategories";
 
 function ManageServices() {
   
@@ -79,9 +82,6 @@ function ManageServices() {
         // API zwraca {items: [...], total: 50, hasMore: true}
         const services = Array.isArray(servicesData.items) ? servicesData.items : 
                         (Array.isArray(servicesData) ? servicesData : []);
-        const servicesBySlug = new Map(
-          services.map(service => [service.slug, service])
-        );
         // user-services API zwraca bezpośrednio tablicę, nie obiekt
         const userServ = Array.isArray(userServData) ? userServData : (userServData.services || []);
 
@@ -92,95 +92,17 @@ function ManageServices() {
         setAvailableServices(services);
         setUserServices(userServ);
 
-        const categoriesPayload = Array.isArray(categoriesData?.items)
-          ? categoriesData.items
-          : Array.isArray(categoriesData)
-            ? categoriesData
-            : [];
+        const { mainCategories: mc, subcategories: sm } = buildProviderServiceCategories(
+          services,
+          categoriesData
+        );
+        setMainCategories(mc);
+        setSubcategories(sm);
+        setExpandedCategories(
+          getExpandedSlugsForSelection(sm, userServ.map((u) => u._id))
+        );
 
-        const normalizedCategories = categoriesPayload.map(cat => {
-          const slug = cat.id || cat.slug || cat.parent_slug;
-          const displayName = cat.name || cat.name_pl || cat.label || (slug ? slug.replace(/[-_]/g, ' ') : 'Kategoria');
-          const subs = sortSubcategories({
-            slug,
-            services: (cat.subcategories || []).map(sub => {
-            const service = servicesBySlug.get(sub.id) || servicesBySlug.get(sub.slug);
-            if (service) return service;
-            // fallback gdy brakuje usługi w kolekcji
-            return {
-              _id: sub.id,
-              slug: sub.id,
-              name_pl: sub.name || sub.label || sub.id,
-              parent_slug: slug
-            };
-            }).filter(Boolean)
-          });
-          return {
-            _id: `cat_${slug}`,
-            slug,
-            name_pl: displayName,
-            services: subs
-          };
-        });
-
-        // Dodaj kategorie z usług, których nie ma w katalogu
-        const catalogSlugs = new Set(normalizedCategories.map(cat => cat.slug));
-        const extraSubs = {};
-        services.forEach(service => {
-          if (!service.parent_slug) return;
-          if (!catalogSlugs.has(service.parent_slug)) {
-            if (!extraSubs[service.parent_slug]) extraSubs[service.parent_slug] = [];
-            extraSubs[service.parent_slug].push(service);
-          }
-        });
-        const extraCategories = Object.keys(extraSubs).map(slug => ({
-          _id: `extra_${slug}`,
-          slug,
-          name_pl: slug.charAt(0).toUpperCase() + slug.slice(1),
-          services: extraSubs[slug]
-        }));
-
-        let combinedCategories = [...normalizedCategories, ...extraCategories].filter(cat => cat.services.length > 0);
-        if (combinedCategories.length === 0) {
-          console.warn('⚠️ ManageServices: katalog pusty – używam fallbacku z usług');
-          const fallbackMap = {};
-          services.forEach(service => {
-            if (!service.parent_slug) return;
-            if (!fallbackMap[service.parent_slug]) {
-              fallbackMap[service.parent_slug] = {
-                _id: `fallback_${service.parent_slug}`,
-                slug: service.parent_slug,
-                name_pl: service.parent_slug.charAt(0).toUpperCase() + service.parent_slug.slice(1),
-                services: []
-              };
-            }
-            fallbackMap[service.parent_slug].services.push(service);
-          });
-          combinedCategories = Object.values(fallbackMap);
-        }
-
-        const subsMap = {};
-        combinedCategories.forEach(cat => {
-          subsMap[cat.slug] = cat.services;
-        });
-
-        setMainCategories(sortCategoriesByOrder(combinedCategories));
-        setSubcategories(subsMap);
-
-        // Automatycznie rozwiń kategorie, które mają zaznaczone usługi
-        const initiallyExpanded = new Set();
-        Object.keys(subsMap).forEach(categorySlug => {
-          const categorySubs = subsMap[categorySlug] || [];
-          const hasSelected = categorySubs.some(sub => 
-            userServ.some(userService => userService._id === sub._id)
-          );
-          if (hasSelected) {
-            initiallyExpanded.add(categorySlug);
-          }
-        });
-        setExpandedCategories(initiallyExpanded);
-
-        if (combinedCategories.length === 0) {
+        if (mc.length === 0) {
           console.warn('⚠️ ManageServices: Brak kategorii - sprawdź strukturę danych usług');
         }
 
