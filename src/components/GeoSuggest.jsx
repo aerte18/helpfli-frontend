@@ -1,6 +1,7 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { apiUrl } from "@/lib/apiUrl";
+import { useEffect, useRef, useState } from 'react';
 
-export default function GeoSuggest({ value, onPick, placeholder = 'Miasto, dzielnica', proxyApi = true }) {
+export default function GeoSuggest({ value, onPick, onChange, placeholder = 'Miasto, dzielnica', proxyApi = true }) {
   const API = import.meta.env.VITE_API_URL || '';
   const [q, setQ] = useState(value || '');
   const [items, setItems] = useState([]);
@@ -14,7 +15,7 @@ export default function GeoSuggest({ value, onPick, placeholder = 'Miasto, dziel
     const t = setTimeout(async () => {
       try {
         if (proxyApi) {
-          const res = await fetch(`${API}/api/ai/geo/search?q=${encodeURIComponent(q)}&limit=5`);
+          const res = await fetch(apiUrl(`/api/ai/geo/search?q=${encodeURIComponent(q)}&limit=5`));
           const data = await res.json();
           setItems(data.items || []);
         } else {
@@ -43,7 +44,11 @@ export default function GeoSuggest({ value, onPick, placeholder = 'Miasto, dziel
         className="w-full border rounded p-2"
         placeholder={placeholder}
         value={q}
-        onChange={e=>setQ(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          setQ(next);
+          onChange?.(next);
+        }}
         onFocus={()=>setOpen(items.length>0)}
       />
       {open && items.length > 0 && (

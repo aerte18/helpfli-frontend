@@ -1,7 +1,9 @@
+import { apiUrl } from "@/lib/apiUrl";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Logo from "../components/Logo";
+import GeoSuggest from "../components/GeoSuggest";
 
 const ROLE_OPTIONS = [
   { key: "client", label: "Klient" },
@@ -133,7 +135,7 @@ export default function Register() {
     try {
       // Używamy OpenStreetMap Nominatim API (darmowe)
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=pl`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=pl&addressdetails=1`
       );
       const data = await response.json();
       
@@ -220,7 +222,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(apiUrl("/api/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -573,16 +575,35 @@ export default function Register() {
                     ? "Adres świadczenia usług *" 
                     : "Twój adres (opcjonalnie - dla lepszego wyszukiwania)"}
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="np. ul. Marszałkowska 1, Warszawa"
-                    className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    value={form.address}
-                    onChange={handleChange}
-                    required={form.role === "provider"}
-                  />
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <GeoSuggest
+                      value={form.address}
+                      placeholder="np. ul. Marszałkowska 1, Warszawa"
+                      proxyApi={false}
+                      onChange={(nextAddress) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          address: nextAddress,
+                        }));
+                      }}
+                      onPick={(item) => {
+                        setError("");
+                        setForm((prev) => ({
+                          ...prev,
+                          address: item?.label || prev.address,
+                          locationCoords:
+                            typeof item?.lat === "number" && typeof item?.lon === "number"
+                              ? { lat: item.lat, lng: item.lon }
+                              : prev.locationCoords,
+                        }));
+                        if (typeof item?.lat === "number" && typeof item?.lon === "number") {
+                          setMapCenter([item.lat, item.lon]);
+                          setShowLocationMap(true);
+                        }
+                      }}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => geocodeAddress(form.address)}
