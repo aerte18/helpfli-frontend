@@ -29,14 +29,7 @@ export default function ProviderServiceCategoryPicker({
         const categoriesUrl = apiUrl("/api/services/categories");
         const [servicesRes, categoriesRes] = await Promise.all([
           fetch(servicesUrl),
-          fetch(categoriesUrl, {
-            cache: "no-store",
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-          }),
+          fetch(categoriesUrl, { cache: "no-store" }),
         ]);
 
         if (!servicesRes.ok) {

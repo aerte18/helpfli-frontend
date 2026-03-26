@@ -98,14 +98,7 @@ export default function ServiceCategoryDropdown({
         let res;
         try {
           res = await Promise.race([
-            fetch(apiUrl, {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-              }
-            }),
+            fetch(apiUrl, { cache: 'no-store' }),
             timeoutPromise
           ]);
           console.log('ServiceCategoryDropdown - response status:', res.status);
@@ -120,14 +113,7 @@ export default function ServiceCategoryDropdown({
           apiUrl = `/api/categories${cacheBuster}`;
           try {
             res = await Promise.race([
-              fetch(apiUrl, {
-                cache: 'no-store',
-                headers: {
-                  'Cache-Control': 'no-cache, no-store, must-revalidate',
-                  'Pragma': 'no-cache',
-                  'Expires': '0'
-                }
-              }),
+              fetch(apiUrl, { cache: 'no-store' }),
               timeoutPromise
             ]);
             console.log('ServiceCategoryDropdown - /api/categories response status:', res.status);
