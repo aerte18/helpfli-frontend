@@ -312,6 +312,27 @@ const URGENCY_BADGE = {
 
 const urgencyToRadius = (u) => (u === "now" ? 12 : u === "today" ? 10 : u === "tomorrow" ? 9 : u === "this_week" ? 8.5 : 8);
 
+function normalizeProviderServiceSlug(s) {
+  return String(s || "").replace(/_/g, "-").toLowerCase().trim();
+}
+
+/** Zlecenie ma pole `service` (slug); konto providera — slug lub parent_slug — muszą się zgadzać albo być prefiksem (np. hydraulika vs hydraulika-…). */
+function orderServiceMatchesProvider(orderService, providerServices) {
+  const os = normalizeProviderServiceSlug(orderService);
+  if (!os) return true;
+  const list = (providerServices || []).map((s) => {
+    if (typeof s === "string") return normalizeProviderServiceSlug(s);
+    return normalizeProviderServiceSlug(
+      s.slug || s.parent_slug || s.name_pl || s.name || ""
+    );
+  }).filter(Boolean);
+  if (list.length === 0) return true;
+  return list.some((ps) => {
+    if (!ps) return false;
+    return os === ps || os.startsWith(`${ps}-`);
+  });
+}
+
 export default function ProviderHome() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -554,10 +575,10 @@ export default function ProviderHome() {
         // Dla pojedynczego providera - filtruj po jego usługach
         // Używamy parent_slug (np. 'hydraulik', 'elektryk') zamiast name
         const serviceSlugs = user.services.map(s => {
-          // Obsługa różnych formatów usług (obiekt vs string)
           if (typeof s === 'string') return s;
-          return s.parent_slug || s.slug || s.name_pl || s.name || String(s);
-        }).filter(Boolean); // Usuń puste wartości
+          // Najpierw konkretny slug usługi (jak w zleceniu), potem kategoria
+          return s.slug || s.parent_slug || s.name_pl || s.name || String(s);
+        }).filter(Boolean);
         
         // Dodaj usługi jako osobne parametry (nie jako tablicę)
         serviceSlugs.forEach(service => {
@@ -568,8 +589,7 @@ export default function ProviderHome() {
 
       // Zasięg dla "wszystkie usługi" / brak usług jest już ustawiony wyżej na 600 km (effectiveMaxDistance)
 
-      // Użyj względnego URL (proxy Vite) - tak jak w innych komponentach
-      const url = `/api/orders/open?${params.toString()}`;
+      const url = apiUrl(`/api/orders/open?${params.toString()}`);
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -678,15 +698,11 @@ export default function ProviderHome() {
     const filtered = demand.filter((o) => {
       // Filtrowanie po usługach - domyślnie tylko usługi providera
       if (!showAllServices) {
-        // Sprawdź czy zlecenie jest w usługach providera
-        const providerServices = user?.services || []; // wszystkie usługi providera
-        // Używamy parent_slug (np. 'hydraulik', 'elektryk') zamiast name
-        const providerServiceSlugs = providerServices.map(s => s.parent_slug || s.slug || s.name_pl || s.name || s);
-        
-        console.log('ProviderHome: Sprawdzam zlecenie:', o.service, 'vs provider services:', providerServiceSlugs);
-        
-        // Jeśli provider ma usługi, sprawdź czy zlecenie pasuje do którejkolwiek
-        if (providerServiceSlugs.length > 0 && !providerServiceSlugs.includes(o.service)) {
+        const providerServices = user?.services || [];
+        if (
+          providerServices.length > 0 &&
+          !orderServiceMatchesProvider(o.service, providerServices)
+        ) {
           return false;
         }
       }
