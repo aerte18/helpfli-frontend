@@ -41,9 +41,9 @@ export default function Navbar() {
     }
 
     const fetchNotificationsCount = async () => {
+      if (document.visibilityState !== 'visible') return;
       try {
         const token = localStorage.getItem('token');
-        const API = import.meta.env.VITE_API_URL || '';
         const res = await fetch(apiUrl(`/api/notifications/unread/count`), {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -60,8 +60,15 @@ export default function Navbar() {
     };
     
     fetchNotificationsCount();
-    const int = setInterval(fetchNotificationsCount, 10000); // co 10s odświeżaj
-    return () => clearInterval(int);
+    const int = setInterval(fetchNotificationsCount, 60000); // co 60s odświeżaj
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchNotificationsCount();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(int);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [user]); // Dodaj user jako dependency
 
   // Zamknij menu po kliknięciu poza nim
