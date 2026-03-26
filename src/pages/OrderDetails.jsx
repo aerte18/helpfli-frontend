@@ -529,7 +529,8 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                 <span className="text-sm font-medium text-gray-600 mb-2 block">Załączniki (zdjęcia/filmy):</span>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                   {order.attachments.map((att, idx) => {
-                    const isImage = att.type === 'image' || (!att.type && /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url || att.filename || ''));
+                    const mime = String(att.type || '').toLowerCase();
+                    const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
                     const isVideo = att.type === 'video' || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
                     
                     return (
@@ -3953,7 +3954,8 @@ export default function OrderDetails() {
                               <label className="text-sm font-medium text-gray-700 mb-2 block">Załączniki (zdjęcia/filmy)</label>
                               <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {order.attachments.map((att, idx) => {
-                                  const isImage = att.type === 'image' || (!att.type && /\.(jpg|jpeg|png|gif|webp)$/i.test(att.url || att.filename || ''));
+                                  const mime = String(att.type || '').toLowerCase();
+                                  const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
                                   const isVideo = att.type === 'video' || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
                                   
                                   return (
