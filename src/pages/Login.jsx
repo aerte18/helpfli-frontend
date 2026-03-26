@@ -10,6 +10,9 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [twoFactorError, setTwoFactorError] = useState("");
@@ -24,6 +27,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setInfo("");
+    setEmailNotVerified(false);
     setTwoFactorError("");
 
     try {
@@ -81,7 +86,28 @@ function Login() {
       }
     } catch (err) {
       console.error("Login error:", err);
+      if (err?.data?.emailNotVerified) {
+        setEmailNotVerified(true);
+      }
       setError(err.message);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("Podaj email, aby wysłać link weryfikacyjny.");
+      return;
+    }
+    setError("");
+    setInfo("");
+    setResendingVerification(true);
+    try {
+      const data = await apiPost("/api/auth/resend-verification", { email }, { credentials: "omit" });
+      setInfo(data?.message || "Email weryfikacyjny został wysłany ponownie.");
+    } catch (err) {
+      setError(err.message || "Nie udało się ponownie wysłać emaila weryfikacyjnego.");
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -139,6 +165,7 @@ function Login() {
 
         <h2 className="text-2xl font-bold mb-4 text-center">Zaloguj się</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {info && <p className="text-green-600 text-center mb-4">{info}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
@@ -185,6 +212,16 @@ function Login() {
             Zaloguj
           </button>
         </form>
+        {emailNotVerified && (
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={resendingVerification}
+            className="w-full mt-3 p-2 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 disabled:opacity-60"
+          >
+            {resendingVerification ? "Wysyłanie..." : "Wyślij ponownie email weryfikacyjny"}
+          </button>
+        )}
 
         <p className="text-sm mt-6 text-center">
           Nie masz konta?{" "}
