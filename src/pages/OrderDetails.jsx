@@ -75,14 +75,47 @@ const normalizeOrderPayload = (raw) => {
 
   const normalized = { ...source };
 
-  if (!normalized.service && typeof normalized.serviceName === "string") {
-    normalized.service = normalized.serviceName;
+  // Backward/forward compatibility: map alternative field names into the shape UI expects.
+  if (!normalized.service) {
+    if (typeof normalized.serviceName === "string") normalized.service = normalized.serviceName;
+    else if (typeof normalized.title === "string") normalized.service = normalized.title;
+    else if (typeof normalized.serviceCode === "string") normalized.service = normalized.serviceCode;
+    else if (normalized.service && typeof normalized.service === "object") {
+      // If backend sometimes stores service as an object, prefer a human-readable code/name.
+      normalized.service =
+        normalized.service?.code || normalized.service?.name || normalized.service?.slug || "";
+    }
   }
-  if (!normalized.description && typeof normalized.desc === "string") {
-    normalized.description = normalized.desc;
+
+  if (!normalized.description) {
+    if (typeof normalized.desc === "string") normalized.description = normalized.desc;
+    else if (typeof normalized.notes === "string") normalized.description = normalized.notes;
+    else if (typeof normalized.message === "string") normalized.description = normalized.message;
+    else if (typeof normalized.problem === "string") normalized.description = normalized.problem;
+    else if (typeof normalized.body === "string") normalized.description = normalized.body;
   }
-  if (!normalized.location && typeof normalized.address === "string") {
-    normalized.location = { address: normalized.address };
+
+  // Location can come as:
+  // - { address, city, lat, lng }
+  // - a legacy string address
+  // - { lat, lng } without address (then use legacy address fields if present)
+  if (!normalized.location || typeof normalized.location === "string") {
+    if (typeof normalized.location === "string") {
+      normalized.location = { address: normalized.location };
+    } else if (typeof normalized.address === "string") {
+      normalized.location = { address: normalized.address };
+    }
+  }
+
+  if (normalized.location && typeof normalized.location === "object") {
+    const hasAddress = typeof normalized.location.address === "string" && normalized.location.address.trim().length > 0;
+    if (!hasAddress) {
+      if (typeof normalized.locationText === "string" && normalized.locationText.trim().length > 0) {
+        normalized.location = { ...normalized.location, address: normalized.locationText };
+      } else if (typeof normalized.address === "string" && normalized.address.trim().length > 0) {
+        normalized.location = { ...normalized.location, address: normalized.address };
+      }
+    }
   }
 
   if (!Array.isArray(normalized.offers)) {
