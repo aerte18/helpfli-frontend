@@ -41,14 +41,14 @@ const authHeaders = () => {
 };
 
 const apiGet = async (path) => {
-  const res = await fetch(path, { headers: authHeaders() });
+  const res = await fetch(apiUrl(path), { headers: authHeaders() });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.message || `GET ${path} failed`);
   return data;
 };
 
 const apiPost = async (path, body) => {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(body || {}),
@@ -59,7 +59,7 @@ const apiPost = async (path, body) => {
 };
 
 const apiPatch = async (path, body) => {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(body || {}),

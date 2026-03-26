@@ -4,6 +4,7 @@ import GuaranteeBanner from "../components/GuaranteeBanner";
 import CheckoutButton from "../payment/CheckoutButton";
 import StripeProvider from "../payment/StripeProvider";
 import CheckoutPage from "../payment/CheckoutPage";
+import { apiUrl } from "@/lib/apiUrl";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -14,14 +15,14 @@ const authHeaders = () => {
 };
 
 const apiGet = async (path) => {
-  const res = await fetch(path, { headers: authHeaders() });
+  const res = await fetch(apiUrl(path), { headers: authHeaders() });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.message || `GET ${path} failed`);
   return data;
 };
 
 const apiPost = async (path, body) => {
-  const res = await fetch(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(body || {}) });
+  const res = await fetch(apiUrl(path), { method: "POST", headers: authHeaders(), body: JSON.stringify(body || {}) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.message || `POST ${path} failed`);
   return data;
