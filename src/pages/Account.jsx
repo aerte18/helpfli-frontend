@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut } from "lucide-react";
 import { registerPush } from "../push/registerPush";
 import { api } from "../api/client";
 import KycBadge from "../components/KycBadge";
@@ -29,7 +29,7 @@ function useAuthToken() {
 
 export default function Account() {
   const token = useAuthToken();
-  const { user, fetchMe } = useAuth();
+  const { user, fetchMe, logout } = useAuth();
   const [pushStatus, setPushStatus] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState(null);
@@ -127,12 +127,104 @@ export default function Account() {
   ];
 
   const tabs = user?.role === 'provider' ? providerTabs : clientTabs;
+  const subscriptionsAudience = user?.company ? 'business' : (user?.role === 'provider' ? 'provider' : 'client');
+
+  const isTabActive = (tab) => {
+    if (tab.id === 'subscriptions') return location.pathname === '/account/subscriptions';
+    return activeTab === tab.id;
+  };
+
+  const selectTab = (tab) => {
+    if (tab.id === 'subscriptions') {
+      navigate(`/account/subscriptions?audience=${subscriptionsAudience}`);
+      return;
+    }
+    setActiveTab(tab.id);
+    const q = new URLSearchParams(location.search);
+    q.set('tab', tab.id);
+    navigate({ search: q.toString() }, { replace: true });
+  };
+
+  const pillClass = (active) =>
+    `shrink-0 snap-start inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium border transition-colors ${
+      active
+        ? 'bg-indigo-100 text-indigo-800 border-indigo-200 shadow-sm'
+        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+    }`;
+
+  const navItemClass = (active) =>
+    `w-full text-left px-3 py-2 rounded-xl flex items-center gap-3 ${
+      active ? 'bg-indigo-100 text-indigo-700 font-medium' : 'hover:bg-gray-50'
+    }`;
 
   return (
     <div className="max-w-[1200px] mx-auto p-4">
+      {/* Mobile: kompakt — karta profilu + poziomy pasek zakładek (przewijany) */}
+      <div className="lg:hidden space-y-3 mb-4">
+        <div className="flex items-center justify-between gap-3 bg-white rounded-2xl shadow border border-gray-100 p-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-11 h-11 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-indigo-600 font-semibold text-lg">
+                {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold truncate">{user?.name || "Użytkownik"}</div>
+              <div className="text-xs text-gray-500 capitalize truncate">{user?.role}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate("/");
+            }}
+            className="shrink-0 text-sm font-medium text-red-600 px-3 py-2 rounded-xl hover:bg-red-50"
+          >
+            Wyloguj
+          </button>
+        </div>
+        <div
+          className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch]"
+          role="tablist"
+          aria-label="Sekcje konta"
+        >
+          {tabs.map((tab) => {
+            const active = isTabActive(tab);
+            if (tab.id === 'subscriptions') {
+              return (
+                <Link
+                  key={tab.id}
+                  to={`/account/subscriptions?audience=${subscriptionsAudience}`}
+                  className={pillClass(active)}
+                  role="tab"
+                  aria-selected={active}
+                >
+                  {tab.icon && <tab.icon className="w-4 h-4 shrink-0 opacity-80" aria-hidden />}
+                  {tab.label}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectTab(tab)}
+                className={pillClass(active)}
+              >
+                {tab.icon && <tab.icon className="w-4 h-4 shrink-0 opacity-80" aria-hidden />}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[240px,1fr] gap-4">
-        {/* Left nav */}
-        <aside className="bg-white rounded-2xl shadow">
+        {/* Left nav — tylko desktop */}
+        <aside className="hidden lg:block bg-white rounded-2xl shadow">
           <div className="p-4 border-b">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -146,17 +238,13 @@ export default function Account() {
               </div>
             </div>
           </div>
-          <nav className="px-2 pb-3 space-y-1">
-            {tabs.map(tab => {
-              const isSubscriptions = tab.id === 'subscriptions';
-              const subscriptionsAudience = user?.company ? 'business' : (user?.role === 'provider' ? 'provider' : 'client');
-              return isSubscriptions ? (
+          <nav className="px-2 pb-3 space-y-1" aria-label="Sekcje konta">
+            {tabs.map((tab) =>
+              tab.id === 'subscriptions' ? (
                 <Link
                   key={tab.id}
                   to={`/account/subscriptions?audience=${subscriptionsAudience}`}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-3 ${
-                    location.pathname === '/account/subscriptions' ? "bg-indigo-100 text-indigo-700 font-medium" : "hover:bg-gray-50"
-                  }`}
+                  className={navItemClass(isTabActive(tab))}
                 >
                   {tab.icon && <tab.icon className="w-5 h-5 shrink-0" aria-hidden />}
                   {tab.label}
@@ -164,28 +252,35 @@ export default function Account() {
               ) : (
                 <button
                   key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    const q = new URLSearchParams(location.search);
-                    q.set('tab', tab.id);
-                    navigate({ search: q.toString() }, { replace: true });
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl flex items-center gap-3 ${
-                    activeTab === tab.id ? "bg-indigo-100 text-indigo-700 font-medium" : "hover:bg-gray-50"
-                  }`}
+                  type="button"
+                  onClick={() => selectTab(tab)}
+                  className={navItemClass(isTabActive(tab))}
                 >
                   {tab.icon && <tab.icon className="w-5 h-5 shrink-0" aria-hidden />}
                   {tab.label}
                 </button>
-              );
-            })}
+              )
+            )}
           </nav>
+          <div className="px-2 pb-3 pt-2 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate("/");
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 text-red-600 hover:bg-red-50 font-medium"
+            >
+              <LogOut className="w-5 h-5 shrink-0" aria-hidden />
+              Wyloguj się
+            </button>
+          </div>
         </aside>
 
         {/* Main content */}
-        <main className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">
+        <main className="space-y-4 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-lg font-semibold sm:text-xl lg:text-2xl truncate">
               {tabs.find(t => t.id === activeTab)?.label}
             </h1>
             {user?.role === 'provider' && (

@@ -19,6 +19,9 @@ export default function Navbar() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const searchContainerRef = useRef(null);
   const notificationsRef = useRef(null);
+  const mobileNotificationsRef = useRef(null);
+  const mobileSearchToggleRef = useRef(null);
+  const mobileSearchExpandedRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user, loading } = useAuth();
@@ -78,11 +81,24 @@ export default function Navbar() {
         setShowUserMenu(false);
       }
       // Zamknij wyszukiwanie jeśli kliknięto poza nim
-      if (searchExpanded && searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      const inDesktopSearch =
+        searchContainerRef.current?.contains(event.target);
+      const inMobileSearchToggle =
+        mobileSearchToggleRef.current?.contains(event.target);
+      const inMobileSearchPanel =
+        mobileSearchExpandedRef.current?.contains(event.target);
+      if (
+        searchExpanded &&
+        !inDesktopSearch &&
+        !inMobileSearchToggle &&
+        !inMobileSearchPanel
+      ) {
         setSearchExpanded(false);
       }
-      // Zamknij powiadomienia jeśli kliknięto poza nimi
-      if (showNotifications && notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+      const inNotifications =
+        notificationsRef.current?.contains(event.target) ||
+        mobileNotificationsRef.current?.contains(event.target);
+      if (showNotifications && !inNotifications) {
         setShowNotifications(false);
       }
     };
@@ -92,8 +108,9 @@ export default function Navbar() {
   }, [showUserMenu, searchExpanded, showNotifications]);
 
   return (
-    <header className="sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-      <div className="mx-auto max-w-7xl px-4 py-4 flex items-center gap-4">
+    <header className="sticky top-0 z-50 relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="mx-auto max-w-7xl px-4 py-4">
+        <div className="flex items-center gap-4">
         <div className="flex items-center gap-8 min-w-0">
           <Link 
             to={!user ? "/" : (user.role === "provider" || user.role === "company_owner" || user.role === "company_manager") ? "/provider-home" : "/home"} 
@@ -269,12 +286,6 @@ export default function Navbar() {
                     </span>
                   )}
                 </button>
-                {showNotifications && user?._id && (
-                  <NotificationsDropdown 
-                    userId={user._id} 
-                    onClose={() => setShowNotifications(false)}
-                  />
-                )}
               </div>
 
               {/* Avatar z menu */}
@@ -446,19 +457,94 @@ export default function Navbar() {
               </Link>
             </>
           )}
+          {user && !hideSearch && (
+            <button
+              type="button"
+              ref={mobileSearchToggleRef}
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors shrink-0"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onClick={() => setSearchExpanded((v) => !v)}
+              aria-expanded={searchExpanded}
+              aria-label="Szukaj"
+            >
+              <Search className="w-5 h-5" aria-hidden />
+            </button>
+          )}
+          {user && !loading && (
+            <div className="relative md:hidden shrink-0" ref={mobileNotificationsRef}>
+              <button
+                type="button"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative rounded-md p-2 transition-colors"
+                style={{ color: 'var(--foreground)' }}
+                aria-label="Powiadomienia"
+              >
+                <Bell className="w-5 h-5" aria-hidden />
+                {count > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1 min-w-[16px] text-center">
+                    {count}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
           <button
             type="button"
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors shrink-0"
             style={{ color: 'var(--foreground)' }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             onClick={() => setMobileOpen(true)}
-            aria-label="Otwórz menu"
+            aria-label="Menu — konto, wyloguj i więcej"
           >
             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
           </button>
         </div>
       </div>
+
+      {user && searchExpanded && !hideSearch && (
+        <div
+          ref={mobileSearchExpandedRef}
+          className="md:hidden border-t px-4 py-2 -mx-0"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <ServiceAutocomplete
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onPick={(service) => {
+              setSearchQuery(service);
+              setSearchExpanded(false);
+              navigate(`/home?search=${encodeURIComponent(service)}`);
+            }}
+            onSearch={(query) => {
+              const trimmed = query.trim();
+              setSearchExpanded(false);
+              if (trimmed) {
+                navigate(`/home?search=${encodeURIComponent(trimmed)}`);
+              } else {
+                navigate('/home');
+              }
+            }}
+            placeholder={UI.searchPlaceholder}
+            className="w-full"
+            showSearchButton={true}
+            onEscape={() => setSearchExpanded(false)}
+          />
+        </div>
+      )}
+
+      </div>
+
+      {showNotifications && user?._id && (
+        <div className="absolute left-2 right-2 top-full z-[55] mx-auto max-w-[min(24rem,calc(100vw-1rem))] md:left-auto md:right-4 md:mx-0 md:w-96 md:max-w-[min(24rem,calc(100vw-2rem))]">
+          <NotificationsDropdown
+            userId={user._id}
+            onClose={() => setShowNotifications(false)}
+          />
+        </div>
+      )}
 
       {/* Offcanvas mobile */}
       {mobileOpen && (

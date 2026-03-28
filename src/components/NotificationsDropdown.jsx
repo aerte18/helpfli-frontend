@@ -114,7 +114,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
   return (
     <div 
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-96 max-h-[500px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden flex flex-col"
+      className="relative w-full max-w-[min(24rem,calc(100vw-1rem))] md:max-w-96 max-h-[500px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
