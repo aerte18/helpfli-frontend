@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ChatBox from "../components/ChatBox";
 import { useAuth } from "../context/AuthContext";
@@ -76,6 +76,122 @@ function attachmentPublicUrl(url) {
   if (/^https?:\/\//i.test(s)) return s;
   return apiUrl(s.startsWith("/") ? s : `/${s}`);
 }
+
+/** Jedno zdjęcie / ikona pliku: GET z Bearer (endpoint /api/orders/.../attachments/.../file), bo publiczny /uploads często 404 na prod (brak pliku lub brak auth). */
+const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, idx }) {
+  const attId = att?._id || att?.id;
+  const [src, setSrc] = useState(null);
+  const [status, setStatus] = useState("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    let blobUrl = null;
+
+    async function load() {
+      if (attId && orderId) {
+        try {
+          const token = localStorage.getItem("token");
+          const r = await fetch(
+            apiUrl(`/api/orders/${orderId}/attachments/${attId}/file`),
+            { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+          );
+          if (r.ok) {
+            const blob = await r.blob();
+            blobUrl = URL.createObjectURL(blob);
+            if (!cancelled) {
+              setSrc(blobUrl);
+              setStatus("ok");
+            }
+            return;
+          }
+        } catch (_e) {
+          /* fall through */
+        }
+      }
+      const fallback = attachmentPublicUrl(att.url);
+      if (!cancelled) {
+        setSrc(fallback || null);
+        setStatus(fallback ? "fallback" : "error");
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [orderId, attId, att?.url]);
+
+  const mime = String(att.mimeType || att.type || "").toLowerCase();
+  const isImage =
+    mime.startsWith("image/") ||
+    /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || "");
+  const isVideo =
+    mime.startsWith("video/") || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || "");
+
+  const href = src || attachmentPublicUrl(att.url);
+
+  if (status === "loading" && !src) {
+    return (
+      <div className="aspect-square bg-slate-100 animate-pulse rounded-lg border border-slate-200" />
+    );
+  }
+
+  if (status === "error" || !href) {
+    return (
+      <div className="aspect-square rounded-lg border border-amber-200 bg-amber-50 flex flex-col items-center justify-center p-2 text-center">
+        <span className="text-2xl mb-1">⚠️</span>
+        <span className="text-[11px] text-amber-900">Brak pliku na serwerze</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      {isImage ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors"
+        >
+          <img
+            src={src || href}
+            alt={att.filename || `Zdjęcie ${idx + 1}`}
+            className="w-full h-full object-cover"
+            onError={() => setStatus("error")}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </a>
+      ) : isVideo ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
+        >
+          <div className="text-center">
+            <div className="text-3xl mb-1">🎥</div>
+            <div className="text-xs text-slate-600 px-2">{att.filename || `Film ${idx + 1}`}</div>
+          </div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+        </a>
+      ) : (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
+        >
+          <div className="text-center">
+            <div className="text-3xl mb-1">📎</div>
+            <div className="text-xs text-slate-600 px-2 truncate w-full">{att.filename || `Załącznik ${idx + 1}`}</div>
+          </div>
+        </a>
+      )}
+    </div>
+  );
+});
 
 const normalizeOrderPayload = (raw) => {
   const source = raw?.order || raw?.data?.order || raw?.data || raw;
@@ -616,57 +732,9 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
               <div>
                 <span className="text-sm font-medium text-gray-600 mb-2 block">Załączniki (zdjęcia/filmy):</span>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {order.attachments.map((att, idx) => {
-                    const fileUrl = attachmentPublicUrl(att.url);
-                    const mime = String(att.mimeType || att.type || '').toLowerCase();
-                    const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
-                    const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
-                    
-                    return (
-                      <div key={idx} className="relative group">
-                        {isImage ? (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors"
-                          >
-                            <img
-                              src={fileUrl}
-                              alt={att.filename || `Zdjęcie ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                          </a>
-                        ) : isVideo ? (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
-                          >
-                            <div className="text-center">
-                              <div className="text-3xl mb-1">🎥</div>
-                              <div className="text-xs text-slate-600 px-2">{att.filename || `Film ${idx + 1}`}</div>
-                            </div>
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                          </a>
-                        ) : (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
-                          >
-                            <div className="text-center">
-                              <div className="text-3xl mb-1">📎</div>
-                              <div className="text-xs text-slate-600 px-2 truncate w-full">{att.filename || `Załącznik ${idx + 1}`}</div>
-                            </div>
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {order.attachments.map((att, idx) => (
+                    <OrderAttachmentItem key={att._id || att.url || idx} orderId={orderId} att={att} idx={idx} />
+                  ))}
                 </div>
               </div>
             )}
@@ -4048,57 +4116,9 @@ export default function OrderDetails() {
                             <div>
                               <label className="text-sm font-medium text-gray-700 mb-2 block">Załączniki (zdjęcia/filmy)</label>
                               <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {order.attachments.map((att, idx) => {
-                                  const fileUrl = attachmentPublicUrl(att.url);
-                                  const mime = String(att.mimeType || att.type || '').toLowerCase();
-                                  const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
-                                  const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
-                                  
-                                  return (
-                                    <div key={idx} className="relative group">
-                                      {isImage ? (
-                                        <a
-                                          href={fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors"
-                                        >
-                                          <img
-                                            src={fileUrl}
-                                            alt={att.filename || `Zdjęcie ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                          />
-                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                                        </a>
-                                      ) : isVideo ? (
-                                        <a
-                                          href={fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
-                                        >
-                                          <div className="text-center">
-                                            <div className="text-3xl mb-1">🎥</div>
-                                            <div className="text-xs text-slate-600 px-2">{att.filename || `Film ${idx + 1}`}</div>
-                                          </div>
-                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                                        </a>
-                                      ) : (
-                                        <a
-                                          href={fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
-                                        >
-                                          <div className="text-center">
-                                            <div className="text-3xl mb-1">📎</div>
-                                            <div className="text-xs text-slate-600 px-2 truncate w-full">{att.filename || `Załącznik ${idx + 1}`}</div>
-                                          </div>
-                                        </a>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                {order.attachments.map((att, idx) => (
+                                  <OrderAttachmentItem key={att._id || att.url || idx} orderId={orderId} att={att} idx={idx} />
+                                ))}
                               </div>
                             </div>
                           )}
