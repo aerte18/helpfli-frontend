@@ -241,6 +241,7 @@ export default function OfferForm({
   };
 
   async function onSubmit() {
+    if (sending) return;
     // Walidacja przed wysłaniem
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {

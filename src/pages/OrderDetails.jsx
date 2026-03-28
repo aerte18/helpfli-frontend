@@ -2795,9 +2795,24 @@ export default function OrderDetails() {
       setOfferMsg("");
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
+      const t = localStorage.getItem("token");
+      if (t) {
+        try {
+          setMyOffer(await getMyOffer({ token: t, orderId }));
+        } catch {
+          /* ignore */
+        }
+      }
+      toast({
+        title: "Oferta została wysłana",
+        description: "Klient zobaczy Twoją ofertę na zleceniu.",
+        variant: "success",
+      });
+      goTab("my_offer");
     } catch (e2) {
       setOfferError(
-        "Nie udało się wysłać oferty. Jeśli nie masz jeszcze endpointu, zostawimy tu samego chata."
+        getErrorMessage(e2) ||
+          "Nie udało się wysłać oferty. Spróbuj ponownie."
       );
     } finally {
       setOfferSubmitting(false);
@@ -3615,14 +3630,44 @@ export default function OrderDetails() {
                       city={order?.location?.city || order?.city || ""}
                       orderDescription={order?.description || ""}
                       onSent={async () => {
-                        // Odśwież dane zlecenia
-                        const fresh = await apiGet(`/api/orders/${orderId}`);
-                        setOrder(fresh);
-                        // Pobierz moją ofertę
-                        const myOfferData = await getMyOffer({ orderId });
-                        setMyOffer(myOfferData);
-                        // Przełącz na zakładkę "details"
-                        goTab("details");
+                        toast({
+                          title: "Oferta została wysłana",
+                          description:
+                            "Klient zobaczy Twoją ofertę na zleceniu.",
+                          variant: "success",
+                        });
+                        const token = localStorage.getItem("token");
+                        try {
+                          const fresh = await apiGet(`/api/orders/${orderId}`);
+                          setOrder(fresh);
+                          if (token) {
+                            try {
+                              const myOfferData = await getMyOffer({
+                                token,
+                                orderId,
+                              });
+                              setMyOffer(myOfferData);
+                            } catch {
+                              const pid = String(
+                                me?._id ||
+                                  me?.id ||
+                                  user?._id ||
+                                  user?.id ||
+                                  ""
+                              );
+                              const mine = Array.isArray(fresh?.offers)
+                                ? fresh.offers.find(
+                                    (o) =>
+                                      String(o.providerId || "") === pid
+                                  )
+                                : null;
+                              setMyOffer(mine || null);
+                            }
+                          }
+                        } catch {
+                          // Oferta już zapisana — i tak przełączamy widok
+                        }
+                        goTab("my_offer");
                       }}
                       isPriority={order?.priority === "priority"}
                       priorityDateTime={order?.priorityDateTime}
