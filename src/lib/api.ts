@@ -5,6 +5,12 @@ function absolute(path: string) {
   return resolveApiUrl(path);
 }
 
+function pickApiErrorMessage(errorData: Record<string, unknown>, res: Response): string {
+  if (typeof errorData.message === 'string' && errorData.message) return errorData.message;
+  if (typeof errorData.error === 'string' && errorData.error) return errorData.error;
+  return `${res.status} ${res.statusText}`;
+}
+
 async function parseJsonSafe(res: Response) {
   if (res.status === 204) return {};
   const text = await res.text();
@@ -58,8 +64,8 @@ export async function apiPost<T = any>(path: string, body?: any, init?: RequestI
   }
   
   if (!res.ok) {
-    const errorData = await parseJsonSafe(res).catch(() => ({}));
-    const error = new Error(errorData.message || `${res.status} ${res.statusText}`);
+    const errorData = (await parseJsonSafe(res).catch(() => ({}))) as Record<string, unknown>;
+    const error = new Error(pickApiErrorMessage(errorData, res));
     (error as any).status = res.status;
     (error as any).data = errorData;
     throw error;
