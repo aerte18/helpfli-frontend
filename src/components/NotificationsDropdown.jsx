@@ -13,22 +13,23 @@ export default function NotificationsDropdown({ userId, onClose }) {
     if (!userId) return;
 
     const fetchNotifications = async () => {
+      if (document.visibilityState !== "visible") return;
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
           setLoading(false);
           return;
         }
         const url = apiUrl("/api/notifications?limit=10");
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
           setNotifications(data.notifications || []);
           setUnreadCount(data.pagination?.unreadCount || 0);
         }
-      } catch (_error) {
+      } catch {
         setNotifications([]);
       } finally {
         setLoading(false);
@@ -36,9 +37,15 @@ export default function NotificationsDropdown({ userId, onClose }) {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Odśwież co 30s
-    
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchNotifications, 60000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [userId]);
 
   const markAsRead = async (notificationId) => {

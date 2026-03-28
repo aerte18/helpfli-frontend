@@ -43,9 +43,7 @@ export function AuthProvider({ children }) {
       
       // Subscribe to push notifications after successful login (nie blokuj loading)
       // Wywołaj asynchronicznie, żeby nie blokować loading state
-      subscribePush().catch(error => {
-        console.warn('Push subscription failed:', error);
-      });
+      subscribePush().catch(() => {});
     } catch (error) {
       console.error("AuthContext - fetchMe - error:", error);
       setUser(null);

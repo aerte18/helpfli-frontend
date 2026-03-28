@@ -79,11 +79,19 @@ function attachmentPublicUrl(url) {
 
 /** Jedno zdjęcie / ikona pliku: GET z Bearer (endpoint /api/orders/.../attachments/.../file), bo publiczny /uploads często 404 na prod (brak pliku lub brak auth). */
 const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, idx }) {
-  const rawSubId = att?._id ?? att?.id;
+  const rawSubId =
+    att?._id != null
+      ? att._id
+      : att?.id != null
+        ? att.id
+        : typeof att?.$oid === "string"
+          ? att.$oid
+          : null;
   const attId =
     rawSubId != null && /^[a-f0-9]{24}$/i.test(String(rawSubId)) ? String(rawSubId) : "";
   const [src, setSrc] = useState(null);
   const [status, setStatus] = useState("loading");
+  const [errorHint, setErrorHint] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -100,31 +108,36 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
       async function fetchAsBlob(url) {
         try {
           const r = await fetch(url, { headers });
-          if (!r.ok) return null;
-          return r.blob();
+          return { ok: r.ok, status: r.status, blob: r.ok ? await r.blob() : null };
         } catch (_e) {
-          return null;
+          return { ok: false, status: 0, blob: null, network: true };
         }
       }
 
       let blob = null;
+      let lastStatus = 0;
       if (attId) {
-        blob = await fetchAsBlob(
+        const a = await fetchAsBlob(
           apiUrl(`/api/orders/${orderId}/attachments/${attId}/file`)
         );
+        lastStatus = a.status;
+        if (a.blob) blob = a.blob;
       }
       if (!blob && att?.url) {
-        blob = await fetchAsBlob(
+        const b = await fetchAsBlob(
           apiUrl(
             `/api/orders/${orderId}/attachments/resolve-file?url=${encodeURIComponent(att.url)}`
           )
         );
+        lastStatus = b.status || lastStatus;
+        if (b.blob) blob = b.blob;
       }
       if (blob) {
         blobUrl = URL.createObjectURL(blob);
         if (!cancelled) {
           setSrc(blobUrl);
           setStatus("ok");
+          setErrorHint("");
         }
         return;
       }
@@ -133,6 +146,15 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
       if (!cancelled) {
         setSrc(fallback || null);
         setStatus(fallback ? "fallback" : "error");
+        if (!fallback) {
+          setErrorHint(
+            lastStatus === 403
+              ? "Brak uprawnień do podglądu."
+              : "Plik nie został znaleziony na serwerze (często po restarcie bez trwałego dysku dla uploadów)."
+          );
+        } else {
+          setErrorHint("");
+        }
       }
     }
 
@@ -162,7 +184,9 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
     return (
       <div className="aspect-square rounded-lg border border-amber-200 bg-amber-50 flex flex-col items-center justify-center p-2 text-center">
         <span className="text-2xl mb-1">⚠️</span>
-        <span className="text-[11px] text-amber-900">Brak pliku na serwerze</span>
+        <span className="text-[11px] text-amber-900">
+          {errorHint || "Brak pliku na serwerze"}
+        </span>
       </div>
     );
   }
@@ -180,7 +204,12 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
             src={src || href}
             alt={att.filename || `Zdjęcie ${idx + 1}`}
             className="w-full h-full object-cover"
-            onError={() => setStatus("error")}
+            onError={() => {
+              setErrorHint(
+                "Nie udało się załadować pliku (404/403 lub problem z siecią). Odśwież stronę albo poproś klienta o ponowne przesłanie zdjęć."
+              );
+              setStatus("error");
+            }}
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
         </a>
@@ -2434,22 +2463,20 @@ export default function OrderDetails() {
         // Jeśli to klient, spróbuj pobrać faktury powiązane z tym zleceniem
         if (meRes?.role === "client" || meRes?.user?.role === "client") {
           try {
-            const API = import.meta.env.VITE_API_URL || "";
             const invRes = await fetch(apiUrl(`/api/billing/invoices`), {
               headers: authHeaders(),
             });
-            // 404 traktuj jako "brak faktur" zamiast błędu
             if (invRes.ok) {
               const data = await invRes.json();
               const related = (data.invoices || []).filter(
                 (inv) => inv.order && inv.order === orderId
               );
               setInvoices(related);
-            } else if (invRes.status === 404) {
+            } else {
               setInvoices([]);
             }
-          } catch (e) {
-            console.error("Nie udało się pobrać faktur dla zlecenia:", e);
+          } catch {
+            setInvoices([]);
           }
         }
 
@@ -2515,18 +2542,18 @@ export default function OrderDetails() {
           }
         }
 
-        // Pobierz change requests dla zlecenia
+        // Pobierz change requests dla zlecenia (błędy sieciowe = pusty stan)
         try {
           const token = localStorage.getItem("token");
           const crs = await getChangeRequests({ token, orderId });
           setChangeRequests(crs);
-          // Znajdź pending change request dla klienta
-          const pending = crs.find(cr => cr.status === 'pending');
+          const pending = crs.find((cr) => cr.status === "pending");
           if (pending) {
             setPendingChangeRequest(pending);
           }
-        } catch (e) {
-          console.error("Failed to fetch change requests:", e);
+        } catch {
+          setChangeRequests([]);
+          setPendingChangeRequest(null);
         }
 
         // Pobierz sesję wideo dla zlecenia (jeśli istnieje)

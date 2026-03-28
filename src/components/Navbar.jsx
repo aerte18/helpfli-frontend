@@ -26,29 +26,29 @@ export default function Navbar() {
   const location = useLocation();
   const { logout, user, loading } = useAuth();
 
-  console.log("Navbar - user:", user, "role:", user?.role, "loading:", loading);
-  console.log("Navbar - logo routing:", !user ? "/" : user.role === "provider" ? "/provider-home" : "/home");
-  console.log("Navbar - user exists:", !!user);
-  console.log("Navbar - user role check:", user?.role === "provider");
-  
   // Ukryj wyszukiwarkę na LandingStart i ProviderHome
   const hideSearch = location.pathname === '/' || location.pathname === '/provider-home';
 
 
 
+  const userId = user?._id || user?.id;
+
   useEffect(() => {
-    // Sprawdź czy użytkownik jest zalogowany przed pobieraniem danych
-    if (!user) {
+    if (!userId) {
       setCount(0);
       return;
     }
 
     const fetchNotificationsCount = async () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== "visible") return;
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setCount(0);
+          return;
+        }
         const res = await fetch(apiUrl(`/api/notifications/unread/count`), {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -56,23 +56,22 @@ export default function Navbar() {
         } else if (res.status === 401) {
           setCount(0);
         }
-      } catch (error) {
-        console.error('Error fetching notifications count:', error);
+      } catch {
         setCount(0);
       }
     };
-    
+
     fetchNotificationsCount();
-    const int = setInterval(fetchNotificationsCount, 60000); // co 60s odświeżaj
+    const int = setInterval(fetchNotificationsCount, 60000);
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') fetchNotificationsCount();
+      if (document.visibilityState === "visible") fetchNotificationsCount();
     };
-    document.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       clearInterval(int);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [user]); // Dodaj user jako dependency
+  }, [userId]);
 
   // Zamknij menu po kliknięciu poza nim
   useEffect(() => {

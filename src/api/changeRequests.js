@@ -50,11 +50,11 @@ export async function getChangeRequests({ token, orderId }) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  // Jeśli backend zwraca 404, traktuj to jako brak dopłat (pusta lista)
-  if (res.status === 404) {
+  // Brak zlecenia / brak uprawnień / endpoint niedostępny — pusta lista bez szumu w konsoli
+  if (res.status === 404 || res.status === 403) {
     return [];
   }
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || "Błąd pobierania dopłat");
   return data.changeRequests || [];
 }

@@ -1,5 +1,5 @@
 // Service Worker — cache powłoki PWA + manifest (Vite buduje assety z hashami)
-const CACHE_NAME = 'helpfli-v4-' + new Date().getTime();
+const CACHE_NAME = 'helpfli-v5-' + new Date().getTime();
 const urlsToCache = ['/', '/manifest.json', '/icons/icon-192x192.png'];
 
 // Install event
@@ -21,30 +21,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Network first strategy for development
+// Fetch event — Cache API obsługuje tylko GET; POST/PUT/PATCH/DELETE tylko przez sieć
 self.addEventListener('fetch', (event) => {
-  // W trybie development zawsze pobieraj z sieci
-  if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
-    event.respondWith(fetch(event.request));
+  const req = event.request;
+  if (req.method !== 'GET') {
+    event.respondWith(fetch(req));
     return;
   }
-  
+
+  // W trybie development zawsze pobieraj z sieci
+  if (req.url.includes('localhost') || req.url.includes('127.0.0.1')) {
+    event.respondWith(fetch(req));
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
+    fetch(req)
       .then((response) => {
-        // Cache successful responses
         if (response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(req, responseToCache);
           });
         }
         return response;
       })
-      .catch(() => {
-        // Fallback to cache if network fails
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(req))
   );
 });
 
