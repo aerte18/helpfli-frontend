@@ -7,15 +7,8 @@ import {
 import {
   getServiceSelectionKey,
   isMongoObjectId,
+  providerHasServiceForSub,
 } from "../utils/serviceSelectionKeys";
-
-function userHasService(userServices, sub) {
-  const k = getServiceSelectionKey(sub);
-  if (!k) return false;
-  return userServices.some(
-    (us) => String(us._id) === k || (us.slug && String(us.slug) === k)
-  );
-}
 
 function ManageServices() {
   
@@ -103,9 +96,7 @@ function ManageServices() {
         );
         setMainCategories(mc);
         setSubcategories(sm);
-        setExpandedCategories(
-          getExpandedSlugsForSelection(sm, userServ.map((u) => u._id))
-        );
+        setExpandedCategories(getExpandedSlugsForSelection(sm, userServ));
 
         if (mc.length === 0) {
           console.warn('⚠️ ManageServices: Brak kategorii - sprawdź strukturę danych usług');
@@ -134,7 +125,9 @@ function ManageServices() {
     const categorySubs = subcategories[categorySlug] || [];
     const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
     if (selectable.length === 0) return false;
-    return selectable.every((sub) => userHasService(userServices, sub));
+    return selectable.every((sub) =>
+      providerHasServiceForSub(userServices, sub)
+    );
   };
 
   // Sprawdź czy kategoria główna jest częściowo zaznaczona
@@ -143,7 +136,7 @@ function ManageServices() {
     const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
     if (selectable.length === 0) return false;
     const selectedCount = selectable.filter((sub) =>
-      userHasService(userServices, sub)
+      providerHasServiceForSub(userServices, sub)
     ).length;
     return selectedCount > 0 && selectedCount < selectable.length;
   };
@@ -178,7 +171,7 @@ function ManageServices() {
       }
     } else {
       for (const sub of categorySubs) {
-        if (userHasService(userServices, sub)) continue;
+        if (providerHasServiceForSub(userServices, sub)) continue;
         const key = getServiceSelectionKey(sub);
         if (key) await handleAdd(key);
       }
@@ -338,7 +331,7 @@ function ManageServices() {
                   }`}
                 >
                   {categorySubs.map((sub) => {
-                    const isSubSelected = userHasService(userServices, sub);
+                    const isSubSelected = providerHasServiceForSub(userServices, sub);
                     const key = getServiceSelectionKey(sub);
                     return (
                       <div 

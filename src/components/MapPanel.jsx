@@ -1,9 +1,13 @@
 
 /* global L */
 import L from "leaflet"; // <— WAŻNE: jawny import
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
+import {
+  MapLocateControl,
+  UserLocationLayer,
+} from "./MapUserLocation";
 // Wybierz JEDNO z dwóch: ikona wg usługi LUB wg poziomu
 import { iconForService, iconForLevel } from "./mapIcons";
 import AvailabilityBadge from "./AvailabilityBadge";
@@ -34,7 +38,26 @@ function FitBoundsOnDataChange({ providers }) {
 
 export default function MapPanel({ providers = [], onQuickView, onCompare }) {
   const [onlyNow, setOnlyNow] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const defaultCenter = [52.2297, 21.0122];
+
+  const refreshUserLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 120000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    refreshUserLocation();
+  }, [refreshUserLocation]);
   
   // Filtrowanie providerów
   const validProviders = (providers || []).filter(
@@ -76,6 +99,12 @@ export default function MapPanel({ providers = [], onQuickView, onCompare }) {
           />
 
           <FitBoundsOnDataChange providers={mapProviders} />
+
+          <UserLocationLayer userLocation={userLocation} />
+          <MapLocateControl
+            userLocation={userLocation}
+            onRequestLocation={refreshUserLocation}
+          />
 
           <MarkerClusterGroup chunkedLoading>
             {mapProviders.map((p) => (

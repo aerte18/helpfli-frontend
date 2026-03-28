@@ -123,6 +123,12 @@ export default function OnboardingWizard() {
 
       const mongoIds = resolveSelectionKeysToMongoIds(chosen, items);
 
+      if (chosen.length > 0 && mongoIds.length === 0) {
+        throw new Error(
+          "Nie udało się powiązać wybranych usług z katalogiem. Odśwież stronę i spróbuj ponownie."
+        );
+      }
+
       const postRes = await fetch(apiUrl("/api/user-services"), {
         method: "POST",
         headers: {

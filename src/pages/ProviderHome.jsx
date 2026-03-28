@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import {
+  MapInitialRecenter,
+  MapLocateControl,
+  UserLocationLayer,
+} from "../components/MapUserLocation";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "../context/AuthContext";
@@ -824,7 +829,13 @@ export default function ProviderHome() {
     );
   }, [filters]);
 
-  const center = [52.2297, 21.0122];
+  const center = useMemo(
+    () =>
+      userLocation?.lat != null && userLocation?.lng != null
+        ? [userLocation.lat, userLocation.lng]
+        : [52.2297, 21.0122],
+    [userLocation]
+  );
   
   // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
@@ -1445,6 +1456,12 @@ export default function ProviderHome() {
             {center && center.length === 2 && center[0] && center[1] ? (
               <MapContainer center={[...center]} zoom={13} className="w-full h-full">
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapInitialRecenter userLocation={userLocation} />
+              <UserLocationLayer userLocation={userLocation} />
+              <MapLocateControl
+                userLocation={userLocation}
+                onRequestLocation={getUserLocation}
+              />
               {list.map((o, idx) => {
                 // Sprawdź czy zlecenie ma prawidłowe współrzędne
                 let lat = o.lat || o.locationLat;
@@ -1502,6 +1519,12 @@ export default function ProviderHome() {
               {center && center.length === 2 && center[0] && center[1] ? (
                 <MapContainer center={[...center]} zoom={13} className="w-full h-full">
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapInitialRecenter userLocation={userLocation} />
+                  <UserLocationLayer userLocation={userLocation} />
+                  <MapLocateControl
+                    userLocation={userLocation}
+                    onRequestLocation={getUserLocation}
+                  />
                   {list.map((o, idx) => {
                     let lat = o.lat || o.locationLat;
                     let lng = o.lng || o.locationLng;

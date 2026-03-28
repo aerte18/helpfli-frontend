@@ -69,6 +69,14 @@ const apiPatch = async (path, body) => {
   return data;
 };
 
+/** Względne URL-e z backendu (/uploads/orders/...) muszą iść przez apiUrl — inaczej img ładuje się z domeny frontendu i „znika”. */
+function attachmentPublicUrl(url) {
+  if (url == null || url === "") return "";
+  const s = String(url).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  return apiUrl(s.startsWith("/") ? s : `/${s}`);
+}
+
 const normalizeOrderPayload = (raw) => {
   const source = raw?.order || raw?.data?.order || raw?.data || raw;
   if (!source || typeof source !== "object") return source;
@@ -609,6 +617,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                 <span className="text-sm font-medium text-gray-600 mb-2 block">Załączniki (zdjęcia/filmy):</span>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                   {order.attachments.map((att, idx) => {
+                    const fileUrl = attachmentPublicUrl(att.url);
                     const mime = String(att.mimeType || att.type || '').toLowerCase();
                     const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
                     const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
@@ -617,13 +626,13 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                       <div key={idx} className="relative group">
                         {isImage ? (
                           <a
-                            href={att.url}
+                            href={fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors"
                           >
                             <img
-                              src={att.url}
+                              src={fileUrl}
                               alt={att.filename || `Zdjęcie ${idx + 1}`}
                               className="w-full h-full object-cover"
                             />
@@ -631,7 +640,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                           </a>
                         ) : isVideo ? (
                           <a
-                            href={att.url}
+                            href={fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
@@ -644,7 +653,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                           </a>
                         ) : (
                           <a
-                            href={att.url}
+                            href={fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
@@ -4040,6 +4049,7 @@ export default function OrderDetails() {
                               <label className="text-sm font-medium text-gray-700 mb-2 block">Załączniki (zdjęcia/filmy)</label>
                               <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {order.attachments.map((att, idx) => {
+                                  const fileUrl = attachmentPublicUrl(att.url);
                                   const mime = String(att.mimeType || att.type || '').toLowerCase();
                                   const isImage = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.url || att.filename || '');
                                   const isVideo = mime.startsWith('video/') || /\.(mp4|webm|mov|avi)$/i.test(att.url || att.filename || '');
@@ -4048,13 +4058,13 @@ export default function OrderDetails() {
                                     <div key={idx} className="relative group">
                                       {isImage ? (
                                         <a
-                                          href={att.url}
+                                          href={fileUrl}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors"
                                         >
                                           <img
-                                            src={att.url}
+                                            src={fileUrl}
                                             alt={att.filename || `Zdjęcie ${idx + 1}`}
                                             className="w-full h-full object-cover"
                                           />
@@ -4062,7 +4072,7 @@ export default function OrderDetails() {
                                         </a>
                                       ) : isVideo ? (
                                         <a
-                                          href={att.url}
+                                          href={fileUrl}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"
@@ -4075,7 +4085,7 @@ export default function OrderDetails() {
                                         </a>
                                       ) : (
                                         <a
-                                          href={att.url}
+                                          href={fileUrl}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors bg-slate-100 flex items-center justify-center"

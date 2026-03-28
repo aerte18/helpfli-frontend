@@ -412,7 +412,8 @@ function OrdersTab({ user }) {
   const [loading, setLoading] = useState(true);
   const [offersLoading, setOffersLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [showDemo, setShowDemo] = useState(true); // Domyślnie pokazuj przykładowe zlecenia
+  /** Przykładowe zlecenia/oferty tylko w dev (Vite); na produkcji wyłączone. */
+  const [showDemo, setShowDemo] = useState(false);
 
   // Ustaw filtr na podstawie parametru ?status= z URL (np. z OrderStatsDashboard)
   useEffect(() => {
@@ -910,9 +911,9 @@ function OrdersTab({ user }) {
     return providerItems.filter((it) => getProviderStage(it) === filter);
   })();
 
-  // Filtrowanie przykładowych zleceń DEMO dla providera
+  // Filtrowanie przykładowych zleceń DEMO dla providera (tylko dev)
   const filteredDemoProviderOrders = useMemo(() => {
-    if (!showDemo || user?.role !== 'provider') return [];
+    if (!import.meta.env.DEV || !showDemo || user?.role !== 'provider') return [];
     if (filter === 'all') return DEMO_PROVIDER_ORDERS;
     return DEMO_PROVIDER_ORDERS.filter((item) => {
       const stage = getProviderStage(item);
@@ -951,9 +952,9 @@ function OrdersTab({ user }) {
     return orders.filter((order) => filterOrderByStatus(order, filter));
   })();
 
-  // Filtrowanie przykładowych zleceń DEMO
+  // Filtrowanie przykładowych zleceń DEMO (tylko dev)
   const filteredDemoOrders = useMemo(() => {
-    if (!showDemo || user?.role !== 'client') return [];
+    if (!import.meta.env.DEV || !showDemo || user?.role !== 'client') return [];
     if (filter === 'all') {
       return DEMO_ORDERS;
     }
@@ -1153,14 +1154,9 @@ function OrdersTab({ user }) {
         {/* Lista zleceń */}
         {(user?.role === 'provider' ? (loading || offersLoading) : loading) ? (
           <div className="text-center py-8 text-gray-500">Ładowanie...</div>
-        ) : (user?.role === 'provider' ? providerFilteredItems.length === 0 : clientFilteredOrders.length === 0) && (!showDemo || (user?.role === 'provider' ? filteredDemoProviderOrders.length === 0 : filteredDemoOrders.length === 0)) ? (
+        ) : (user?.role === 'provider' ? providerFilteredItems.length === 0 : clientFilteredOrders.length === 0) && (!import.meta.env.DEV || !showDemo || (user?.role === 'provider' ? filteredDemoProviderOrders.length === 0 : filteredDemoOrders.length === 0)) ? (
           <div className="text-center py-8 text-gray-500">
             <div>{user?.role === 'provider' ? 'Brak ofert do wyświetlenia' : 'Brak zleceń do wyświetlenia'}</div>
-            {user?.role === 'client' && (
-              <div className="mt-2 text-xs text-gray-400">
-                Demo zleceń: {filteredDemoOrders.length} | Pokazuj demo: {showDemo ? 'tak' : 'nie'} | Filtr: {filter}
-              </div>
-            )}
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
               <Link
                 to="/create-order"
@@ -1168,29 +1164,33 @@ function OrdersTab({ user }) {
               >
                 {user?.role === 'provider' ? 'Przejdź do zleceń' : 'Utwórz zlecenie'}
               </Link>
-              <button
-                type="button"
-                onClick={() => setShowDemo((v) => !v)}
-                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                {showDemo ? "Ukryj przykładowe" : "Pokaż przykładowe"}
-              </button>
+              {import.meta.env.DEV && (
+                <button
+                  type="button"
+                  onClick={() => setShowDemo((v) => !v)}
+                  className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  {showDemo ? "Ukryj przykładowe" : "Pokaż przykładowe"}
+                </button>
+              )}
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Przycisk pokaż/ukryj przykładowe (gdy są rzeczywiste zlecenia) */}
-            <div className="mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowDemo((v) => !v)}
-                className="px-3 py-1 rounded-lg text-sm bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-              >
-                {showDemo ? "Ukryj przykładowe" : "Pokaż przykładowe"}
-              </button>
-            </div>
-            {/* Przykładowe zlecenia DEMO dla klienta (gdy włączone) */}
-            {showDemo && filteredDemoOrders.length > 0 && user?.role === 'client' && (
+            {/* Dev: przycisk pokaż/ukryj przykładowe (gdy są rzeczywiste zlecenia) */}
+            {import.meta.env.DEV && (
+              <div className="mb-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowDemo((v) => !v)}
+                  className="px-3 py-1 rounded-lg text-sm bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  {showDemo ? "Ukryj przykładowe" : "Pokaż przykładowe"}
+                </button>
+              </div>
+            )}
+            {/* Przykładowe zlecenia DEMO dla klienta (dev + włączone) */}
+            {import.meta.env.DEV && showDemo && filteredDemoOrders.length > 0 && user?.role === 'client' && (
               <>
                 {filteredDemoOrders.map((order) => (
                   <div
@@ -1247,8 +1247,8 @@ function OrdersTab({ user }) {
                 ))}
               </>
             )}
-            {/* Przykładowe zlecenia DEMO dla providera (gdy włączone) */}
-            {showDemo && filteredDemoProviderOrders.length > 0 && user?.role === 'provider' && (
+            {/* Przykładowe zlecenia DEMO dla providera (dev + włączone) */}
+            {import.meta.env.DEV && showDemo && filteredDemoProviderOrders.length > 0 && user?.role === 'provider' && (
               <>
                 {filteredDemoProviderOrders.map(({ order, offer }) => {
                   const price = offer?.amount || offer?.price || order?.amountTotal || order?.budget;

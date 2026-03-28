@@ -4,7 +4,11 @@ import {
   buildProviderServiceCategories,
   getExpandedSlugsForSelection,
 } from "../utils/buildProviderServiceCategories";
-import { getServiceSelectionKey } from "../utils/serviceSelectionKeys";
+import {
+  getServiceSelectionKey,
+  selectionKeysEqual,
+  selectionKeysInclude,
+} from "../utils/serviceSelectionKeys";
 
 /**
  * Wybór usług jak w „Zarządzanie usługami”: kategorie → rozwijane podkategorie.
@@ -109,7 +113,7 @@ export default function ProviderServiceCategoryPicker({
     const selectable = categorySubs.filter((s) => getServiceSelectionKey(s));
     if (selectable.length === 0) return false;
     const n = selectable.filter((sub) =>
-      selected.includes(getServiceSelectionKey(sub))
+      selectionKeysInclude(selected, getServiceSelectionKey(sub))
     ).length;
     return n > 0 && n < selectable.length;
   };
@@ -129,18 +133,22 @@ export default function ProviderServiceCategoryPicker({
       .map(getServiceSelectionKey)
       .filter(Boolean);
     const allSelected =
-      keys.length > 0 && keys.every((k) => selected.includes(k));
+      keys.length > 0 && keys.every((k) => selectionKeysInclude(selected, k));
 
     if (!expandedCategories.has(categorySlug)) {
       setExpandedCategories((prev) => new Set(prev).add(categorySlug));
     }
 
     if (allSelected) {
-      onSelectedIdsChange(selected.filter((id) => !keys.includes(id)));
+      onSelectedIdsChange(
+        selected.filter((id) => !keys.some((k) => selectionKeysEqual(id, k)))
+      );
     } else {
-      const set = new Set(selected);
-      keys.forEach((k) => set.add(k));
-      onSelectedIdsChange([...set]);
+      const next = selected.filter(
+        (id) => !keys.some((k) => selectionKeysEqual(id, k))
+      );
+      keys.forEach((k) => next.push(k));
+      onSelectedIdsChange(next);
     }
   };
 
@@ -249,7 +257,8 @@ export default function ProviderServiceCategoryPicker({
                 >
                   {categorySubs.map((sub) => {
                     const rowKey = getServiceSelectionKey(sub);
-                    const isSubSelected = rowKey && selected.includes(rowKey);
+                    const isSubSelected =
+                      rowKey && selectionKeysInclude(selected, rowKey);
                     return (
                       <div
                         key={rowKey || sub.slug || sub.name_pl}

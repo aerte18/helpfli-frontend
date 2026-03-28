@@ -1,5 +1,9 @@
 import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
-import { getServiceSelectionKey } from "./serviceSelectionKeys";
+import {
+  getServiceSelectionKey,
+  providerHasServiceForSub,
+  selectionKeysInclude,
+} from "./serviceSelectionKeys";
 
 /** Jak w categoryOrder: jedna forma slugów (myślniki, małe litery). */
 function normalizeSlug(slug = "") {
@@ -210,19 +214,30 @@ export function buildProviderServiceCategories(services, categoriesPayload) {
   };
 }
 
-/** Rozwiń kategorie, w których jest coś zaznaczone (ObjectId lub slug). */
-export function getExpandedSlugsForSelection(subcategories, selectedIds) {
-  const idSet = new Set((selectedIds || []).map(String));
+/**
+ * Rozwiń kategorie, w których jest coś zaznaczone.
+ * `selectedIdsOrUserServices` — albo tablica kluczy (ObjectId/slug), albo dokumenty z GET /api/user-services.
+ */
+export function getExpandedSlugsForSelection(subcategories, selectedIdsOrUserServices) {
+  const raw = selectedIdsOrUserServices || [];
+  const isUserDocs =
+    raw.length > 0 &&
+    typeof raw[0] === "object" &&
+    raw[0] !== null &&
+    !Array.isArray(raw[0]) &&
+    (raw[0]._id != null || raw[0].slug != null);
+
   const expanded = new Set();
   Object.entries(subcategories || {}).forEach(([slug, subs]) => {
-    if (
-      (subs || []).some((sub) => {
-        const k = getServiceSelectionKey(sub);
-        return k && idSet.has(k);
-      })
-    ) {
-      expanded.add(slug);
-    }
+    const hit = (subs || []).some((sub) => {
+      const k = getServiceSelectionKey(sub);
+      if (!k) return false;
+      if (isUserDocs) {
+        return providerHasServiceForSub(raw, sub);
+      }
+      return selectionKeysInclude(raw, k);
+    });
+    if (hit) expanded.add(slug);
   });
   return expanded;
 }

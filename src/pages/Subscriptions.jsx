@@ -42,10 +42,14 @@ export default function Subscriptions() {
   const [plans, setPlans] = useState([]);
   const [mine, setMine] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [companyId, setCompanyId] = useState(null);
+
+  const normalizePlans = (p) => (Array.isArray(p) ? p : []);
 
   const fetchAll = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       // Sprawdź czy użytkownik ma subskrypcję biznesową (jeśli nie jesteśmy już w trybie business)
       if (audience !== 'business') {
@@ -59,7 +63,7 @@ export default function Subscriptions() {
             setSearchParams(newSearchParams);
             // Wywołaj fetchAll ponownie z business audience
             const businessPlans = await getPlans('business');
-            setPlans(businessPlans);
+            setPlans(normalizePlans(businessPlans));
             
             // Pobierz subskrypcję firmy
             let companyIdToUse = null;
@@ -146,6 +150,10 @@ export default function Subscriptions() {
         const me = await getMySubscription().catch(() => null);
         setMine(me);
       }
+    } catch (err) {
+      console.error('Subscriptions fetchAll:', err);
+      setPlans([]);
+      setLoadError(err?.message || 'Nie udało się załadować planów. Spróbuj ponownie.');
     } finally {
       setLoading(false);
     }
@@ -230,6 +238,20 @@ export default function Subscriptions() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <main className="container mx-auto px-4 py-16 max-w-7xl">
         {/* Hero Section */}
+        {loadError && (
+          <div
+            className="mb-8 p-4 rounded-2xl border border-red-200 bg-red-50 text-red-800 text-sm text-center max-w-2xl mx-auto"
+            role="alert"
+          >
+            {loadError}
+          </div>
+        )}
+        {!loading && !loadError && plans.length === 0 && (
+          <div className="mb-8 p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 text-sm text-center max-w-2xl mx-auto">
+            Brak planów w cenniku. Jeśli problem się powtarza, odśwież stronę lub skontaktuj się z pomocą — administrator
+            powinien upewnić się, że baza zawiera plany subskrypcji.
+          </div>
+        )}
         <div className="text-center mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-gray-300 bg-white/50 backdrop-blur-sm mb-4">
             <Sparkles className="w-3 h-3" />
