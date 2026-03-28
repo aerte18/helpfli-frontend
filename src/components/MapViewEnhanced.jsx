@@ -182,9 +182,17 @@ export default function MapViewEnhanced({
   }, [providers]);
 
   return (
-    <div className={`relative ${height === 'h-full' ? 'h-full w-full' : ''}`}>
+    <div
+      className={`relative z-0 isolate overflow-hidden ${height === "h-full" ? "h-full w-full" : ""}`}
+    >
       <style>
         {`
+          /* Cała mapa w jednym kontekście warstwy — panele Leaflet (domyślnie z-index ~1000)
+             nie mogą wychodzić nad pasek wyników (z-40), navbar (z-50) ani drawery (wyżej). */
+          .map-view-enhanced.leaflet-container {
+            position: relative !important;
+            z-index: 0 !important;
+          }
           .custom-popup .leaflet-popup-content-wrapper {
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
@@ -198,22 +206,15 @@ export default function MapViewEnhanced({
             background: white;
             border: 1px solid rgba(0,0,0,0.1);
           }
-          .leaflet-control-zoom {
-            z-index: 1001 !important;
+          .map-view-enhanced .leaflet-control-zoom {
             margin-top: 80px !important;
-          }
-          .leaflet-top.leaflet-left {
-            z-index: 1001 !important;
-          }
-          .leaflet-control {
-            z-index: 1001 !important;
           }
         `}
       </style>
       <MapContainer 
         center={center} 
         zoom={zoom} 
-        className={`${height} w-full ${height === 'h-full' ? '' : 'rounded-xl'} ${height === 'h-full' ? 'border-0' : 'border border-slate-200'}`}
+        className={`map-view-enhanced ${height} w-full ${height === 'h-full' ? '' : 'rounded-xl'} ${height === 'h-full' ? 'border-0' : 'border border-slate-200'}`}
         style={height === 'h-full' ? { height: '100%', width: '100%', borderRadius: 0 } : {}}
       >
         <TileLayer

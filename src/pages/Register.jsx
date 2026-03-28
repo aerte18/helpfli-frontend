@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { LocateFixed } from "lucide-react";
 import Logo from "../components/Logo";
 import GeoSuggest from "../components/GeoSuggest";
 
@@ -87,8 +88,6 @@ export default function Register() {
   
   // Stany dla lokalizacji
   const [locationLoading, setLocationLoading] = useState(false);
-  const [showLocationMap, setShowLocationMap] = useState(false);
-  const [mapCenter, setMapCenter] = useState([52.2297, 21.0122]); // Warszawa
 
   // Ustaw rolę na podstawie parametru URL
   useEffect(() => {
@@ -100,62 +99,79 @@ export default function Register() {
 
   const score = useMemo(() => passwordScore(form.password), [form.password]);
 
-  // Funkcja do pobierania geolokalizacji
-  const getCurrentLocation = () => {
+  /** Geokodowanie adresu → współrzędne (np. przed zapisem, gdy brak GPS z podpowiedzi). */
+  const forwardGeocodeAddress = async (address) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=pl&addressdetails=1`,
+      { headers: { "Accept-Language": "pl" } }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    return null;
+  };
+
+  /** Odwrotne geokodowanie — tekst adresu z GPS (jak w mapach). */
+  const reverseGeocodeLatLng = async (lat, lng) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      { headers: { "Accept-Language": "pl" } }
+    );
+    const data = await response.json();
+    if (!data || data.error) return null;
+    if (typeof data.display_name === "string" && data.display_name.trim()) {
+      return data.display_name.trim();
+    }
+    const a = data.address || {};
+    const parts = [
+      [a.road, a.house_number].filter(Boolean).join(" "),
+      a.city || a.town || a.village || a.municipality,
+      a.postcode,
+    ].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  };
+
+  /** Pinezka „moja lokalizacja”: GPS + uzupełnienie pola adresu. */
+  const fillAddressFromDeviceLocation = () => {
+    setError("");
     if (!navigator.geolocation) {
-      setError("Twoja przeglądarka nie obsługuje geolokalizacji");
+      setError("Twoja przeglądarka nie obsługuje geolokalizacji.");
       return;
     }
 
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
-        setForm(prev => ({
-          ...prev,
-          locationCoords: { lat: latitude, lng: longitude }
-        }));
-        setMapCenter([latitude, longitude]);
-        setLocationLoading(false);
-        setShowLocationMap(true);
+        try {
+          const label = await reverseGeocodeLatLng(latitude, longitude);
+          setForm((prev) => ({
+            ...prev,
+            address: label || prev.address,
+            locationCoords: { lat: latitude, lng: longitude },
+          }));
+          if (!label) {
+            setError(
+              "Ustalono pozycję na mapie, ale nie udało się odczytać adresu — możesz go dopisać ręcznie."
+            );
+          }
+        } catch (e) {
+          console.error(e);
+          setError("Nie udało się odczytać adresu. Możesz wpisać go ręcznie.");
+        } finally {
+          setLocationLoading(false);
+        }
       },
-      (error) => {
-        console.error("Geolocation error:", error);
-        setError("Nie udało się pobrać lokalizacji. Możesz wpisać adres ręcznie.");
+      (err) => {
+        console.error("Geolocation error:", err);
+        setError(
+          "Nie udało się pobrać lokalizacji. Zezwól na dostęp w ustawieniach przeglądarki lub wpisz adres ręcznie."
+        );
         setLocationLoading(false);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-  };
-
-  // Funkcja do geokodowania adresu
-  const geocodeAddress = async (address) => {
-    if (!address.trim()) return;
-    
-    setLocationLoading(true);
-    try {
-      // Używamy OpenStreetMap Nominatim API (darmowe)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=pl&addressdetails=1`
-      );
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        setForm(prev => ({
-          ...prev,
-          locationCoords: { lat: parseFloat(lat), lng: parseFloat(lon) }
-        }));
-        setMapCenter([parseFloat(lat), parseFloat(lon)]);
-        setShowLocationMap(true);
-      } else {
-        setError("Nie znaleziono adresu. Sprawdź poprawność i spróbuj ponownie.");
-      }
-    } catch (error) {
-      console.error("Geocoding error:", error);
-      setError("Błąd podczas wyszukiwania adresu. Spróbuj ponownie.");
-    } finally {
-      setLocationLoading(false);
-    }
   };
 
   const handleChange = (e) => {
@@ -166,49 +182,46 @@ export default function Register() {
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const validate = () => {
-    if (!form.name.trim()) return "Podaj imię i nazwisko / nazwę.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Podaj poprawny email.";
-    const digits = form.phone.replace(/\D/g, "");
+  const validateForm = (f) => {
+    const pwScore = passwordScore(f.password);
+    if (!f.name.trim()) return "Podaj imię i nazwisko / nazwę.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) return "Podaj poprawny email.";
+    const digits = f.phone.replace(/\D/g, "");
     if (digits.length < 11) return "Podaj poprawny numer telefonu (+48 xxx xxx xxx).";
-    if (score < 3) return "Hasło jest za słabe (min. 8 znaków, zalecane duże/małe litery, cyfra i znak).";
-    if (form.password !== form.confirmPassword) return "Hasła nie są identyczne.";
-    if (!form.accept) return "Musisz zaakceptować regulamin.";
-    
-    // Walidacja lokalizacji dla wykonawców (wymagane) i klientów (opcjonalne)
-    if (form.role === "provider") {
-      if (!form.address.trim()) return "Podaj adres, w którym świadczysz usługi.";
-      if (!form.locationCoords) return "Nie udało się zlokalizować adresu. Sprawdź poprawność adresu.";
+    if (pwScore < 3) return "Hasło jest za słabe (min. 8 znaków, zalecane duże/małe litery, cyfra i znak).";
+    if (f.password !== f.confirmPassword) return "Hasła nie są identyczne.";
+    if (!f.accept) return "Musisz zaakceptować regulamin.";
+
+    if (f.role === "provider") {
+      if (!f.address.trim()) return "Podaj adres, w którym świadczysz usługi.";
+      if (!f.locationCoords) return "Nie udało się zlokalizować adresu. Użyj ikony lokalizacji lub wybierz adres z podpowiedzi.";
     }
-    // Dla klientów lokalizacja jest opcjonalna, ale jeśli podana, to musi być poprawna
-    if (form.role === "client" && form.address.trim() && !form.locationCoords) {
-      return "Nie udało się zlokalizować adresu. Sprawdź poprawność adresu lub zostaw puste.";
+    if (f.role === "client" && f.address.trim() && !f.locationCoords) {
+      return "Nie udało się zlokalizować adresu. Użyj ikony lokalizacji, wybierz z listy lub zostaw pole adresu puste.";
     }
-    
-    // Walidacja danych do faktury dla providera z "wystawiam faktury"
-    if (form.role === "provider" && form.isB2B) {
-      if (!form.billingCompanyName.trim()) return "Podaj nazwę firmy / działalności (do faktury).";
-      if (!form.billingNip.trim()) return "Podaj NIP (do faktury).";
-      const nipDigits = form.billingNip.replace(/\s/g, "");
+
+    if (f.role === "provider" && f.isB2B) {
+      if (!f.billingCompanyName.trim()) return "Podaj nazwę firmy / działalności (do faktury).";
+      if (!f.billingNip.trim()) return "Podaj NIP (do faktury).";
+      const nipDigits = f.billingNip.replace(/\s/g, "");
       if (!/^\d{10}$/.test(nipDigits)) return "NIP musi składać się z 10 cyfr.";
-      if (!form.billingStreet.trim()) return "Podaj ulicę i numer (adres do faktury).";
-      if (!form.billingCity.trim()) return "Podaj miasto (adres do faktury).";
-      if (!form.billingPostalCode.trim()) return "Podaj kod pocztowy (do faktury).";
+      if (!f.billingStreet.trim()) return "Podaj ulicę i numer (adres do faktury).";
+      if (!f.billingCity.trim()) return "Podaj miasto (adres do faktury).";
+      if (!f.billingPostalCode.trim()) return "Podaj kod pocztowy (do faktury).";
     }
-    // Walidacja pól firmy dla rejestracji firmy wieloosobowej
-    if (form.role === "company") {
-      if (!form.companyName.trim()) return "Podaj nazwę firmy.";
-      if (!form.companyNip.trim()) return "Podaj NIP firmy.";
-      if (!/^\d{10}$/.test(form.companyNip.replace(/\s/g, ""))) return "NIP musi składać się z 10 cyfr.";
-      if (form.companyRegon && !/^\d{9}$|^\d{14}$/.test(form.companyRegon.replace(/\s/g, ""))) {
+    if (f.role === "company") {
+      if (!f.companyName.trim()) return "Podaj nazwę firmy.";
+      if (!f.companyNip.trim()) return "Podaj NIP firmy.";
+      if (!/^\d{10}$/.test(f.companyNip.replace(/\s/g, ""))) return "NIP musi składać się z 10 cyfr.";
+      if (f.companyRegon && !/^\d{9}$|^\d{14}$/.test(f.companyRegon.replace(/\s/g, ""))) {
         return "REGON musi składać się z 9 lub 14 cyfr.";
       }
-      if (form.companyKrs && !/^\d{10}$/.test(form.companyKrs.replace(/\s/g, ""))) {
+      if (f.companyKrs && !/^\d{10}$/.test(f.companyKrs.replace(/\s/g, ""))) {
         return "KRS musi składać się z 10 cyfr.";
       }
-      if (!form.companyAddress.trim()) return "Podaj adres firmy.";
+      if (!f.companyAddress.trim()) return "Podaj adres firmy.";
     }
-    
+
     return null;
   };
 
@@ -217,7 +230,27 @@ export default function Register() {
     setError("");
     setSuccess(false);
 
-    const v = validate();
+    let snapshot = { ...form };
+    if (
+      (snapshot.role === "provider" || snapshot.role === "client") &&
+      snapshot.address?.trim() &&
+      !snapshot.locationCoords
+    ) {
+      setLocationLoading(true);
+      try {
+        const coords = await forwardGeocodeAddress(snapshot.address.trim());
+        if (coords) {
+          snapshot = { ...snapshot, locationCoords: coords };
+          setForm((prev) => ({ ...prev, locationCoords: coords }));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLocationLoading(false);
+      }
+    }
+
+    const v = validateForm(snapshot);
     if (v) return setError(v);
 
     setLoading(true);
@@ -226,40 +259,37 @@ export default function Register() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone.replace(/\s/g, ""),
-          password: form.password,
-          role: form.role === "company" ? "provider" : form.role, // provider dla firmy
-          isB2B: form.role === "company" ? true : form.isB2B, // zawsze true dla firmy
+          name: snapshot.name,
+          email: snapshot.email,
+          phone: snapshot.phone.replace(/\s/g, ""),
+          password: snapshot.password,
+          role: snapshot.role === "company" ? "provider" : snapshot.role, // provider dla firmy
+          isB2B: snapshot.role === "company" ? true : snapshot.isB2B, // zawsze true dla firmy
           notificationPreferences: {
             marketing: {
-              sms: form.marketingSMS,
-              email: form.marketingEmail
+              sms: snapshot.marketingSMS,
+              email: snapshot.marketingEmail
             }
           },
-          // Dane lokalizacji dla wykonawców (wymagane) i klientów (opcjonalne)
-          address: form.address || undefined,
-          locationCoords: form.locationCoords || undefined,
-          // Dane firmy dla rejestracji firmy wieloosobowej
-          company: form.role === "company" ? {
-            name: form.companyName,
-            nip: form.companyNip.replace(/\s/g, ""),
-            regon: form.companyRegon ? form.companyRegon.replace(/\s/g, "") : undefined,
-            krs: form.companyKrs ? form.companyKrs.replace(/\s/g, "") : undefined,
-            address: form.companyAddress,
-            website: form.companyWebsite || undefined,
-            description: form.companyDescription || undefined,
+          address: snapshot.address || undefined,
+          locationCoords: snapshot.locationCoords || undefined,
+          company: snapshot.role === "company" ? {
+            name: snapshot.companyName,
+            nip: snapshot.companyNip.replace(/\s/g, ""),
+            regon: snapshot.companyRegon ? snapshot.companyRegon.replace(/\s/g, "") : undefined,
+            krs: snapshot.companyKrs ? snapshot.companyKrs.replace(/\s/g, "") : undefined,
+            address: snapshot.companyAddress,
+            website: snapshot.companyWebsite || undefined,
+            description: snapshot.companyDescription || undefined,
           } : undefined,
-          // Dane do faktury dla providera z "wystawiam faktury"
-          billing: form.role === "provider" && form.isB2B ? {
+          billing: snapshot.role === "provider" && snapshot.isB2B ? {
             customerType: "company",
-            companyName: form.billingCompanyName.trim(),
-            nip: form.billingNip.replace(/\s/g, ""),
-            street: form.billingStreet.trim(),
-            city: form.billingCity.trim(),
-            postalCode: form.billingPostalCode.trim(),
-            country: form.billingCountry || "Polska",
+            companyName: snapshot.billingCompanyName.trim(),
+            nip: snapshot.billingNip.replace(/\s/g, ""),
+            street: snapshot.billingStreet.trim(),
+            city: snapshot.billingCity.trim(),
+            postalCode: snapshot.billingPostalCode.trim(),
+            country: snapshot.billingCountry || "Polska",
           } : undefined,
         }),
       });
@@ -273,7 +303,7 @@ export default function Register() {
       
       // Przekierowanie po rejestracji
       // Sprawdź rolę użytkownika z odpowiedzi (może być company_owner jeśli rejestrował firmę)
-      const userRole = data.user?.role || form.role;
+      const userRole = data.user?.role || snapshot.role;
       
       // Przekieruj na właściwą stronę w zależności od roli
       if (userRole === "admin") {
@@ -597,55 +627,29 @@ export default function Register() {
                               ? { lat: item.lat, lng: item.lon }
                               : prev.locationCoords,
                         }));
-                        if (typeof item?.lat === "number" && typeof item?.lon === "number") {
-                          setMapCenter([item.lat, item.lon]);
-                          setShowLocationMap(true);
-                        }
                       }}
                     />
                   </div>
                   <button
                     type="button"
-                    onClick={() => geocodeAddress(form.address)}
-                    disabled={locationLoading || !form.address.trim()}
-                    className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={fillAddressFromDeviceLocation}
+                    disabled={locationLoading}
+                    title="Użyj mojej aktualnej lokalizacji"
+                    aria-label="Użyj mojej aktualnej lokalizacji — przeglądarka może zapytać o zgodę na dostęp do GPS"
+                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-indigo-600 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {locationLoading ? "..." : "📍"}
+                    {locationLoading ? (
+                      <span className="h-5 w-5 animate-pulse rounded-full bg-indigo-200" aria-hidden />
+                    ) : (
+                      <LocateFixed className="h-6 w-6" strokeWidth={2} aria-hidden />
+                    )}
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  disabled={locationLoading}
-                  className="w-full p-2 text-sm text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {locationLoading ? "Pobieranie lokalizacji..." : "🎯 Użyj mojej aktualnej lokalizacji"}
-                </button>
+                <p className="text-xs text-slate-500">
+                  Ikona celownika pobiera pozycję z GPS i uzupełnia adres (jak w mapach). Przeglądarka może
+                  wyświetlić prośbę o zgodę na dostęp do lokalizacji.
+                </p>
               </div>
-
-              {/* Mapa do weryfikacji lokalizacji */}
-              {showLocationMap && form.locationCoords && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700">
-                    Weryfikacja lokalizacji
-                  </label>
-                  <div className="h-48 border rounded-lg bg-slate-100 flex items-center justify-center">
-                    <div className="text-center text-slate-500">
-                      <div className="text-2xl mb-2">🗺️</div>
-                      <p className="text-sm">Mapa będzie tutaj</p>
-                      <p className="text-xs">Lat: {form.locationCoords.lat.toFixed(4)}</p>
-                      <p className="text-xs">Lng: {form.locationCoords.lng.toFixed(4)}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowLocationMap(false)}
-                    className="text-sm text-slate-500 hover:text-slate-700"
-                  >
-                    Ukryj mapę
-                  </button>
-                </div>
-              )}
             </>
           )}
 

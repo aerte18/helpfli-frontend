@@ -88,6 +88,18 @@ const DEMO_PROVIDERS = [
   },
 ];
 
+/** Wybrane kafelki „Popularne usługi” przekazują pełny tekst etykiety; backend zwraca inne nazwy (np. „Hydraulika”). */
+function matchesSelectedServiceLabel(selected, haystack) {
+  const sel = String(selected).toLowerCase().trim();
+  if (!sel) return true;
+  const flat = haystack.map(String).map((s) => s.toLowerCase());
+  if (flat.some((h) => h === sel || h.includes(sel) || sel.includes(h))) return true;
+  const head = sel.split(/[–—\-]/)[0].trim().toLowerCase();
+  if (head.length >= 2 && flat.some((h) => h.includes(head))) return true;
+  const tokens = head.split(/\s+/).filter((t) => t.length >= 4);
+  return tokens.some((t) => flat.some((h) => h.includes(t)));
+}
+
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({});
@@ -139,7 +151,7 @@ export default function Home() {
   }, [verifiedOnly, b2bOnly, proOnly, availableNow, filters, selectedServices]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [maxDistance, setMaxDistance] = useState(10); // km
+  const [maxDistance, setMaxDistance] = useState(50); // km — zgodnie z domyślnym radius w /api/search
   const { user } = useAuth();
   const compare = useCompare();
 
@@ -316,8 +328,10 @@ export default function Home() {
         const haystack = [
           ...(p.service ? [String(p.service)] : []),
           ...(Array.isArray(p.allServices) ? p.allServices.map(String) : [])
-        ].map((s) => s.toLowerCase());
-        const anyMatch = selectedServices.some((s) => haystack.includes(String(s).toLowerCase()));
+        ];
+        const anyMatch = selectedServices.some((s) =>
+          matchesSelectedServiceLabel(s, haystack)
+        );
         if (!anyMatch) return false;
       }
       
@@ -690,14 +704,13 @@ export default function Home() {
       {viewMode === "map" ? (
         // Tryb mapy - pełnoekranowy; przyciski widoku w prawym górnym rogu na mapie
         <div 
-          className="fixed inset-0 w-full relative" 
+          className="fixed inset-0 z-0 isolate w-full relative" 
           style={{ 
             top: activeFilters.length > 0 ? '128px' : '112px',
-            zIndex: 1,
             height: activeFilters.length > 0 ? 'calc(100vh - 128px)' : 'calc(100vh - 112px)'
           }}
         >
-          <div className="absolute top-2 right-2 z-[1000] flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
+          <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
             <button
               onClick={() => setViewMode("list")}
               className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
@@ -812,9 +825,9 @@ export default function Home() {
 
           {/* Mapa – w split z przyciskami widoku w prawym górnym rogu na mapie */}
           {viewMode !== "list" && (
-            <div className={`relative ${viewMode !== "map" ? "lg:sticky lg:top-[92px] h-max" : ""}`}>
+            <div className={`relative z-0 isolate ${viewMode !== "map" ? "lg:sticky lg:top-[92px] h-max" : ""}`}>
               {viewMode === "split" && (
-                <div className="absolute top-2 right-2 z-[1000] flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
+                <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
                   <button
                     onClick={() => setViewMode("list")}
                     className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}

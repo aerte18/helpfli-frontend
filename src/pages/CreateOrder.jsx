@@ -7,7 +7,7 @@ import { UI } from "../i18n/pl_ui";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/toast/ToastProvider";
 import { useTelemetry } from "../hooks/useTelemetry";
-import { Upload, Users, Briefcase, MapPin, FileText, Sparkles, CheckCircle, ShieldCheck, CreditCard, ShoppingCart, BarChart2 } from "lucide-react";
+import { Upload, Users, Briefcase, MapPin, FileText, Sparkles, CheckCircle, ShieldCheck, CreditCard, ShoppingCart, BarChart2, LocateFixed } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { openAI } from "../ai/chat/bus";
 
@@ -355,29 +355,55 @@ export default function CreateOrder() {
     }
   };
 
-  // Funkcja do pobierania geolokalizacji
-  const getUserLocation = () => {
+  const reverseGeocodeLatLng = async (lat, lng) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      { headers: { "Accept-Language": "pl" } }
+    );
+    const data = await response.json();
+    if (!data || data.error) return null;
+    if (typeof data.display_name === "string" && data.display_name.trim()) {
+      return data.display_name.trim();
+    }
+    const a = data.address || {};
+    const parts = [
+      [a.road, a.house_number].filter(Boolean).join(" "),
+      a.city || a.town || a.village || a.municipality,
+      a.postcode,
+    ].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+  };
+
+  /** GPS + uzupełnienie pola adresem (jak w mapach), współrzędne do dopasowania wykonawców. */
+  const fillLocationFromDevice = () => {
+    setError("");
     if (!navigator.geolocation) {
-      setError('Geolokalizacja nie jest obsługiwana przez przeglądarkę');
+      setError("Geolokalizacja nie jest obsługiwana przez przeglądarkę.");
       return;
     }
 
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        setUserLocation(location);
-        setLocationLoading(false);
-        // Można dodać reverse geocoding tutaj
-        setLocation("Moja lokalizacja");
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setUserLocation({ lat, lng });
+        try {
+          const label = await reverseGeocodeLatLng(lat, lng);
+          setLocation(label || "Pozycja GPS — doprecyzuj adres ręcznie, jeśli trzeba");
+        } catch (e) {
+          console.error(e);
+          setLocation("Pozycja GPS — doprecyzuj adres ręcznie");
+        } finally {
+          setLocationLoading(false);
+        }
       },
-      (error) => {
+      (err) => {
+        console.error(err);
         setLocationLoading(false);
-        setError('Nie udało się pobrać lokalizacji: ' + error.message);
-      }
+        setError("Nie udało się pobrać lokalizacji. Zezwól na dostęp w przeglądarce lub wpisz adres ręcznie.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -1091,7 +1117,7 @@ export default function CreateOrder() {
             <MapPin className="h-4 w-4" />
             Lokalizacja
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -1113,19 +1139,27 @@ export default function CreateOrder() {
             />
             <button
               type="button"
-              onClick={getUserLocation}
+              onClick={fillLocationFromDevice}
               disabled={locationLoading}
-              className="shrink-0 px-3 py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-60"
-              style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-              aria-label="Pobierz moją aktualną lokalizację GPS"
+              title="Użyj mojej aktualnej lokalizacji"
+              aria-label="Użyj mojej aktualnej lokalizacji — przeglądarka może zapytać o zgodę na dostęp do GPS"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-60 hover:opacity-90"
+              style={{ borderColor: 'var(--border)', color: 'var(--primary)' }}
             >
-              {locationLoading ? "…" : "Użyj mojej lokalizacji"}
+              {locationLoading ? (
+                <span className="h-4 w-4 animate-pulse rounded-full bg-[var(--muted-foreground)]" aria-hidden />
+              ) : (
+                <LocateFixed className="h-5 w-5" strokeWidth={2} aria-hidden />
+              )}
             </button>
           </div>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Ikona celownika uzupełnia adres z GPS (Nominatim). Przeglądarka może poprosić o zgodę na lokalizację.
+          </p>
           {userLocation && (
             <div className="text-xs flex items-center gap-1" style={{ color: 'var(--muted-foreground)' }}>
               <span>✓</span>
-              <span>Współrzędne zapisane – posłużą tylko do dopasowania wykonawców w okolicy.</span>
+              <span>Współrzędne zapisane w zleceniu — wykonawcy widzą zlecenie w okolicy na mapie / w liście wg odległości.</span>
             </div>
           )}
         </div>
