@@ -79,7 +79,9 @@ function attachmentPublicUrl(url) {
 
 /** Jedno zdjęcie / ikona pliku: GET z Bearer (endpoint /api/orders/.../attachments/.../file), bo publiczny /uploads często 404 na prod (brak pliku lub brak auth). */
 const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, idx }) {
-  const attId = att?._id || att?.id;
+  const rawSubId = att?._id ?? att?.id;
+  const attId =
+    rawSubId != null && /^[a-f0-9]{24}$/i.test(String(rawSubId)) ? String(rawSubId) : "";
   const [src, setSrc] = useState(null);
   const [status, setStatus] = useState("loading");
 
@@ -88,26 +90,45 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
     let blobUrl = null;
 
     async function load() {
-      if (attId && orderId) {
+      if (!orderId) {
+        if (!cancelled) setStatus("error");
+        return;
+      }
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      async function fetchAsBlob(url) {
         try {
-          const token = localStorage.getItem("token");
-          const r = await fetch(
-            apiUrl(`/api/orders/${orderId}/attachments/${attId}/file`),
-            { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-          );
-          if (r.ok) {
-            const blob = await r.blob();
-            blobUrl = URL.createObjectURL(blob);
-            if (!cancelled) {
-              setSrc(blobUrl);
-              setStatus("ok");
-            }
-            return;
-          }
+          const r = await fetch(url, { headers });
+          if (!r.ok) return null;
+          return r.blob();
         } catch (_e) {
-          /* fall through */
+          return null;
         }
       }
+
+      let blob = null;
+      if (attId) {
+        blob = await fetchAsBlob(
+          apiUrl(`/api/orders/${orderId}/attachments/${attId}/file`)
+        );
+      }
+      if (!blob && att?.url) {
+        blob = await fetchAsBlob(
+          apiUrl(
+            `/api/orders/${orderId}/attachments/resolve-file?url=${encodeURIComponent(att.url)}`
+          )
+        );
+      }
+      if (blob) {
+        blobUrl = URL.createObjectURL(blob);
+        if (!cancelled) {
+          setSrc(blobUrl);
+          setStatus("ok");
+        }
+        return;
+      }
+
       const fallback = attachmentPublicUrl(att.url);
       if (!cancelled) {
         setSrc(fallback || null);
