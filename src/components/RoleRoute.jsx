@@ -25,6 +25,10 @@ export default function RoleRoute({ allow = [] }) {
     if (user.role === "admin") {
       return <Navigate to="/admin" replace />;
     }
+    // Klient na trasie tylko-provider → /home zamiast /dashboard (unikaj zamieszania z panelem)
+    if (user.role === "client") {
+      return <Navigate to="/home" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   return <Outlet />;

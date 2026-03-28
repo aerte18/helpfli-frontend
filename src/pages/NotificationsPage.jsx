@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getNotificationNavigateTarget } from '../utils/notificationNavigation';
 import { useAuth } from '../context/AuthContext';
 import { Helmet } from 'react-helmet-async';
 
@@ -98,10 +99,13 @@ export default function NotificationsPage() {
     if (!notification.read) {
       markAsRead(notification._id);
     }
-    
-    if (notification.link) {
-      const url = new URL(notification.link, window.location.origin);
-      navigate(url.pathname);
+
+    const target = getNotificationNavigateTarget(notification);
+    if (target) {
+      navigate({
+        pathname: target.pathname,
+        search: target.search || undefined,
+      });
     }
   };
 
@@ -112,6 +116,9 @@ export default function NotificationsPage() {
       order_completed: '🎉',
       order_disputed: '⚠️',
       new_quote: '💬',
+      new_offer: '💼',
+      order_updated: '📝',
+      chat_message: '💬',
       payment_received: '💵',
       new_direct_order: '📋',
       subscription_expiring: '⏰',

@@ -1915,6 +1915,13 @@ export default function OrderDetails() {
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const [tab, setTab] = useState(tabFromUrl === "offers" ? "offers" : (tabFromUrl === "chat" ? "chat" : (tabFromUrl === "my_offer" ? "my_offer" : "details")));
 
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (t === "offers" || t === "chat" || t === "my_offer" || t === "details") {
+      setTab(t);
+    }
+  }, [location.search]);
+
   const [me, setMe] = useState(null);
   const [order, setOrderState] = useState(null);
   const setOrder = useCallback((next) => {
@@ -2833,12 +2840,6 @@ export default function OrderDetails() {
     };
     setOrder(optimisticOrder);
     
-    toast({ 
-      title: "Oferta zaakceptowana", 
-      description: "Przekierowujemy do płatności...",
-      variant: "success"
-    });
-    
     try {
       try {
         await apiPost(`/api/orders/${orderId}/offers/${offerId}/accept`, {
@@ -2851,18 +2852,43 @@ export default function OrderDetails() {
         await apiPost(`/api/orders/${orderId}/status`, { status: "accepted" });
       }
       
-      // Weryfikacja z serwera
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
-      const acceptedOfferObj = order.offers?.find(o => (o._id || o.id) === offerId);
-      const providerId = acceptedOfferObj?.providerId?._id || acceptedOfferObj?.providerId || fresh?.provider?._id || fresh?.provider;
-      if (providerId) trackOrderAccepted(orderId, typeof providerId === 'string' ? providerId : providerId?._id || providerId);
+      const acceptedOfferObj = fresh.offers?.find(
+        (o) => String(o._id || o.id) === String(offerId)
+      );
+      const providerId =
+        acceptedOfferObj?.providerId?._id ||
+        acceptedOfferObj?.providerId ||
+        fresh?.provider?._id ||
+        fresh?.provider;
+      if (providerId) {
+        trackOrderAccepted(
+          orderId,
+          typeof providerId === "string"
+            ? providerId
+            : providerId?._id || providerId
+        );
+      }
 
-      // Jeśli płatność przez system - przekieruj do checkout
-      if ((acceptData.paymentMethod || 'system') === 'system') {
+      const effectivePaymentMethod =
+        fresh?.paymentMethod || acceptData.paymentMethod || "system";
+
+      if (effectivePaymentMethod === "system") {
+        toast({
+          title: "Oferta zaakceptowana",
+          description: "Przechodzimy do bezpiecznej płatności.",
+          variant: "success",
+        });
         navigate(`/checkout/${orderId}`);
       } else {
-        goTab("chat");
+        toast({
+          title: "Oferta zaakceptowana",
+          description:
+            "Płatność poza systemem — dogadajcie szczegóły na czacie lub w szczegółach zlecenia.",
+          variant: "success",
+        });
+        goTab("details");
       }
     } catch (e) {
       // Cofnij optymistyczną aktualizację w przypadku błędu
@@ -3522,7 +3548,7 @@ export default function OrderDetails() {
                     <Settings className="h-4 w-4" />
                     Edytuj zlecenie
                   </button>
-                  {order.status === 'open' && (
+                  {(order.status === 'open' || order.status === 'collecting_offers') && (
                     <button
                       type="button"
                       onClick={handleCancelOrder}

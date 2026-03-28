@@ -1,33 +1,57 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SponsorAdBanner from "../components/SponsorAdBanner";
-import { Clock, AlertCircle, CheckCircle } from "lucide-react";
+import { Clock, AlertCircle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+function clientIdOf(order) {
+  const c = order?.client;
+  if (c == null) return null;
+  return typeof c === "object" && c._id != null ? String(c._id) : String(c);
+}
+
+/** Zgodnie z POST /api/orders/:id/cancel — tylko klient, przed akceptacją oferty / płatnością. */
+function canClientCancelOrder(order, userId) {
+  if (!userId || !order) return false;
+  if (clientIdOf(order) !== String(userId)) return false;
+  if (order.status === "cancelled") return false;
+  if (!["open", "collecting_offers", "draft"].includes(order.status)) return false;
+  if (order.paymentStatus === "succeeded" || order.paidInSystem) return false;
+  if (order.acceptedOfferId) return false;
+  return true;
+}
 
 const MyOrders = () => {
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [extendingOrderId, setExtendingOrderId] = useState(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(apiUrl("/api/orders"), {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Błąd pobierania zleceń");
-        setOrders(data?.items || data);
-      } catch (err) {
-        console.error("Błąd pobierania zleceń:", err);
-      }
-    };
-    fetchOrders();
+  const refreshOrders = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(apiUrl("/api/orders/my?limit=50"), {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Błąd pobierania zleceń");
+      const list = Array.isArray(data?.orders)
+        ? data.orders
+        : data?.items ?? (Array.isArray(data) ? data : []);
+      setOrders(list);
+    } catch (err) {
+      console.error("Błąd pobierania zleceń:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
 
   const handleExtend = async (orderId, hours = 24) => {
     if (!confirm(`Czy na pewno chcesz wydłużyć czas zlecenia o ${hours} godzin?`)) {
@@ -47,25 +71,46 @@ const MyOrders = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Błąd wydłużania zlecenia");
-      
-      // Odśwież listę zleceń
-      const resRefresh = await fetch(apiUrl("/api/orders"), {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      const dataRefresh = await resRefresh.json();
-      if (resRefresh.ok) {
-        setOrders(dataRefresh?.items || dataRefresh);
-      }
-      
+
+      await refreshOrders();
+
       alert(`✅ Czas zlecenia został wydłużony o ${hours} godzin`);
     } catch (err) {
       console.error("Błąd wydłużania zlecenia:", err);
       alert(`❌ Nie udało się wydłużyć zlecenia: ${err.message}`);
     } finally {
       setExtendingOrderId(null);
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (
+      !confirm(
+        "Czy na pewno chcesz anulować to zlecenie? Możliwe tylko zanim wybierzesz ofertę i opłacisz zlecenie — zniknie z aktywnych i wykonawcy zobaczą je jako odrzucone."
+      )
+    ) {
+      return;
+    }
+    setCancellingOrderId(orderId);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/cancel`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Nie udało się anulować zlecenia");
+      await refreshOrders();
+      alert("✅ Zlecenie zostało anulowane");
+    } catch (err) {
+      console.error("Błąd anulowania zlecenia:", err);
+      alert(`❌ ${err.message}`);
+    } finally {
+      setCancellingOrderId(null);
     }
   };
 
@@ -158,6 +203,17 @@ const MyOrders = () => {
                   Oferty
                   {typeof order.offersCount === "number" ? ` (${order.offersCount})` : ""}
                 </button>
+                {user && canClientCancelOrder(order, user._id || user.id) && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelOrder(order._id)}
+                    disabled={cancellingOrderId === order._id}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-red-200 text-red-700 bg-white rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 shrink-0" />
+                    {cancellingOrderId === order._id ? "…" : "Usuń zlecenie"}
+                  </button>
+                )}
               </div>
 
               {/* Przycisk wydłużenia dla aktywnych zleceń */}

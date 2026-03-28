@@ -168,6 +168,17 @@ export default function Navbar() {
 
         {/* Prawa strona — ml-auto wymusza brzeg prawy (niezawodniejsze niż samo justify-between) */}
         <div className="ml-auto flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+          {/* Klient na telefonie: zawsze widoczna skrót do tworzenia zlecenia (pełny CTA jest w md:flex) */}
+          {user && user.role === "client" && !loading && (
+            <Link
+              to="/create-order"
+              className="md:hidden inline-flex items-center gap-1 rounded-lg bg-orange-500 px-2 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 active:opacity-90 shrink-0"
+              aria-label={UI.navCreateOrder}
+            >
+              <Plus className="w-4 h-4 shrink-0" aria-hidden />
+              <span className="whitespace-nowrap">Utwórz</span>
+            </Link>
+          )}
         <nav className="hidden md:flex items-center gap-3" aria-label="Konto i narzędzia">
           {/* Mini-wyszukiwarka - tylko dla zalogowanych użytkowników i nie na LandingStart/ProviderHome */}
           {user && !hideSearch && (
@@ -235,7 +246,7 @@ export default function Navbar() {
               to="/create-order"
               className="rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
             >
-              Utwórz zlecenie
+              {UI.navCreateOrder}
             </Link>
           )}
 
@@ -578,8 +589,13 @@ export default function Navbar() {
             )}
 
             {user && user.role === 'client' && (
-              <Link to="/create-order" onClick={() => setMobileOpen(false)} className="rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600">
-              {UI.navOrders}
+              <Link
+                to="/create-order"
+                onClick={() => setMobileOpen(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600"
+              >
+                <Plus className="w-4 h-4 shrink-0" aria-hidden />
+                {UI.navCreateOrder}
               </Link>
             )}
 

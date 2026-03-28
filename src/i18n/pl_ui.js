@@ -10,6 +10,8 @@ export const UI = {
   navSearch: "Szukaj pomocy",
   navAreas: "Obszary pomocy",
   navOrders: "Prośby o pomoc",
+  /** CTA do /create-order (klient) — na mobile nie używaj navOrders („Prośby o pomoc”), to inna ścieżka. */
+  navCreateOrder: "Utwórz zlecenie",
 
   // Sekcje
   listTitleNearbyHelp: "Pomoc w pobliżu",

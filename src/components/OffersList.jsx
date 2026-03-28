@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Clock, Star } from "lucide-react";
 import { getOffersOfOrder, acceptOffer, boostOffer } from "../api/offers";
 import { useSocket } from "../hooks/useSocket";
@@ -29,6 +30,7 @@ function Badge({ b }) {
 
 export default function OffersList({ orderId, recommendedOfferId, topOfferIds = [], aiReasoning }) {
   const token = useAuthToken();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const socket = useSocket();
   const [offers, setOffers] = useState([]);
@@ -354,12 +356,16 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
       // Odśwież listę
       const updatedOffers = await getOffersOfOrder({ token, orderId });
       setOffers(updatedOffers);
+
+      const pm =
+        acceptResult.paymentMethod ||
+        acceptData.paymentMethod ||
+        "system";
       
-      // Jeśli płatność przez system - przekieruj do checkout
-      if (acceptResult.paymentMethod === 'system') {
-        // Przekieruj do checkout z orderId
-        window.location.href = `/checkout/${orderId}`;
-      } else if (acceptResult.paymentMethod === 'external' && acceptResult.breakdown?.platformFee > 0) {
+      // Płatność w systemie → checkout (trasa pod PrivateRoute, nie tylko provider)
+      if (pm === "system") {
+        navigate(`/checkout/${orderId}`, { replace: true });
+      } else if (pm === "external" && acceptResult.breakdown?.platformFee > 0) {
         // Płatność poza systemem, ale klient musi opłacić prowizję platformy w systemie
         try {
           const commissionRes = await fetch(apiUrl(`/api/payments/create-commission-intent`), {
@@ -385,6 +391,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
           // Jeśli coś pójdzie nie tak, pokaż błąd, ale oferta pozostaje zaakceptowana
           setError(e.message || "Błąd inicjowania płatności prowizji");
         }
+      } else if (pm === "external") {
+        navigate(`/orders/${orderId}?tab=details`, { replace: true });
       }
     } catch (e) {
       setError(e.message || "Błąd akceptacji oferty");

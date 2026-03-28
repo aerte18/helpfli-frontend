@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getNotificationNavigateTarget } from "../utils/notificationNavigation";
 
 export default function NotificationsDropdown({ userId, onClose }) {
   const [notifications, setNotifications] = useState([]);
@@ -84,13 +85,15 @@ export default function NotificationsDropdown({ userId, onClose }) {
     if (!notification.read) {
       markAsRead(notification._id);
     }
-    
-    if (notification.link) {
-      // Wyciągnij ścieżkę z pełnego URL
-      const url = new URL(notification.link, window.location.origin);
-      navigate(url.pathname);
+
+    const target = getNotificationNavigateTarget(notification);
+    if (target) {
+      navigate({
+        pathname: target.pathname,
+        search: target.search || undefined,
+      });
     }
-    
+
     if (onClose) onClose();
   };
 
@@ -153,7 +156,9 @@ export default function NotificationsDropdown({ userId, onClose }) {
             {notifications.map((notification) => (
               <button
                 key={notification._id}
+                type="button"
                 onClick={() => handleNotificationClick(notification)}
+                title="Otwórz powiązany widok (zlecenie, czat itd.)"
                 className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
                   !notification.read ? 'bg-indigo-50/50' : ''
                 }`}

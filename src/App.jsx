@@ -208,12 +208,14 @@ function App() {
           <Route path="/payment-result" element={
             <StripeProvider><PaymentResult/></StripeProvider>
           }/>
+          {/* Płatność za konkretne zlecenie — klienci i providerzy (nie tylko RoleRoute provider) */}
+          <Route path="/checkout/:orderId" element={<Checkout />} />
           
           {/* Trasy KYC */}
           <Route path="/kyc" element={<KycWizard />} />
           
-          
-          {/* Dashboard dla klientów */}
+          {/* Dashboard: wszyscy zalogowani (klient po błędnym redirectcie musi widzieć treść, nie pętlę) */}
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/client-dashboard" element={<Dashboard />} />
         </Route>
 
@@ -224,10 +226,7 @@ function App() {
             <Route path="/available-orders" element={<AvailableOrders />} />
             <Route path="/provider/sponsored" element={<ProviderSponsored />} />
                       <Route path="/verification" element={<Verification />} />
-          <Route path="/checkout/:orderId" element={<Checkout />} />
             <Route path="/provider/quotes" element={<ProviderQuotes />} />
-            {/* jeżeli masz własny dashboard wykonawcy: */}
-            <Route path="/dashboard" element={<Dashboard />} />
           </Route>
 
           {/* ProviderHome - dostępny dla providerów i właścicieli/managerów firm */}
