@@ -15,7 +15,7 @@ import { getProviderLabel, getProviderServiceLabel } from "../utils/getProviderL
 import Footer from "../components/Footer";
 import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
-import { orderServiceMatchesProvider } from "../utils/orderServiceMatch";
+import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -559,16 +559,11 @@ export default function ProviderHome() {
         }
         // Nie filtruj po usługach - pokaż wszystkie zlecenia dostępne dla firmy
       } else if (!showAllServices && user?.services && user.services.length > 0) {
-        // Dla pojedynczego providera - filtruj po jego usługach
-        // Używamy parent_slug (np. 'hydraulik', 'elektryk') zamiast name
-        const serviceSlugs = user.services.map(s => {
-          if (typeof s === 'string') return s;
-          // Najpierw konkretny slug usługi (jak w zleceniu), potem kategoria
-          return s.slug || s.parent_slug || s.name_pl || s.name || String(s);
-        }).filter(Boolean);
-        
+        // Dla pojedynczego providera - zawsze wysyłaj slugi katalogowe (bez nazw display).
+        const serviceSlugs = expandProviderServiceSlugs(user.services, allServices);
+
         // Dodaj usługi jako osobne parametry (nie jako tablicę)
-        serviceSlugs.forEach(service => {
+        serviceSlugs.forEach((service) => {
           if (service) params.append('services', String(service));
         });
         
