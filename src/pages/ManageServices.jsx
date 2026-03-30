@@ -375,6 +375,7 @@ function ManageServices() {
                   {categorySubs.map((sub) => {
                     const isSubSelected = providerHasServiceForSub(userServices, sub);
                     const key = getServiceSelectionKey(sub);
+                    const submitKey = isMongoObjectId(sub?._id) ? String(sub._id) : (sub?.slug ? String(sub.slug) : key);
                     return (
                       <div 
                         key={key || sub.slug || sub.name_pl} 
@@ -386,18 +387,33 @@ function ManageServices() {
                           type="checkbox"
                           checked={isSubSelected}
                           disabled={!key}
-                          onChange={() =>
-                            key &&
-                            (isSubSelected ? handleRemove(key) : handleAdd(key))
-                          }
+                          onChange={() => {
+                            if (!key) return;
+                            // Tymczasowy debug: co dokładnie wysyłamy do backendu.
+                            console.log("ManageServices sub click:", {
+                              label: sub?.name_pl,
+                              _id: sub?._id,
+                              slug: sub?.slug,
+                              keyUsedForSubmit: submitKey,
+                            });
+                            if (isSubSelected) handleRemove(submitKey);
+                            else handleAdd(submitKey);
+                          }}
                           className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer disabled:opacity-40"
                         />
                         <label 
                           className="ml-3 text-sm text-slate-700 cursor-pointer flex-1" 
-                          onClick={() =>
-                            key &&
-                            (isSubSelected ? handleRemove(key) : handleAdd(key))
-                          }
+                          onClick={() => {
+                            if (!key) return;
+                            console.log("ManageServices sub click:", {
+                              label: sub?.name_pl,
+                              _id: sub?._id,
+                              slug: sub?.slug,
+                              keyUsedForSubmit: submitKey,
+                            });
+                            if (isSubSelected) handleRemove(submitKey);
+                            else handleAdd(submitKey);
+                          }}
                         >
                           {sub.name_pl}
                         </label>
