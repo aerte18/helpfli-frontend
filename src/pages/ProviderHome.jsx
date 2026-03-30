@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -454,6 +454,7 @@ export default function ProviderHome() {
 
   // Dane – pobierane z API
   const [demand, setDemand] = useState([]);
+  const lastOpenFetchDebugRef = useRef(null);
   const [demandLoading, setDemandLoading] = useState(true);
   const [freeRepliesLeft, setFreeRepliesLeft] = useState(null);
   const [allServices, setAllServices] = useState([]);
@@ -549,6 +550,7 @@ export default function ProviderHome() {
 
   // Pobieranie zleceń z API
   const fetchOrders = useCallback(async () => {
+    let requestUrl = "";
     try {
       setDemandLoading(true);
       const token = localStorage.getItem('token');
@@ -592,10 +594,11 @@ export default function ProviderHome() {
 
       // Zasięg dla "wszystkie usługi" / brak usług jest już ustawiony wyżej na 600 km (effectiveMaxDistance)
 
-      const url = apiUrl(`/api/orders/open?${params.toString()}`);
+      requestUrl = apiUrl(`/api/orders/open?${params.toString()}`);
       if (readQsProviderDebug()) {
+        lastOpenFetchDebugRef.current = { phase: "request", url: requestUrl, at: Date.now() };
         console.log("[qsProviderHome] fetch /api/orders/open", {
-          url,
+          url: requestUrl,
           showAllServices,
           providerServiceSlugs,
           userServicesLen: user?.services?.length ?? 0,
@@ -604,7 +607,7 @@ export default function ProviderHome() {
           filters,
         });
       }
-      const response = await fetch(url, {
+      const response = await fetch(requestUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -615,6 +618,14 @@ export default function ProviderHome() {
         const data = await response.json();
         const orders = data.orders || [];
         if (readQsProviderDebug()) {
+          lastOpenFetchDebugRef.current = {
+            phase: "ok",
+            url: requestUrl,
+            ok: true,
+            status: response.status,
+            count: orders.length,
+            at: Date.now(),
+          };
           console.log("[qsProviderHome] open OK", {
             count: orders.length,
             firstService: orders[0]?.service,
@@ -623,9 +634,27 @@ export default function ProviderHome() {
         }
         setDemand(orders);
       } else {
+        if (readQsProviderDebug()) {
+          lastOpenFetchDebugRef.current = {
+            phase: "http_error",
+            url: requestUrl,
+            ok: false,
+            status: response.status,
+            at: Date.now(),
+          };
+        }
         setDemand([]);
       }
     } catch (error) {
+      if (readQsProviderDebug()) {
+        lastOpenFetchDebugRef.current = {
+          phase: "exception",
+          url: requestUrl || null,
+          ok: false,
+          error: String(error?.message || error),
+          at: Date.now(),
+        };
+      }
       setDemand([]);
     } finally {
       setDemandLoading(false);
@@ -849,6 +878,30 @@ export default function ProviderHome() {
     }
     return sorted;
   }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
+
+  useEffect(() => {
+    if (!readQsProviderDebug()) return;
+    window.__QS_PROVIDER_HOME_DEBUG__ = {
+      at: new Date().toISOString(),
+      demandLen: demand.length,
+      listLen: list.length,
+      providerServiceSlugs,
+      showAllServices,
+      filters,
+      clientMaxDistance,
+      allServicesLen: allServices.length,
+      firstDemandService: demand[0]?.service,
+      lastOpenFetch: lastOpenFetchDebugRef.current,
+    };
+  }, [
+    demand,
+    list,
+    showAllServices,
+    filters,
+    clientMaxDistance,
+    providerServiceSlugs,
+    allServices.length,
+  ]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
@@ -1730,6 +1783,16 @@ export default function ProviderHome() {
         canManageCompany={canManageCompany}
         companyProviders={companyProviders}
       />
+
+      {readQsProviderDebug() && (
+        <div
+          className="fixed bottom-3 left-3 z-[9999] max-w-[min(100vw-1.5rem,22rem)] rounded-lg border border-white/20 bg-black/85 px-3 py-2 text-[11px] leading-snug text-white shadow-lg font-mono pointer-events-none"
+          aria-hidden
+        >
+          <div className="text-white/60 mb-0.5">qsDebugProviderHome</div>
+          demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance}
+        </div>
+      )}
     </div>
   );
 }
