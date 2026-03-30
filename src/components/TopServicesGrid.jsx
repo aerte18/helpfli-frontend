@@ -145,7 +145,7 @@ export default function TopServicesGrid({
                 )}
               </div>
               <Link
-                to={`/search?service=${encodeURIComponent(service.parent_slug || service.slug)}`}
+                to={`/search?service=${encodeURIComponent(service.slug || service.parent_slug)}`}
                 className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
               >
                 Wybierz
