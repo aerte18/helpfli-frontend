@@ -534,7 +534,8 @@ export default function ProviderHome() {
       
       // Buduj parametry zapytania
       const params = new URLSearchParams();
-      if (filters.service && filters.service !== 'any') params.append('service', filters.service);
+      // W trybie "wszystkie zlecenia" nie przepuszczaj ewentualnego starego filtra `service`.
+      if (!showAllServices && filters.service && filters.service !== 'any') params.append('service', filters.service);
       // Przy "wszystkie usługi" lub braku usług u providera – duży zasięg, żeby pokazać przykładowe zlecenia z różnych miast
       const effectiveMaxDistance = (showAllServices || !user?.services?.length) ? 600 : (filters.maxDistance || 300);
       if (effectiveMaxDistance) params.append('maxDistance', effectiveMaxDistance);
@@ -703,7 +704,7 @@ export default function ProviderHome() {
       }
       
       // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
-      if (filters.service && filters.service !== "any") {
+      if (!showAllServices && filters.service && filters.service !== "any") {
         if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) return false;
       }
       
@@ -1050,7 +1051,12 @@ export default function ProviderHome() {
                     ? "Widzisz wszystkie otwarte zlecenia w zasięgu. Kliknij, aby ograniczyć do usług z profilu."
                     : "Widzisz tylko zlecenia zgodne z usługami w koncie. Kliknij, aby zobaczyć pełny rynek."
                 }
-                onClick={() => setShowAllServices(!showAllServices)}
+                onClick={() => {
+                  const next = !showAllServices;
+                  setShowAllServices(next);
+                  // Czyść ukryty filtr usługi przy zmianie trybu, żeby nie blokował wyników.
+                  setFilters((s) => ({ ...s, service: "any" }));
+                }}
                 className={`qs-chip text-xs whitespace-nowrap ${
                   !showAllServices
                     ? 'active shadow-md shadow-indigo-200'
@@ -1358,7 +1364,10 @@ export default function ProviderHome() {
                     type="checkbox"
                     id="showAllServicesFilter"
                     checked={showAllServices}
-                    onChange={(e) => setShowAllServices(e.target.checked)}
+                    onChange={(e) => {
+                      setShowAllServices(e.target.checked);
+                      setFilters((s) => ({ ...s, service: "any" }));
+                    }}
                     className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                   />
                   <label htmlFor="showAllServicesFilter" className="text-sm text-gray-700 cursor-pointer">
