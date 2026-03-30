@@ -64,7 +64,49 @@ export function readQsProviderDebug() {
   }
 }
 
-export function qsProviderHomeDebug(...args) {
+/** Krótki tekst obok „Object” w konsoli — bez rozwijania widać liczby i URL. */
+function compactSummary(d) {
+  if (!d || typeof d !== "object") return "";
+  const parts = [];
+  const add = (k, v) => {
+    if (v === undefined || v === null || v === "") return;
+    const s =
+      typeof v === "object" ? JSON.stringify(v).slice(0, 100) : String(v).slice(0, 200);
+    parts.push(`${k}=${s}`);
+  };
+  add("url", d.url);
+  add("count", d.count);
+  add("demandLen", d.demandLen);
+  add("filteredLen", d.filteredLen);
+  add("sortedLen", d.sortedLen);
+  add("showAllServices", d.showAllServices);
+  add("clientMaxDistance", d.clientMaxDistance);
+  add("effectiveMaxDistance", d.effectiveMaxDistance);
+  add("firstService", d.firstService);
+  add("firstId", d.firstId);
+  add(
+    "providerServiceSlugs",
+    Array.isArray(d.providerServiceSlugs) ? d.providerServiceSlugs.length + " slugs" : d.providerServiceSlugs
+  );
+  add("userServicesLen", d.userServicesLen);
+  add("allServicesLen", d.allServicesLen);
+  add("service", d.service);
+  add("id", d.id);
+  add("distance", d.distance);
+  add("match", d.match);
+  return parts.length ? " " + parts.join(" ") : "";
+}
+
+/**
+ * @param {string} message
+ * @param {Record<string, unknown>} [detail] — drugi argument: pełny obiekt (rozwijany w konsoli); w pierwszej linii skrót z compactSummary
+ */
+export function qsProviderHomeDebug(message, detail) {
   if (!readQsProviderDebug()) return;
-  console.warn("[qsProviderHome]", ...args);
+  const suffix = compactSummary(detail);
+  if (detail !== undefined) {
+    console.warn("[qsProviderHome] " + message + suffix, detail);
+  } else {
+    console.warn("[qsProviderHome] " + message);
+  }
 }
