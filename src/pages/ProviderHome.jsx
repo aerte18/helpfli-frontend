@@ -387,7 +387,8 @@ export default function ProviderHome() {
   const [companyProviders, setCompanyProviders] = useState([]);
 
   // Stan dla pokazywania wszystkich usług
-  const [showAllServices, setShowAllServices] = useState(true); // Domyślnie pokazuj wszystkie zlecenia
+  // false = tylko zlecenia pasujące do usług z profilu; true = pełny rynek (jak checkbox „Pokaż wszystkie”)
+  const [showAllServices, setShowAllServices] = useState(false);
 
   // Widok mapy: sm | lg | full - synchronizacja z App.jsx
   // System widoków: 'list' | 'map' | 'split'
