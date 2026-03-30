@@ -47,7 +47,7 @@ if ('serviceWorker' in navigator) {
   } else {
     // PROD: rejestruj SW (z bumpem wersji, aby odświeżać cache)
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=4')
+      navigator.serviceWorker.register('/sw.js?v=6')
         .then((registration) => {
           console.log('✅ Service Worker registered:', registration);
         })
