@@ -10,6 +10,50 @@ function isLikelyMongoId(s) {
   return typeof s === "string" && /^[a-f0-9]{24}$/i.test(s.trim());
 }
 
+function canonicalText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function looksLikeSlug(s) {
+  const x = normalizeProviderServiceSlug(s);
+  // "slugowaty" tekst: bez spacji/slasha, litery-cyfry-myslniki
+  return /^[a-z0-9-]+$/.test(x) && x.includes("-");
+}
+
+function resolveOrderServiceSlug(orderService, catalogItems = []) {
+  const raw = String(orderService || "").trim();
+  if (!raw) return "";
+
+  // Preferuj wartosc juz-slugowa
+  if (looksLikeSlug(raw)) return normalizeProviderServiceSlug(raw);
+
+  // Proba mapowania nazwy zlecenia na wpis katalogowy (name_pl/name_en/name/label)
+  const rawCanon = canonicalText(raw);
+  const byName = (catalogItems || []).find((c) => {
+    const candidates = [
+      c?.name_pl,
+      c?.name_en,
+      c?.name,
+      c?.label,
+    ]
+      .filter(Boolean)
+      .map((x) => canonicalText(x));
+
+    return candidates.some((n) => n && (n === rawCanon || n.includes(rawCanon) || rawCanon.includes(n)));
+  });
+
+  if (byName?.slug) return normalizeProviderServiceSlug(byName.slug);
+  if (byName?.parent_slug) return normalizeProviderServiceSlug(byName.parent_slug);
+
+  // Fallback: zostaw znormalizowany string; moze zadzialac dla prostych przypadkow
+  return normalizeProviderServiceSlug(raw);
+}
+
 /**
  * Buduje listę slugów z profilu providera (w tym rozwinięcie ObjectId przez katalog z /api/services).
  */
@@ -65,7 +109,7 @@ function legacySlugList(providerServices) {
  * @param {Array} [catalogItems] — opcjonalnie wynik GET /api/services (items) do mapowania samych ObjectId
  */
 export function orderServiceMatchesProvider(orderService, providerServices, catalogItems) {
-  const os = normalizeProviderServiceSlug(orderService);
+  const os = resolveOrderServiceSlug(orderService, catalogItems);
   let list = expandProviderServiceSlugs(providerServices, catalogItems);
   if (list.length === 0 && providerServices?.length) {
     list = legacySlugList(providerServices);
