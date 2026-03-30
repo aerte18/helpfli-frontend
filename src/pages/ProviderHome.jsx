@@ -465,7 +465,7 @@ export default function ProviderHome() {
     const fetchServices = async () => {
       try {
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(apiUrl(`/api/services`));
+        const res = await fetch(apiUrl(`/api/services?limit=5000`));
         if (res.ok) {
           const data = await res.json();
           setAllServices(data.items || data || []);
@@ -685,9 +685,18 @@ export default function ProviderHome() {
       // Filtrowanie po usługach - domyślnie tylko usługi providera
       if (!showAllServices) {
         const providerServices = user?.services || [];
+        const hasReadableProviderSlugs = providerServices.some((s) => {
+          if (typeof s === "object" && s) {
+            return Boolean(s.slug || s.parent_slug || s.name_pl || s.name);
+          }
+          if (typeof s === "string") return !/^[a-f0-9]{24}$/i.test(s.trim());
+          return false;
+        });
+        const canApplyProfileFilter = hasReadableProviderSlugs || allServices.length > 0;
         if (
+          canApplyProfileFilter &&
           providerServices.length > 0 &&
-          !orderServiceMatchesProvider(o.service, providerServices)
+          !orderServiceMatchesProvider(o.service, providerServices, allServices)
         ) {
           return false;
         }
@@ -695,7 +704,7 @@ export default function ProviderHome() {
       
       // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
       if (filters.service && filters.service !== "any") {
-        if (!orderServiceMatchesProvider(o.service, [filters.service])) return false;
+        if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) return false;
       }
       
       // Kalkuluj rzeczywistą odległość jeśli mamy geolokalizację
@@ -786,7 +795,7 @@ export default function ProviderHome() {
 
     console.log('ProviderHome: Liczba zleceń po filtrowaniu:', sorted.length);
     return sorted;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
@@ -1035,14 +1044,20 @@ export default function ProviderHome() {
                 </span>
               )}
               <button
+                type="button"
+                title={
+                  showAllServices
+                    ? "Widzisz wszystkie otwarte zlecenia w zasięgu. Kliknij, aby ograniczyć do usług z profilu."
+                    : "Widzisz tylko zlecenia zgodne z usługami w koncie. Kliknij, aby zobaczyć pełny rynek."
+                }
                 onClick={() => setShowAllServices(!showAllServices)}
                 className={`qs-chip text-xs whitespace-nowrap ${
-                  showAllServices
+                  !showAllServices
                     ? 'active shadow-md shadow-indigo-200'
                     : 'bg-white/70 border border-white/60 text-slate-600 hover:bg-white'
                 }`}
               >
-                {showAllServices ? 'Tylko moje usługi' : 'Zobacz wszystkie zlecenia'}
+                {showAllServices ? 'Wszystkie zlecenia' : 'Tylko moje usługi'}
               </button>
             </div>
           </div>
