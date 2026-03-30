@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, Link } from "react-router-dom";
 import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -320,10 +321,26 @@ const urgencyToRadius = (u) => (u === "now" ? 12 : u === "today" ? 10 : u === "t
 
 function readQsProviderDebug() {
   try {
-    return Boolean(import.meta.env?.DEV) || localStorage.getItem("qsDebugProviderHome") === "1";
+    if (Boolean(import.meta.env?.DEV)) return true;
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("qsDebugProviderHome");
+      if (q === "1" || q === "true") {
+        try {
+          localStorage.setItem("qsDebugProviderHome", "1");
+        } catch (_) {}
+        return true;
+      }
+    }
+    return localStorage.getItem("qsDebugProviderHome") === "1";
   } catch {
     return Boolean(import.meta.env?.DEV);
   }
+}
+
+/** W produkcji DevTools często ukrywa „Verbose” / console.log — używamy warn + stały prefiks. */
+function qsProviderHomeDebug(...args) {
+  if (!readQsProviderDebug()) return;
+  console.warn("[qsProviderHome]", ...args);
 }
 
 export default function ProviderHome() {
@@ -597,7 +614,7 @@ export default function ProviderHome() {
       requestUrl = apiUrl(`/api/orders/open?${params.toString()}`);
       if (readQsProviderDebug()) {
         lastOpenFetchDebugRef.current = { phase: "request", url: requestUrl, at: Date.now() };
-        console.log("[qsProviderHome] fetch /api/orders/open", {
+        qsProviderHomeDebug("fetch /api/orders/open", {
           url: requestUrl,
           showAllServices,
           providerServiceSlugs,
@@ -626,7 +643,7 @@ export default function ProviderHome() {
             count: orders.length,
             at: Date.now(),
           };
-          console.log("[qsProviderHome] open OK", {
+          qsProviderHomeDebug("open OK", {
             count: orders.length,
             firstService: orders[0]?.service,
             firstId: orders[0]?._id,
@@ -666,6 +683,13 @@ export default function ProviderHome() {
       fetchOrders();
     }
   }, [fetchOrders, user]);
+
+  useEffect(() => {
+    if (!readQsProviderDebug()) return;
+    qsProviderHomeDebug(
+      "debug aktywny — logi w zakładce Console jako Ostrzeżenia (żółte). Pełny stan: window.__QS_PROVIDER_HOME_DEBUG__"
+    );
+  }, []);
 
   // Pobierz licznik darmowych wycen
   useEffect(() => {
@@ -744,7 +768,7 @@ export default function ProviderHome() {
 
   const list = useMemo(() => {
     if (readQsProviderDebug()) {
-      console.log("[qsProviderHome] list filter start", {
+      qsProviderHomeDebug("list filter start", {
         demandLen: demand.length,
         showAllServices,
         providerServiceSlugs,
@@ -762,7 +786,7 @@ export default function ProviderHome() {
           const matchProf = orderServiceMatchesProvider(o.service, providerServices, allServices);
           if (!matchProf) {
             if (readQsProviderDebug()) {
-              console.log("[qsProviderHome] reject profile", {
+              qsProviderHomeDebug("reject profile", {
                 id: o._id,
                 service: o.service,
                 match: matchProf,
@@ -790,7 +814,7 @@ export default function ProviderHome() {
         
         if (clientMaxDistance && distance > Number(clientMaxDistance)) {
           if (readQsProviderDebug()) {
-            console.log("[qsProviderHome] reject distance", {
+            qsProviderHomeDebug("reject distance", {
               id: o._id,
               distance,
               clientMaxDistance,
@@ -874,7 +898,7 @@ export default function ProviderHome() {
     });
 
     if (readQsProviderDebug()) {
-      console.log("[qsProviderHome] list filter done", { filteredLen: filtered.length, sortedLen: sorted.length });
+      qsProviderHomeDebug("list filter done", { filteredLen: filtered.length, sortedLen: sorted.length });
     }
     return sorted;
   }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
@@ -1784,15 +1808,21 @@ export default function ProviderHome() {
         companyProviders={companyProviders}
       />
 
-      {readQsProviderDebug() && (
-        <div
-          className="fixed bottom-3 left-3 z-[9999] max-w-[min(100vw-1.5rem,22rem)] rounded-lg border border-white/20 bg-black/85 px-3 py-2 text-[11px] leading-snug text-white shadow-lg font-mono pointer-events-none"
-          aria-hidden
-        >
-          <div className="text-white/60 mb-0.5">qsDebugProviderHome</div>
-          demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance}
-        </div>
-      )}
+      {readQsProviderDebug() &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed bottom-3 left-3 max-w-[min(100vw-1.5rem,22rem)] rounded-lg border border-emerald-500/40 bg-black/90 px-3 py-2 text-[11px] leading-snug text-white shadow-xl font-mono pointer-events-none"
+            style={{ zIndex: 2147483646 }}
+            aria-hidden
+          >
+            <div className="text-emerald-400/90 mb-0.5 font-sans text-[10px]">
+              qsDebug — w konsoli filtruj: qsProviderHome (Warnings)
+            </div>
+            demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
