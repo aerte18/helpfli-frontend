@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UnifiedAIConcierge from "./ai/UnifiedAIConcierge";
 import { useAuth } from "../context/AuthContext";
+import { useBreakpointMd } from "../hooks/useBreakpointMd";
 
 export default function AiWidget() {
   const { user } = useAuth();
+  const isMdUp = useBreakpointMd();
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -71,14 +73,16 @@ export default function AiWidget() {
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="fixed bottom-6 right-6 z-40 rounded-full shadow-2xl
+        className="fixed z-[50] rounded-full shadow-2xl
+                   bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3
+                   md:bottom-6 md:right-6
                    bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700
                    border-2 border-indigo-400/30 backdrop-blur-sm
                    hover:shadow-3xl transition-all duration-300 overflow-hidden"
         style={{
-          padding: isHovered ? '12px 20px' : '16px',
-          width: isHovered ? 'auto' : '64px',
-          height: '64px'
+          padding: isHovered && isMdUp ? "12px 20px" : isMdUp ? "16px" : "12px",
+          width: isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
+          height: isHovered && isMdUp ? "64px" : isMdUp ? "64px" : "48px",
         }}
         aria-label="Otwórz Asystenta AI"
         data-testid="ai-fab"
@@ -118,12 +122,12 @@ export default function AiWidget() {
               ease: "easeInOut" 
             }}
           >
-            <Sparkles className="h-6 w-6 text-yellow-300" fill="currentColor" />
+            <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-yellow-300" fill="currentColor" />
           </motion.div>
           
           {/* Tekst "Asystent AI" - rozwija się przy hover */}
           <AnimatePresence>
-            {isHovered && (
+            {isHovered && isMdUp && (
               <motion.span
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}

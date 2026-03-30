@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getMySubscription } from "../api/subscriptions";
+import { useBreakpointMd } from "../hooks/useBreakpointMd";
 
 export default function ProviderAIWidget() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function ProviderAIWidget() {
   const [sending, setSending] = useState(false);
   const [usage, setUsage] = useState({ used: 0, limit: 20, remaining: 20 });
   const messagesEndRef = React.useRef(null);
+  const isMdUp = useBreakpointMd();
 
   // Otwórz widget z zewnątrz (np. z Konta → Moje oferty)
   useEffect(() => {
@@ -234,14 +236,16 @@ export default function ProviderAIWidget() {
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="fixed bottom-6 right-6 z-40 rounded-full shadow-2xl
+        className="fixed z-[50] rounded-full shadow-2xl
+                   bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3
+                   md:bottom-6 md:right-6
                    bg-gradient-to-br from-purple-600 via-pink-600 to-purple-700
                    border-2 border-purple-400/30 backdrop-blur-sm
                    hover:shadow-3xl transition-all duration-300 overflow-hidden"
         style={{
-          padding: isHovered ? '12px 20px' : '16px',
-          width: isHovered ? 'auto' : '64px',
-          height: '64px'
+          padding: isHovered && isMdUp ? "12px 20px" : isMdUp ? "16px" : "12px",
+          width: isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
+          height: isHovered && isMdUp ? "64px" : isMdUp ? "64px" : "48px",
         }}
         aria-label="Otwórz Asystent AI"
         data-testid="provider-ai-fab"
@@ -274,7 +278,7 @@ export default function ProviderAIWidget() {
           </motion.div>
           
           <AnimatePresence>
-            {isHovered && (
+            {isHovered && isMdUp && (
               <motion.span
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: 'auto' }}
