@@ -382,12 +382,12 @@ export default function LandingStart() {
                   const nameToSlug = {
                     'Naprawa wycieku': 'hydraulika',
                     'Montaż gniazdek': 'elektryka',
-                    'Naprawa AGD': 'agd_rtv',
+                    'Naprawa AGD': 'agd-rtv',
                     'Sprzątanie mieszkania': 'sprzatanie',
-                    'Montaż mebli': 'stolarstwo_montaz',
+                    'Montaż mebli': 'stolarstwo-montaz',
                     'Złota rączka': 'zlota-raczka',
-                    'Malowanie': 'remont_wykończenia',
-                    'Klimatyzacja': 'klimatyzacja_ogrzewanie'
+                    'Malowanie': 'remont-wykonczenia',
+                    'Klimatyzacja': 'klimatyzacja-ogrzewanie'
                   };
                   categorySlug = nameToSlug[serviceName] || serviceName.toLowerCase().replace(/\s+/g, '-');
                 }

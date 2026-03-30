@@ -317,9 +317,9 @@ export default function Register() {
           navigate("/account/company");
         }, 2000);
       } else if (userRole === "provider") {
-        // Dla providera - przekieruj do provider-home po 2 sekundach
+        // Dla providera - przejdź przez onboarding (wybór usług), żeby od razu ustawić profil.
         setTimeout(() => {
-          navigate("/provider-home");
+          navigate("/onboarding");
         }, 2000);
       } else if (userRole === "client") {
         // Dla klienta - przekieruj do home po 2 sekundach

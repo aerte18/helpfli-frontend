@@ -118,6 +118,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState('split');
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedServiceSlugs, setSelectedServiceSlugs] = useState([]);
   const [activeFilters, setActiveFilters] = useState([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [clearCategoryTrigger, setClearCategoryTrigger] = useState(0);
@@ -212,8 +213,7 @@ export default function Home() {
       setFilters(prev => ({ ...prev, search: searchQuery }));
     }
     if (serviceSlug) {
-      // Wstaw wybraną usługę jako aktywny filtr (po nazwie widocznej w UI)
-      // Jeśli masz mapę slug->label, możesz zamienić na label; tymczasowo pokazujemy slug
+      setSelectedServiceSlugs(prev => Array.from(new Set([...(prev || []), serviceSlug])));
       setSelectedServices(prev => Array.from(new Set([...(prev||[]), serviceSlug])));
     }
     if (availableNowParam === 'true') {
@@ -324,7 +324,7 @@ export default function Home() {
       
       // Filtrowanie po usługach
       // Dopasowanie po usługach: jeżeli wybrano usługi, sprawdź nazwę główną lub listę wszystkich usług
-      if (selectedServices.length > 0) {
+      if (selectedServiceSlugs.length === 0 && selectedServices.length > 0) {
         const haystack = [
           ...(p.service ? [String(p.service)] : []),
           ...(Array.isArray(p.allServices) ? p.allServices.map(String) : [])
@@ -367,7 +367,7 @@ export default function Home() {
       return sorted;
     }
     return filtered;
-  }, [providers, filters, quick, userLocation, maxDistance, calculateDistance, verifiedOnly, b2bOnly, proOnly, availableNow, selectedServices, sortBy]);
+  }, [providers, filters, quick, userLocation, maxDistance, calculateDistance, verifiedOnly, b2bOnly, proOnly, availableNow, selectedServices, selectedServiceSlugs, sortBy]);
 
   // Podłączone do /api/search z filtrami
   useEffect(() => {
@@ -386,6 +386,7 @@ export default function Home() {
     if (quick) qs.set("quick", String(quick));
     if (verifiedOnly) qs.set("verifiedOnly", String(verifiedOnly));
     if (availableNow) qs.set("availableNow", "true");
+    if (selectedServiceSlugs.length > 0) qs.set("service", selectedServiceSlugs.join(","));
 
     (async () => {
       try {
@@ -453,7 +454,7 @@ export default function Home() {
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly]);
+  }, [filters, quick, verifiedOnly, availableNow, selectedServiceSlugs]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);
@@ -549,6 +550,12 @@ export default function Home() {
                   clearTrigger={clearCategoryTrigger}
                   onCategorySelect={(sel) => {
                     setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+                    const slug = sel.subcategorySlug || sel.categorySlug;
+                    if (slug) {
+                      setSelectedServiceSlugs((prev) =>
+                        Array.from(new Set([...(prev || []), String(slug)]))
+                      );
+                    }
                   }}
                 />
               }
@@ -560,6 +567,7 @@ export default function Home() {
                 setProOnly(false);
                 setAvailableNow(false);
                 setSelectedServices([]);
+                setSelectedServiceSlugs([]);
                 updateFilters({});
                 setActiveFilters([]);
                 setClearCategoryTrigger((prev) => prev + 1);
@@ -606,6 +614,12 @@ export default function Home() {
                 clearTrigger={clearCategoryTrigger}
                 onCategorySelect={(sel) => {
                   setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+                  const slug = sel.subcategorySlug || sel.categorySlug;
+                  if (slug) {
+                    setSelectedServiceSlugs((prev) =>
+                      Array.from(new Set([...(prev || []), String(slug)]))
+                    );
+                  }
                 }}
               />
             }
@@ -617,6 +631,7 @@ export default function Home() {
               setProOnly(false);
               setAvailableNow(false);
               setSelectedServices([]);
+              setSelectedServiceSlugs([]);
               updateFilters({});
               setActiveFilters([]);
               setClearCategoryTrigger((prev) => prev + 1);
@@ -675,6 +690,7 @@ export default function Home() {
           setB2bOnly(false);
           setProOnly(false);
           setSelectedServices([]);
+          setSelectedServiceSlugs([]);
           updateFilters({});
         }}
       />
