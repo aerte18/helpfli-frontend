@@ -17,6 +17,7 @@ import Footer from "../components/Footer";
 import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
 import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
+import { readQsProviderDebug, qsProviderHomeDebug } from "../utils/qsProviderHomeDebug";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -318,30 +319,6 @@ const URGENCY_BADGE = {
 };
 
 const urgencyToRadius = (u) => (u === "now" ? 12 : u === "today" ? 10 : u === "tomorrow" ? 9 : u === "this_week" ? 8.5 : 8);
-
-function readQsProviderDebug() {
-  try {
-    if (Boolean(import.meta.env?.DEV)) return true;
-    if (typeof window !== "undefined") {
-      const q = new URLSearchParams(window.location.search).get("qsDebugProviderHome");
-      if (q === "1" || q === "true") {
-        try {
-          localStorage.setItem("qsDebugProviderHome", "1");
-        } catch (_) {}
-        return true;
-      }
-    }
-    return localStorage.getItem("qsDebugProviderHome") === "1";
-  } catch {
-    return Boolean(import.meta.env?.DEV);
-  }
-}
-
-/** W produkcji DevTools często ukrywa „Verbose” / console.log — używamy warn + stały prefiks. */
-function qsProviderHomeDebug(...args) {
-  if (!readQsProviderDebug()) return;
-  console.warn("[qsProviderHome]", ...args);
-}
 
 export default function ProviderHome() {
   const { user, loading } = useAuth();
@@ -683,13 +660,6 @@ export default function ProviderHome() {
       fetchOrders();
     }
   }, [fetchOrders, user]);
-
-  useEffect(() => {
-    if (!readQsProviderDebug()) return;
-    qsProviderHomeDebug(
-      "debug aktywny — logi w zakładce Console jako Ostrzeżenia (żółte). Pełny stan: window.__QS_PROVIDER_HOME_DEBUG__"
-    );
-  }, []);
 
   // Pobierz licznik darmowych wycen
   useEffect(() => {

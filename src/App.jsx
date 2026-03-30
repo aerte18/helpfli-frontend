@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, Suspense, lazy } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import 'leaflet/dist/leaflet.css';
@@ -88,6 +88,7 @@ import PaymentResult from "./payment/PaymentResult";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import SkipLinks from "./components/SkipLinks";
+import { syncQsProviderHomeDebugFromSearch } from "./utils/qsProviderHomeDebug";
 
 // Lazy loaded - Admin i Provider komponenty (najcięższe)
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -117,6 +118,11 @@ const LoadingSpinner = () => (
 );
 
 function App() {
+  const location = useLocation();
+  useEffect(() => {
+    syncQsProviderHomeDebugFromSearch(location.search);
+  }, [location.search]);
+
   useEffect(() => {
     console.log("App - useEffect - checking localStorage for user");
     try {
