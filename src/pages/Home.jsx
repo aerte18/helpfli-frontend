@@ -433,28 +433,43 @@ export default function Home() {
           service: p.matchedServiceName || p.serviceName || p.service || null,
           services: p.services || [], // Tablica ID usług (ObjectId) - potrzebne dla chatFlow
           allServices: p.allServices || [], // wszystkie usługi providera (nazwy)
+          serviceIds: p.serviceIds || p.services || [],
           provider_status: p.provider_status || null,
           promo: p.promo || {},
           bio: p.bio || p.description || "",
           online: p.online ?? false,
           b2b: p.b2b ?? false,
         }));
-        // jeśli brak wyników – pokaż DEMO (tylko przy braku ostrych filtrów)
-        if (!mapped.length && (!filters || Object.keys(filters || {}).length === 0)) {
-          setProviders(DEMO_PROVIDERS);
+        const strictFiltersActive =
+          selectedServiceSlugs.length > 0 ||
+          !!(filters?.search && String(filters.search).trim()) ||
+          verifiedOnly ||
+          availableNow ||
+          b2bOnly ||
+          proOnly;
+        const allowDemoFallback =
+          import.meta.env.DEV && !strictFiltersActive;
+        if (!mapped.length) {
+          setProviders(allowDemoFallback ? DEMO_PROVIDERS : []);
         } else {
           setProviders(mapped);
         }
       } catch (e) {
         if (e.name !== "AbortError") {
-          // błąd backendu – pokaż DEMO, aby UI nie było puste
-          setProviders(DEMO_PROVIDERS);
+          const strict =
+            selectedServiceSlugs.length > 0 ||
+            !!(filters?.search && String(filters.search).trim()) ||
+            verifiedOnly ||
+            availableNow ||
+            b2bOnly ||
+            proOnly;
+          setProviders(import.meta.env.DEV && !strict ? DEMO_PROVIDERS : []);
         }
       }
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly, availableNow, selectedServiceSlugs]);
+  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);
@@ -654,15 +669,23 @@ export default function Home() {
           {viewMode !== "map" && (
           <div className="mt-3">
             <PopularServices
-              onPick={(name, isSelected) =>
+              onPick={(payload, isSelected) => {
+                if (!payload?.slug) return;
+                const slug = String(payload.slug).trim();
+                const label = payload.label || slug;
+                setSelectedServiceSlugs((prev) => {
+                  const cur = prev || [];
+                  if (isSelected) return Array.from(new Set([...cur, slug]));
+                  return cur.filter((s) => s !== slug);
+                });
                 setSelectedServices((prev) => {
                   const current = prev || [];
                   if (isSelected) {
-                    return Array.from(new Set([...current, name]));
+                    return Array.from(new Set([...current, label]));
                   }
-                  return current.filter((n) => n !== name);
-                })
-              }
+                  return current.filter((n) => n !== label);
+                });
+              }}
             />
           </div>
           )}

@@ -5,23 +5,23 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Fallback kafelków – pokażemy konkretne, chwytliwe przypadki użycia
 const DEFAULT = [
-  { key: "hydraulika", label: "Hydraulik – naprawa kranu", icon: CATEGORY_ICONS.hydraulika },
-  { key: "elektryka", label: "Elektryk – gniazdko", icon: CATEGORY_ICONS.elektryka },
-  { key: "agd_rtv", label: "AGD – pralka nie wiruje", icon: CATEGORY_ICONS.agd_rtv },
-  { key: "sprzatanie", label: "Sprzątanie – mieszkanie 50 m²", icon: CATEGORY_ICONS.sprzatanie },
-  { key: "stol_montaz", label: "Montaż mebli", icon: CATEGORY_ICONS.stol_montaz },
-  { key: "zlota_raczka", label: "Mini naprawy – Złota Rączka", icon: CATEGORY_ICONS.zlota_raczka },
-  { key: "remont", label: "Malowanie – pokój", icon: CATEGORY_ICONS.remont },
-  { key: "klimatyzacja_ogrzewanie", label: "Klimatyzacja – montaż", icon: CATEGORY_ICONS.klimatyzacja_ogrzewanie },
-  { key: "dom_ogrod", label: "Ogrodnik – pielęgnacja", icon: CATEGORY_ICONS.dom_ogrod },
-  { key: "przeprowadzki_transport", label: "Przeprowadzka", icon: CATEGORY_ICONS.przeprowadzki_transport },
-  { key: "it_smart", label: "IT – naprawa komputera", icon: CATEGORY_ICONS.it_smart },
-  { key: "gaz", label: "Gaz – przegląd", icon: CATEGORY_ICONS.gaz },
-  { key: "monitoring", label: "Monitoring – kamery", icon: CATEGORY_ICONS.monitoring },
-  { key: "wywoz_utylizacja", label: "Wywóz – gruz", icon: CATEGORY_ICONS.wywoz_utylizacja },
-  { key: "pomoc_24h", label: "Pomoc 24/7 – awaria", icon: CATEGORY_ICONS.pomoc_24h || CATEGORY_ICONS["24h"] },
-  { key: "slusarz_zabezpieczenia", label: "Ślusarz – zamki", icon: CATEGORY_ICONS.slusarz_zabezpieczenia },
-  { key: "auto_mobilne", label: "Auto – pomoc drogowa", icon: CATEGORY_ICONS.auto_mobilne },
+  { key: "hydraulika", label: "Hydraulik – naprawa kranu", icon: CATEGORY_ICONS.hydraulika, serviceSlug: "hydraulika", parentSlug: "hydraulika" },
+  { key: "elektryka", label: "Elektryk – gniazdko", icon: CATEGORY_ICONS.elektryka, serviceSlug: "elektryka", parentSlug: "elektryka" },
+  { key: "agd_rtv", label: "AGD – pralka nie wiruje", icon: CATEGORY_ICONS.agd_rtv, serviceSlug: "agd-rtv", parentSlug: "agd-rtv" },
+  { key: "sprzatanie", label: "Sprzątanie – mieszkanie 50 m²", icon: CATEGORY_ICONS.sprzatanie, serviceSlug: "sprzatanie", parentSlug: "sprzatanie" },
+  { key: "stol_montaz", label: "Montaż mebli", icon: CATEGORY_ICONS.stol_montaz, serviceSlug: "stolarstwo", parentSlug: "stolarstwo" },
+  { key: "zlota_raczka", label: "Mini naprawy – Złota Rączka", icon: CATEGORY_ICONS.zlota_raczka, serviceSlug: "zlota-raczka", parentSlug: "zlota-raczka" },
+  { key: "remont", label: "Malowanie – pokój", icon: CATEGORY_ICONS.remont, serviceSlug: "remont-wykonczenia", parentSlug: "remont-wykonczenia" },
+  { key: "klimatyzacja_ogrzewanie", label: "Klimatyzacja – montaż", icon: CATEGORY_ICONS.klimatyzacja_ogrzewanie, serviceSlug: "klimatyzacja-ogrzewanie", parentSlug: "klimatyzacja-ogrzewanie" },
+  { key: "dom_ogrod", label: "Ogrodnik – pielęgnacja", icon: CATEGORY_ICONS.dom_ogrod, serviceSlug: "dom-ogrod", parentSlug: "dom-ogrod" },
+  { key: "przeprowadzki_transport", label: "Przeprowadzka", icon: CATEGORY_ICONS.przeprowadzki_transport, serviceSlug: "przeprowadzki-transport", parentSlug: "przeprowadzki-transport" },
+  { key: "it_smart", label: "IT – naprawa komputera", icon: CATEGORY_ICONS.it_smart, serviceSlug: "it-smart-dom", parentSlug: "it-smart-dom" },
+  { key: "gaz", label: "Gaz – przegląd", icon: CATEGORY_ICONS.gaz, serviceSlug: "gaz", parentSlug: "gaz" },
+  { key: "monitoring", label: "Monitoring – kamery", icon: CATEGORY_ICONS.monitoring, serviceSlug: "monitoring", parentSlug: "monitoring" },
+  { key: "wywoz_utylizacja", label: "Wywóz – gruz", icon: CATEGORY_ICONS.wywoz_utylizacja, serviceSlug: "wywoz-utylizacja", parentSlug: "wywoz-utylizacja" },
+  { key: "pomoc_24h", label: "Pomoc 24/7 – awaria", icon: CATEGORY_ICONS.pomoc_24h || CATEGORY_ICONS["24h"], serviceSlug: "pomoc-24h", parentSlug: "pomoc-24h" },
+  { key: "slusarz_zabezpieczenia", label: "Ślusarz – zamki", icon: CATEGORY_ICONS.slusarz_zabezpieczenia, serviceSlug: "slusarz", parentSlug: "slusarz" },
+  { key: "auto_mobilne", label: "Auto – pomoc drogowa", icon: CATEGORY_ICONS.auto_mobilne, serviceSlug: "auto-mobilne", parentSlug: "auto-mobilne" },
 ];
 
 export default function PopularServices({ onPick, services = null }) {
@@ -61,10 +61,13 @@ export default function PopularServices({ onPick, services = null }) {
               hasIcon: !!CATEGORY_ICONS[iconKey]
             });
             
+            const leafSlug = service.slug || parentSlug;
             return {
-              key: parentSlug,
+              key: leafSlug,
               label: service.name_pl || service.name_en || service.name,
-              icon: CATEGORY_ICONS[iconKey] || CATEGORY_ICONS['inne']
+              icon: CATEGORY_ICONS[iconKey] || CATEGORY_ICONS['inne'],
+              serviceSlug: leafSlug,
+              parentSlug: service.parent_slug || parentSlug,
             };
           });
           
@@ -204,13 +207,17 @@ export default function PopularServices({ onPick, services = null }) {
               <button
                 key={s.key}
                 onClick={() => {
-                  const name = s.label || s.key;
                   const nextActive = activeKey === s.key ? null : s.key;
                   setActiveKey(nextActive);
+                  const payload = {
+                    label: s.label || s.key,
+                    slug: s.serviceSlug || s.slug || s.key,
+                    parentSlug: s.parentSlug,
+                  };
                   if (nextActive) {
-                    onPick?.(name, true);
+                    onPick?.(payload, true);
                   } else {
-                    onPick?.(name, false);
+                    onPick?.(payload, false);
                   }
                 }}
                 className={`group flex-shrink-0 flex flex-col items-center justify-between rounded-xl p-3 transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer snap-start min-h-[120px] active:scale-[0.98] ${

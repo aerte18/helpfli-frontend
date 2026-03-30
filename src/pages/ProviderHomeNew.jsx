@@ -6,6 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAuth } from "../context/AuthContext";
 import ServiceSelector from "../components/ServiceSelector";
+import { orderServiceMatchesProvider } from "../utils/orderServiceMatch";
 
 // Funkcja do tworzenia nowoczesnych pinezek dla zleceń
 function orderIcon(order) {
@@ -216,39 +217,11 @@ export default function ProviderHomeNew() {
       return orders;
     }
 
-    // Pobierz nazwy usług providera (obsługa zarówno obiektów jak i stringów)
-    const providerServiceNames = user.services.map(s => {
-      if (typeof s === 'string') return s;
-      if (s.name) return s.name;
-      if (s.name_pl) return s.name_pl;
-      if (s.name_en) return s.name_en;
-      return String(s);
-    }).filter(Boolean);
+    // Dopasowanie po slugach katalogowych (jak w ProviderHome), nie po luźnych nazwach
+    const filtered = orders.filter((order) =>
+      orderServiceMatchesProvider(order.service, user.services)
+    );
 
-    console.log('🔍 Provider services:', providerServiceNames);
-    console.log('🔍 Total orders before filtering:', orders.length);
-
-    // Filtruj zlecenia - dopasuj po nazwie usługi
-    const filtered = orders.filter(order => {
-      const orderService = (order.service || '').toLowerCase().trim();
-      
-      // Sprawdź czy nazwa usługi zlecenia pasuje do którejkolwiek usługi providera
-      const matches = providerServiceNames.some(serviceName => {
-        const serviceNameLower = (serviceName || '').toLowerCase().trim();
-        // Dopasowanie: sprawdź czy nazwa usługi zawiera się w nazwie zlecenia lub odwrotnie
-        return serviceNameLower.includes(orderService) || 
-               orderService.includes(serviceNameLower) ||
-               // Dodatkowe dopasowanie po kodzie usługi (jeśli dostępny)
-               (order.serviceCode && serviceNameLower.includes(order.serviceCode.toLowerCase()));
-      });
-      
-      if (!matches) {
-        console.log(`❌ Order "${order.service}" nie pasuje do usług providera`);
-      }
-      return matches;
-    });
-
-    console.log('🔍 Filtered orders:', filtered.length);
     return filtered;
   }, [orders, user?.services, showAllServices]);
 

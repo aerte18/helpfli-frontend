@@ -12,33 +12,34 @@ function currentSeason() {
   return "autumn";
 }
 
+// Slugi zgodne z services_catalog.json / Mongo Service — inaczej /home?service=… nie trafia w katalog
 const FALLBACK_BY_SEASON = {
   winter: { 
     services: [
-      { slug: "klima-regulacja-co", title: "Regulacja/serwis instalacji c.o., sterowniki/termostaty", copy: "Zadbaj o bezpieczeństwo i koszty ogrzewania.", icon: "🔥" },
-      { slug: "klima-kominiarz", title: "Kominiarz – przeglądy okresowe", copy: "Przegląd przed sezonem grzewczym.", icon: "🏠" },
-      { slug: "ogrod-odśnieżanie", title: "Odśnieżanie", copy: "Zabezpiecz dojście i podjazd.", icon: "❄️" }
+      { slug: "klimatyzacja-ogrzewanie-regulacja-serwis-instalacji-c-o-sterowniki-termostaty", title: "Regulacja/serwis instalacji c.o., sterowniki/termostaty", copy: "Zadbaj o bezpieczeństwo i koszty ogrzewania.", icon: "🔥" },
+      { slug: "klimatyzacja-ogrzewanie-kominiarz-przeglady-okresowe", title: "Kominiarz – przeglądy okresowe", copy: "Przegląd przed sezonem grzewczym.", icon: "🏠" },
+      { slug: "dom-ogrod-odsniezanie", title: "Odśnieżanie", copy: "Zabezpiecz dojście i podjazd.", icon: "❄️" }
     ]
   },
   summer: { 
     services: [
-      { slug: "klima-nabicie-czynnika", title: "Nabicie/serwis czynnika, odgrzybianie", copy: "Oddychaj czystym powietrzem i chłódź skuteczniej.", icon: "❄️" },
-      { slug: "klima-montaz", title: "Montaż klimatyzacji", copy: "Chłód w upalne dni.", icon: "🌡️" },
-      { slug: "ogrod-systemy-nawadniania", title: "Systemy nawadniania – montaż/serwis", copy: "Automatyczne nawadnianie w sezonie.", icon: "💧" }
+      { slug: "klimatyzacja-ogrzewanie-nabicie-serwis-czynnika-odgrzybianie", title: "Nabicie/serwis czynnika, odgrzybianie", copy: "Oddychaj czystym powietrzem i chłódź skuteczniej.", icon: "❄️" },
+      { slug: "klimatyzacja-ogrzewanie-montaz-klimatyzacji", title: "Montaż klimatyzacji", copy: "Chłód w upalne dni.", icon: "🌡️" },
+      { slug: "dom-ogrod-systemy-nawadniania-montaz-serwis", title: "Systemy nawadniania – montaż/serwis", copy: "Automatyczne nawadnianie w sezonie.", icon: "💧" }
     ]
   },
   autumn: { 
     services: [
-      { slug: "ogrod-czyszczenie-dachu", title: "Czyszczenie dachu", copy: "Przygotuj dom na jesienne ulewy.", icon: "🌧️" },
-      { slug: "ogrod-czyszczenie-pieca", title: "Czyszczenie pieca", copy: "Przygotuj piec na sezon grzewczy.", icon: "🔥" },
-      { slug: "ogrod-grabienie-lisci", title: "Grabienie liści", copy: "Uporządkuj ogród przed zimą.", icon: "🍂" }
+      { slug: "dom-ogrod-czyszczenie-dachu", title: "Czyszczenie dachu", copy: "Przygotuj dom na jesienne ulewy.", icon: "🌧️" },
+      { slug: "dom-ogrod-czyszczenie-pieca", title: "Czyszczenie pieca", copy: "Przygotuj piec na sezon grzewczy.", icon: "🔥" },
+      { slug: "dom-ogrod-grabienie-lisci", title: "Grabienie liści", copy: "Uporządkuj ogród przed zimą.", icon: "🍂" }
     ]
   },
   spring: { 
     services: [
-      { slug: "ogrod-trawnik", title: "Zakładanie trawnika / wertykulacja / aeracja", copy: "Pielęgnacja ogrodu na start sezonu.", icon: "🌱" },
-      { slug: "ogrod-przycinanie", title: "Przycinanie krzewów", copy: "Wiosenne cięcia i porządki.", icon: "🌺" },
-      { slug: "ogrod-projekt", title: "Projekt ogrodu (koncepcja + nasadzenia)", copy: "Nowe życie w ogrodzie.", icon: "🌷" }
+      { slug: "dom-ogrod-zak-adanie-trawnika-wertykulacja-aeracja", title: "Zakładanie trawnika / wertykulacja / aeracja", copy: "Pielęgnacja ogrodu na start sezonu.", icon: "🌱" },
+      { slug: "dom-ogrod-przycinanie-krzewow", title: "Przycinanie krzewów", copy: "Wiosenne cięcia i porządki.", icon: "🌺" },
+      { slug: "dom-ogrod-projekt-ogrodu-koncepcja-nasadzenia", title: "Projekt ogrodu (koncepcja + nasadzenia)", copy: "Nowe życie w ogrodzie.", icon: "🌷" }
     ]
   }
 };

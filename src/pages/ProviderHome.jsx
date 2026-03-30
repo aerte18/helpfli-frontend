@@ -15,6 +15,7 @@ import { getProviderLabel, getProviderServiceLabel } from "../utils/getProviderL
 import Footer from "../components/Footer";
 import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
+import { orderServiceMatchesProvider } from "../utils/orderServiceMatch";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -316,27 +317,6 @@ const URGENCY_BADGE = {
 };
 
 const urgencyToRadius = (u) => (u === "now" ? 12 : u === "today" ? 10 : u === "tomorrow" ? 9 : u === "this_week" ? 8.5 : 8);
-
-function normalizeProviderServiceSlug(s) {
-  return String(s || "").replace(/_/g, "-").toLowerCase().trim();
-}
-
-/** Zlecenie ma pole `service` (slug); konto providera — slug lub parent_slug — muszą się zgadzać albo być prefiksem (np. hydraulika vs hydraulika-…). */
-function orderServiceMatchesProvider(orderService, providerServices) {
-  const os = normalizeProviderServiceSlug(orderService);
-  if (!os) return true;
-  const list = (providerServices || []).map((s) => {
-    if (typeof s === "string") return normalizeProviderServiceSlug(s);
-    return normalizeProviderServiceSlug(
-      s.slug || s.parent_slug || s.name_pl || s.name || ""
-    );
-  }).filter(Boolean);
-  if (list.length === 0) return true;
-  return list.some((ps) => {
-    if (!ps) return false;
-    return os === ps || os.startsWith(`${ps}-`);
-  });
-}
 
 export default function ProviderHome() {
   const { user, loading } = useAuth();
@@ -712,8 +692,10 @@ export default function ProviderHome() {
         }
       }
       
-      // Standardowe filtry
-      if (filters.service !== "any" && o.service !== filters.service) return false;
+      // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
+      if (filters.service && filters.service !== "any") {
+        if (!orderServiceMatchesProvider(o.service, [filters.service])) return false;
+      }
       
       // Kalkuluj rzeczywistą odległość jeśli mamy geolokalizację
       if (userLocation && o.locationLat && o.locationLon) {
