@@ -318,6 +318,14 @@ const URGENCY_BADGE = {
 
 const urgencyToRadius = (u) => (u === "now" ? 12 : u === "today" ? 10 : u === "tomorrow" ? 9 : u === "this_week" ? 8.5 : 8);
 
+function readQsProviderDebug() {
+  try {
+    return Boolean(import.meta.env?.DEV) || localStorage.getItem("qsDebugProviderHome") === "1";
+  } catch {
+    return Boolean(import.meta.env?.DEV);
+  }
+}
+
 export default function ProviderHome() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -464,6 +472,15 @@ export default function ProviderHome() {
     [user?.services, allServices]
   );
 
+  // Ten sam zasięg co effectiveMaxDistance w fetchOrders — inaczej API zwraca wężej/szerzej niż filtr lokalny.
+  const clientMaxDistance = useMemo(
+    () =>
+      showAllServices || !user?.services?.length
+        ? 600
+        : Number(filters.maxDistance) || 300,
+    [showAllServices, user?.services?.length, filters.maxDistance]
+  );
+
   // Pobierz wszystkie usługi dla getProviderLabel
   useEffect(() => {
     const fetchServices = async () => {
@@ -576,6 +593,17 @@ export default function ProviderHome() {
       // Zasięg dla "wszystkie usługi" / brak usług jest już ustawiony wyżej na 600 km (effectiveMaxDistance)
 
       const url = apiUrl(`/api/orders/open?${params.toString()}`);
+      if (readQsProviderDebug()) {
+        console.log("[qsProviderHome] fetch /api/orders/open", {
+          url,
+          showAllServices,
+          providerServiceSlugs,
+          userServicesLen: user?.services?.length ?? 0,
+          allServicesLen: allServices?.length ?? 0,
+          effectiveMaxDistance: (showAllServices || !user?.services?.length) ? 600 : (filters.maxDistance || 300),
+          filters,
+        });
+      }
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -585,7 +613,15 @@ export default function ProviderHome() {
 
       if (response.ok) {
         const data = await response.json();
-        setDemand(data.orders || []);
+        const orders = data.orders || [];
+        if (readQsProviderDebug()) {
+          console.log("[qsProviderHome] open OK", {
+            count: orders.length,
+            firstService: orders[0]?.service,
+            firstId: orders[0]?._id,
+          });
+        }
+        setDemand(orders);
       } else {
         setDemand([]);
       }
@@ -594,7 +630,7 @@ export default function ProviderHome() {
     } finally {
       setDemandLoading(false);
     }
-  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs]);
+  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs, allServices?.length]);
 
   useEffect(() => {
     if (user) {
@@ -678,19 +714,33 @@ export default function ProviderHome() {
   }, [user, demand]);
 
   const list = useMemo(() => {
-    console.log('ProviderHome: Filtrowanie zleceń, user.service:', user?.service, 'showAllServices:', showAllServices);
-    console.log('ProviderHome: Liczba zleceń przed filtrowaniem:', demand.length);
-    console.log('ProviderHome: Przykładowe zlecenie:', demand[0]);
+    if (readQsProviderDebug()) {
+      console.log("[qsProviderHome] list filter start", {
+        demandLen: demand.length,
+        showAllServices,
+        providerServiceSlugs,
+        clientMaxDistance,
+        filters,
+        userServicesSample: user?.services?.[0],
+      });
+    }
     const filtered = demand.filter((o) => {
       // Filtrowanie po usługach - domyślnie tylko usługi providera
       if (!showAllServices) {
         const providerServices = providerServiceSlugs;
         const canApplyProfileFilter = providerServices.length > 0;
-        if (
-          canApplyProfileFilter &&
-          !orderServiceMatchesProvider(o.service, providerServices, allServices)
-        ) {
-          return false;
+        if (canApplyProfileFilter) {
+          const matchProf = orderServiceMatchesProvider(o.service, providerServices, allServices);
+          if (!matchProf) {
+            if (readQsProviderDebug()) {
+              console.log("[qsProviderHome] reject profile", {
+                id: o._id,
+                service: o.service,
+                match: matchProf,
+              });
+            }
+            return false;
+          }
         }
       }
       
@@ -709,8 +759,17 @@ export default function ProviderHome() {
         );
         o.distanceKm = Math.round(distance * 10) / 10; // Zaokrąglij do 1 miejsca po przecinku
         
-        if (filters.maxDistance && distance > Number(filters.maxDistance)) return false;
-      } else if (filters.maxDistance && o.distanceKm && o.distanceKm > Number(filters.maxDistance)) {
+        if (clientMaxDistance && distance > Number(clientMaxDistance)) {
+          if (readQsProviderDebug()) {
+            console.log("[qsProviderHome] reject distance", {
+              id: o._id,
+              distance,
+              clientMaxDistance,
+            });
+          }
+          return false;
+        }
+      } else if (clientMaxDistance && o.distanceKm && o.distanceKm > Number(clientMaxDistance)) {
         // Fallback do hardkodowanej odległości jeśli nie ma geolokalizacji, ale tylko jeśli distanceKm jest ustawione
         return false;
       }
@@ -785,9 +844,11 @@ export default function ProviderHome() {
       }
     });
 
-    console.log('ProviderHome: Liczba zleceń po filtrowaniu:', sorted.length);
+    if (readQsProviderDebug()) {
+      console.log("[qsProviderHome] list filter done", { filteredLen: filtered.length, sortedLen: sorted.length });
+    }
     return sorted;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {

@@ -19,10 +19,13 @@ function canonicalText(s) {
     .trim();
 }
 
+/** Klucz katalogowy (slug / parent_slug): litery-cyfry-myslniki — bez spacji (nazwy ludzkie odpadają). */
 function looksLikeSlug(s) {
-  const x = normalizeProviderServiceSlug(s);
-  // "slugowaty" tekst: bez spacji/slasha, litery-cyfry-myslniki
-  return /^[a-z0-9-]+$/.test(x) && x.includes("-");
+  const t = String(s || "").trim();
+  if (!t || isLikelyMongoId(t)) return false;
+  const x = normalizeProviderServiceSlug(t);
+  // Ważne: parent_slug bywa jednym segmentem (np. "akwarystyka") — nie wymagaj drugiego myślnika.
+  return /^[a-z0-9-]+$/.test(x) && x.length >= 2;
 }
 
 function resolveOrderServiceSlug(orderService, catalogItems = []) {
