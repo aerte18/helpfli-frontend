@@ -20,6 +20,7 @@ export default function Navbar() {
   const searchContainerRef = useRef(null);
   const notificationsRef = useRef(null);
   const mobileNotificationsRef = useRef(null);
+  const notificationsDropdownRef = useRef(null);
   const mobileSearchToggleRef = useRef(null);
   const mobileSearchExpandedRef = useRef(null);
   const navigate = useNavigate();
@@ -96,7 +97,8 @@ export default function Navbar() {
       }
       const inNotifications =
         notificationsRef.current?.contains(event.target) ||
-        mobileNotificationsRef.current?.contains(event.target);
+        mobileNotificationsRef.current?.contains(event.target) ||
+        notificationsDropdownRef.current?.contains(event.target);
       if (showNotifications && !inNotifications) {
         setShowNotifications(false);
       }
@@ -547,10 +549,13 @@ export default function Navbar() {
 
       </div>
 
-      {showNotifications && user?._id && (
-        <div className="absolute left-2 right-2 top-full z-[55] mx-auto max-w-[min(24rem,calc(100vw-1rem))] md:left-auto md:right-4 md:mx-0 md:w-96 md:max-w-[min(24rem,calc(100vw-2rem))]">
+      {showNotifications && userId && (
+        <div
+          ref={notificationsDropdownRef}
+          className="absolute left-2 right-2 top-full z-[55] mx-auto max-w-[min(24rem,calc(100vw-1rem))] md:left-auto md:right-4 md:mx-0 md:w-96 md:max-w-[min(24rem,calc(100vw-2rem))]"
+        >
           <NotificationsDropdown
-            userId={user._id}
+            userId={userId}
             onClose={() => setShowNotifications(false)}
           />
         </div>

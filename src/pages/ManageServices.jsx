@@ -229,9 +229,12 @@ function ManageServices() {
   const handleAdd = async (serviceIdOrSlug) => {
     try {
       const serviceId = await resolveServiceIdFromKey(serviceIdOrSlug);
-      if (!isMongoObjectId(serviceId)) return;
+      const serviceParam = isMongoObjectId(serviceId)
+        ? serviceId
+        : String(serviceIdOrSlug || "").trim();
+      if (!serviceParam) return;
 
-      const res = await fetch(apiUrl(`/api/user-services/add/${serviceId}`), {
+      const res = await fetch(apiUrl(`/api/user-services/add/${encodeURIComponent(serviceParam)}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,6 +245,9 @@ function ManageServices() {
       if (res.ok) {
         const data = await res.json();
         setUserServices(data.services);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("Błąd dodawania usługi:", err);
       }
     } catch (err) {
       console.error("Błąd przy dodawaniu:", err);
@@ -251,9 +257,12 @@ function ManageServices() {
   const handleRemove = async (serviceIdOrSlug) => {
     try {
       const serviceId = await resolveServiceIdFromKey(serviceIdOrSlug);
-      if (!isMongoObjectId(serviceId)) return;
+      const serviceParam = isMongoObjectId(serviceId)
+        ? serviceId
+        : String(serviceIdOrSlug || "").trim();
+      if (!serviceParam) return;
 
-      const res = await fetch(apiUrl(`/api/user-services/${serviceId}`), {
+      const res = await fetch(apiUrl(`/api/user-services/${encodeURIComponent(serviceParam)}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -263,6 +272,9 @@ function ManageServices() {
       if (res.ok) {
         const data = await res.json();
         setUserServices(data.services);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("Błąd usuwania usługi:", err);
       }
     } catch (err) {
       console.error("Błąd przy usuwaniu:", err);
