@@ -33,14 +33,32 @@ export function getNotificationNavigateTarget(notification) {
 
   let target = parseLink(notification.link);
 
+  const upsertSearchParam = (search, key, value) => {
+    const params = new URLSearchParams(search || "");
+    if (value == null || value === "") params.delete(key);
+    else params.set(key, String(value));
+    const out = params.toString();
+    return out ? `?${out}` : "";
+  };
+
   if (!target && oid) {
     const type = notification.type;
     if (type === "chat_message") {
       target = { pathname: `/orders/${oid}/chat`, search: "" };
     } else if (type === "new_offer" || type === "new_quote") {
-      target = { pathname: `/orders/${oid}`, search: "?tab=details" };
+      target = { pathname: `/orders/${oid}`, search: "?tab=offers" };
     } else {
       target = { pathname: `/orders/${oid}`, search: "" };
+    }
+  }
+
+  // Nawigacja do ofert: zawsze otwórz kartę ofert, nawet gdy backend zapisze ogólny link /orders/:id.
+  if ((notification.type === "new_offer" || notification.type === "new_quote") && oid) {
+    target = target || { pathname: `/orders/${oid}`, search: "" };
+    target.pathname = `/orders/${oid}`;
+    target.search = upsertSearchParam(target.search, "tab", "offers");
+    if (meta.offerId) {
+      target.search = upsertSearchParam(target.search, "offerId", String(meta.offerId));
     }
   }
 

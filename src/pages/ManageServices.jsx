@@ -21,6 +21,54 @@ function ManageServices() {
 
   const token = localStorage.getItem("token");
 
+  const normalizeSlug = (v) =>
+    String(v || "").trim().toLowerCase().replace(/_/g, "-");
+
+  const slugVariants = (raw) => {
+    const base = normalizeSlug(raw);
+    if (!base) return [];
+    const underscored = base.replace(/-/g, "_");
+    const out = new Set([base, underscored]);
+    // czasem backend ma slug bez prefiksu kategorii, a UI z prefiksem
+    if (base.includes("-")) {
+      const noPrefix = base.split("-").slice(1).join("-");
+      if (noPrefix) {
+        out.add(noPrefix);
+        out.add(noPrefix.replace(/-/g, "_"));
+      }
+    }
+    return [...out];
+  };
+
+  const resolveServiceIdFromKey = async (serviceIdOrSlug) => {
+    const key = String(serviceIdOrSlug || "").trim();
+    if (!key) return null;
+    if (isMongoObjectId(key)) return key;
+
+    const variants = slugVariants(key);
+    const byLocal = availableServices.find((s) => {
+      const ss = normalizeSlug(s?.slug);
+      return variants.includes(ss);
+    });
+    if (byLocal?._id && isMongoObjectId(byLocal._id)) return String(byLocal._id);
+
+    // fallback: dopytaj API listowe (mniej kruche niż /api/services/:slug)
+    for (const variant of variants) {
+      try {
+        const res = await fetch(
+          apiUrl(`/api/services?slug=${encodeURIComponent(variant)}&limit=1`)
+        );
+        if (!res.ok) continue;
+        const data = await res.json();
+        const hit = Array.isArray(data?.items) ? data.items[0] : null;
+        if (hit?._id && isMongoObjectId(hit._id)) return String(hit._id);
+      } catch {
+        // próbujemy kolejny wariant
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -180,18 +228,9 @@ function ManageServices() {
 
   const handleAdd = async (serviceIdOrSlug) => {
     try {
-      let serviceId = serviceIdOrSlug;
-      if (serviceId != null && !isMongoObjectId(serviceId)) {
-        const lookup = await fetch(
-          apiUrl(`/api/services/${encodeURIComponent(serviceId)}`)
-        );
-        if (!lookup.ok) return;
-        const doc = await lookup.json();
-        serviceId = doc._id;
-      }
+      const serviceId = await resolveServiceIdFromKey(serviceIdOrSlug);
       if (!isMongoObjectId(serviceId)) return;
 
-      const API = import.meta.env.VITE_API_URL || '';
       const res = await fetch(apiUrl(`/api/user-services/add/${serviceId}`), {
         method: "POST",
         headers: {
@@ -211,18 +250,9 @@ function ManageServices() {
 
   const handleRemove = async (serviceIdOrSlug) => {
     try {
-      let serviceId = serviceIdOrSlug;
-      if (serviceId != null && !isMongoObjectId(serviceId)) {
-        const lookup = await fetch(
-          apiUrl(`/api/services/${encodeURIComponent(serviceId)}`)
-        );
-        if (!lookup.ok) return;
-        const doc = await lookup.json();
-        serviceId = doc._id;
-      }
+      const serviceId = await resolveServiceIdFromKey(serviceIdOrSlug);
       if (!isMongoObjectId(serviceId)) return;
 
-      const API = import.meta.env.VITE_API_URL || '';
       const res = await fetch(apiUrl(`/api/user-services/${serviceId}`), {
         method: "DELETE",
         headers: {
