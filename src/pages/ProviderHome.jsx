@@ -459,6 +459,10 @@ export default function ProviderHome() {
   // Polecane zlecenia z uzasadnieniem AI
   const [recommendedOrders, setRecommendedOrders] = useState([]);
   const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const providerServiceSlugs = useMemo(
+    () => expandProviderServiceSlugs(user?.services || [], allServices),
+    [user?.services, allServices]
+  );
 
   // Pobierz wszystkie usługi dla getProviderLabel
   useEffect(() => {
@@ -560,7 +564,7 @@ export default function ProviderHome() {
         // Nie filtruj po usługach - pokaż wszystkie zlecenia dostępne dla firmy
       } else if (!showAllServices && user?.services && user.services.length > 0) {
         // Dla pojedynczego providera - zawsze wysyłaj slugi katalogowe (bez nazw display).
-        const serviceSlugs = expandProviderServiceSlugs(user.services, allServices);
+        const serviceSlugs = providerServiceSlugs;
 
         // Dodaj usługi jako osobne parametry (nie jako tablicę)
         serviceSlugs.forEach((service) => {
@@ -590,7 +594,7 @@ export default function ProviderHome() {
     } finally {
       setDemandLoading(false);
     }
-  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager]);
+  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs]);
 
   useEffect(() => {
     if (user) {
@@ -680,18 +684,10 @@ export default function ProviderHome() {
     const filtered = demand.filter((o) => {
       // Filtrowanie po usługach - domyślnie tylko usługi providera
       if (!showAllServices) {
-        const providerServices = user?.services || [];
-        const hasReadableProviderSlugs = providerServices.some((s) => {
-          if (typeof s === "object" && s) {
-            return Boolean(s.slug || s.parent_slug || s.name_pl || s.name);
-          }
-          if (typeof s === "string") return !/^[a-f0-9]{24}$/i.test(s.trim());
-          return false;
-        });
-        const canApplyProfileFilter = hasReadableProviderSlugs || allServices.length > 0;
+        const providerServices = providerServiceSlugs;
+        const canApplyProfileFilter = providerServices.length > 0;
         if (
           canApplyProfileFilter &&
-          providerServices.length > 0 &&
           !orderServiceMatchesProvider(o.service, providerServices, allServices)
         ) {
           return false;
@@ -791,7 +787,7 @@ export default function ProviderHome() {
 
     console.log('ProviderHome: Liczba zleceń po filtrowaniu:', sorted.length);
     return sorted;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {

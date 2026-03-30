@@ -66,17 +66,13 @@ export function expandProviderServiceSlugs(providerServices, catalogItems = []) 
     if (s && typeof s === "object") {
       if (s.slug) out.push(s.slug);
       if (s.parent_slug && s.parent_slug !== s.slug) out.push(s.parent_slug);
-      if (!s.slug && !s.parent_slug) {
-        const np = s.name_pl || s.name || "";
-        if (np) out.push(np);
-      }
     } else if (typeof s === "string") {
       const t = s.trim();
       if (isLikelyMongoId(t)) {
         const doc = byId.get(t);
         if (doc?.slug) out.push(doc.slug);
         if (doc?.parent_slug && doc.parent_slug !== doc?.slug) out.push(doc.parent_slug);
-      } else {
+      } else if (looksLikeSlug(t)) {
         out.push(t);
       }
     }
@@ -90,12 +86,10 @@ function legacySlugList(providerServices) {
       (providerServices || [])
         .map((s) => {
           if (typeof s === "string") {
-            if (isLikelyMongoId(s)) return "";
+            if (isLikelyMongoId(s) || !looksLikeSlug(s)) return "";
             return normalizeProviderServiceSlug(s);
           }
-          return normalizeProviderServiceSlug(
-            s.slug || s.parent_slug || s.name_pl || s.name || ""
-          );
+          return normalizeProviderServiceSlug(s.slug || s.parent_slug || "");
         })
         .filter(Boolean)
     ),
