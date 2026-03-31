@@ -282,18 +282,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!isMobileViewport) return;
-    const urlView = normalizeMobileViewMode(searchParams.get("view"));
-    if (urlView) {
-      if (viewMode !== urlView) setViewMode(urlView);
-      return;
-    }
     try {
       const savedView = normalizeMobileViewMode(localStorage.getItem(MOBILE_VIEW_STORAGE_KEY));
       if (savedView && viewMode !== savedView) {
         setViewMode(savedView);
       }
     } catch (_) {}
-  }, [isMobileViewport, searchParams, viewMode]);
+  }, [isMobileViewport, viewMode]);
 
   useEffect(() => {
     if (isMobileViewport && viewMode === "split") {
@@ -309,13 +304,7 @@ export default function Home() {
     try {
       localStorage.setItem(MOBILE_VIEW_STORAGE_KEY, current);
     } catch (_) {}
-
-    const currentParam = normalizeMobileViewMode(searchParams.get("view"));
-    if (currentParam === current) return;
-    const next = new URLSearchParams(searchParams);
-    next.set("view", current);
-    setSearchParams(next, { replace: true });
-  }, [isMobileViewport, viewMode, searchParams, setSearchParams]);
+  }, [isMobileViewport, viewMode]);
 
   // Obsługa viewMode - synchronizuj z mapSize
   useEffect(() => {
@@ -784,7 +773,7 @@ export default function Home() {
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
           className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
-              ? "left-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] rounded-full px-3 py-2 gap-2"
+              ? `left-3 rounded-full px-3 py-2 gap-2 ${user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"}`
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
           style={!isMobileViewport ? { top: activeFilters.length > 0 ? "298px" : "300px" } : undefined}
@@ -852,7 +841,10 @@ export default function Home() {
           </div>
 
           {/* Mobilny przełącznik widoku (zawsze widoczny nad dolnym paskiem) */}
-          <div className="sm:hidden absolute top-3 right-3 z-30 flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-md backdrop-blur">
+          <div
+            className="sm:hidden fixed right-3 z-[56] flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur"
+            style={{ top: activeFilters.length > 0 ? "136px" : "120px" }}
+          >
             <button
               onClick={() => setViewMode("list")}
               className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
