@@ -1147,9 +1147,8 @@ export default function Home() {
       {/* Globalny mobilny przełącznik widoku (zawsze widoczny) */}
       {!showAdvancedFilters && viewMode === "map" && (
         <div
-          className={`sm:hidden fixed z-[70] flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit ${
-            user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))] right-20" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-16"
-          }`}
+          className="sm:hidden fixed right-3 z-[70] flex items-center gap-1 rounded-lg bg-slate-50 p-2 shadow-sm"
+          style={{ top: activeFilters.length > 0 ? "176px" : "160px" }}
         >
           <span className="text-xs text-slate-500 mr-1">Widok:</span>
           <button
