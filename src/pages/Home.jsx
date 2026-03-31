@@ -288,7 +288,7 @@ export default function Home() {
         setViewMode(savedView);
       }
     } catch (_) {}
-  }, [isMobileViewport, viewMode]);
+  }, [isMobileViewport]);
 
   useEffect(() => {
     if (isMobileViewport && viewMode === "split") {
@@ -1158,11 +1158,10 @@ export default function Home() {
       />
 
       {/* Globalny mobilny przełącznik widoku (zawsze widoczny) */}
-      {!showAdvancedFilters && (
+      {!showAdvancedFilters && viewMode === "map" && (
         <div
-          className={`sm:hidden fixed left-1/2 -translate-x-1/2 z-[70] flex items-center gap-1 rounded-full border border-slate-300 bg-white p-1 shadow-xl ${
-            user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"
-          }`}
+          className="sm:hidden fixed right-3 z-[70] flex items-center gap-1 rounded-full border border-slate-300 bg-white p-1 shadow-xl"
+          style={{ top: activeFilters.length > 0 ? "178px" : "162px" }}
         >
           <button
             onClick={() => setViewMode("list")}
