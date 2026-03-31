@@ -45,12 +45,13 @@ export async function apiGet<T = any>(path: string, init?: RequestInit): Promise
 export async function apiPost<T = any>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const url = absolute(path);
   const token = localStorage.getItem("token");
+  const isAuthEndpoint = path.startsWith("/api/auth/login") || path.startsWith("/api/auth/register");
   const res = await fetch(url, {
     method: "POST",
     credentials: "omit",
     headers: { 
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(!isAuthEndpoint && token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}) 
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,

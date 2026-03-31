@@ -59,15 +59,27 @@ const SEASON_ADJECTIVE_FEMININE = {
   autumn: "jesienną"
 };
 
+const SEASONAL_CACHE_TTL_MS = 10 * 60 * 1000;
+
 export default function SeasonalBanner() {
   const season = useMemo(() => currentSeason(), []);
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState(FALLBACK_BY_SEASON[season].services);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const cacheKey = `seasonalBanner:${season}`;
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.ts && Array.isArray(parsed?.services) && (Date.now() - parsed.ts) < SEASONAL_CACHE_TTL_MS) {
+          setServices(parsed.services);
+        }
+      }
+    } catch (_) {}
+
     (async () => {
       try {
-        setLoading(true);
         const qs = new URLSearchParams({ is_top: "1", seasonal: season, limit: "3" });
         const j = await apiGet(`/api/services?` + qs.toString());
         
@@ -104,10 +116,17 @@ export default function SeasonalBanner() {
                 icon: fb.icon
               }));
             console.log('SeasonalBanner adding services:', additionalServices.map(s => s.slug));
-            setServices([...apiServices, ...additionalServices]);
+            const merged = [...apiServices, ...additionalServices];
+            setServices(merged);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), services: merged }));
+            } catch (_) {}
           } else {
             console.log('SeasonalBanner using only API services');
             setServices(apiServices);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), services: apiServices }));
+            } catch (_) {}
           }
         } else {
           setServices(FALLBACK_BY_SEASON[season].services);

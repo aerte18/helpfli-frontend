@@ -18,15 +18,26 @@ export default function TopServicesGrid({
   excludeSeasonal = true 
 }) {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   const season = useMemo(() => currentSeason(), []);
 
   useEffect(() => {
+    const cacheKey = `topServicesGrid:${parent || "all"}:${limit}:${showSeasonal ? 1 : 0}:${excludeSeasonal ? 1 : 0}:${season}`;
+    const TTL_MS = 10 * 60 * 1000;
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.ts && Array.isArray(parsed?.items) && (Date.now() - parsed.ts) < TTL_MS) {
+          setData(parsed.items);
+        }
+      }
+    } catch (_) {}
+
     const fetchServices = async () => {
       try {
-        setLoading(true);
         setError(null);
         
         // Pobierz usługi TOP bez filtru sezonowego, żeby uniknąć duplikatów z banerem
@@ -50,7 +61,11 @@ export default function TopServicesGrid({
         }
         
         // Ogranicz do żądanej liczby
-        setData(services.slice(0, limit));
+        const sliced = services.slice(0, limit);
+        setData(sliced);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), items: sliced }));
+        } catch (_) {}
       } catch (err) {
         console.error('Błąd podczas pobierania usług:', err);
         setError('Nie udało się załadować usług');
