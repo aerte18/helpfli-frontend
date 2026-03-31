@@ -356,42 +356,20 @@ export default function LandingStart() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div className="rounded-xl p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <PopularServices 
-              onPick={(serviceName) => {
-                // serviceName to nazwa usługi (np. "Naprawa wycieku")
-                // Musimy znaleźć odpowiedni slug kategorii z SERVICES_CATALOG
-                let categorySlug = null;
-                // Szukaj w SERVICES_CATALOG
-                for (const category of SERVICES_CATALOG) {
-                  // Sprawdź czy to nazwa głównej kategorii
-                  if (category.label === serviceName || category.id === serviceName) {
-                    categorySlug = category.id;
-                    break;
-                  }
-                  // Sprawdź czy to nazwa podkategorii
-                  for (const subcat of category.children || []) {
-                    if (subcat.label === serviceName || subcat.slug === serviceName) {
-                      categorySlug = category.id; // Używamy id głównej kategorii jako parent_slug
-                      break;
-                    }
-                  }
-                  if (categorySlug) break;
-                }
-                // Jeśli nie znaleziono, użyj nazwy jako fallback
-                if (!categorySlug) {
-                  // Mapowanie popularnych nazw na slugi
-                  const nameToSlug = {
-                    'Naprawa wycieku': 'hydraulika',
-                    'Montaż gniazdek': 'elektryka',
-                    'Naprawa AGD': 'agd-rtv',
-                    'Sprzątanie mieszkania': 'sprzatanie',
-                    'Montaż mebli': 'stolarstwo-montaz',
-                    'Złota rączka': 'zlota-raczka',
-                    'Malowanie': 'remont-wykonczenia',
-                    'Klimatyzacja': 'klimatyzacja-ogrzewanie'
-                  };
-                  categorySlug = nameToSlug[serviceName] || serviceName.toLowerCase().replace(/\s+/g, '-');
-                }
-                nav(`/home?service=${encodeURIComponent(categorySlug)}`);
+              onPick={(payload, isActive) => {
+                // Klik aktywuje/dezaktywuje kafelek; przekierowuj tylko przy aktywacji.
+                if (!isActive) return;
+
+                // PopularServices przekazuje obiekt { slug, parentSlug, label }.
+                // Dla zgodności z Home przekazujemy `service` = slug (jak SeasonalBanner).
+                const rawSlug =
+                  (payload && typeof payload === "object"
+                    ? (payload.slug || payload.parentSlug || payload.label)
+                    : payload) || "";
+                const serviceSlug = String(rawSlug).trim();
+                if (!serviceSlug) return;
+
+                nav(`/home?service=${encodeURIComponent(serviceSlug)}`);
               }}
             />
           </div>
