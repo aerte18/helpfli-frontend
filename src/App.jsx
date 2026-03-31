@@ -17,6 +17,8 @@ L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl });
 // Strony - Lazy loaded dla lepszej wydajności
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import PrivacySettings from "./components/PrivacySettings";
@@ -153,6 +155,8 @@ function App() {
                   {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/onboarding" element={<PrivateRoute><OnboardingWizard /></PrivateRoute>} />
           <Route path="/privacy" element={<PrivateRoute><PrivacySettings /></PrivateRoute>} />

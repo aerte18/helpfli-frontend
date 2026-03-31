@@ -45,7 +45,11 @@ export async function apiGet<T = any>(path: string, init?: RequestInit): Promise
 export async function apiPost<T = any>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const url = absolute(path);
   const token = localStorage.getItem("token");
-  const isAuthEndpoint = path.startsWith("/api/auth/login") || path.startsWith("/api/auth/register");
+  const isAuthEndpoint =
+    path.startsWith("/api/auth/login") ||
+    path.startsWith("/api/auth/register") ||
+    path.startsWith("/api/auth/forgot-password") ||
+    path.startsWith("/api/auth/reset-password");
   const res = await fetch(url, {
     method: "POST",
     credentials: "omit",

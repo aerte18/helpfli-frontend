@@ -211,6 +211,11 @@ function Login() {
           >
             Zaloguj
           </button>
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-indigo-700 hover:underline">
+              Zapomniałeś hasła?
+            </Link>
+          </div>
         </form>
         {emailNotVerified && (
           <button

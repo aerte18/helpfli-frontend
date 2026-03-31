@@ -46,6 +46,16 @@ function strengthLabel(score) {
   return ["Bardzo słabe", "Słabe", "OK", "Dobre", "Mocne", "Bardzo mocne"][score];
 }
 
+function getPasswordChecks(password, confirmPassword) {
+  return [
+    { key: "len", label: "Minimum 8 znaków", ok: password.length >= 8 },
+    { key: "lowerUpper", label: "Mała i duża litera", ok: /[a-z]/.test(password) && /[A-Z]/.test(password) },
+    { key: "digit", label: "Co najmniej 1 cyfra", ok: /\d/.test(password) },
+    { key: "special", label: "Co najmniej 1 znak specjalny", ok: /[^A-Za-z0-9]/.test(password) },
+    { key: "match", label: "Hasła są identyczne", ok: !!confirmPassword && password === confirmPassword },
+  ];
+}
+
 export default function Register() {
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState({
@@ -98,6 +108,10 @@ export default function Register() {
   }, [searchParams]);
 
   const score = useMemo(() => passwordScore(form.password), [form.password]);
+  const passwordChecks = useMemo(
+    () => getPasswordChecks(form.password, form.confirmPassword),
+    [form.password, form.confirmPassword]
+  );
 
   /** Geokodowanie adresu → współrzędne (np. przed zapisem, gdy brak GPS z podpowiedzi). */
   const forwardGeocodeAddress = async (address) => {
@@ -188,7 +202,11 @@ export default function Register() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) return "Podaj poprawny email.";
     const digits = f.phone.replace(/\D/g, "");
     if (digits.length < 11) return "Podaj poprawny numer telefonu (+48 xxx xxx xxx).";
-    if (pwScore < 3) return "Hasło jest za słabe (min. 8 znaków, zalecane duże/małe litery, cyfra i znak).";
+    if (pwScore < 3) return "Hasło jest za słabe (min. 8 znaków, duża/mała litera, cyfra i znak specjalny).";
+    if (!passwordChecks.find((c) => c.key === "len")?.ok) return "Hasło musi mieć minimum 8 znaków.";
+    if (!passwordChecks.find((c) => c.key === "lowerUpper")?.ok) return "Hasło musi zawierać małą i dużą literę.";
+    if (!passwordChecks.find((c) => c.key === "digit")?.ok) return "Hasło musi zawierać co najmniej jedną cyfrę.";
+    if (!passwordChecks.find((c) => c.key === "special")?.ok) return "Hasło musi zawierać co najmniej jeden znak specjalny.";
     if (f.password !== f.confirmPassword) return "Hasła nie są identyczne.";
     if (!f.accept) return "Musisz zaakceptować regulamin.";
 
@@ -696,6 +714,21 @@ export default function Register() {
                 />
               </div>
               <div className="text-xs text-slate-500 mt-1">{strengthLabel(score)}</div>
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-1.5">
+                {passwordChecks.map((check) => (
+                  <div key={check.key} className="flex items-center gap-2 text-xs">
+                    <span
+                      className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
+                        check.ok ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"
+                      }`}
+                      aria-hidden
+                    >
+                      {check.ok ? "OK" : "•"}
+                    </span>
+                    <span className={check.ok ? "text-emerald-700" : "text-slate-600"}>{check.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
