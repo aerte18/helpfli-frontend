@@ -784,14 +784,16 @@ export default function Home() {
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
           className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
-              ? "left-3 right-3 bottom-24 rounded-xl px-4 py-3"
+              ? "left-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] rounded-full px-3 py-2 gap-2"
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
           style={!isMobileViewport ? { top: activeFilters.length > 0 ? "298px" : "300px" } : undefined}
         >
-          <h3 className="font-semibold text-slate-800">Dostępni wykonawcy ({list.length})</h3>
+          <h3 className="font-medium text-slate-800 text-sm">
+            {isMobileViewport ? `Wykonawcy (${list.length})` : `Dostępni wykonawcy (${list.length})`}
+          </h3>
           <svg 
-            className={`w-5 h-5 text-slate-600 transition-transform ${isProviderListExpanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-slate-600 transition-transform ${isProviderListExpanded ? 'rotate-180' : ''}`}
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -850,7 +852,7 @@ export default function Home() {
           </div>
 
           {/* Mobilny przełącznik widoku (zawsze widoczny nad dolnym paskiem) */}
-          <div className="sm:hidden fixed left-1/2 -translate-x-1/2 bottom-8 z-40 flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur">
+          <div className="sm:hidden absolute top-3 right-3 z-30 flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-md backdrop-blur">
             <button
               onClick={() => setViewMode("list")}
               className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
@@ -1010,7 +1012,7 @@ export default function Home() {
         <div
           className={`fixed z-40 overflow-hidden border border-slate-200 bg-white shadow-xl transition-all duration-300 ${
             isMobileViewport
-              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isProviderListExpanded ? "max-h-[58vh]" : "max-h-0 border-0"}`
+              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isProviderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
               : `${isProviderListExpanded ? "bottom-4 w-80 rounded-2xl" : "hidden"} right-4`
           }`}
           style={
