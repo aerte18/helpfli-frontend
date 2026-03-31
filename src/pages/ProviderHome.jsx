@@ -450,6 +450,8 @@ export default function ProviderHome() {
   const [demand, setDemand] = useState([]);
   const lastOpenFetchDebugRef = useRef(null);
   const lastRejectStatsRef = useRef(null);
+  const openFetchSeqRef = useRef(0);
+  const openFetchAbortRef = useRef(null);
   const [demandLoading, setDemandLoading] = useState(true);
   const [freeRepliesLeft, setFreeRepliesLeft] = useState(null);
   const [allServices, setAllServices] = useState([]);
@@ -547,6 +549,12 @@ export default function ProviderHome() {
   // Pobieranie zleceń z API
   const fetchOrders = useCallback(async () => {
     let requestUrl = "";
+    const requestSeq = ++openFetchSeqRef.current;
+    try {
+      if (openFetchAbortRef.current) openFetchAbortRef.current.abort();
+    } catch (_) {}
+    const controller = new AbortController();
+    openFetchAbortRef.current = controller;
     try {
       setDemandLoading(true);
       const token = localStorage.getItem('token');
@@ -604,6 +612,7 @@ export default function ProviderHome() {
         });
       }
       const response = await fetch(requestUrl, {
+        signal: controller.signal,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -613,6 +622,8 @@ export default function ProviderHome() {
       if (response.ok) {
         const data = await response.json();
         const orders = data.orders || [];
+        // Ignoruj odpowiedzi starszych requestów (race condition przy suwaku / wielu zmianach filtrów).
+        if (requestSeq !== openFetchSeqRef.current) return;
         if (readQsProviderDebug()) {
           lastOpenFetchDebugRef.current = {
             phase: "ok",
@@ -630,6 +641,7 @@ export default function ProviderHome() {
         }
         setDemand(orders);
       } else {
+        if (requestSeq !== openFetchSeqRef.current) return;
         if (readQsProviderDebug()) {
           lastOpenFetchDebugRef.current = {
             phase: "http_error",
@@ -642,6 +654,8 @@ export default function ProviderHome() {
         setDemand([]);
       }
     } catch (error) {
+      if (error?.name === "AbortError") return;
+      if (requestSeq !== openFetchSeqRef.current) return;
       if (readQsProviderDebug()) {
         lastOpenFetchDebugRef.current = {
           phase: "exception",
@@ -653,7 +667,7 @@ export default function ProviderHome() {
       }
       setDemand([]);
     } finally {
-      setDemandLoading(false);
+      if (requestSeq === openFetchSeqRef.current) setDemandLoading(false);
     }
   }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs, allServices?.length]);
 
@@ -662,6 +676,14 @@ export default function ProviderHome() {
       fetchOrders();
     }
   }, [fetchOrders, user]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        if (openFetchAbortRef.current) openFetchAbortRef.current.abort();
+      } catch (_) {}
+    };
+  }, []);
 
   // Pobierz licznik darmowych wycen
   useEffect(() => {
