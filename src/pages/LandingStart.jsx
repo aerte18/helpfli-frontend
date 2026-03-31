@@ -335,7 +335,7 @@ export default function LandingStart() {
                       <MapPin className="h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
-                      {user?.role === "provider" ? "Znajdź oferty w okolicy" : "Znajdź specjalistę w okolicy"}
+                      {user?.role === "provider" ? "Znajdź oferty w okolicy" : "Potrzebuję pomocy teraz"}
                     </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 opacity-45" style={{ color: 'var(--muted-foreground)' }} aria-hidden />

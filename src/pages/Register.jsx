@@ -69,6 +69,8 @@ export default function Register() {
     accept: false,
     marketingSMS: false,
     marketingEmail: false,
+    analyticsConsent: false,
+    cookiesConsent: false,
     // Pola lokalizacji dla wykonawców
     address: "",
     locationCoords: null,
@@ -288,6 +290,10 @@ export default function Register() {
               sms: snapshot.marketingSMS,
               email: snapshot.marketingEmail
             }
+          },
+          consents: {
+            analytics: snapshot.analyticsConsent,
+            cookies: snapshot.cookiesConsent
           },
           address: snapshot.address || undefined,
           locationCoords: snapshot.locationCoords || undefined,
@@ -803,6 +809,26 @@ export default function Register() {
                 className="h-4 w-4"
               />
               <span>Wyrażam zgodę na otrzymywanie e-maili marketingowych (opcjonalnie)</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm select-none">
+              <input
+                type="checkbox"
+                name="analyticsConsent"
+                checked={form.analyticsConsent}
+                onChange={handleChange}
+                className="h-4 w-4"
+              />
+              <span>Wyrażam zgodę na analitykę użycia produktu (opcjonalnie)</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm select-none">
+              <input
+                type="checkbox"
+                name="cookiesConsent"
+                checked={form.cookiesConsent}
+                onChange={handleChange}
+                className="h-4 w-4"
+              />
+              <span>Wyrażam zgodę na cookies analityczne (opcjonalnie)</span>
             </label>
           </div>
 

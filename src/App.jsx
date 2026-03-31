@@ -6,6 +6,8 @@ import { initOneSignal } from "./onesignal";
 import AiWidget from "./components/AiWidget";
 import ProviderAIWidget from "./components/ProviderAIWidget";
 import UnifiedAIConcierge from "./components/ai/UnifiedAIConcierge";
+import CookieConsentBanner from "./components/CookieConsentBanner";
+import { useAuth } from "./context/AuthContext";
 
 
 import L from 'leaflet';
@@ -119,6 +121,8 @@ const LoadingSpinner = () => (
 );
 
 function App() {
+  const { user } = useAuth();
+
   useEffect(() => {
     console.log("App - useEffect - checking localStorage for user");
     try {
@@ -283,6 +287,8 @@ function App() {
         
         {/* Floating Asystent AI - dla providerów z pakietem Standard/PRO */}
         <ProviderAIWidget />
+
+        {!user && <CookieConsentBanner />}
       </ErrorBoundary>
     </HelmetProvider>
   );

@@ -8,12 +8,15 @@ import './index.css'
 import './styles/ui.css'
 import { initSentry } from './sentry'
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
+import { hasAnalyticsConsent } from './utils/consent';
 
 // Init Sentry (if DSN provided)
 initSentry();
+window.addEventListener("qs-consent-changed", () => initSentry());
 
 // Web Vitals monitoring
 function sendToAnalytics(metric) {
+  if (!hasAnalyticsConsent()) return;
   // Send to your analytics service
   console.log('Web Vital:', metric);
   

@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { createContext, useContext, useEffect, useState } from "react";
 import { subscribePush } from "../utils/push";
+import { setConsent } from "../utils/consent";
 
 const AuthContext = createContext(null);
 
@@ -29,6 +30,13 @@ export function AuthProvider({ children }) {
       console.log("AuthContext - fetchMe - user data:", data);
       console.log("AuthContext - fetchMe - setting user and loading false");
       setUser(data); // upewnij się, że backend zwraca np. { _id, name, role }
+      if (data?.consents) {
+        setConsent({
+          analytics: !!data.consents.analytics,
+          cookies: !!data.consents.cookies,
+          marketing: !!data.marketingConsent,
+        });
+      }
       setLoading(false); // WAŻNE: ustaw loading na false po pomyślnym pobraniu danych
       console.log("AuthContext - fetchMe - user set, loading set to false");
       console.log("AuthContext - fetchMe - user role:", data?.role);

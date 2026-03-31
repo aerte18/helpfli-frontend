@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { hasAnalyticsConsent } from "../utils/consent";
 
 // Event types (muszą być zgodne z backend)
 export const EVENT_TYPES = {
@@ -76,6 +77,7 @@ export function useTelemetry() {
 
   // Track pojedynczego eventu
   const track = useCallback(async (eventType, properties = {}, metadata = {}) => {
+    if (!hasAnalyticsConsent()) return;
     // Dodaj do queue
     eventQueue.current.push({
       eventType,

@@ -181,16 +181,28 @@ export default function AdminAnalytics() {
 
     const steps = [
       {
+        key: 'page_view',
+        label: 'Wejścia na strony',
+        description: 'Wyświetlenia stron (landing/home i inne wejścia)',
+        count: get('page_view'),
+      },
+      {
         key: 'search',
-        label: 'Wejście / wyszukiwanie',
-        description: 'Użytkownicy, którzy zaczęli szukać usługi',
+        label: 'Wyszukiwanie',
+        description: 'Użytkownicy, którzy wykonali wyszukiwanie usługi',
         count: get('search'),
       },
       {
         key: 'provider_view',
         label: 'Podgląd wykonawców',
-        description: 'Użytkownicy, którzy przeglądali profile / listę wykonawców',
+        description: 'Przegląd kart/profili wykonawców',
         count: get('provider_view'),
+      },
+      {
+        key: 'provider_contact',
+        label: 'Kontakt z wykonawcą',
+        description: 'Kliknięcia kontaktu (telefon/wiadomość/oferta)',
+        count: get('provider_contact'),
       },
       {
         key: 'order_form_start',
@@ -200,9 +212,15 @@ export default function AdminAnalytics() {
       },
       {
         key: 'order_form_success',
-        label: 'Zlecenie utworzone',
+        label: 'Zlecenie wysłane',
         description: 'Zlecenia utworzone przez użytkowników (wysłany formularz)',
         count: get('order_form_success'),
+      },
+      {
+        key: 'quote_request',
+        label: 'Prośba o wycenę',
+        description: 'Użytkownicy, którzy wysłali zapytanie o wycenę',
+        count: get('quote_request'),
       },
       {
         key: 'offer_form_start',
@@ -289,7 +307,7 @@ export default function AdminAnalytics() {
       {/* Lejek konwersji: od wejścia po płatność */}
       <div className="border rounded-2xl p-4 bg-white space-y-4">
         <div className="flex items-center justify-between">
-          <div className="font-semibold">Lejek konwersji (CreateOrder → oferta → płatność)</div>
+          <div className="font-semibold">Lejek konwersji (wejście → kontakt/zlecenie → płatność)</div>
           <div className="text-xs text-gray-500">
             Zakres: {from} – {to}
           </div>
