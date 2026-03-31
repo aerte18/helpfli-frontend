@@ -449,6 +449,7 @@ export default function ProviderHome() {
   // Dane – pobierane z API
   const [demand, setDemand] = useState([]);
   const lastOpenFetchDebugRef = useRef(null);
+  const lastRejectStatsRef = useRef(null);
   const [demandLoading, setDemandLoading] = useState(true);
   const [freeRepliesLeft, setFreeRepliesLeft] = useState(null);
   const [allServices, setAllServices] = useState([]);
@@ -899,6 +900,7 @@ export default function ProviderHome() {
     });
 
     if (readQsProviderDebug()) {
+      lastRejectStatsRef.current = rejectStats;
       qsProviderHomeDebug("list filter done", {
         demandLen: demand.length,
         filteredLen: filtered.length,
@@ -922,6 +924,7 @@ export default function ProviderHome() {
       allServicesLen: allServices.length,
       firstDemandService: demand[0]?.service,
       lastOpenFetch: lastOpenFetchDebugRef.current,
+      lastRejectStats: lastRejectStatsRef.current,
     };
   }, [
     demand,
