@@ -33,9 +33,14 @@ export default function PopularServices({ onPick, services = null }) {
 
   // Pobierz popularne usługi z API
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const fetchPopularServices = async () => {
       try {
-        const res = await fetch(apiUrl("/api/services?is_top=1&limit=18"));
+        const res = await fetch(apiUrl("/api/services?is_top=1&limit=18"), {
+          signal: controller.signal,
+        });
         console.log('PopularServices - response status:', res.status);
         if (res.ok) {
           const result = await res.json();
@@ -72,6 +77,8 @@ export default function PopularServices({ onPick, services = null }) {
           });
           
           setPopularServices(mappedServices);
+        } else {
+          setPopularServices(DEFAULT);
         }
       } catch (error) {
         console.error('Błąd pobierania popularnych usług:', error);
@@ -79,11 +86,16 @@ export default function PopularServices({ onPick, services = null }) {
         console.log('PopularServices - using DEFAULT fallback');
         setPopularServices(DEFAULT);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
 
     fetchPopularServices();
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   const list = useMemo(() => {

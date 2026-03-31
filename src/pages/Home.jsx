@@ -158,7 +158,7 @@ export default function Home() {
   }, [verifiedOnly, b2bOnly, proOnly, availableNow, filters, selectedServices]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [maxDistance, setMaxDistance] = useState(150); // km — szerszy domyślny zasięg, mniej pustych wyników na mobile
+  const [maxDistance, setMaxDistance] = useState(300); // km — bezpieczny domyślny zasięg
   const { user } = useAuth();
   const compare = useCompare();
 
@@ -322,6 +322,9 @@ export default function Home() {
 
   // PRZYKŁADOWA filtracja po stronie frontu (docelowo backend /api/search)
   const list = useMemo(() => {
+    const effectiveMaxDistance = isMobileViewport
+      ? Math.max(Number(maxDistance) || 0, 600)
+      : Number(maxDistance) || 0;
     const filtered = providers.filter((p) => {
       // Filtrowanie po wyszukiwanym tekście
       if (filters.search) {
@@ -351,7 +354,7 @@ export default function Home() {
           p.lng
         );
         p.distanceKm = Math.round(distance * 10) / 10; // Zaokrąglij do 1 miejsca po przecinku
-        if (distance > maxDistance) return false;
+        if (effectiveMaxDistance && distance > effectiveMaxDistance) return false;
       }
       
       // Filtry z ResultsToolbar
@@ -407,7 +410,7 @@ export default function Home() {
       return sorted;
     }
     return filtered;
-  }, [providers, filters, quick, userLocation, maxDistance, calculateDistance, verifiedOnly, b2bOnly, proOnly, availableNow, selectedServices, selectedServiceSlugs, sortBy]);
+  }, [providers, filters, quick, userLocation, maxDistance, isMobileViewport, calculateDistance, verifiedOnly, b2bOnly, proOnly, availableNow, selectedServices, selectedServiceSlugs, sortBy]);
 
   // Podłączone do /api/search z filtrami
   useEffect(() => {
