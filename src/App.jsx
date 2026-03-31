@@ -80,6 +80,7 @@ import ServicesList from "./pages/ServicesList";
 import Cooperation from "./pages/Cooperation";
 import Reviews from "./pages/Reviews";
 import HelpCenter from "./pages/HelpCenter";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 // Komponenty KYC
 import KycWizard from "./pages/KycWizard";
@@ -99,7 +100,6 @@ const AdminRankingConfig = lazy(() => import("./pages/AdminRankingConfig"));
 const AdminKBManager = lazy(() => import("./pages/admin/AdminKBManager"));
 const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
 const AdminKyc = lazy(() => import("./pages/AdminKyc"));
-const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminPartners = lazy(() => import("./pages/admin/AdminPartners"));
 const AdminSponsorAds = lazy(() => import("./pages/admin/AdminSponsorAds"));
