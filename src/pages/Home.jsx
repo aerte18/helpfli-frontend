@@ -840,26 +840,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Mobilny przełącznik widoku (zawsze widoczny nad dolnym paskiem) */}
-          <div
-            className="sm:hidden fixed right-3 z-[56] flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur"
-            style={{ top: activeFilters.length > 0 ? "136px" : "120px" }}
-          >
-            <button
-              onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
-              title="Lista"
-            >
-              <span className="inline-flex items-center gap-1"><List className="w-3.5 h-3.5" aria-hidden />Lista</span>
-            </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
-              title="Mapa"
-            >
-              <span className="inline-flex items-center gap-1"><Map className="w-3.5 h-3.5" aria-hidden />Mapa</span>
-            </button>
-          </div>
         </div>
       ) : (
         <>
@@ -1176,6 +1156,30 @@ export default function Home() {
         open={providerPreview.open}
         onClose={() => setProviderPreview({ open: false, providerId: null })}
       />
+
+      {/* Globalny mobilny przełącznik widoku (zawsze widoczny) */}
+      {!showAdvancedFilters && (
+        <div
+          className={`sm:hidden fixed left-1/2 -translate-x-1/2 z-[70] flex items-center gap-1 rounded-full border border-slate-300 bg-white p-1 shadow-xl ${
+            user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"
+          }`}
+        >
+          <button
+            onClick={() => setViewMode("list")}
+            className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+            title="Lista"
+          >
+            <span className="inline-flex items-center gap-1"><List className="w-3.5 h-3.5" aria-hidden />Lista</span>
+          </button>
+          <button
+            onClick={() => setViewMode("map")}
+            className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+            title="Mapa"
+          >
+            <span className="inline-flex items-center gap-1"><Map className="w-3.5 h-3.5" aria-hidden />Mapa</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
