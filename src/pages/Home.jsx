@@ -158,7 +158,7 @@ export default function Home() {
   }, [verifiedOnly, b2bOnly, proOnly, availableNow, filters, selectedServices]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [maxDistance, setMaxDistance] = useState(50); // km — zgodnie z domyślnym radius w /api/search
+  const [maxDistance, setMaxDistance] = useState(150); // km — szerszy domyślny zasięg, mniej pustych wyników na mobile
   const { user } = useAuth();
   const compare = useCompare();
 
@@ -1160,22 +1160,28 @@ export default function Home() {
       {/* Globalny mobilny przełącznik widoku (zawsze widoczny) */}
       {!showAdvancedFilters && viewMode === "map" && (
         <div
-          className="sm:hidden fixed right-3 z-[70] flex items-center gap-1 rounded-full border border-slate-300 bg-white p-1 shadow-xl"
-          style={{ top: activeFilters.length > 0 ? "178px" : "162px" }}
+          className={`sm:hidden fixed z-[70] flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit ${
+            user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))] right-20" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-16"
+          }`}
         >
+          <span className="text-xs text-slate-500 mr-1">Widok:</span>
           <button
             onClick={() => setViewMode("list")}
-            className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
             title="Lista"
           >
-            <span className="inline-flex items-center gap-1"><List className="w-3.5 h-3.5" aria-hidden />Lista</span>
+            <List className="w-4 h-4" aria-hidden />
           </button>
           <button
             onClick={() => setViewMode("map")}
-            className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
             title="Mapa"
           >
-            <span className="inline-flex items-center gap-1"><Map className="w-3.5 h-3.5" aria-hidden />Mapa</span>
+            <Map className="w-4 h-4" aria-hidden />
           </button>
         </div>
       )}
