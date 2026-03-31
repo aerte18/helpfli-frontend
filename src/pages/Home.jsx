@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { UI } from "../i18n/pl_ui";
@@ -24,7 +24,7 @@ import ProviderPreview from "../components/ProviderPreview";
 import { useAuth } from "../context/AuthContext";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap } from "lucide-react";
+import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users } from "lucide-react";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -272,6 +272,8 @@ export default function Home() {
   const [mapSize, setMapSize] = useState("lg"); // domyślnie większa
   const [isProviderListExpanded, setIsProviderListExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
+  const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
     const updateViewport = () => setIsMobileViewport(window.innerWidth < 640);
@@ -319,6 +321,25 @@ export default function Home() {
     // Resetuj stan "pokaż więcej" przy zmianie trybu
     setShowAllProviders(false);
   }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== "map" || showAdvancedFilters) {
+      setIsMobileViewMenuOpen(false);
+      setIsProviderListExpanded(false);
+    }
+  }, [viewMode, showAdvancedFilters]);
+
+  useEffect(() => {
+    if (!isMobileViewMenuOpen) return;
+    const onPointerDown = (e) => {
+      if (!mobileViewMenuRef.current) return;
+      if (!mobileViewMenuRef.current.contains(e.target)) {
+        setIsMobileViewMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isMobileViewMenuOpen]);
 
   // PRZYKŁADOWA filtracja po stronie frontu (docelowo backend /api/search)
   const list = useMemo(() => {
@@ -760,14 +781,28 @@ export default function Home() {
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
           className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
-              ? `left-3 rounded-full px-3 py-2 gap-2 ${user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"}`
+              ? `left-3 rounded-full ${isProviderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} ${user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"}`
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
           style={!isMobileViewport ? { top: activeFilters.length > 0 ? "298px" : "300px" } : undefined}
         >
-          <h3 className="font-medium text-slate-800 text-sm">
-            {isMobileViewport ? `Wykonawcy (${list.length})` : `Dostępni wykonawcy (${list.length})`}
-          </h3>
+          {isMobileViewport ? (
+            <>
+              <div className="relative">
+                <Users className="w-5 h-5 text-slate-700" />
+                {!isProviderListExpanded && (
+                  <span className="absolute -right-2 -top-2 min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-600 text-white text-[10px] leading-[18px] text-center">
+                    {list.length}
+                  </span>
+                )}
+              </div>
+              {isProviderListExpanded && (
+                <h3 className="font-medium text-slate-800 text-sm">Wykonawcy ({list.length})</h3>
+              )}
+            </>
+          ) : (
+            <h3 className="font-medium text-slate-800 text-sm">Dostępni wykonawcy ({list.length})</h3>
+          )}
           <svg 
             className={`w-4 h-4 text-slate-600 transition-transform ${isProviderListExpanded ? 'rotate-180' : ''}`}
             fill="none" 
@@ -1144,31 +1179,47 @@ export default function Home() {
         onClose={() => setProviderPreview({ open: false, providerId: null })}
       />
 
-      {/* Globalny mobilny przełącznik widoku (zawsze widoczny) */}
+      {/* Mobilny przełącznik widoku - styl app (Google Maps/Uber) */}
       {!showAdvancedFilters && viewMode === "map" && (
         <div
-          className="sm:hidden fixed right-3 z-[70] flex items-center gap-1 rounded-lg bg-slate-50 p-2 shadow-sm"
+          ref={mobileViewMenuRef}
+          className="sm:hidden fixed right-3 z-[70]"
           style={{ top: activeFilters.length > 0 ? "176px" : "160px" }}
         >
-          <span className="text-xs text-slate-500 mr-1">Widok:</span>
           <button
-            onClick={() => setViewMode("list")}
-            className={`px-2 py-1 text-xs rounded transition-colors ${
-              viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+            type="button"
+            onClick={() => setIsMobileViewMenuOpen((v) => !v)}
+            className={`w-11 h-11 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center transition-transform duration-150 ${
+              isMobileViewMenuOpen ? "scale-105" : "scale-100"
             }`}
-            title="Lista"
+            title="Zmień widok"
           >
-            <List className="w-4 h-4" aria-hidden />
+            <Layers className="w-5 h-5 text-slate-700" />
           </button>
-          <button
-            onClick={() => setViewMode("map")}
-            className={`px-2 py-1 text-xs rounded transition-colors ${
-              viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
-            }`}
-            title="Mapa"
-          >
-            <Map className="w-4 h-4" aria-hidden />
-          </button>
+          {isMobileViewMenuOpen && (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 flex flex-col gap-1 origin-top-right transition-all duration-150 opacity-100 translate-y-0 scale-100">
+              <button
+                onClick={() => {
+                  setViewMode("list");
+                  setIsMobileViewMenuOpen(false);
+                }}
+                className="px-2 py-2 text-xs rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                title="Lista"
+              >
+                <List className="w-4 h-4" aria-hidden /> Lista
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode("map");
+                  setIsMobileViewMenuOpen(false);
+                }}
+                className="px-2 py-2 text-xs rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                title="Mapa"
+              >
+                <Map className="w-4 h-4" aria-hidden /> Mapa
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
