@@ -748,6 +748,15 @@ export default function ProviderHome() {
         userServicesSample: user?.services?.[0],
       });
     }
+    const rejectStats = {
+      profile: 0,
+      toolbarService: 0,
+      distance: 0,
+      budget: 0,
+      paymentType: 0,
+      offersStatus: 0,
+    };
+
     const filtered = demand.filter((o) => {
       // Filtrowanie po usługach - domyślnie tylko usługi providera
       if (!showAllServices) {
@@ -756,6 +765,7 @@ export default function ProviderHome() {
         if (canApplyProfileFilter) {
           const matchProf = orderServiceMatchesProvider(o.service, providerServices, allServices);
           if (!matchProf) {
+            rejectStats.profile += 1;
             if (readQsProviderDebug()) {
               qsProviderHomeDebug("reject profile", {
                 id: o._id,
@@ -770,7 +780,10 @@ export default function ProviderHome() {
       
       // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
       if (!showAllServices && filters.service && filters.service !== "any") {
-        if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) return false;
+        if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) {
+          rejectStats.toolbarService += 1;
+          return false;
+        }
       }
       
       // Kalkuluj rzeczywistą odległość jeśli mamy geolokalizację
@@ -784,6 +797,7 @@ export default function ProviderHome() {
         o.distanceKm = Math.round(distance * 10) / 10; // Zaokrąglij do 1 miejsca po przecinku
         
         if (clientMaxDistance && distance > Number(clientMaxDistance)) {
+          rejectStats.distance += 1;
           if (readQsProviderDebug()) {
             qsProviderHomeDebug("reject distance", {
               id: o._id,
@@ -795,6 +809,7 @@ export default function ProviderHome() {
         }
       } else if (clientMaxDistance && o.distanceKm && o.distanceKm > Number(clientMaxDistance)) {
         // Fallback do hardkodowanej odległości jeśli nie ma geolokalizacji, ale tylko jeśli distanceKm jest ustawione
+        rejectStats.distance += 1;
         return false;
       }
       // Jeśli zlecenie nie ma koordynatów, pokaż je zawsze (nie filtruj po dystansie)
@@ -805,16 +820,25 @@ export default function ProviderHome() {
         // Backend zwraca budget (liczba) lub budgetRange (obiekt z min/max)
         const budgetMin = o.budgetRange?.min ?? o.budgetFrom ?? (o.budget ? o.budget * 0.8 : 0);
         const budgetMax = o.budgetRange?.max ?? o.budgetTo ?? (o.budget ? o.budget * 1.2 : 999999);
-        if (budgetMax < lo || budgetMin > hi) return false;
+        if (budgetMax < lo || budgetMin > hi) {
+          rejectStats.budget += 1;
+          return false;
+        }
       }
 
       // Typ płatności: w systemie / poza systemem
       if (filters.paymentType !== "any") {
         const method = o.paymentMethod || o.paymentPreference || o.payment_method || null;
         if (filters.paymentType === "system") {
-          if (method && method !== "system" && method !== "both") return false;
+          if (method && method !== "system" && method !== "both") {
+            rejectStats.paymentType += 1;
+            return false;
+          }
         } else if (filters.paymentType === "external") {
-          if (method && method !== "external") return false;
+          if (method && method !== "external") {
+            rejectStats.paymentType += 1;
+            return false;
+          }
         }
       }
 
@@ -827,8 +851,14 @@ export default function ProviderHome() {
             ? o.offers.length
             : null;
         if (count != null) {
-          if (filters.offersStatus === "no_offers" && count > 0) return false;
-          if (filters.offersStatus === "max_3" && count > 3) return false;
+          if (filters.offersStatus === "no_offers" && count > 0) {
+            rejectStats.offersStatus += 1;
+            return false;
+          }
+          if (filters.offersStatus === "max_3" && count > 3) {
+            rejectStats.offersStatus += 1;
+            return false;
+          }
         }
       }
 
@@ -869,7 +899,12 @@ export default function ProviderHome() {
     });
 
     if (readQsProviderDebug()) {
-      qsProviderHomeDebug("list filter done", { filteredLen: filtered.length, sortedLen: sorted.length });
+      qsProviderHomeDebug("list filter done", {
+        demandLen: demand.length,
+        filteredLen: filtered.length,
+        sortedLen: sorted.length,
+        rejectStats,
+      });
     }
     return sorted;
   }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
