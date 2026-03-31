@@ -866,7 +866,7 @@ export default function Home() {
       ) : (
         <>
           {/* Przełącznik widoku – w widoku lista nad listą, w prawym rogu (jak u providera) */}
-          {viewMode === "list" && (
+          {viewMode === "list" && !isMobileViewport && (
             <div className="max-w-6xl mx-auto px-4 pt-8 pb-2 flex justify-end">
               <div className="flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit">
                 <span className="text-xs text-slate-500 mr-1">Widok:</span>
@@ -1180,11 +1180,15 @@ export default function Home() {
       />
 
       {/* Mobilny przełącznik widoku - styl app (Google Maps/Uber) */}
-      {!showAdvancedFilters && viewMode === "map" && (
+      {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
-          className="sm:hidden fixed right-3 z-[70]"
-          style={{ top: activeFilters.length > 0 ? "176px" : "160px" }}
+          className={`sm:hidden fixed z-[70] ${
+            viewMode === "map"
+              ? `${user ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]"} left-3`
+              : "right-3"
+          }`}
+          style={viewMode === "list" ? { top: activeFilters.length > 0 ? "176px" : "160px" } : undefined}
         >
           <button
             type="button"
