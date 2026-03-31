@@ -1188,7 +1188,7 @@ export default function Home() {
               ? `${user ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]"} left-3`
               : "right-3"
           }`}
-          style={viewMode === "list" ? { top: activeFilters.length > 0 ? "176px" : "160px" } : undefined}
+          style={viewMode === "list" ? { top: activeFilters.length > 0 ? "208px" : "192px" } : undefined}
         >
           <button
             type="button"
