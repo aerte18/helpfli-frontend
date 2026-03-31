@@ -1,6 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate, Link } from "react-router-dom";
 import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -17,7 +16,6 @@ import Footer from "../components/Footer";
 import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
 import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
-import { readQsProviderDebug, qsProviderHomeDebug } from "../utils/qsProviderHomeDebug";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -448,8 +446,6 @@ export default function ProviderHome() {
 
   // Dane – pobierane z API
   const [demand, setDemand] = useState([]);
-  const lastOpenFetchDebugRef = useRef(null);
-  const lastRejectStatsRef = useRef(null);
   const openFetchSeqRef = useRef(0);
   const openFetchAbortRef = useRef(null);
   const [demandLoading, setDemandLoading] = useState(true);
@@ -599,18 +595,6 @@ export default function ProviderHome() {
       // Zasięg dla "wszystkie usługi" / brak usług jest już ustawiony wyżej na 600 km (effectiveMaxDistance)
 
       requestUrl = apiUrl(`/api/orders/open?${params.toString()}`);
-      if (readQsProviderDebug()) {
-        lastOpenFetchDebugRef.current = { phase: "request", url: requestUrl, at: Date.now() };
-        qsProviderHomeDebug("fetch /api/orders/open", {
-          url: requestUrl,
-          showAllServices,
-          providerServiceSlugs,
-          userServicesLen: user?.services?.length ?? 0,
-          allServicesLen: allServices?.length ?? 0,
-          effectiveMaxDistance: showAllServices ? null : (Number(filters.maxDistance) || 300),
-          filters,
-        });
-      }
       const response = await fetch(requestUrl, {
         signal: controller.signal,
         headers: {
@@ -624,47 +608,14 @@ export default function ProviderHome() {
         const orders = data.orders || [];
         // Ignoruj odpowiedzi starszych requestów (race condition przy suwaku / wielu zmianach filtrów).
         if (requestSeq !== openFetchSeqRef.current) return;
-        if (readQsProviderDebug()) {
-          lastOpenFetchDebugRef.current = {
-            phase: "ok",
-            url: requestUrl,
-            ok: true,
-            status: response.status,
-            count: orders.length,
-            at: Date.now(),
-          };
-          qsProviderHomeDebug("open OK", {
-            count: orders.length,
-            firstService: orders[0]?.service,
-            firstId: orders[0]?._id,
-          });
-        }
         setDemand(orders);
       } else {
         if (requestSeq !== openFetchSeqRef.current) return;
-        if (readQsProviderDebug()) {
-          lastOpenFetchDebugRef.current = {
-            phase: "http_error",
-            url: requestUrl,
-            ok: false,
-            status: response.status,
-            at: Date.now(),
-          };
-        }
         setDemand([]);
       }
     } catch (error) {
       if (error?.name === "AbortError") return;
       if (requestSeq !== openFetchSeqRef.current) return;
-      if (readQsProviderDebug()) {
-        lastOpenFetchDebugRef.current = {
-          phase: "exception",
-          url: requestUrl || null,
-          ok: false,
-          error: String(error?.message || error),
-          at: Date.now(),
-        };
-      }
       setDemand([]);
     } finally {
       if (requestSeq === openFetchSeqRef.current) setDemandLoading(false);
@@ -761,35 +712,13 @@ export default function ProviderHome() {
   }, [user, demand]);
 
   const list = useMemo(() => {
-    if (readQsProviderDebug()) {
-      qsProviderHomeDebug("list filter start", {
-        demandLen: demand.length,
-        showAllServices,
-        providerServiceSlugs,
-        clientMaxDistance,
-        filters,
-        userServicesSample: user?.services?.[0],
-      });
-    }
-    const rejectStats = {
-      profile: 0,
-      toolbarService: 0,
-      distance: 0,
-      budget: 0,
-      paymentType: 0,
-      offersStatus: 0,
-    };
-
     const filtered = demand.filter((o) => {
       // "Tylko moje usługi" filtrujemy po stronie backendu (/api/orders/open?services=...).
       // Lokalny filtr profilu bywał zbyt restrykcyjny dla historycznych formatów service i powodował puste listy.
       
       // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
       if (!showAllServices && filters.service && filters.service !== "any") {
-        if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) {
-          rejectStats.toolbarService += 1;
-          return false;
-        }
+        if (!orderServiceMatchesProvider(o.service, [filters.service], allServices)) return false;
       }
       
       // Kalkuluj rzeczywistą odległość jeśli mamy geolokalizację
@@ -803,19 +732,10 @@ export default function ProviderHome() {
         o.distanceKm = Math.round(distance * 10) / 10; // Zaokrąglij do 1 miejsca po przecinku
         
         if (clientMaxDistance && distance > Number(clientMaxDistance)) {
-          rejectStats.distance += 1;
-          if (readQsProviderDebug()) {
-            qsProviderHomeDebug("reject distance", {
-              id: o._id,
-              distance,
-              clientMaxDistance,
-            });
-          }
           return false;
         }
       } else if (clientMaxDistance && o.distanceKm && o.distanceKm > Number(clientMaxDistance)) {
         // Fallback do hardkodowanej odległości jeśli nie ma geolokalizacji, ale tylko jeśli distanceKm jest ustawione
-        rejectStats.distance += 1;
         return false;
       }
       // Jeśli zlecenie nie ma koordynatów, pokaż je zawsze (nie filtruj po dystansie)
@@ -826,25 +746,16 @@ export default function ProviderHome() {
         // Backend zwraca budget (liczba) lub budgetRange (obiekt z min/max)
         const budgetMin = o.budgetRange?.min ?? o.budgetFrom ?? (o.budget ? o.budget * 0.8 : 0);
         const budgetMax = o.budgetRange?.max ?? o.budgetTo ?? (o.budget ? o.budget * 1.2 : 999999);
-        if (budgetMax < lo || budgetMin > hi) {
-          rejectStats.budget += 1;
-          return false;
-        }
+        if (budgetMax < lo || budgetMin > hi) return false;
       }
 
       // Typ płatności: w systemie / poza systemem
       if (filters.paymentType !== "any") {
         const method = o.paymentMethod || o.paymentPreference || o.payment_method || null;
         if (filters.paymentType === "system") {
-          if (method && method !== "system" && method !== "both") {
-            rejectStats.paymentType += 1;
-            return false;
-          }
+          if (method && method !== "system" && method !== "both") return false;
         } else if (filters.paymentType === "external") {
-          if (method && method !== "external") {
-            rejectStats.paymentType += 1;
-            return false;
-          }
+          if (method && method !== "external") return false;
         }
       }
 
@@ -857,14 +768,8 @@ export default function ProviderHome() {
             ? o.offers.length
             : null;
         if (count != null) {
-          if (filters.offersStatus === "no_offers" && count > 0) {
-            rejectStats.offersStatus += 1;
-            return false;
-          }
-          if (filters.offersStatus === "max_3" && count > 3) {
-            rejectStats.offersStatus += 1;
-            return false;
-          }
+          if (filters.offersStatus === "no_offers" && count > 0) return false;
+          if (filters.offersStatus === "max_3" && count > 3) return false;
         }
       }
 
@@ -904,42 +809,8 @@ export default function ProviderHome() {
       }
     });
 
-    if (readQsProviderDebug()) {
-      lastRejectStatsRef.current = rejectStats;
-      qsProviderHomeDebug("list filter done", {
-        demandLen: demand.length,
-        filteredLen: filtered.length,
-        sortedLen: sorted.length,
-        rejectStats,
-      });
-    }
     return sorted;
   }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
-
-  useEffect(() => {
-    if (!readQsProviderDebug()) return;
-    window.__QS_PROVIDER_HOME_DEBUG__ = {
-      at: new Date().toISOString(),
-      demandLen: demand.length,
-      listLen: list.length,
-      providerServiceSlugs,
-      showAllServices,
-      filters,
-      clientMaxDistance,
-      allServicesLen: allServices.length,
-      firstDemandService: demand[0]?.service,
-      lastOpenFetch: lastOpenFetchDebugRef.current,
-      lastRejectStats: lastRejectStatsRef.current,
-    };
-  }, [
-    demand,
-    list,
-    showAllServices,
-    filters,
-    clientMaxDistance,
-    providerServiceSlugs,
-    allServices.length,
-  ]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
@@ -1822,21 +1693,6 @@ export default function ProviderHome() {
         companyProviders={companyProviders}
       />
 
-      {readQsProviderDebug() &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="fixed bottom-3 left-3 max-w-[min(100vw-1.5rem,22rem)] rounded-lg border border-emerald-500/40 bg-black/90 px-3 py-2 text-[11px] leading-snug text-white shadow-xl font-mono pointer-events-none"
-            style={{ zIndex: 2147483646 }}
-            aria-hidden
-          >
-            <div className="text-emerald-400/90 mb-0.5 font-sans text-[10px]">
-              qsDebug — w konsoli filtruj: qsProviderHome (Warnings)
-            </div>
-            demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance ?? "all"}
-          </div>,
-          document.body
-        )}
     </div>
   );
 }

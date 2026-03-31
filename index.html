@@ -77,21 +77,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Przed bundlem: nie da się tego „wyciąć” minifikacją; włącza debug panelu wykonawcy z ?qsDebugProviderHome=1 -->
-    <script>
-      (function () {
-        try {
-          var q = new URLSearchParams(window.location.search).get("qsDebugProviderHome");
-          if (q === "1" || q === "true") {
-            localStorage.setItem("qsDebugProviderHome", "1");
-            window.__QS_PROVIDER_HOME_DEBUG_FLAG__ = true;
-            console.warn(
-              "[qsProviderHome] debug z adresu URL (skrypt inline) — dalsze logi z bundla po wejściu na /provider-home"
-            );
-          }
-        } catch (e) {}
-      })();
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

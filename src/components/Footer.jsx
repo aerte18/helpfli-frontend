@@ -64,15 +64,8 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dane firmy</h3>
             <div className="text-gray-600 space-y-2">
-              <p className="font-medium">Helpfli Sp. z o.o.</p>
-              <p>kontakt@helpfli.pl</p>
-              <p>ul. Przykładowa 123</p>
-              <p>00-001 Warszawa</p>
-              <div className="pt-2 space-y-1 text-sm">
-                <p>NIP: 1234567890</p>
-                <p>REGON: 123456789</p>
-                <p>KRS: 0000123456</p>
-              </div>
+              <p className="font-medium">Helpfli</p>
+              <p>helpfli@outlook.com</p>
             </div>
           </div>
         </div>
