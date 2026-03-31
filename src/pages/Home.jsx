@@ -265,6 +265,14 @@ export default function Home() {
   // NEW: rozmiar mapy: 'sm' | 'lg' | 'full'
   const [mapSize, setMapSize] = useState("lg"); // domyślnie większa
   const [isProviderListExpanded, setIsProviderListExpanded] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobileViewport(window.innerWidth < 640);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   // Obsługa viewMode - synchronizuj z mapSize
   useEffect(() => {
@@ -507,6 +515,13 @@ export default function Home() {
       : viewMode === "list"
       ? "grid-cols-1" // tylko lista, bez mapy
       : "lg:grid-cols-[1.1fr_520px]"; // podział 50/50
+  const isCompactMobileSplit = isMobileViewport && viewMode === "split";
+  const providersInList =
+    viewMode === "list"
+      ? (showAllProviders ? list : list.slice(0, 20))
+      : isCompactMobileSplit
+      ? list.slice(0, 3)
+      : list;
 
   // Handler dla Asystenta AI - przejście do tworzenia zlecenia
   const handleAIConciergeOrder = useCallback((orderData) => {
@@ -724,8 +739,12 @@ export default function Home() {
       {viewMode === "map" && !showAdvancedFilters && (
         <button
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
-          className="fixed right-4 w-80 px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors border border-slate-200 rounded-lg bg-white shadow-sm z-40"
-          style={{ top: activeFilters.length > 0 ? '298px' : '300px' }}
+          className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
+            isMobileViewport
+              ? "left-3 right-3 bottom-24 rounded-xl px-4 py-3"
+              : "right-4 w-80 rounded-lg px-4 py-3"
+          }`}
+          style={!isMobileViewport ? { top: activeFilters.length > 0 ? "298px" : "300px" } : undefined}
         >
           <h3 className="font-semibold text-slate-800">Dostępni wykonawcy ({list.length})</h3>
           <svg 
@@ -749,7 +768,7 @@ export default function Home() {
             height: activeFilters.length > 0 ? 'calc(100vh - 128px)' : 'calc(100vh - 112px)'
           }}
         >
-          <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
+          <div className="absolute top-2 right-2 z-20 hidden sm:flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
             <button
               onClick={() => setViewMode("list")}
               className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
@@ -785,6 +804,31 @@ export default function Home() {
                 compare.toggle(p);
               }}
             />
+          </div>
+
+          {/* Mobilny przełącznik widoku (zawsze widoczny nad dolnym paskiem) */}
+          <div className="sm:hidden fixed left-1/2 -translate-x-1/2 bottom-8 z-40 flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+              title="Lista"
+            >
+              <span className="inline-flex items-center gap-1"><List className="w-3.5 h-3.5" aria-hidden />Lista</span>
+            </button>
+            <button
+              onClick={() => setViewMode("map")}
+              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+              title="Mapa"
+            >
+              <span className="inline-flex items-center gap-1"><Map className="w-3.5 h-3.5" aria-hidden />Mapa</span>
+            </button>
+            <button
+              onClick={() => setViewMode("split")}
+              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
+              title="Dzielone"
+            >
+              <span className="inline-flex items-center gap-1"><LayoutGrid className="w-3.5 h-3.5" aria-hidden />Dzielone</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -827,8 +871,13 @@ export default function Home() {
           <div className={`max-w-6xl mx-auto px-4 grid ${gridClass} gap-6 mt-4`}>
           {/* Lista */}
           {viewMode !== "map" && (
-            <div className="space-y-3">
-              {(viewMode === "list" && !showAllProviders ? list.slice(0, 20) : list).map((p) => (
+            <div className={`space-y-3 ${isCompactMobileSplit ? "order-2" : ""}`}>
+              {isCompactMobileSplit && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                  Podgląd wykonawców. Pełną listę zobaczysz w widoku listy.
+                </div>
+              )}
+              {providersInList.map((p) => (
                 <ProviderCard
                   key={p.id}
                   data={p}
@@ -859,13 +908,23 @@ export default function Home() {
                   </button>
                 </div>
               )}
+              {isCompactMobileSplit && list.length > 3 && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Pokaż pełną listę ({list.length})
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Mapa – w split z przyciskami widoku w prawym górnym rogu na mapie */}
           {viewMode !== "list" && (
-            <div className={`relative z-0 isolate ${viewMode !== "map" ? "lg:sticky lg:top-[92px] h-max" : ""}`}>
-              {viewMode === "split" && (
+            <div className={`relative z-0 isolate ${viewMode !== "map" ? "lg:sticky lg:top-[92px] h-max" : ""} ${isCompactMobileSplit ? "order-1" : ""}`}>
+              {viewMode === "split" && !isMobileViewport && (
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
                   <button
                     onClick={() => setViewMode("list")}
@@ -891,7 +950,7 @@ export default function Home() {
                   lng: p.lng || p.location?.lng 
                 }))}
                 center={center}
-                height={mapHeightClass}
+                height={isCompactMobileSplit ? "h-[44vh]" : mapHeightClass}
                 onFullscreenToggle={setMapSize}
                 onSelect={(p) => {
                   trackProviderView(p.id);
@@ -910,14 +969,38 @@ export default function Home() {
 
       {/* Panel boczny z listą w trybie pełnoekranowym (zwijany) */}
       {viewMode === "map" && !showAdvancedFilters && (
-        <div className={`fixed right-4 bg-white rounded-2xl border border-slate-200 shadow-xl z-40 transition-all duration-300 overflow-hidden ${
-          isProviderListExpanded ? 'bottom-4 w-80' : 'hidden'
-        }`}
-        style={isProviderListExpanded ? { top: activeFilters.length > 0 ? '298px' : '280px' } : {}}
+        <div
+          className={`fixed z-40 overflow-hidden border border-slate-200 bg-white shadow-xl transition-all duration-300 ${
+            isMobileViewport
+              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isProviderListExpanded ? "max-h-[58vh]" : "max-h-0 border-0"}`
+              : `${isProviderListExpanded ? "bottom-4 w-80 rounded-2xl" : "hidden"} right-4`
+          }`}
+          style={
+            !isMobileViewport && isProviderListExpanded
+              ? { top: activeFilters.length > 0 ? "298px" : "280px" }
+              : undefined
+          }
         >
           {/* Lista providerów - widoczna tylko gdy rozwinięta */}
           {isProviderListExpanded && (
-            <div className="overflow-y-auto p-4 space-y-3" style={{ height: activeFilters.length > 0 ? 'calc(100vh - 268px)' : 'calc(100vh - 240px)' }}>
+            <div
+              className="overflow-y-auto p-4 space-y-3"
+              style={
+                isMobileViewport
+                  ? { maxHeight: "58vh" }
+                  : { height: activeFilters.length > 0 ? "calc(100vh - 268px)" : "calc(100vh - 240px)" }
+              }
+            >
+            {isMobileViewport && (
+              <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 border-b border-slate-200 bg-white px-4 py-3">
+                <button
+                  onClick={() => setIsProviderListExpanded(false)}
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+                >
+                  Zwiń listę wykonawców
+                </button>
+              </div>
+            )}
             {list.map((p) => (
               <div key={p.id} className="rounded-xl border border-slate-200 overflow-hidden bg-white hover:shadow-md transition-shadow">
                 {/* Kompaktowa karta z gradientowym headerem */}
