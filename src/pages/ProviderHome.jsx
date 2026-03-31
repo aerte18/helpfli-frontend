@@ -468,12 +468,13 @@ export default function ProviderHome() {
   );
 
   // Ten sam zasięg co effectiveMaxDistance w fetchOrders — inaczej API zwraca wężej/szerzej niż filtr lokalny.
+  // Tryb "Wszystkie zlecenia" ma pokazywać pełny rynek, więc nie filtrujemy po dystansie.
   const clientMaxDistance = useMemo(
     () =>
-      showAllServices || !user?.services?.length
-        ? 600
+      showAllServices
+        ? null
         : Number(filters.maxDistance) || 300,
-    [showAllServices, user?.services?.length, filters.maxDistance]
+    [showAllServices, filters.maxDistance]
   );
 
   // Pobierz wszystkie usługi dla getProviderLabel
@@ -553,10 +554,10 @@ export default function ProviderHome() {
       const params = new URLSearchParams();
       // W trybie "wszystkie zlecenia" nie przepuszczaj ewentualnego starego filtra `service`.
       if (!showAllServices && filters.service && filters.service !== 'any') params.append('service', filters.service);
-      // Przy "wszystkie usługi" lub braku usług u providera – duży zasięg, żeby pokazać przykładowe zlecenia z różnych miast
-      const effectiveMaxDistance = (showAllServices || !user?.services?.length) ? 600 : (filters.maxDistance || 300);
+      // Tryb "Wszystkie zlecenia" = pełny rynek (bez filtra dystansu).
+      const effectiveMaxDistance = showAllServices ? null : (Number(filters.maxDistance) || 300);
       if (effectiveMaxDistance) params.append('maxDistance', effectiveMaxDistance);
-      if (userLocation) {
+      if (!showAllServices && userLocation) {
         params.append('lat', userLocation.lat);
         params.append('lng', userLocation.lng);
       }
@@ -597,7 +598,7 @@ export default function ProviderHome() {
           providerServiceSlugs,
           userServicesLen: user?.services?.length ?? 0,
           allServicesLen: allServices?.length ?? 0,
-          effectiveMaxDistance: (showAllServices || !user?.services?.length) ? 600 : (filters.maxDistance || 300),
+          effectiveMaxDistance: showAllServices ? null : (Number(filters.maxDistance) || 300),
           filters,
         });
       }
@@ -1296,7 +1297,7 @@ export default function ProviderHome() {
                   value={filters.maxDistance}
                   onChange={(v) => setFilters((s) => ({ ...s, maxDistance: v }))}
                   min={1}
-                  max={50}
+                  max={600}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -1420,7 +1421,7 @@ export default function ProviderHome() {
                 value={filters.maxDistance}
                 onChange={(v) => setFilters((s) => ({ ...s, maxDistance: v }))}
                 min={1}
-                max={50}
+                max={600}
               />
               <Select
                 label="Płatność"
@@ -1789,7 +1790,7 @@ export default function ProviderHome() {
             <div className="text-emerald-400/90 mb-0.5 font-sans text-[10px]">
               qsDebug — w konsoli filtruj: qsProviderHome (Warnings)
             </div>
-            demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance}
+            demand: {demand.length} · lista: {list.length} · rynek: {showAllServices ? "tak" : "nie"} · km: {clientMaxDistance ?? "all"}
           </div>,
           document.body
         )}
