@@ -415,8 +415,6 @@ export default function Home() {
   // Podłączone do /api/search z filtrami
   useEffect(() => {
     const controller = new AbortController();
-    const API = import.meta.env.VITE_API_URL || "";
-    const token = localStorage.getItem("token");
     const qs = new URLSearchParams();
     // Usunięto hardkodowaną lokalizację - pozwalamy na wyszukiwanie we wszystkich miastach
     if (filters.search) qs.set("q", String(filters.search));
@@ -437,7 +435,6 @@ export default function Home() {
           signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
         const data = await res.json();
