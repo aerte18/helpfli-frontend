@@ -1,9 +1,50 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
 import Footer from "../components/Footer";
 import PageBackground, { GlassCard } from "../components/PageBackground";
+import { apiUrl } from "@/lib/apiUrl";
 
 export default function Contact() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState({ type: "", message: "" });
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setStatus({ type: "", message: "" });
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(apiUrl("/api/contact"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || "Nie udało się wysłać wiadomości.");
+      }
+      setStatus({ type: "success", message: "Wiadomość została wysłana." });
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      setStatus({
+        type: "error",
+        message: err?.message || "Wystąpił błąd podczas wysyłki wiadomości.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PageBackground className="py-10 md:py-14">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
@@ -21,19 +62,7 @@ export default function Contact() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium text-slate-700 mb-1">Email</h3>
-                <p className="text-indigo-600 font-medium">kontakt@helpfli.pl</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-slate-700 mb-1">Telefon</h3>
-                <p className="text-indigo-600 font-medium">+48 123 456 789</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-slate-700 mb-1">Adres</h3>
-                <p className="text-slate-600">
-                  Helpfli Sp. z o.o.<br />
-                  ul. Przykładowa 123<br />
-                  00-001 Warszawa
-                </p>
+                <p className="text-indigo-600 font-medium">helpfli@outlook.com</p>
               </div>
               <div>
                 <h3 className="font-medium text-slate-700 mb-1">Godziny pracy</h3>
@@ -49,7 +78,7 @@ export default function Contact() {
           {/* Formularz kontaktowy */}
           <GlassCard className="p-6 md:p-8">
             <h2 className="text-xl md:text-2xl font-bold mb-6 text-slate-900">Wyślij wiadomość</h2>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={onSubmit}>
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1.5">
                   Imię i nazwisko
@@ -58,6 +87,8 @@ export default function Contact() {
                   type="text"
                   id="name"
                   name="name"
+                  value={form.name}
+                  onChange={onChange}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900"
                   required
                 />
@@ -70,6 +101,8 @@ export default function Contact() {
                   type="email"
                   id="email"
                   name="email"
+                  value={form.email}
+                  onChange={onChange}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900"
                   required
                 />
@@ -81,6 +114,8 @@ export default function Contact() {
                 <select
                   id="subject"
                   name="subject"
+                  value={form.subject}
+                  onChange={onChange}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900"
                   required
                 >
@@ -101,15 +136,29 @@ export default function Contact() {
                   id="message"
                   name="message"
                   rows="4"
+                  value={form.message}
+                  onChange={onChange}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900"
                   required
                 ></textarea>
               </div>
+              {status.message && (
+                <p
+                  className={
+                    status.type === "success"
+                      ? "text-sm text-emerald-700"
+                      : "text-sm text-red-700"
+                  }
+                >
+                  {status.message}
+                </p>
+              )}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#7C3AED] to-[#EC4899] py-3 px-6 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(79,70,229,0.5)] hover:shadow-[0_16px_40px_rgba(79,70,229,0.65)] transition-all"
               >
-                Wyślij wiadomość
+                {isSubmitting ? "Wysyłanie..." : "Wyślij wiadomość"}
               </button>
             </form>
           </GlassCard>
