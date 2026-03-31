@@ -25,8 +25,8 @@ const DEFAULT = [
 ];
 
 export default function PopularServices({ onPick, services = null }) {
-  const [popularServices, setPopularServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [popularServices, setPopularServices] = useState(DEFAULT);
+  const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [activeKey, setActiveKey] = useState(null);
   const scrollRef = useRef(null);
@@ -77,8 +77,6 @@ export default function PopularServices({ onPick, services = null }) {
           });
           
           setPopularServices(mappedServices);
-        } else {
-          setPopularServices(DEFAULT);
         }
       } catch (error) {
         console.error('Błąd pobierania popularnych usług:', error);
@@ -87,7 +85,6 @@ export default function PopularServices({ onPick, services = null }) {
         setPopularServices(DEFAULT);
       } finally {
         clearTimeout(timeoutId);
-        setLoading(false);
       }
     };
 

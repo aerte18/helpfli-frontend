@@ -365,19 +365,6 @@ export default function Home() {
       // Teraz: użyj availableNow jeśli dostępne, w przeciwnym razie isOnline
       if (availableNow && !(p.provider_status?.availableNow === true || p.provider_status?.isOnline === true)) return false;
       
-      // Filtrowanie po usługach
-      // Dopasowanie po usługach: jeżeli wybrano usługi, sprawdź nazwę główną lub listę wszystkich usług
-      if (selectedServiceSlugs.length === 0 && selectedServices.length > 0) {
-        const haystack = [
-          ...(p.service ? [String(p.service)] : []),
-          ...(Array.isArray(p.allServices) ? p.allServices.map(String) : [])
-        ];
-        const anyMatch = selectedServices.some((s) =>
-          matchesSelectedServiceLabel(s, haystack)
-        );
-        if (!anyMatch) return false;
-      }
-      
       // quick filter – tu możesz mapować quick->service id i zapytać backend
       return true;
     });
