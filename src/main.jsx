@@ -37,15 +37,40 @@ onFCP(sendToAnalytics);
 onLCP(sendToAnalytics);
 onTTFB(sendToAnalytics);
 
-// Recover from stale cached chunks after deployment (one-time reload)
-window.addEventListener("vite:preloadError", () => {
+async function recoverFromStaleChunk() {
+  const key = "qs_chunk_reload_once";
   try {
-    const key = "qs_chunk_reload_once";
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    window.location.reload();
-  } catch {
-    window.location.reload();
+
+    // Cleanup SW + CacheStorage so we don't keep serving stale bundles
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+    }
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+    }
+  } catch {}
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("_v", String(Date.now()));
+  window.location.replace(url.toString());
+}
+
+// Recover from stale cached chunks after deployment
+window.addEventListener("vite:preloadError", () => {
+  recoverFromStaleChunk();
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  const message = String(event?.reason?.message || event?.reason || "");
+  if (
+    message.includes("Failed to fetch dynamically imported module") ||
+    message.includes("ChunkLoadError")
+  ) {
+    recoverFromStaleChunk();
   }
 });
 

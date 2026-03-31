@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { Link } from 'react-router-dom';
 
 export default function AdminNotifications() {
   const [activeTab, setActiveTab] = useState('logs');
   const [logs, setLogs] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,6 +14,8 @@ export default function AdminNotifications() {
   useEffect(() => {
     if (activeTab === 'logs') {
       loadLogs();
+    } else if (activeTab === 'alerts') {
+      loadAlerts();
     } else if (activeTab === 'templates') {
       loadTemplates();
     } else if (activeTab === 'stats') {
@@ -53,6 +57,20 @@ export default function AdminNotifications() {
     }
   };
 
+  const loadAlerts = async () => {
+    try {
+      setLoading(true);
+      const data = await api('/api/admin/notifications/alerts?alertType=funnel_regression');
+      if (data.success) {
+        setAlerts(data.alerts || []);
+      }
+    } catch (error) {
+      console.error('Error loading alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadStats = async () => {
     try {
       setLoading(true);
@@ -83,6 +101,12 @@ export default function AdminNotifications() {
           className={`px-4 py-2 font-medium ${activeTab === 'logs' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-600'}`}
         >
           Logi powiadomień
+        </button>
+        <button
+          onClick={() => setActiveTab('alerts')}
+          className={`px-4 py-2 font-medium ${activeTab === 'alerts' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-600'}`}
+        >
+          Alerty analityczne
         </button>
         <button
           onClick={() => setActiveTab('templates')}
@@ -201,6 +225,68 @@ export default function AdminNotifications() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.recipient}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Alerty analityczne */}
+      {activeTab === 'alerts' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-8">Ładowanie...</div>
+          ) : (
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tytuł</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Szczegóły</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Typ</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Akcja</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {alerts.map((alert) => (
+                      <tr key={alert._id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(alert.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {alert.title}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {alert.message}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {alert.metadata?.alertType || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <Link
+                            to={`/admin/analytics${
+                              alert.metadata?.startDate && alert.metadata?.endDate
+                                ? `?from=${String(alert.metadata.startDate).slice(0, 10)}&to=${String(alert.metadata.endDate).slice(0, 10)}`
+                                : ''
+                            }`}
+                            className="inline-flex items-center rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-indigo-700 hover:bg-indigo-100"
+                          >
+                            Przejdź do analityki
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                    {alerts.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                          Brak alertów regresji lejka.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

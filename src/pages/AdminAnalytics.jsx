@@ -12,7 +12,8 @@ export default function AdminAnalytics() {
   const [monetization, setMonetization] = useState(null);
   const [segDim, setSegDim] = useState('city');
   const [segments, setSegments] = useState([]);
-  const [funnel, setFunnel] = useState([]);
+  const [funnel, setFunnel] = useState({ overall: [], client: [], provider: [] });
+  const [funnelView, setFunnelView] = useState('overall');
 
   const load = async () => {
     const res = await fetch(apiUrl(`/api/admin/analytics/summary?from=${from}&to=${to}`), {
@@ -45,12 +46,20 @@ export default function AdminAnalytics() {
       );
       if (funnelRes.ok) {
         const f = await funnelRes.json();
-        setFunnel(Array.isArray(f) ? f : []);
+        if (Array.isArray(f)) {
+          setFunnel({ overall: f, client: [], provider: [] });
+        } else {
+          setFunnel({
+            overall: Array.isArray(f?.overall) ? f.overall : [],
+            client: Array.isArray(f?.client) ? f.client : [],
+            provider: Array.isArray(f?.provider) ? f.provider : [],
+          });
+        }
       } else {
-        setFunnel([]);
+        setFunnel({ overall: [], client: [], provider: [] });
       }
     } catch {
-      setFunnel([]);
+      setFunnel({ overall: [], client: [], provider: [] });
     }
   };
 
@@ -173,78 +182,93 @@ export default function AdminAnalytics() {
   const daily = (data.daily||[]).map(x=>({ date:x._id, orders:x.orders, paid:x.paid, revenue: Math.round((x.revenue||0)/100) }));
 
   const funnelSteps = useMemo(() => {
-    if (!Array.isArray(funnel) || funnel.length === 0) return [];
+    const selectedFunnel = Array.isArray(funnel?.[funnelView]) ? funnel[funnelView] : [];
+    if (selectedFunnel.length === 0) return [];
     const byType = Object.fromEntries(
-      funnel.map((item) => [item._id || item.type || item.eventType, item.count || 0])
+      selectedFunnel.map((item) => [
+        item._id || item.type || item.eventType,
+        { count: item.count || 0, uniqueUsers: item.uniqueUsers || 0 }
+      ])
     );
-    const get = (key) => byType[key] || 0;
+    const get = (key) => byType[key] || { count: 0, uniqueUsers: 0 };
 
     const steps = [
       {
         key: 'page_view',
         label: 'Wejścia na strony',
         description: 'Wyświetlenia stron (landing/home i inne wejścia)',
-        count: get('page_view'),
+        count: get('page_view').count,
+        uniqueUsers: get('page_view').uniqueUsers,
       },
       {
         key: 'search',
         label: 'Wyszukiwanie',
         description: 'Użytkownicy, którzy wykonali wyszukiwanie usługi',
-        count: get('search'),
+        count: get('search').count,
+        uniqueUsers: get('search').uniqueUsers,
       },
       {
         key: 'provider_view',
         label: 'Podgląd wykonawców',
         description: 'Przegląd kart/profili wykonawców',
-        count: get('provider_view'),
+        count: get('provider_view').count,
+        uniqueUsers: get('provider_view').uniqueUsers,
       },
       {
         key: 'provider_contact',
         label: 'Kontakt z wykonawcą',
         description: 'Kliknięcia kontaktu (telefon/wiadomość/oferta)',
-        count: get('provider_contact'),
+        count: get('provider_contact').count,
+        uniqueUsers: get('provider_contact').uniqueUsers,
       },
       {
         key: 'order_form_start',
         label: 'Start formularza zlecenia',
         description: 'Użytkownicy, którzy rozpoczęli wypełnianie CreateOrder',
-        count: get('order_form_start'),
+        count: get('order_form_start').count,
+        uniqueUsers: get('order_form_start').uniqueUsers,
       },
       {
         key: 'order_form_success',
         label: 'Zlecenie wysłane',
         description: 'Zlecenia utworzone przez użytkowników (wysłany formularz)',
-        count: get('order_form_success'),
+        count: get('order_form_success').count,
+        uniqueUsers: get('order_form_success').uniqueUsers,
       },
       {
         key: 'quote_request',
         label: 'Prośba o wycenę',
         description: 'Użytkownicy, którzy wysłali zapytanie o wycenę',
-        count: get('quote_request'),
+        count: get('quote_request').count,
+        uniqueUsers: get('quote_request').uniqueUsers,
       },
       {
         key: 'offer_form_start',
         label: 'Start formularza oferty',
         description: 'Wykonawcy, którzy zaczęli pisać ofertę',
-        count: get('offer_form_start'),
+        count: get('offer_form_start').count,
+        uniqueUsers: get('offer_form_start').uniqueUsers,
       },
       {
         key: 'offer_form_submit',
         label: 'Oferta wysłana',
         description: 'Oferty faktycznie wysłane do klientów',
-        count: get('offer_form_submit'),
+        count: get('offer_form_submit').count,
+        uniqueUsers: get('offer_form_submit').uniqueUsers,
       },
       {
         key: 'order_accepted',
         label: 'Oferta zaakceptowana',
         description: 'Oferty zaakceptowane przez klientów',
-        count: get('order_accepted'),
+        count: get('order_accepted').count,
+        uniqueUsers: get('order_accepted').uniqueUsers,
       },
       {
         key: 'payment_succeeded',
         label: 'Płatność w systemie',
         description: 'Zlecenia z opłaconą płatnością w Helpfli',
-        count: get('payment_succeeded'),
+        count: get('payment_succeeded').count,
+        uniqueUsers: get('payment_succeeded').uniqueUsers,
       },
     ];
 
@@ -274,7 +298,16 @@ export default function AdminAnalytics() {
         convFromFirst,
       };
     });
-  }, [funnel]);
+  }, [funnel, funnelView]);
+
+  const funnelRegressionAlert = useMemo(() => {
+    const drops = funnelSteps
+      .filter((step, idx) => idx > 0 && typeof step.dropFromPrev === 'number')
+      .sort((a, b) => (b.dropFromPrev || 0) - (a.dropFromPrev || 0));
+    const worst = drops[0];
+    if (!worst || worst.dropFromPrev < 35) return null;
+    return `Uwaga: duży spadek w lejku (${worst.dropFromPrev.toFixed(1)}%) na kroku "${worst.label}".`;
+  }, [funnelSteps]);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
@@ -312,6 +345,16 @@ export default function AdminAnalytics() {
             Zakres: {from} – {to}
           </div>
         </div>
+        <div className="flex gap-2">
+          <button onClick={() => setFunnelView('overall')} className={`px-2.5 py-1 rounded text-xs ${funnelView === 'overall' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Wszyscy</button>
+          <button onClick={() => setFunnelView('client')} className={`px-2.5 py-1 rounded text-xs ${funnelView === 'client' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Klienci</button>
+          <button onClick={() => setFunnelView('provider')} className={`px-2.5 py-1 rounded text-xs ${funnelView === 'provider' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Wykonawcy</button>
+        </div>
+        {funnelRegressionAlert && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {funnelRegressionAlert}
+          </div>
+        )}
 
         {funnelSteps.length === 0 ? (
           <div className="text-sm text-gray-600">
@@ -331,6 +374,7 @@ export default function AdminAnalytics() {
                   <div className="font-semibold text-sm">{step.label}</div>
                   <div className="text-xs text-gray-600">{step.description}</div>
                   <div className="mt-1 text-2xl font-semibold">{step.count}</div>
+                  <div className="text-xs text-gray-600">Unikalni: <span className="font-medium">{step.uniqueUsers || 0}</span></div>
                   {step.convFromFirst != null && (
                     <div className="text-xs text-gray-600">
                       Od startu:{" "}
@@ -358,6 +402,7 @@ export default function AdminAnalytics() {
                     <th className="p-2">Krok</th>
                     <th className="p-2">Label</th>
                     <th className="p-2">Zdarzenia</th>
+                    <th className="p-2">Unikalni użytkownicy</th>
                     <th className="p-2">Konwersja od startu</th>
                     <th className="p-2">Spadek vs poprzedni</th>
                   </tr>
@@ -368,6 +413,7 @@ export default function AdminAnalytics() {
                       <td className="p-2 whitespace-nowrap">Krok {idx + 1}</td>
                       <td className="p-2 whitespace-nowrap">{step.label}</td>
                       <td className="p-2">{step.count}</td>
+                      <td className="p-2">{step.uniqueUsers || 0}</td>
                       <td className="p-2">
                         {step.convFromFirst == null
                           ? "—"
@@ -388,10 +434,10 @@ export default function AdminAnalytics() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard title="Zlecenia" value={z.orders}/>
-        <KpiCard title="Opłacone (w systemie)" value={z.ordersPaid}/>
-        <KpiCard title="Obrót (PLN)" value={(z.revenue/100).toFixed(2)}/>
-        <KpiCard title="Średnia wartość (PLN)" value={(z.avgOrder/100).toFixed(2)}/>
+        <KpiCard title="Zlecenia" value={z.orders} deltaPct={data.compare?.orders?.deltaPct}/>
+        <KpiCard title="Opłacone (w systemie)" value={z.ordersPaid} deltaPct={data.compare?.ordersPaid?.deltaPct}/>
+        <KpiCard title="Obrót (PLN)" value={(z.revenue/100).toFixed(2)} deltaPct={data.compare?.revenue?.deltaPct}/>
+        <KpiCard title="Średnia wartość (PLN)" value={(z.avgOrder/100).toFixed(2)} deltaPct={data.compare?.avgOrder?.deltaPct}/>
         <KpiCard title="Udział płatnych" value={((z.paidShare*100)||0).toFixed(1)+'%'}/>
         <KpiCard title="Wykonawcy" value={z.providersCount}/>
         <KpiCard title="Zweryfikowani (KYC)" value={z.providersVerified}/>
@@ -586,11 +632,22 @@ export default function AdminAnalytics() {
   );
 }
 
-function KpiCard({ title, value }) {
+function KpiCard({ title, value, deltaPct = null }) {
+  const deltaClass =
+    typeof deltaPct === "number"
+      ? deltaPct >= 0
+        ? "text-emerald-600"
+        : "text-rose-600"
+      : "text-gray-400";
   return (
     <div className="border rounded-2xl p-4 bg-white">
       <div className="text-sm text-gray-600">{title}</div>
       <div className="text-2xl font-semibold">{value}</div>
+      <div className={`text-xs mt-1 ${deltaClass}`}>
+        {typeof deltaPct === "number"
+          ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(1)}% vs poprzedni okres`
+          : "brak porównania"}
+      </div>
     </div>
   );
 }
