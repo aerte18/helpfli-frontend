@@ -26,6 +26,12 @@ import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
 import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap } from "lucide-react";
 
+const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
+
+function normalizeMobileViewMode(value) {
+  return value === "list" || value === "map" ? value : null;
+}
+
 // Dane z backendu /api/search – fetchowane w useEffect poniżej
 // DEMO fallback – pokaż przykładowych usługodawców, gdy backend nie zwróci wyników
 const DEMO_PROVIDERS = [
@@ -273,6 +279,43 @@ export default function Home() {
     window.addEventListener("resize", updateViewport);
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const urlView = normalizeMobileViewMode(searchParams.get("view"));
+    if (urlView) {
+      if (viewMode !== urlView) setViewMode(urlView);
+      return;
+    }
+    try {
+      const savedView = normalizeMobileViewMode(localStorage.getItem(MOBILE_VIEW_STORAGE_KEY));
+      if (savedView && viewMode !== savedView) {
+        setViewMode(savedView);
+      }
+    } catch (_) {}
+  }, [isMobileViewport, searchParams, viewMode]);
+
+  useEffect(() => {
+    if (isMobileViewport && viewMode === "split") {
+      setViewMode("map");
+    }
+  }, [isMobileViewport, viewMode]);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    const current = normalizeMobileViewMode(viewMode);
+    if (!current) return;
+
+    try {
+      localStorage.setItem(MOBILE_VIEW_STORAGE_KEY, current);
+    } catch (_) {}
+
+    const currentParam = normalizeMobileViewMode(searchParams.get("view"));
+    if (currentParam === current) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("view", current);
+    setSearchParams(next, { replace: true });
+  }, [isMobileViewport, viewMode, searchParams, setSearchParams]);
 
   // Obsługa viewMode - synchronizuj z mapSize
   useEffect(() => {
@@ -822,13 +865,6 @@ export default function Home() {
             >
               <span className="inline-flex items-center gap-1"><Map className="w-3.5 h-3.5" aria-hidden />Mapa</span>
             </button>
-            <button
-              onClick={() => setViewMode("split")}
-              className={`px-3 py-1.5 text-xs rounded-full transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-slate-100"}`}
-              title="Dzielone"
-            >
-              <span className="inline-flex items-center gap-1"><LayoutGrid className="w-3.5 h-3.5" aria-hidden />Dzielone</span>
-            </button>
           </div>
         </div>
       ) : (
@@ -856,15 +892,17 @@ export default function Home() {
                 >
                   <Map className="w-4 h-4" aria-hidden />
                 </button>
-                <button
-                  onClick={() => setViewMode("split")}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                  title="Podział"
-                >
-                  <LayoutGrid className="w-4 h-4" aria-hidden />
-                </button>
+                {!isMobileViewport && (
+                  <button
+                    onClick={() => setViewMode("split")}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                    title="Podział"
+                  >
+                    <LayoutGrid className="w-4 h-4" aria-hidden />
+                  </button>
+                )}
               </div>
             </div>
           )}

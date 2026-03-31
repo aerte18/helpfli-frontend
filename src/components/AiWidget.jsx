@@ -10,6 +10,9 @@ export default function AiWidget() {
   const isMdUp = useBreakpointMd();
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const mobileBottomClass = user
+    ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
+    : "bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]";
 
   // Ukryj widget dla providerów - Asystent AI jest tylko dla klientów
   if (user?.role === 'provider') {
@@ -73,12 +76,11 @@ export default function AiWidget() {
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="fixed z-[50] rounded-full shadow-2xl
-                   bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3
+        className={`fixed z-[50] rounded-full shadow-2xl right-3 ${mobileBottomClass}
                    md:bottom-6 md:right-6
                    bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700
                    border-2 border-indigo-400/30 backdrop-blur-sm
-                   hover:shadow-3xl transition-all duration-300 overflow-hidden"
+                   hover:shadow-3xl transition-all duration-300 overflow-hidden`}
         style={{
           padding: isHovered && isMdUp ? "12px 20px" : isMdUp ? "16px" : "12px",
           width: isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
