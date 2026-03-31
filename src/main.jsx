@@ -37,6 +37,18 @@ onFCP(sendToAnalytics);
 onLCP(sendToAnalytics);
 onTTFB(sendToAnalytics);
 
+// Recover from stale cached chunks after deployment (one-time reload)
+window.addEventListener("vite:preloadError", () => {
+  try {
+    const key = "qs_chunk_reload_once";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    window.location.reload();
+  } catch {
+    window.location.reload();
+  }
+});
+
 // Service Worker handling
 if ('serviceWorker' in navigator) {
   if (import.meta && import.meta.env && import.meta.env.DEV) {
@@ -47,7 +59,7 @@ if ('serviceWorker' in navigator) {
   } else {
     // PROD: rejestruj SW (z bumpem wersji, aby odświeżać cache)
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=6')
+      navigator.serviceWorker.register('/sw.js?v=7')
         .then((registration) => {
           console.log('✅ Service Worker registered:', registration);
         })
