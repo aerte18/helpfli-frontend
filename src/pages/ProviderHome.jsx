@@ -781,25 +781,8 @@ export default function ProviderHome() {
     };
 
     const filtered = demand.filter((o) => {
-      // Filtrowanie po usługach - domyślnie tylko usługi providera
-      if (!showAllServices) {
-        const providerServices = providerServiceSlugs;
-        const canApplyProfileFilter = providerServices.length > 0;
-        if (canApplyProfileFilter) {
-          const matchProf = orderServiceMatchesProvider(o.service, providerServices, allServices);
-          if (!matchProf) {
-            rejectStats.profile += 1;
-            if (readQsProviderDebug()) {
-              qsProviderHomeDebug("reject profile", {
-                id: o._id,
-                service: o.service,
-                match: matchProf,
-              });
-            }
-            return false;
-          }
-        }
-      }
+      // "Tylko moje usługi" filtrujemy po stronie backendu (/api/orders/open?services=...).
+      // Lokalny filtr profilu bywał zbyt restrykcyjny dla historycznych formatów service i powodował puste listy.
       
       // Filtr usługi w toolbarze — zgodny z orderServiceMatchesProvider (kategoria vs pełny slug)
       if (!showAllServices && filters.service && filters.service !== "any") {
