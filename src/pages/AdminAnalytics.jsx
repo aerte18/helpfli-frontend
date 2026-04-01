@@ -305,8 +305,8 @@ export default function AdminAnalytics() {
       .filter((step, idx) => idx > 0 && typeof step.dropFromPrev === 'number')
       .sort((a, b) => (b.dropFromPrev || 0) - (a.dropFromPrev || 0));
     const worst = drops[0];
-    if (!worst || worst.dropFromPrev < 35) return null;
-    return `Uwaga: duży spadek w lejku (${worst.dropFromPrev.toFixed(1)}%) na kroku "${worst.label}".`;
+    if (!worst || num(worst.dropFromPrev) < 35) return null;
+    return `Uwaga: duży spadek w lejku (${fmt1(worst.dropFromPrev)}%) na kroku "${worst.label}".`;
   }, [funnelSteps]);
 
   return (
@@ -379,7 +379,7 @@ export default function AdminAnalytics() {
                     <div className="text-xs text-gray-600">
                       Od startu:{" "}
                       <span className="font-medium">
-                        {step.convFromFirst.toFixed(1)}%
+                        {fmt1(step.convFromFirst)}%
                       </span>
                     </div>
                   )}
@@ -387,7 +387,7 @@ export default function AdminAnalytics() {
                     <div className="text-xs text-gray-500">
                       Spadek vs poprzedni krok:{" "}
                       <span className="font-medium">
-                        {step.dropFromPrev.toFixed(1)}%
+                        {fmt1(step.dropFromPrev)}%
                       </span>
                     </div>
                   )}
@@ -417,12 +417,12 @@ export default function AdminAnalytics() {
                       <td className="p-2">
                         {step.convFromFirst == null
                           ? "—"
-                          : `${step.convFromFirst.toFixed(1)}%`}
+                          : `${fmt1(step.convFromFirst)}%`}
                       </td>
                       <td className="p-2">
                         {step.dropFromPrev == null
                           ? "—"
-                          : `${step.dropFromPrev.toFixed(1)}%`}
+                          : `${fmt1(step.dropFromPrev)}%`}
                       </td>
                     </tr>
                   ))}
@@ -436,9 +436,9 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard title="Zlecenia" value={z.orders} deltaPct={data.compare?.orders?.deltaPct}/>
         <KpiCard title="Opłacone (w systemie)" value={z.ordersPaid} deltaPct={data.compare?.ordersPaid?.deltaPct}/>
-        <KpiCard title="Obrót (PLN)" value={(z.revenue/100).toFixed(2)} deltaPct={data.compare?.revenue?.deltaPct}/>
-        <KpiCard title="Średnia wartość (PLN)" value={(z.avgOrder/100).toFixed(2)} deltaPct={data.compare?.avgOrder?.deltaPct}/>
-        <KpiCard title="Udział płatnych" value={((z.paidShare*100)||0).toFixed(1)+'%'}/>
+        <KpiCard title="Obrót (PLN)" value={fmt2(num(z.revenue) / 100)} deltaPct={data.compare?.revenue?.deltaPct}/>
+        <KpiCard title="Średnia wartość (PLN)" value={fmt2(num(z.avgOrder) / 100)} deltaPct={data.compare?.avgOrder?.deltaPct}/>
+        <KpiCard title="Udział płatnych" value={fmt1(num(z.paidShare) * 100) + '%'} />
         <KpiCard title="Wykonawcy" value={z.providersCount}/>
         <KpiCard title="Zweryfikowani (KYC)" value={z.providersVerified}/>
         <KpiCard title="Klienci" value={z.clientsCount}/>
@@ -464,11 +464,11 @@ export default function AdminAnalytics() {
             />
             <KpiCard 
               title="MRR z subskrypcji (PLN)" 
-              value={(monetization.subscriptions?.mrrPLN ?? 0).toFixed(2)}
+              value={fmt2(num(monetization.subscriptions?.mrrPLN))}
             />
             <KpiCard 
               title="Przychód z promocji (PLN)" 
-              value={(monetization.promotions?.revenuePLN ?? 0).toFixed(2)}
+              value={fmt2(num(monetization.promotions?.revenuePLN))}
             />
             <KpiCard 
               title="Kupony użyte / wystawione" 
@@ -476,7 +476,7 @@ export default function AdminAnalytics() {
             />
             <KpiCard 
               title="Współczynnik użycia kuponów" 
-              value={(((monetization.coupons?.usageRate || 0) * 100).toFixed(1)) + '%'}
+              value={fmt1(num(monetization.coupons?.usageRate) * 100) + '%'}
             />
           </div>
 
@@ -612,8 +612,8 @@ export default function AdminAnalytics() {
                     <td className="p-2">{s.segment || '—'}</td>
                     <td className="p-2">{s.orders}</td>
                     <td className="p-2">{s.paidOrders}</td>
-                    <td className="p-2">{((s.paidShare*100)||0).toFixed(1)}%</td>
-                    <td className="p-2">{((s.revenue||0)/100).toFixed(2)}</td>
+                    <td className="p-2">{fmt1(num(s.paidShare) * 100)}%</td>
+                    <td className="p-2">{fmt2(num(s.revenue) / 100)}</td>
                   </tr>
                 ))}
                 </tbody>
@@ -630,6 +630,17 @@ export default function AdminAnalytics() {
       </div>
     </div>
   );
+}
+
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function fmt1(v) {
+  return num(v).toFixed(1);
+}
+function fmt2(v) {
+  return num(v).toFixed(2);
 }
 
 function KpiCard({ title, value, deltaPct = null }) {
