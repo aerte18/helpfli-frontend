@@ -515,6 +515,10 @@ export default function ProviderHome() {
   const [recommendedOrders, setRecommendedOrders] = useState([]);
   const [recommendedLoading, setRecommendedLoading] = useState(false);
   const [recommendedOnly, setRecommendedOnly] = useState(false);
+  const recommendedOrdersSafe = useMemo(
+    () => (Array.isArray(recommendedOrders) ? recommendedOrders : []),
+    [recommendedOrders]
+  );
   const recommendedById = useMemo(() => {
     const normalizeReason = (value) => {
       if (typeof value === "string") return value;
@@ -527,7 +531,7 @@ export default function ProviderHome() {
       return "Dopasowane do Twoich usług i lokalizacji";
     };
     const map = new Map();
-    (recommendedOrders || []).forEach((rec) => {
+    recommendedOrdersSafe.forEach((rec) => {
       const id = String(rec?.id || rec?._id || "").trim();
       if (!id) return;
       map.set(id, {
@@ -535,7 +539,7 @@ export default function ProviderHome() {
       });
     });
     return map;
-  }, [recommendedOrders]);
+  }, [recommendedOrdersSafe]);
   const providerServiceSlugs = useMemo(
     () => expandProviderServiceSlugs(user?.services || [], allServices),
     [user?.services, allServices]
@@ -732,7 +736,14 @@ export default function ProviderHome() {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((res) => res.ok ? res.json() : { orders: [] })
-      .then((data) => setRecommendedOrders(data.orders || []))
+      .then((data) => {
+        const orders = Array.isArray(data?.orders)
+          ? data.orders
+          : Array.isArray(data)
+            ? data
+            : [];
+        setRecommendedOrders(orders);
+      })
       .catch(() => setRecommendedOrders([]))
       .finally(() => setRecommendedLoading(false));
   }, [user]);
