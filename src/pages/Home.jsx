@@ -484,6 +484,7 @@ export default function Home() {
           serviceIds: p.serviceIds || p.services || [],
           provider_status: p.provider_status || null,
           promo: p.promo || {},
+          headline: p.headline || "",
           bio: p.bio || p.description || "",
           online: p.online ?? false,
           b2b: p.b2b ?? false,
