@@ -204,9 +204,11 @@ export default function AdminAnalytics() {
     const selectedFunnel = Array.isArray(funnel?.[funnelView]) ? funnel[funnelView] : [];
     if (selectedFunnel.length === 0) return [];
     const byType = Object.fromEntries(
-      selectedFunnel.map((item) => [
-        item._id || item.type || item.eventType,
-        { count: item.count || 0, uniqueUsers: item.uniqueUsers || 0 }
+      (Array.isArray(selectedFunnel) ? selectedFunnel : [])
+        .filter(Boolean)
+        .map((item) => [
+        item?._id || item?.type || item?.eventType || 'unknown',
+        { count: num(item?.count), uniqueUsers: num(item?.uniqueUsers) }
       ])
     );
     const get = (key) => byType[key] || { count: 0, uniqueUsers: 0 };
@@ -504,9 +506,11 @@ export default function AdminAnalytics() {
             <div className="mt-3 text-xs text-gray-600">
               <div className="font-medium mb-1">Subskrypcje wg planu:</div>
               <div className="flex flex-wrap gap-2">
-                {monetization.subscriptions.byPlan.map((p, idx) => (
+                {(Array.isArray(monetization?.subscriptions?.byPlan) ? monetization.subscriptions.byPlan : [])
+                  .filter(Boolean)
+                  .map((p, idx) => (
                   <span key={idx} className="px-2 py-1 rounded-full border bg-gray-50">
-                    {safeRenderValue(p.planKey)}: {safeRenderValue(p.count)}
+                    {safeRenderValue(p?.planKey)}: {safeRenderValue(p?.count)}
                   </span>
                 ))}
               </div>
@@ -643,13 +647,13 @@ export default function AdminAnalytics() {
                   <th className="p-2">Przychód (PLN)</th>
                 </tr></thead>
                 <tbody>
-                {segments.map((s, i)=>(
+                {(Array.isArray(segments) ? segments : []).filter(Boolean).map((s, i)=>(
                   <tr key={i} className="border-t">
-                    <td className="p-2">{safeRenderValue(s.segment || '—')}</td>
-                    <td className="p-2">{safeRenderValue(s.orders)}</td>
-                    <td className="p-2">{safeRenderValue(s.paidOrders)}</td>
-                    <td className="p-2">{fmt1(num(s.paidShare) * 100)}%</td>
-                    <td className="p-2">{fmt2(num(s.revenue) / 100)}</td>
+                    <td className="p-2">{safeRenderValue(s?.segment ?? '—')}</td>
+                    <td className="p-2">{safeRenderValue(s?.orders)}</td>
+                    <td className="p-2">{safeRenderValue(s?.paidOrders)}</td>
+                    <td className="p-2">{fmt1(num(s?.paidShare) * 100)}%</td>
+                    <td className="p-2">{fmt2(num(s?.revenue) / 100)}</td>
                   </tr>
                 ))}
                 </tbody>
@@ -701,8 +705,8 @@ function KpiCard({ title, value, deltaPct = null }) {
       <div className="text-sm text-gray-600">{title}</div>
       <div className="text-2xl font-semibold">{safeRenderValue(value)}</div>
       <div className={`text-xs mt-1 ${deltaClass}`}>
-        {typeof deltaPct === "number"
-          ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(1)}% vs poprzedni okres`
+        {Number.isFinite(deltaPct)
+          ? `${deltaPct >= 0 ? "+" : ""}${fmt1(deltaPct)}% vs poprzedni okres`
           : "brak porównania"}
       </div>
     </div>
