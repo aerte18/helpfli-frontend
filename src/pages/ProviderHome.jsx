@@ -1125,7 +1125,6 @@ export default function ProviderHome() {
           } ${viewMode === "map" && isMobileViewport ? "py-2" : isMobileViewport ? "py-2.5" : "py-3"}`}
         >
           {isMobileViewport ? (
-            viewMode === "map" ? (
               <div className="flex items-center gap-1 w-full min-w-0">
                 <div
                   className="inline-flex shrink-0 rounded-full border border-slate-200/90 bg-white/95 p-0.5 shadow-sm"
@@ -1217,57 +1216,6 @@ export default function ProviderHome() {
                   <CalendarDays className="w-4 h-4" aria-hidden />
                 </Link>
               </div>
-            ) : (
-            <>
-              <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                <div
-                  className="inline-flex rounded-full border border-slate-200/90 bg-white/95 p-0.5 shadow-sm"
-                  role="group"
-                  aria-label="Status wykonawcy"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("online")}
-                    title="Online — widoczny dla klientów"
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${
-                      status === "online"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-slate-600 active:bg-slate-100"
-                    }`}
-                  >
-                    <Wifi className="w-4 h-4 shrink-0" aria-hidden />
-                    Online
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("offline")}
-                    title="Offline — mniejsza widoczność w wynikach"
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${
-                      status === "offline"
-                        ? "bg-slate-700 text-white shadow-sm"
-                        : "text-slate-600 active:bg-slate-100"
-                    }`}
-                  >
-                    <WifiOff className="w-4 h-4 shrink-0" aria-hidden />
-                    Offline
-                  </button>
-                </div>
-                <Link
-                  to="/account?tab=schedule"
-                  title="Harmonogram dostępności"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]"
-                  aria-label="Harmonogram dostępności"
-                >
-                  <CalendarDays className="w-5 h-5" aria-hidden />
-                </Link>
-              </div>
-              {status === "offline" && viewMode !== "map" && (
-                <p className="text-[11px] leading-snug text-slate-600">
-                  Offline: klienci widzą niższą dostępność — ustaw Online, gdy możesz przyjmować zlecenia.
-                </p>
-              )}
-            </>
-            )
           ) : (
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
               <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
@@ -1301,7 +1249,7 @@ export default function ProviderHome() {
             </div>
           )}
 
-          {!(isMobileViewport && viewMode === "map") && (
+          {!isMobileViewport && (
           <div
             className={`flex items-center gap-1.5 flex-nowrap min-w-0 ${
               isMobileViewport

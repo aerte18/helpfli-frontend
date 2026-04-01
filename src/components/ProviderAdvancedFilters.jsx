@@ -62,14 +62,19 @@ export default function ProviderAdvancedFilters({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex justify-end">
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
         aria-hidden
       />
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-2xl flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="provider-advanced-filters-title"
+        className="relative flex h-full max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col bg-white shadow-2xl min-h-0 sm:max-w-md"
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5">
           <h2 className="text-lg font-semibold text-[var(--qs-color-text)]">
             Filtry zaawansowane
           </h2>
@@ -82,7 +87,7 @@ export default function ProviderAdvancedFilters({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-4 space-y-5">
           {/* Sortowanie */}
           <div>
             <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-2">
@@ -209,7 +214,7 @@ export default function ProviderAdvancedFilters({
           )}
         </div>
 
-        <div className="p-5 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] flex gap-3">
+        <div className="flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={handleClear}
