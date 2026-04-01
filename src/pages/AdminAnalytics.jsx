@@ -75,10 +75,13 @@ export default function AdminAnalytics() {
     const map = L.map(mapEl).setView([52.2297, 21.0122], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
 
-    const maxCount = Math.max(...(data.heatmap?.map(h=>h.count)||[1]));
-    (data.heatmap||[]).forEach(h => {
+    const safeHeat = (Array.isArray(data.heatmap) ? data.heatmap : [])
+      .map((h) => ({ lat: num(h?.lat), lon: num(h?.lon), count: Math.max(0, num(h?.count)) }))
+      .filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lon) && h.count > 0);
+    const maxCount = Math.max(...(safeHeat.map((h) => h.count) || [1]));
+    safeHeat.forEach((h) => {
       const r = 500 + (h.count / maxCount) * 2500;
-      const opacity = Math.min(0.75, 0.2 + (h.count / maxCount)*0.6);
+      const opacity = Math.min(0.75, 0.2 + (h.count / maxCount) * 0.6);
       L.circle([h.lat, h.lon], { radius: r, color: '#7c3aed', weight: 1, fillOpacity: opacity }).addTo(map);
     });
     mapEl._leaflet = map;
@@ -185,6 +188,16 @@ export default function AdminAnalytics() {
     orders: num(x?.orders),
     paid: num(x?.paid),
     revenue: Math.round(num(x?.revenue) / 100),
+  }));
+  const topServicesChartData = (Array.isArray(data.topServices) ? data.topServices : []).map((s) => ({
+    service: String(s?._id || '—'),
+    count: num(s?.count),
+    revenue: Math.round(num(s?.revenue) / 100),
+  }));
+  const segmentChartData = (Array.isArray(segments) ? segments : []).map((s) => ({
+    segment: s?.segment || '—',
+    orders: num(s?.orders),
+    revenue: Math.round(num(s?.revenue) / 100),
   }));
 
   const funnelSteps = useMemo(() => {
@@ -544,42 +557,54 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="border rounded-2xl p-4 bg-white">
           <div className="font-semibold mb-2">Zlecenia dziennie</div>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={daily}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
-              <YAxis yAxisId="l" />
-              <Tooltip />
-              <Line yAxisId="l" type="monotone" dataKey="orders" dot={false}/>
-              <Line yAxisId="l" type="monotone" dataKey="paid" dot={false}/>
-            </LineChart>
-          </ResponsiveContainer>
+          {daily.length === 0 ? (
+            <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
+                <YAxis yAxisId="l" />
+                <Tooltip />
+                <Line yAxisId="l" type="monotone" dataKey="orders" dot={false}/>
+                <Line yAxisId="l" type="monotone" dataKey="paid" dot={false}/>
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
         <div className="border rounded-2xl p-4 bg-white">
           <div className="font-semibold mb-2">Przychód dzienny (PLN)</div>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={daily}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="revenue" dot={false}/>
-            </LineChart>
-          </ResponsiveContainer>
+          {daily.length === 0 ? (
+            <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="revenue" dot={false}/>
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
       <div className="border rounded-2xl p-4 bg-white">
         <div className="font-semibold mb-2">Top usługi</div>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={(data.topServices||[]).map(s=>({ service: String(s._id||'—'), count:s.count, revenue: Math.round((s.revenue||0)/100) }))}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="service" tick={{ fontSize: 12 }} />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" />
-          </BarChart>
-        </ResponsiveContainer>
+        {topServicesChartData.length === 0 ? (
+          <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={topServicesChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="service" tick={{ fontSize: 12 }} />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       <div className="border rounded-2xl p-4 bg-white">
@@ -595,15 +620,19 @@ export default function AdminAnalytics() {
           <div className="text-sm text-gray-600">Brak danych.</div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={segments.map(s=>({ segment: s.segment || '—', orders: s.orders, revenue: Math.round((s.revenue||0)/100) }))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="segment" tick={{ fontSize: 11 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="orders" />
-              </BarChart>
-            </ResponsiveContainer>
+            {segmentChartData.length === 0 ? (
+              <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={segmentChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="segment" tick={{ fontSize: 11 }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="orders" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
             <div className="overflow-auto mt-3">
               <table className="min-w-full text-sm">
                 <thead><tr className="text-left">
