@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -396,6 +396,12 @@ export default function ProviderHome() {
     const saved = localStorage.getItem('providerHome_viewMode');
     return saved || 'split';
   });
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 1023px)").matches;
+  });
+  const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
+  const mobileViewMenuRef = useRef(null);
 
   const [mapSize, setMapSize] = useState(() => {
     return localStorage.getItem('mapSize') || 'lg';
@@ -418,6 +424,10 @@ export default function ProviderHome() {
 
   // Synchronizacja viewMode z mapSize
   useEffect(() => {
+    if (isMobileViewport && viewMode === "split") {
+      setViewMode("map");
+      return;
+    }
     if (viewMode === 'list') {
       setMapSize('sm'); // tylko lista, bez mapy
     } else if (viewMode === 'map') {
@@ -427,7 +437,32 @@ export default function ProviderHome() {
       setMapSize('full'); // podział 50/50
     }
     localStorage.setItem('providerHome_viewMode', viewMode);
-  }, [viewMode]);
+  }, [viewMode, isMobileViewport]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia("(max-width: 1023px)");
+    const onChange = (e) => setIsMobileViewport(!!e.matches);
+    onChange(media);
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    }
+    media.addListener(onChange);
+    return () => media.removeListener(onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewMenuOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (!mobileViewMenuRef.current) return;
+      if (!mobileViewMenuRef.current.contains(event.target)) {
+        setIsMobileViewMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isMobileViewMenuOpen]);
 
   // Nasłuchuj zmian rozmiaru mapy z App.jsx
   useEffect(() => {
@@ -1249,7 +1284,7 @@ export default function ProviderHome() {
       )}
 
       {/* Przełącznik widoku – od razu pod toolbarem, tylko w widoku lista */}
-      {viewMode === "list" && (
+      {viewMode === "list" && !isMobileViewport && (
         <div className="max-w-6xl mx-auto px-4 py-2 w-full flex justify-end">
           <div className="flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit">
             <button
@@ -1576,6 +1611,7 @@ export default function ProviderHome() {
           </div>
         </div>
         {/* Przyciski widoku: osobna warstwa, w prawym górnym rogu na mapie (tuż pod sekcją), z-index nad mapą i przyciskiem zleceń */}
+        {!isMobileViewport && (
         <div 
           className="fixed top-[198px] right-4 z-[45] flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5"
           aria-label="Przełącz widok"
@@ -1608,7 +1644,57 @@ export default function ProviderHome() {
             <Map className="w-4 h-4" aria-hidden />
           </button>
         </div>
+        )}
         </>
+      )}
+
+      {isMobileViewport && (viewMode === "map" || viewMode === "list") && (
+        <div
+          ref={mobileViewMenuRef}
+          className={`fixed z-[56] ${viewMode === "map" ? "left-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]" : "right-3"}`}
+          style={viewMode === "list" ? { top: "190px" } : undefined}
+        >
+          <button
+            type="button"
+            onClick={() => setIsMobileViewMenuOpen((v) => !v)}
+            aria-label="Zmień widok"
+            className={`w-11 h-11 rounded-full border border-slate-200 bg-white/95 backdrop-blur shadow-lg flex items-center justify-center transition-transform duration-150 ${
+              isMobileViewMenuOpen ? "scale-105" : "scale-100"
+            }`}
+          >
+            <Layers className="w-5 h-5 text-slate-700" />
+          </button>
+          {isMobileViewMenuOpen && (
+            <div className="absolute right-0 mt-2 min-w-[132px] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-top-right">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("list");
+                  setIsMobileViewMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm ${
+                  viewMode === "list" ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("map");
+                  setIsMobileViewMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm ${
+                  viewMode === "map" ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <Map className="w-4 h-4" />
+                Mapa
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Przycisk do rozwijania panelu zleceń w trybie mapy */}
