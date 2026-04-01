@@ -179,7 +179,13 @@ export default function AdminAnalytics() {
   if (!data) return <div className="max-w-6xl mx-auto p-6">Ładowanie…</div>;
 
   const z = data.kpi || {};
-  const daily = (data.daily||[]).map(x=>({ date:x._id, orders:x.orders, paid:x.paid, revenue: Math.round((x.revenue||0)/100) }));
+  const safeDaily = Array.isArray(data.daily) ? data.daily.filter(Boolean) : [];
+  const daily = safeDaily.map((x) => ({
+    date: x?._id || '',
+    orders: num(x?.orders),
+    paid: num(x?.paid),
+    revenue: Math.round(num(x?.revenue) / 100),
+  }));
 
   const funnelSteps = useMemo(() => {
     const selectedFunnel = Array.isArray(funnel?.[funnelView]) ? funnel[funnelView] : [];
@@ -309,7 +315,8 @@ export default function AdminAnalytics() {
     return `Uwaga: duży spadek w lejku (${fmt1(worst.dropFromPrev)}%) na kroku "${worst.label}".`;
   }, [funnelSteps]);
 
-  return (
+  try {
+    return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">Admin Analytics</h1>
       <div className="flex gap-3 items-end">
@@ -629,7 +636,17 @@ export default function AdminAnalytics() {
         <p className="text-xs text-gray-500 mt-2">Kółka odpowiadają zagęszczeniu zleceń (większe/ciemniejsze = więcej).</p>
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error("AdminAnalytics render fallback:", error);
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+          Wystąpił błąd renderowania analityki. Odśwież stronę lub zmień zakres dat.
+        </div>
+      </div>
+    );
+  }
 }
 
 function num(v) {
