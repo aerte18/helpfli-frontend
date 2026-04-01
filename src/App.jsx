@@ -81,6 +81,19 @@ import Cooperation from "./pages/Cooperation";
 import Reviews from "./pages/Reviews";
 import HelpCenter from "./pages/HelpCenter";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminRankingConfig from "./pages/AdminRankingConfig";
+import AdminKBManager from "./pages/admin/AdminKBManager";
+import AdminVerifications from "./pages/admin/AdminVerifications";
+import AdminKyc from "./pages/AdminKyc";
+import AdminSettings from "./pages/AdminSettings";
+import AdminPartners from "./pages/admin/AdminPartners";
+import AdminSponsorAds from "./pages/admin/AdminSponsorAds";
+import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminReportHistory from "./pages/AdminReportHistory";
+import AdminInvoices from "./pages/admin/AdminInvoices";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminLayout from "./components/admin/AdminLayout";
 
 // Komponenty KYC
 import KycWizard from "./pages/KycWizard";
@@ -94,20 +107,7 @@ import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import SkipLinks from "./components/SkipLinks";
 
-// Lazy loaded - Admin i Provider komponenty (najcięższe)
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminRankingConfig = lazy(() => import("./pages/AdminRankingConfig"));
-const AdminKBManager = lazy(() => import("./pages/admin/AdminKBManager"));
-const AdminVerifications = lazy(() => import("./pages/admin/AdminVerifications"));
-const AdminKyc = lazy(() => import("./pages/AdminKyc"));
-const AdminSettings = lazy(() => import("./pages/AdminSettings"));
-const AdminPartners = lazy(() => import("./pages/admin/AdminPartners"));
-const AdminSponsorAds = lazy(() => import("./pages/admin/AdminSponsorAds"));
-const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
-const AdminReportHistory = lazy(() => import("./pages/AdminReportHistory"));
-const AdminInvoices = lazy(() => import("./pages/admin/AdminInvoices"));
-const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
-const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+// Lazy loaded - Provider komponenty (najcięższe)
 const ProviderHome = lazy(() => import("./pages/ProviderHome"));
 const ProviderSponsored = lazy(() => import("./pages/ProviderSponsored"));
 const WhiteLabelManager = lazy(() => import("./pages/whitelabel/WhiteLabelManager"));
