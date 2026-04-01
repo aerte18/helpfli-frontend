@@ -1256,6 +1256,7 @@ export default function ProviderHome() {
             </button>
           </div>
         </div>
+      </div>
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
