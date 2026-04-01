@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useState, useEffect } from "react";
 import AvailabilityBadge from "./AvailabilityBadge";
+import ProviderAvatar from "./ProviderAvatar";
 import { metrics } from "../utils/metrics";
 
 const isActive = (d) => d && new Date(d) > new Date();
@@ -238,10 +239,11 @@ export default function MapViewEnhanced({
                           ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
                           : 'bg-gradient-to-r from-indigo-600 to-indigo-700'
                     }`}>
-                      <img
-                        src={p.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(p.name)}&backgroundColor=4F46E5`}
-                        alt={p.name}
+                      <ProviderAvatar
+                        name={p.name}
+                        photoUrl={p.avatarUrl || p.avatar}
                         className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                        fallbackTextClassName="text-sm"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm text-white truncate">{p.name}</div>

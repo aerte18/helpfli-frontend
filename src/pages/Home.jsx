@@ -7,6 +7,7 @@ import ServiceCategoryDropdown from "../components/ServiceCategoryDropdown";
 import { CATEGORY_ICONS } from "../components/icons/QuicksyCategoryIcons";
 import QuickFilters from "../components/QuickFilters";
 import ProviderCard from "../components/ProviderCard";
+import ProviderAvatar from "../components/ProviderAvatar";
 import MapViewEnhanced from "../components/MapViewEnhanced";
 import TopProviders from "../components/TopProviders";
 import Testimonials from "../components/Testimonials";
@@ -1046,10 +1047,11 @@ export default function Home() {
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
                       : 'bg-gradient-to-r from-indigo-600 to-indigo-700'
                 }`}>
-                  <img
-                    src={p.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(p.name)}&backgroundColor=4F46E5`}
-                    alt={p.name}
+                  <ProviderAvatar
+                    name={p.name}
+                    photoUrl={p.avatarUrl || p.avatar}
                     className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                    fallbackTextClassName="text-[10px]"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-xs text-white truncate">{p.name}</div>

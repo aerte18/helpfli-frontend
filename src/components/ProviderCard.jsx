@@ -12,6 +12,7 @@ import { getIconBySlug } from "./icons/HelpfliCategoryIcons";
 import { metrics } from "../utils/metrics";
 import { useInView } from "../utils/useInView";
 import { getProviderServiceLabel } from "../utils/getProviderLabel";
+import ProviderAvatar from "./ProviderAvatar";
 
 const isActive = (d) => d && new Date(d) > new Date();
 
@@ -169,14 +170,13 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
       ? firstService.toLowerCase().replace(/\s+/g, '-')
       : (firstService?.slug || firstService?.name_pl?.toLowerCase().replace(/\s+/g, '-') || 'inne'));
   const ServiceIcon = getIconBySlug(serviceSlug);
-  // Użyj headline jeśli jest dostępny, w przeciwnym razie skróć bio lub użyj domyślnego opisu
+  // Nagłówek z konta (Konto → Profil) — musi być w danych z /api/search (pole headline)
   const getServiceDescription = () => {
-    if (data.headline) {
-      return data.headline;
-    }
-    if (data.bio) {
-      // Jeśli bio jest dłuższe niż 60 znaków, skróć je
-      return data.bio.length > 60 ? data.bio.substring(0, 57) + '...' : data.bio;
+    const headline = typeof data.headline === "string" ? data.headline.trim() : "";
+    if (headline) return headline;
+    const bioRaw = typeof data.bio === "string" ? data.bio.trim() : "";
+    if (bioRaw) {
+      return bioRaw.length > 60 ? bioRaw.substring(0, 57) + "..." : bioRaw;
     }
     return `${serviceName} - profesjonalne usługi dostępne 24/7`;
   };
@@ -184,6 +184,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
 
   // Sprawdź czy to firma czy osoba
   const isCompany = data.company || data.companyId || data.company_id || data.companyName || (data.roleInCompany && data.roleInCompany !== 'none');
+  const profilePhoto = data.avatarUrl || data.avatar;
 
   // Kompaktowy widok dla siatki
   if (compact) {
@@ -199,11 +200,12 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
         {/* Nagłówek z avatarem i nazwą */}
         <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-start gap-3">
-            <img
-              src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
-              alt={data.name}
+            <ProviderAvatar
+              name={data.name}
+              photoUrl={profilePhoto}
               className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
               style={{ borderColor: 'var(--border)' }}
+              fallbackTextClassName="text-sm"
             />
             <div className="flex-1 min-w-0">
               <button 
@@ -344,11 +346,12 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
               <ServiceIcon className="w-8 h-8" style={{ color: 'white' }} />
             </div>
           ) : (
-            <img
-              src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
-              alt={data.name}
+            <ProviderAvatar
+              name={data.name}
+              photoUrl={profilePhoto}
               className="w-14 h-14 rounded-full object-cover border-2 shadow-md"
               style={{ borderColor: 'var(--border)' }}
+              fallbackTextClassName="text-base"
             />
           )}
         </div>
@@ -376,11 +379,11 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
               <ServiceIcon className="w-16 h-16" style={{ color: 'white' }} />
             </div>
           ) : (
-            // Dla osób - avatar z inicjałami lub zdjęciem
-            <img
-              src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
-              alt={data.name}
+            <ProviderAvatar
+              name={data.name}
+              photoUrl={profilePhoto}
               className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+              fallbackTextClassName="text-2xl"
             />
           )}
           {/* Wyróżnienia - różne ikony w zależności od typu */}
@@ -416,11 +419,12 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
         <div className="flex-1 p-4 sm:p-6 flex flex-col" style={{ backgroundColor: 'var(--card)' }}>
           {/* Desktop: avatar + nazwa (na mobile już w nagłówku karty) */}
           <div className="hidden sm:flex items-start gap-3 mb-3">
-            <img
-              src={data.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=4F46E5`}
-              alt={data.name}
+            <ProviderAvatar
+              name={data.name}
+              photoUrl={profilePhoto}
               className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
               style={{ borderColor: 'var(--border)' }}
+              fallbackTextClassName="text-sm"
             />
             <div className="flex-1 min-w-0">
               <button 
