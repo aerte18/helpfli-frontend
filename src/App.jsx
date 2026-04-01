@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, Suspense, lazy } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import 'leaflet/dist/leaflet.css';
@@ -122,6 +122,8 @@ const LoadingSpinner = () => (
 
 function App() {
   const { user } = useAuth();
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   useEffect(() => {
     console.log("App - useEffect - checking localStorage for user");
@@ -147,8 +149,8 @@ function App() {
         
         {/* Navbar */}
         <Navbar />
-        <Breadcrumbs />
-        <MobileAppTabBar />
+        {!isAdminRoute && <Breadcrumbs />}
+        {!isAdminRoute && <MobileAppTabBar />}
 
         {/* Router */}
         <Suspense fallback={<LoadingSpinner />}>
@@ -276,17 +278,19 @@ function App() {
 
         {/* Globalne widgety */}
         {/* Asystent AI - globalny (dla bus system) */}
-        <UnifiedAIConcierge 
-          mode="modal"
-          open={false}
-          attachBus={true}
-        />
+        {!isAdminRoute && (
+          <UnifiedAIConcierge 
+            mode="modal"
+            open={false}
+            attachBus={true}
+          />
+        )}
         
         {/* Floating AI Widget - dla klientów */}
-        <AiWidget />
+        {!isAdminRoute && <AiWidget />}
         
         {/* Floating Asystent AI - dla providerów z pakietem Standard/PRO */}
-        <ProviderAIWidget />
+        {!isAdminRoute && <ProviderAIWidget />}
 
         {!user && <CookieConsentBanner />}
       </ErrorBoundary>
