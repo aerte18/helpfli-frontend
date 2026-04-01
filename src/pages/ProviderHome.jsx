@@ -496,6 +496,18 @@ export default function ProviderHome() {
   // Polecane zlecenia z uzasadnieniem AI
   const [recommendedOrders, setRecommendedOrders] = useState([]);
   const [recommendedLoading, setRecommendedLoading] = useState(false);
+  const [recommendedOnly, setRecommendedOnly] = useState(false);
+  const recommendedById = useMemo(() => {
+    const map = new Map();
+    (recommendedOrders || []).forEach((rec) => {
+      const id = String(rec?.id || rec?._id || "").trim();
+      if (!id) return;
+      map.set(id, {
+        reason: rec?.reason || "Dopasowane do Twoich usług i lokalizacji",
+      });
+    });
+    return map;
+  }, [recommendedOrders]);
   const providerServiceSlugs = useMemo(
     () => expandProviderServiceSlugs(user?.services || [], allServices),
     [user?.services, allServices]
@@ -844,8 +856,22 @@ export default function ProviderHome() {
       }
     });
 
-    return sorted;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance]);
+    const withRecommendation = sorted.map((o) => {
+      const id = String(o?._id || o?.id || "").trim();
+      const rec = id ? recommendedById.get(id) : null;
+      return {
+        ...o,
+        isRecommendedForProvider: !!rec,
+        recommendedReason: rec?.reason || "",
+      };
+    });
+
+    if (recommendedOnly) {
+      return withRecommendation.filter((o) => o.isRecommendedForProvider);
+    }
+
+    return withRecommendation;
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedById, recommendedOnly]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
@@ -867,9 +893,10 @@ export default function ProviderHome() {
       d.paymentType !== "any" ||
       d.offersStatus !== "any" ||
       d.providerId !== "any" ||
-      d.service !== "any"
+      d.service !== "any" ||
+      recommendedOnly
     );
-  }, [filters]);
+  }, [filters, recommendedOnly]);
 
   const center = useMemo(
     () =>
@@ -1114,62 +1141,21 @@ export default function ProviderHome() {
               >
                 {showAllServices ? 'Wszystkie zlecenia' : 'Tylko moje usługi'}
               </button>
+              <button
+                type="button"
+                title="Pokaż tylko zlecenia rekomendowane przez AI"
+                onClick={() => setRecommendedOnly((v) => !v)}
+                className={`qs-chip text-xs whitespace-nowrap ${
+                  recommendedOnly
+                    ? "active shadow-md shadow-indigo-200"
+                    : "bg-white/70 border border-white/60 text-slate-600 hover:bg-white"
+                }`}
+              >
+                {recommendedLoading ? "✨ Polecane..." : "✨ Tylko polecane"}
+              </button>
             </div>
           </div>
         </div>
-
-      {/* Sekcja: Polecane zlecenia (AI) – tylko lista/split */}
-      {viewMode !== "map" && (user?.role === "provider" || user?.role === "company_owner") && (
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 to-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-              <span className="text-lg">✨</span> Polecane dla Ciebie
-            </h3>
-            {recommendedLoading ? (
-              <div className="flex items-center gap-2 text-slate-600 text-sm">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent" />
-                Ładowanie poleceń...
-              </div>
-            ) : recommendedOrders.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 scrollbar-thin">
-                {recommendedOrders.slice(0, 6).map((rec) => (
-                  <div
-                    key={rec.id}
-                    className="flex-shrink-0 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <div className="text-xs text-slate-500 mb-1">
-                      {typeof rec.service === "object" ? rec.service?.name_pl || rec.service?.code : rec.service}
-                      {rec.city && ` • ${rec.city}`}
-                    </div>
-                    <div className="text-xs font-medium text-slate-700 mb-2">
-                      {rec.budgetMin != null || rec.budgetMax != null
-                        ? `${rec.budgetMin ?? "?"}–${rec.budgetMax ?? "?"} zł`
-                        : "Budżet do ustalenia"}
-                    </div>
-                    <p className="text-xs text-indigo-700 mb-3 line-clamp-2">{rec.reason}</p>
-                    <div className="flex gap-2">
-                      <Link
-                        to={`/orders/${rec.id}?tab=offers`}
-                        className="flex-1 text-center px-2 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-                      >
-                        Złóż ofertę
-                      </Link>
-                      <Link
-                        to={`/orders/${rec.id}`}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
-                      >
-                        Szczegóły
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">Brak poleceń w tej chwili. Sprawdź listę zleceń poniżej.</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
@@ -1178,7 +1164,7 @@ export default function ProviderHome() {
           {hasActiveFilters && (
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
                 setFilters({
                   service: "any",
                   maxDistance: 300,
@@ -1188,8 +1174,9 @@ export default function ProviderHome() {
                   paymentType: "any",
                   offersStatus: "any",
                   sortBy: "default",
-                })
-              }
+                });
+                setRecommendedOnly(false);
+              }}
               className="absolute top-2 right-4 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
             >
               Wyczyść filtry
@@ -1253,7 +1240,7 @@ export default function ProviderHome() {
                 {hasActiveFilters && (
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setFilters({
                         service: "any",
                         maxDistance: 300,
@@ -1263,8 +1250,9 @@ export default function ProviderHome() {
                         paymentType: "any",
                         offersStatus: "any",
                         sortBy: "default",
-                      })
-                    }
+                      });
+                      setRecommendedOnly(false);
+                    }}
                     className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     Wyczyść filtry
@@ -1333,7 +1321,7 @@ export default function ProviderHome() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-700">Filtry</h3>
               <button
-                onClick={() =>
+                onClick={() => {
                   setFilters({
                     service: "any",
                     maxDistance: 300,
@@ -1343,8 +1331,9 @@ export default function ProviderHome() {
                     paymentType: "any",
                     offersStatus: "any",
                     sortBy: "default",
-                  })
-                }
+                  });
+                  setRecommendedOnly(false);
+                }}
                 className="text-xs text-slate-600 hover:text-slate-800"
               >
                 Wyczyść wszystko
@@ -1881,12 +1870,14 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
       className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col sm:flex-row ${
         isBoosted 
           ? 'border-yellow-400 border-2 shadow-lg shadow-yellow-200' 
+          : data.isRecommendedForProvider
+            ? 'border-indigo-400 bg-gradient-to-br from-indigo-50/70 to-white ring-1 ring-indigo-200'
           : isPilne 
             ? 'border-amber-300' 
             : 'border-slate-200'
       }`}
       style={{
-        backgroundColor: isBoosted ? '#fffbeb' : 'var(--card)',
+        backgroundColor: isBoosted ? '#fffbeb' : data.isRecommendedForProvider ? '#f8faff' : 'var(--card)',
       }}
     >
       {/* Lewa sekcja - avatar i wyróżnienia */}
@@ -1934,6 +1925,13 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
             <div className="font-bold text-left block mb-2" style={{ color: 'var(--foreground)' }}>
               {clientName}
             </div>
+            {data.isRecommendedForProvider && (
+              <div className="mb-2">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-semibold">
+                  ✨ Polecane dla Ciebie
+                </span>
+              </div>
+            )}
             
             {/* Tytuł usługi */}
             <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--foreground)' }}>
@@ -2051,7 +2049,17 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
                 <span>Płatność poza systemem</span>
               </span>
             )}
+            {data.isRecommendedForProvider && (
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                ✨ Polecane dla Ciebie
+              </span>
+            )}
           </div>
+          {data.isRecommendedForProvider && data.recommendedReason && (
+            <p className="mt-2 text-xs text-indigo-700">
+              {data.recommendedReason}
+            </p>
+          )}
         </div>
 
         {/* Przyciski akcji */}
@@ -2130,7 +2138,13 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
   
   return (
     <div className="min-w-[260px] max-w-[300px]">
-      <div className={`rounded-2xl overflow-hidden shadow-lg border ${isFastTrack ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50' : 'border-slate-200 bg-white'}`}>
+      <div className={`rounded-2xl overflow-hidden shadow-lg border ${
+        order.isRecommendedForProvider
+          ? 'border-indigo-400 bg-gradient-to-br from-indigo-50 to-white ring-1 ring-indigo-200'
+          : isFastTrack
+            ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50'
+            : 'border-slate-200 bg-white'
+      }`}>
         {/* Header z avatarem i nazwą */}
         <div className={`p-3 flex items-center gap-2 relative ${
           isBoosted 
@@ -2147,6 +2161,13 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
           <div className="flex-1 min-w-0">
             <div className="font-bold text-sm text-white truncate">{clientName}</div>
             <div className="text-xs text-white/90 truncate">{service}</div>
+            {order.isRecommendedForProvider && (
+              <div className="mt-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/90 text-indigo-700 px-2 py-0.5 text-[10px] font-semibold">
+                  ✨ Polecane
+                </span>
+              </div>
+            )}
           </div>
           {isBoosted && (
             <div className="bg-white rounded-full px-2 py-1 shadow-md animate-pulse">
@@ -2271,7 +2292,11 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
   return (
     <div 
       className={`rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border flex ${
-        isFastTrack ? 'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50' : 'border-slate-200 bg-white'
+        data.isRecommendedForProvider
+          ? 'border-indigo-400 bg-gradient-to-br from-indigo-50/70 to-white ring-1 ring-indigo-200'
+          : isFastTrack
+            ? 'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50'
+            : 'border-slate-200 bg-white'
       }`}
     >
       {/* Kompaktowa lewa sekcja */}
@@ -2302,6 +2327,11 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
           />
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-xs text-slate-900 truncate">{clientName}</div>
+            {data.isRecommendedForProvider && (
+              <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                ✨ Polecane
+              </span>
+            )}
             <h3 className="text-sm font-medium text-slate-800 truncate">{service}</h3>
           </div>
         </div>
@@ -2310,6 +2340,11 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
         {clientNote && (
           <p className="text-xs text-slate-600 mb-2 line-clamp-2">
             {clientNote}
+          </p>
+        )}
+        {data.isRecommendedForProvider && data.recommendedReason && (
+          <p className="text-[11px] text-indigo-700 mb-2 line-clamp-2">
+            {data.recommendedReason}
           </p>
         )}
 
