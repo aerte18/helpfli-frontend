@@ -931,7 +931,10 @@ export default function ProviderHome() {
         : [52.2297, 21.0122],
     [userLocation]
   );
-  
+
+  /** Pełnoekranowa mapa: offset od góry (nagłówek + pasek statusu + toolbar mapy). Na mobile toolbar bywa wyższy — zostawiam zapas. */
+  const mapFullBleedTopPx = isMobileViewport ? 224 : 190;
+
   // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
   const gridClass =
@@ -1105,9 +1108,15 @@ export default function ProviderHome() {
 
       {/* Pasek statusu wykonawcy */}
       <div className={`${viewMode === "map" ? "fixed" : "sticky"} ${viewMode === "map" ? "top-16" : "top-0"} left-0 right-0 z-40 ${viewMode === "map" ? "bg-white/30 backdrop-blur-lg" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}>
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-slate-700 font-medium">Mój status:</span>
+        <div
+          className={`max-w-7xl mx-auto px-3 sm:px-4 ${
+            viewMode === "map" && isMobileViewport
+              ? "flex flex-col gap-2"
+              : "flex items-center justify-between gap-2 sm:gap-3"
+          } ${viewMode === "map" && isMobileViewport ? "py-2" : "py-3"}`}
+        >
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+            <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
             <div className="flex flex-wrap gap-2">
               <StatusPill
                 active={status === "online"}
@@ -1124,20 +1133,22 @@ export default function ProviderHome() {
                 Offline
               </StatusPill>
             </div>
-            {status === "offline" && (
+            {status === "offline" && !(viewMode === "map" && isMobileViewport) && (
               <p className="text-xs text-slate-600 max-w-xs">
                 Gdy jesteś offline, nadal jesteś widoczny w wynikach wyszukiwania, ale klienci widzą status Offline. Przełącz na Online, aby zwiększyć szansę na szybki kontakt.
               </p>
             )}
             <Link 
               to="/account?tab=schedule" 
-              className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1"
+              className={`text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 shrink-0 ${
+                viewMode === "map" && isMobileViewport ? "text-xs ml-0" : "ml-4 text-sm"
+              }`}
             >
-              📅 Harmonogram dostępności
+              {viewMode === "map" && isMobileViewport ? "📅 Harmonogram" : "📅 Harmonogram dostępności"}
             </Link>
           </div>
 
-          <div className="flex items-center justify-end gap-2 flex-wrap">
+          <div className="flex items-center justify-start sm:justify-end gap-2 flex-wrap min-w-0">
               <span className="qs-badge qs-badge-dark text-[10px] whitespace-nowrap">
                 {list.length} zleceń
               </span>
@@ -1186,7 +1197,12 @@ export default function ProviderHome() {
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
         // Tryb mapy - fixed toolbar na górze (pod paskiem statusu)
-        <div className="fixed left-0 right-0 z-50 border-b border-gray-200/20 shadow-sm bg-white relative" style={{ top: '128px' }}>
+        <div
+          className={`fixed left-0 right-0 z-50 border-b border-gray-200/20 shadow-sm bg-white relative ${
+            isMobileViewport ? "py-2" : "py-3"
+          }`}
+          style={{ top: "128px" }}
+        >
           {hasActiveFilters && (
             <button
               type="button"
@@ -1203,22 +1219,35 @@ export default function ProviderHome() {
                 });
                 setRecommendedOnly(false);
               }}
-              className="absolute top-2 right-4 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute top-2 right-3 sm:right-4 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
             >
               Wyczyść filtry
             </button>
           )}
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                {list.length} {list.length === 1 ? 'zlecenie' : list.length < 5 ? 'zlecenia' : 'zleceń'} w {user?.location || "Warszawie"}
+          <div className={`max-w-7xl mx-auto px-3 sm:px-4 ${isMobileViewport ? "py-0" : ""}`}>
+            <div
+              className={`flex gap-2 ${
+                isMobileViewport ? "flex-col items-stretch" : "items-center justify-between"
+              }`}
+            >
+              <div
+                className={`min-w-0 text-gray-600 ${
+                  isMobileViewport ? "text-xs leading-snug pr-16" : "text-sm"
+                }`}
+              >
+                <span className="block truncate">
+                  {list.length}{" "}
+                  {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}{" "}
+                  w {user?.location || "Twojej okolicy"}
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Przyciski widoku (📋📊🗺️) są na mapie w prawym górnym rogu – nie w toolbare */}
+              <div className="flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedFilters(true)}
-                  className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm hover:bg-slate-50 transition-colors"
+                  className={`rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors ${
+                    isMobileViewport ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm"
+                  }`}
                 >
                   Wszystkie filtry
                 </button>
@@ -1580,9 +1609,9 @@ export default function ProviderHome() {
         <div 
           className="fixed inset-0 w-full"
           style={{
-            top: '190px',
+            top: `${mapFullBleedTopPx}px`,
             zIndex: 1,
-            height: 'calc(100vh - 190px)'
+            height: `calc(100vh - ${mapFullBleedTopPx}px)`,
           }}
         >
           <div className="w-full h-full">
@@ -1663,10 +1692,14 @@ export default function ProviderHome() {
         </>
       )}
 
-      {isMobileViewport && (viewMode === "map" || viewMode === "list") && (
+      {isMobileViewport && !showAdvancedFilters && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
-          className={`fixed z-[56] ${viewMode === "map" ? "left-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))]" : "right-3"}`}
+          className={`fixed z-[70] ${
+            viewMode === "map"
+              ? `left-3 bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]`
+              : "right-3"
+          }`}
           style={viewMode === "list" ? { top: "190px" } : undefined}
         >
           <button
@@ -1680,7 +1713,7 @@ export default function ProviderHome() {
             <Layers className="w-5 h-5 text-slate-700" />
           </button>
           {isMobileViewMenuOpen && (
-            <div className="absolute right-0 mt-2 min-w-[132px] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-top-right">
+            <div className="absolute left-0 bottom-full mb-2 min-w-[132px] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left">
               <button
                 type="button"
                 onClick={() => {
@@ -1712,38 +1745,80 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {/* Przycisk do rozwijania panelu zleceń w trybie mapy */}
-      {viewMode === "map" && (
+      {/* Przycisk do rozwijania listy zleceń na mapie – jak „Dostępni wykonawcy” u klienta */}
+      {viewMode === "map" && !showAdvancedFilters && (
         <button
+          type="button"
           onClick={() => setIsOrderListExpanded(!isOrderListExpanded)}
-          className="fixed right-4 w-80 px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors border border-slate-200 rounded-lg bg-white shadow-sm z-40"
-          style={{ top: '250px' }}
+          className={`fixed z-[45] flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
+            isMobileViewport
+              ? `left-3 rounded-full ${isOrderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]`
+              : "right-4 w-80 rounded-lg px-4 py-3"
+          }`}
+          style={!isMobileViewport ? { top: "250px" } : undefined}
         >
-          <h3 className="font-semibold text-slate-800">Dostępne zlecenia ({list.length})</h3>
-          <svg 
-            className={`w-5 h-5 text-slate-600 transition-transform ${isOrderListExpanded ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
+          {isMobileViewport ? (
+            <>
+              <div className="relative shrink-0">
+                <ClipboardList className="w-5 h-5 text-slate-700" aria-hidden />
+                {!isOrderListExpanded && (
+                  <span className="absolute -right-2 -top-2 min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-600 text-white text-[10px] leading-[18px] text-center">
+                    {list.length}
+                  </span>
+                )}
+              </div>
+              {isOrderListExpanded && (
+                <span className="font-medium text-slate-800 text-sm truncate">Zlecenia ({list.length})</span>
+              )}
+            </>
+          ) : (
+            <h3 className="font-semibold text-slate-800">Dostępne zlecenia ({list.length})</h3>
+          )}
+          <svg
+            className={`w-4 h-4 text-slate-600 transition-transform shrink-0 ${isOrderListExpanded ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
           </svg>
         </button>
       )}
 
-      {/* Panel boczny z listą zleceń w trybie pełnoekranowym (zwijany) */}
-      {viewMode === "map" && (
-        <div className={`fixed right-4 bg-white rounded-2xl border border-slate-200 shadow-xl z-40 transition-all duration-300 overflow-hidden ${
-          isOrderListExpanded ? 'bottom-4 w-80' : 'hidden'
-        }`}
-        style={isOrderListExpanded ? { top: '310px' } : {}}
+      {/* Panel z listą zleceń w trybie mapy – na mobile bottom sheet jak u klienta */}
+      {viewMode === "map" && !showAdvancedFilters && (
+        <div
+          className={`fixed z-40 overflow-hidden border border-slate-200 bg-white shadow-xl transition-all duration-300 ${
+            isMobileViewport
+              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isOrderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
+              : `${isOrderListExpanded ? "bottom-4 w-80 rounded-2xl" : "hidden"} right-4`
+          }`}
+          style={!isMobileViewport && isOrderListExpanded ? { top: "310px" } : undefined}
         >
-          {/* Lista zleceń - widoczna tylko gdy rozwinięta */}
           {isOrderListExpanded && (
-            <div className="overflow-y-auto p-4 space-y-3" style={{ height: 'calc(100vh - 240px)' }}>
+            <div
+              className="overflow-y-auto p-4 space-y-3"
+              style={
+                isMobileViewport
+                  ? { maxHeight: "58vh" }
+                  : { height: "calc(100vh - 240px)" }
+              }
+            >
+              {isMobileViewport && (
+                <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 border-b border-slate-200 bg-white px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsOrderListExpanded(false)}
+                    className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+                  >
+                    Zwiń listę zleceń
+                  </button>
+                </div>
+              )}
               {demandLoading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4" />
                   <p className="text-slate-600 text-sm">Ładowanie zleceń...</p>
                 </div>
               ) : list.length > 0 ? (
@@ -1758,9 +1833,7 @@ export default function ProviderHome() {
                   />
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-500 text-sm">
-                  Brak dostępnych zleceń
-                </div>
+                <div className="text-center py-8 text-slate-500 text-sm">Brak dostępnych zleceń</div>
               )}
             </div>
           )}
