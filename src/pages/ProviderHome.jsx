@@ -1886,7 +1886,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
   const clientNote = asDisplayText(data.clientNote ?? data.description, "");
-  const clientName = data.client?.name || 'Klient';
+  const clientName = asDisplayText(data.client?.name, 'Klient');
   const avatarUrl = data.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   
   const isPilne = data.urgency === 'now'; // Tylko "now" jest pilne
@@ -2083,9 +2083,9 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
               </span>
             )}
           </div>
-          {data.isRecommendedForProvider && data.recommendedReason && (
+          {data.isRecommendedForProvider && asDisplayText(data.recommendedReason, "") && (
             <p className="mt-2 text-xs text-indigo-700">
-              {data.recommendedReason}
+              {asDisplayText(data.recommendedReason, "")}
             </p>
           )}
         </div>
@@ -2156,7 +2156,7 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
   
   const service = asDisplayText(order.service, "Usługa");
   const clientNote = asDisplayText(order.clientNote ?? order.description, "");
-  const clientName = order.client?.name || 'Klient';
+  const clientName = asDisplayText(order.client?.name, 'Klient');
   const avatarUrl = order.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   const distance = order.distanceKm;
   const budget = order.budget || `${order.budgetFrom || '?'}–${order.budgetTo || '?'}`;
@@ -2311,7 +2311,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
   const clientNote = asDisplayText(data.clientNote ?? data.description, "");
-  const clientName = data.client?.name || 'Klient';
+  const clientName = asDisplayText(data.client?.name, 'Klient');
   const avatarUrl = data.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   
   const isFastTrack = data.urgency === 'now' || data.isPriority || data.isFastTrack;
@@ -2370,9 +2370,9 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
             {clientNote}
           </p>
         )}
-        {data.isRecommendedForProvider && data.recommendedReason && (
+        {data.isRecommendedForProvider && asDisplayText(data.recommendedReason, "") && (
           <p className="text-[11px] text-indigo-700 mb-2 line-clamp-2">
-            {data.recommendedReason}
+            {asDisplayText(data.recommendedReason, "")}
           </p>
         )}
 
