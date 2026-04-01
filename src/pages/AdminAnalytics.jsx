@@ -1,3 +1,4 @@
+import React from "react";
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -566,54 +567,60 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="border rounded-2xl p-4 bg-white">
           <div className="font-semibold mb-2">Zlecenia dziennie</div>
-          {daily.length === 0 ? (
-            <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={daily}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
-                <YAxis yAxisId="l" />
-                <Tooltip />
-                <Line yAxisId="l" type="monotone" dataKey="orders" dot={false}/>
-                <Line yAxisId="l" type="monotone" dataKey="paid" dot={false}/>
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+          <SectionErrorBoundary title="Wykres zleceń">
+            {daily.length === 0 ? (
+              <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={daily}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
+                  <YAxis yAxisId="l" />
+                  <Tooltip />
+                  <Line yAxisId="l" type="monotone" dataKey="orders" dot={false}/>
+                  <Line yAxisId="l" type="monotone" dataKey="paid" dot={false}/>
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </SectionErrorBoundary>
         </div>
         <div className="border rounded-2xl p-4 bg-white">
           <div className="font-semibold mb-2">Przychód dzienny (PLN)</div>
-          {daily.length === 0 ? (
-            <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={daily}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" dot={false}/>
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+          <SectionErrorBoundary title="Wykres przychodu">
+            {daily.length === 0 ? (
+              <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={daily}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }}/>
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="revenue" dot={false}/>
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </SectionErrorBoundary>
         </div>
       </div>
 
       <div className="border rounded-2xl p-4 bg-white">
         <div className="font-semibold mb-2">Top usługi</div>
-        {topServicesChartData.length === 0 ? (
-          <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={topServicesChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="service" tick={{ fontSize: 12 }} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+        <SectionErrorBoundary title="Wykres top usług">
+          {topServicesChartData.length === 0 ? (
+            <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={topServicesChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="service" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </SectionErrorBoundary>
       </div>
 
       <div className="border rounded-2xl p-4 bg-white">
@@ -629,19 +636,21 @@ export default function AdminAnalytics() {
           <div className="text-sm text-gray-600">Brak danych.</div>
         ) : (
           <>
-            {segmentChartData.length === 0 ? (
-              <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={segmentChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="segment" tick={{ fontSize: 11 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="orders" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+            <SectionErrorBoundary title="Wykres segmentacji">
+              {segmentChartData.length === 0 ? (
+                <div className="text-sm text-gray-600 py-10 text-center">Brak danych do wykresu.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={segmentChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="segment" tick={{ fontSize: 11 }} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="orders" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </SectionErrorBoundary>
             <div className="overflow-auto mt-3">
               <table className="min-w-full text-sm">
                 <thead><tr className="text-left">
@@ -670,8 +679,10 @@ export default function AdminAnalytics() {
 
       <div className="border rounded-2xl p-4 bg-white">
         <div className="font-semibold mb-2">Mapa zleceń (heat)</div>
-        <div id="heatmap" style={{ height: 420 }} className="rounded overflow-hidden border"></div>
-        <p className="text-xs text-gray-500 mt-2">Kółka odpowiadają zagęszczeniu zleceń (większe/ciemniejsze = więcej).</p>
+        <SectionErrorBoundary title="Mapa heat">
+          <div id="heatmap" style={{ height: 420 }} className="rounded overflow-hidden border"></div>
+          <p className="text-xs text-gray-500 mt-2">Kółka odpowiadają zagęszczeniu zleceń (większe/ciemniejsze = więcej).</p>
+        </SectionErrorBoundary>
       </div>
     </div>
     );
@@ -726,5 +737,28 @@ function safeRenderValue(value) {
     return JSON.stringify(value);
   } catch {
     return String(value);
+  }
+}
+
+class SectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    console.error(`AdminAnalytics section error (${this.props.title || "unknown"}):`, error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Sekcja "{this.props.title || "unknown"}" została wyłączona z powodu błędu renderowania.
+        </div>
+      );
+    }
+    return this.props.children;
   }
 }
