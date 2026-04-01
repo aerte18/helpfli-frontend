@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -933,11 +933,16 @@ export default function ProviderHome() {
   );
 
   /**
-   * Tryb mapy: toolbar „Wszystkie filtry” jest fixed z `top` od góry viewportu.
-   * Na mobile pasek statusu ma 2 rzędy (~110px od top-16); przy top=128px toolbar nachodził na chipy (moje usługi / polecane).
+   * Tryb mapy na mobile: jeden rząd (Online/Offline + ikony) — niższy offset niż lista (2 rzędy).
    */
-  const mapModeToolbarTopPx = isMobileViewport ? 176 : 128;
-  const mapFullBleedTopPx = isMobileViewport ? mapModeToolbarTopPx + 54 : 190;
+  const mapModeToolbarTopPx =
+    isMobileViewport && viewMode === "map" ? 124 : isMobileViewport ? 176 : 128;
+  const mapFullBleedTopPx =
+    isMobileViewport && viewMode === "map"
+      ? mapModeToolbarTopPx + 52
+      : isMobileViewport
+        ? mapModeToolbarTopPx + 54
+        : 190;
 
   // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
@@ -1120,6 +1125,99 @@ export default function ProviderHome() {
           } ${viewMode === "map" && isMobileViewport ? "py-2" : isMobileViewport ? "py-2.5" : "py-3"}`}
         >
           {isMobileViewport ? (
+            viewMode === "map" ? (
+              <div className="flex items-center gap-1 w-full min-w-0">
+                <div
+                  className="inline-flex shrink-0 rounded-full border border-slate-200/90 bg-white/95 p-0.5 shadow-sm"
+                  role="group"
+                  aria-label="Status wykonawcy"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange("online")}
+                    title="Online"
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                      status === "online"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-slate-600 active:bg-slate-100"
+                    }`}
+                  >
+                    <Wifi className="w-4 h-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange("offline")}
+                    title="Offline"
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                      status === "offline"
+                        ? "bg-slate-700 text-white shadow-sm"
+                        : "text-slate-600 active:bg-slate-100"
+                    }`}
+                  >
+                    <WifiOff className="w-4 h-4" aria-hidden />
+                  </button>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto pb-0.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <span
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-700"
+                    title="Liczba zleceń w filtrze"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5 text-slate-600" aria-hidden />
+                    {list.length}
+                  </span>
+                  {freeRepliesLeft != null && (
+                    <span
+                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold text-emerald-800"
+                      title="Darmowe wyceny"
+                    >
+                      <Wallet className="h-3.5 w-3.5" aria-hidden />
+                      {freeRepliesLeft}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    title={
+                      showAllServices
+                        ? "Pełny rynek zleceń — kliknij, aby ograniczyć do usług z profilu"
+                        : "Tylko moje usługi z profilu — kliknij, aby zobaczyć pełny rynek"
+                    }
+                    onClick={() => {
+                      const next = !showAllServices;
+                      setShowAllServices(next);
+                      setFilters((s) => ({ ...s, service: "any" }));
+                    }}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                      !showAllServices
+                        ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                        : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <Briefcase className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    title="Tylko polecane przez AI"
+                    onClick={() => setRecommendedOnly((v) => !v)}
+                    disabled={recommendedLoading}
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                      recommendedOnly
+                        ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                        : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <Sparkles className={`h-4 w-4 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
+                  </button>
+                </div>
+                <Link
+                  to="/account?tab=schedule"
+                  title="Harmonogram dostępności"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]"
+                  aria-label="Harmonogram dostępności"
+                >
+                  <CalendarDays className="w-4 h-4" aria-hidden />
+                </Link>
+              </div>
+            ) : (
             <>
               <div className="flex items-center justify-between gap-2 w-full min-w-0">
                 <div
@@ -1169,6 +1267,7 @@ export default function ProviderHome() {
                 </p>
               )}
             </>
+            )
           ) : (
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
               <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
@@ -1202,6 +1301,7 @@ export default function ProviderHome() {
             </div>
           )}
 
+          {!(isMobileViewport && viewMode === "map") && (
           <div
             className={`flex items-center gap-1.5 flex-nowrap min-w-0 ${
               isMobileViewport
@@ -1259,6 +1359,8 @@ export default function ProviderHome() {
               {recommendedLoading ? "✨ …" : isMobileViewport ? "✨ Polecane" : "✨ Tylko polecane"}
             </button>
           </div>
+          )}
+
         </div>
       </div>
 
@@ -1295,12 +1397,12 @@ export default function ProviderHome() {
           <div className={`max-w-7xl mx-auto px-3 sm:px-4 ${isMobileViewport ? "py-0" : ""}`}>
             <div
               className={`flex gap-2 ${
-                isMobileViewport ? "flex-col items-stretch" : "items-center justify-between"
+                isMobileViewport ? "flex-row items-center justify-between" : "items-center justify-between"
               }`}
             >
               <div
-                className={`min-w-0 text-gray-600 ${
-                  isMobileViewport ? "text-xs leading-snug pr-0" : "text-sm"
+                className={`min-w-0 flex-1 text-gray-600 ${
+                  isMobileViewport ? "text-xs leading-snug pr-2" : "text-sm"
                 }`}
               >
                 <span className="block truncate">
@@ -1309,12 +1411,12 @@ export default function ProviderHome() {
                   w {user?.location || "Twojej okolicy"}
                 </span>
               </div>
-              <div className="flex items-center justify-end gap-2 shrink-0">
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedFilters(true)}
                   className={`rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors ${
-                    isMobileViewport ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm"
+                    isMobileViewport ? "px-2.5 py-1.5 text-xs whitespace-nowrap" : "px-3 py-2 text-sm"
                   }`}
                 >
                   Wszystkie filtry
@@ -1365,20 +1467,11 @@ export default function ProviderHome() {
                 />
               </div>
               )}
-              {isMobileViewport && (
-                <p className="text-xs text-slate-500 flex-1 min-w-0 pr-2">
-                  Sortowanie i dystans ustawisz w{" "}
-                  <button
-                    type="button"
-                    className="font-medium text-indigo-600 underline"
-                    onClick={() => setShowAdvancedFilters(true)}
-                  >
-                    Wszystkie filtry
-                  </button>
-                  .
-                </p>
-              )}
-              <div className={`flex items-center gap-2 ${isMobileViewport ? "justify-end" : ""}`}>
+              <div
+                className={`flex items-center gap-2 ${
+                  isMobileViewport ? "w-full justify-end" : ""
+                }`}
+              >
                 {hasActiveFilters && (
                   <button
                     type="button"
@@ -1800,7 +1893,13 @@ export default function ProviderHome() {
             <Layers className="w-5 h-5 text-slate-700" />
           </button>
           {isMobileViewMenuOpen && (
-            <div className="absolute left-0 bottom-full mb-2 min-w-[132px] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left">
+            <div
+              className={`absolute bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 ${
+                viewMode === "list"
+                  ? "right-0 origin-bottom-right"
+                  : "left-0 origin-bottom-left"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => {
