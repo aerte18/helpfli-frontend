@@ -932,8 +932,12 @@ export default function ProviderHome() {
     [userLocation]
   );
 
-  /** Pełnoekranowa mapa: offset od góry (nagłówek + pasek statusu + toolbar mapy). Na mobile toolbar bywa wyższy — zostawiam zapas. */
-  const mapFullBleedTopPx = isMobileViewport ? 224 : 190;
+  /**
+   * Tryb mapy: toolbar „Wszystkie filtry” jest fixed z `top` od góry viewportu.
+   * Na mobile pasek statusu ma 2 rzędy (~110px od top-16); przy top=128px toolbar nachodził na chipy (moje usługi / polecane).
+   */
+  const mapModeToolbarTopPx = isMobileViewport ? 176 : 128;
+  const mapFullBleedTopPx = isMobileViewport ? mapModeToolbarTopPx + 54 : 190;
 
   // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
@@ -1107,7 +1111,7 @@ export default function ProviderHome() {
       )}
 
       {/* Pasek statusu wykonawcy */}
-      <div className={`${viewMode === "map" ? "fixed" : "sticky"} ${viewMode === "map" ? "top-16" : "top-0"} left-0 right-0 z-40 ${viewMode === "map" ? "bg-white/30 backdrop-blur-lg" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}>
+      <div className={`${viewMode === "map" ? "fixed" : "sticky"} ${viewMode === "map" ? "top-16" : "top-0"} left-0 right-0 z-[42] ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}>
         <div
           className={`max-w-7xl mx-auto px-3 sm:px-4 ${
             isMobileViewport
@@ -1199,10 +1203,10 @@ export default function ProviderHome() {
           )}
 
           <div
-            className={`flex items-center gap-1.5 flex-wrap min-w-0 ${
+            className={`flex items-center gap-1.5 flex-nowrap min-w-0 ${
               isMobileViewport
-                ? "justify-start overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                : "justify-start sm:justify-end"
+                ? "justify-start overflow-x-auto pb-1 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : "flex-wrap justify-start sm:justify-end"
             }`}
           >
             <span className="qs-badge qs-badge-dark text-[10px] whitespace-nowrap shrink-0">
@@ -1262,10 +1266,10 @@ export default function ProviderHome() {
       {viewMode === "map" ? (
         // Tryb mapy - fixed toolbar na górze (pod paskiem statusu)
         <div
-          className={`fixed left-0 right-0 z-50 border-b border-gray-200/20 shadow-sm bg-white relative ${
+          className={`fixed left-0 right-0 z-[40] border-b border-gray-200/20 shadow-sm bg-white relative ${
             isMobileViewport ? "py-2" : "py-3"
           }`}
-          style={{ top: "128px" }}
+          style={{ top: `${mapModeToolbarTopPx}px` }}
         >
           {hasActiveFilters && (
             <button
@@ -1296,7 +1300,7 @@ export default function ProviderHome() {
             >
               <div
                 className={`min-w-0 text-gray-600 ${
-                  isMobileViewport ? "text-xs leading-snug pr-16" : "text-sm"
+                  isMobileViewport ? "text-xs leading-snug pr-0" : "text-sm"
                 }`}
               >
                 <span className="block truncate">
@@ -1329,7 +1333,12 @@ export default function ProviderHome() {
           }`}
         >
           <div className="max-w-6xl mx-auto px-4 py-4 w-full">
-            <div className="flex items-end justify-between gap-3 flex-wrap">
+            <div
+              className={`flex gap-3 ${
+                isMobileViewport ? "flex-col items-stretch" : "items-end justify-between flex-wrap"
+              }`}
+            >
+              {!isMobileViewport && (
               <div className="flex items-end gap-4 flex-wrap">
                 <Select
                   compact
@@ -1355,7 +1364,21 @@ export default function ProviderHome() {
                   max={600}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              )}
+              {isMobileViewport && (
+                <p className="text-xs text-slate-500 flex-1 min-w-0 pr-2">
+                  Sortowanie i dystans ustawisz w{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-indigo-600 underline"
+                    onClick={() => setShowAdvancedFilters(true)}
+                  >
+                    Wszystkie filtry
+                  </button>
+                  .
+                </p>
+              )}
+              <div className={`flex items-center gap-2 ${isMobileViewport ? "justify-end" : ""}`}>
                 {hasActiveFilters && (
                   <button
                     type="button"
@@ -1428,8 +1451,8 @@ export default function ProviderHome() {
       {/* Lista + Mapa */}
       {viewMode !== "map" && (
       <div className={`max-w-7xl mx-auto px-4 grid ${gridClass} gap-6 mt-4`}>
-        {/* Filtry po lewej stronie - tylko w widoku lista */}
-        {viewMode === "list" && (
+        {/* Filtry po lewej — desktop; na mobile ten sam zestaw jest w drawerze „Wszystkie filtry” */}
+        {viewMode === "list" && !isMobileViewport && (
           <div className={`
             bg-white 
             shadow-[0_4px_30px_rgba(0,0,0,0.05)] 

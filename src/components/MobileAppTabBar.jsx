@@ -45,17 +45,8 @@ export default function MobileAppTabBar() {
     return "/home";
   }, [user]);
 
-  const ordersPath = useMemo(() => {
-    if (!user) return "/my-orders";
-    if (
-      user.role === "provider" ||
-      user.role === "company_owner" ||
-      user.role === "company_manager"
-    ) {
-      return "/available-orders";
-    }
-    return "/my-orders";
-  }, [user]);
+  /** „Moje zlecenia” — działa dla klienta i wykonawcy (GET /api/orders/my). */
+  const ordersPath = "/my-orders";
 
   if (!visible) return null;
 
