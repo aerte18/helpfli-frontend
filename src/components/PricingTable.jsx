@@ -526,9 +526,13 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 							{p.name || p.title}
 						</h3>
 						<p className="text-sm text-gray-500">
-							{index === 0 ? 'Idealny na start' : 
-							 index === 1 ? 'Dla rozwijających się' : 
-							 'Maksymalna moc'}
+							{index === 0
+								? isCurrentPlan(p)
+									? 'Twój obecny pakiet startowy — bez dodatkowej opłaty'
+									: 'Wliczony w każde konto Helpfli'
+								: index === 1
+									? 'Dla rozwijających się'
+									: 'Maksymalna moc'}
 						</p>
 					</div>
 					
@@ -547,18 +551,33 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 					
 					{/* Przycisk */}
 					<div className="mb-6">
-						{isFreePlan(p) ? (
-							<button 
-								onClick={() => onSelect(p)} 
-								className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-colors duration-200"
+						{isCurrentPlan(p) ? (
+							<div
+								className={`w-full bg-green-500 text-white font-semibold py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center gap-2 text-center leading-snug ${
+									isFreePlan(p) ? "text-sm" : ""
+								}`}
 							>
-								Rozpocznij za darmo
-							</button>
-						) : isCurrentPlan(p) ? (
-							<div className="w-full bg-green-500 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2">
-								<Check className="w-4 h-4" />
-								AKTYWNY
+								<Check className="w-4 h-4 shrink-0" />
+								{isFreePlan(p) ? (
+									<span>Korzystasz z tego pakietu — wersja podstawowa w cenie konta</span>
+								) : (
+									<span>AKTYWNY</span>
+								)}
 							</div>
+						) : isFreePlan(p) ? (
+							currentSubscription ? (
+								<div className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-medium leading-snug text-slate-600">
+									Podstawowy dostęp masz już w każdym koncie — wybierz wyższy plan, by rozwinąć możliwości
+								</div>
+							) : (
+								<button
+									type="button"
+									onClick={() => onSelect(p)}
+									className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-colors duration-200"
+								>
+									Pakiet podstawowy — w cenie po założeniu konta
+								</button>
+							)
 						) : (
 							<div className="space-y-2">
 								<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

@@ -266,10 +266,10 @@ export default function Subscriptions() {
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto text-balance">
             {audience === "business"
-              ? "Zacznij bezpłatnie i rozwijaj się w miarę rozwoju swojej działalności. Wszystkie plany z 14-dniowym okresem próbnym."
+              ? "Pakiet podstawowy masz w cenie konta — ulepszaj plan, gdy firma rośnie. Wyższe plany z 14-dniowym okresem próbnym."
               : audience === "provider"
-              ? "Zacznij bezpłatnie i rozwijaj się w miarę rozwoju swojej działalności. Wszystkie plany z 7-dniowym okresem próbnym."
-              : "Zacznij bezpłatnie i rozwijaj się w miarę rozwoju swojej działalności. Wszystkie plany z 7-dniowym okresem próbnym."}
+              ? "Pakiet podstawowy masz w cenie konta — przechodź na wyższy plan, gdy biznes przyspiesza. Wyższe plany z 7-dniowym okresem próbnym."
+              : "Pakiet podstawowy masz w cenie konta — wybierz wyższy plan, gdy potrzebujesz więcej. Wyższe plany z 7-dniowym okresem próbnym."}
           </p>
           {/* Social proof */}
           <div className="pt-4">
