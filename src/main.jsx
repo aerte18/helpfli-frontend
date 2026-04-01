@@ -82,15 +82,11 @@ if ('serviceWorker' in navigator) {
       .then((regs) => Promise.all(regs.map((r) => r.unregister().catch(() => {}))))
       .then(() => console.log('🧹 SW unregistered in DEV'));
   } else {
-    // PROD: rejestruj SW (z bumpem wersji, aby odświeżać cache)
+    // PROD: tymczasowo wyłącz SW, aby uniknąć stale-cache/chunk issues
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js?v=7')
-        .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
-        })
-        .catch((error) => {
-          console.log('❌ Service Worker registration failed:', error);
-        });
+      navigator.serviceWorker.getRegistrations?.()
+        .then((regs) => Promise.all(regs.map((r) => r.unregister().catch(() => {}))))
+        .then(() => console.log('🧹 SW unregistered in PROD'));
     });
   }
 }
