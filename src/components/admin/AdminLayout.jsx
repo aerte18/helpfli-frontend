@@ -1,10 +1,22 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
+function safeReadUserFromStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminLayout() {
   const location = useLocation();
   const { user } = useAuth();
-  const adminUser = user || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null);
+  const adminUser = user || safeReadUserFromStorage();
   
   return (
     <div className="max-w-[1200px] mx-auto p-4">
