@@ -207,9 +207,12 @@ export default function AdminAnalytics() {
       (Array.isArray(selectedFunnel) ? selectedFunnel : [])
         .filter(Boolean)
         .map((item) => [
-        item?._id || item?.type || item?.eventType || 'unknown',
-        { count: num(item?.count), uniqueUsers: num(item?.uniqueUsers) }
-      ])
+          item?._id || item?.type || item?.eventType || "unknown",
+          {
+            count: num(item?.count),
+            uniqueUsers: num(item?.uniqueUsers),
+          },
+        ])
     );
     const get = (key) => byType[key] || { count: 0, uniqueUsers: 0 };
 
@@ -395,8 +398,10 @@ export default function AdminAnalytics() {
                   </div>
                   <div className="font-semibold text-sm">{step.label}</div>
                   <div className="text-xs text-gray-600">{step.description}</div>
-                  <div className="mt-1 text-2xl font-semibold">{step.count}</div>
-                  <div className="text-xs text-gray-600">Unikalni: <span className="font-medium">{step.uniqueUsers || 0}</span></div>
+                  <div className="mt-1 text-2xl font-semibold">{safeRenderValue(num(step.count))}</div>
+                  <div className="text-xs text-gray-600">
+                    Unikalni: <span className="font-medium">{safeRenderValue(num(step.uniqueUsers))}</span>
+                  </div>
                   {step.convFromFirst != null && (
                     <div className="text-xs text-gray-600">
                       Od startu:{" "}
@@ -434,8 +439,8 @@ export default function AdminAnalytics() {
                     <tr key={step.key} className="border-b">
                       <td className="p-2 whitespace-nowrap">Krok {idx + 1}</td>
                       <td className="p-2 whitespace-nowrap">{step.label}</td>
-                      <td className="p-2">{step.count}</td>
-                      <td className="p-2">{step.uniqueUsers || 0}</td>
+                      <td className="p-2">{safeRenderValue(num(step.count))}</td>
+                      <td className="p-2">{safeRenderValue(num(step.uniqueUsers))}</td>
                       <td className="p-2">
                         {step.convFromFirst == null
                           ? "—"
@@ -456,14 +461,14 @@ export default function AdminAnalytics() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard title="Zlecenia" value={z.orders} deltaPct={data.compare?.orders?.deltaPct}/>
-        <KpiCard title="Opłacone (w systemie)" value={z.ordersPaid} deltaPct={data.compare?.ordersPaid?.deltaPct}/>
+        <KpiCard title="Zlecenia" value={num(z.orders)} deltaPct={data.compare?.orders?.deltaPct}/>
+        <KpiCard title="Opłacone (w systemie)" value={num(z.ordersPaid)} deltaPct={data.compare?.ordersPaid?.deltaPct}/>
         <KpiCard title="Obrót (PLN)" value={fmt2(num(z.revenue) / 100)} deltaPct={data.compare?.revenue?.deltaPct}/>
         <KpiCard title="Średnia wartość (PLN)" value={fmt2(num(z.avgOrder) / 100)} deltaPct={data.compare?.avgOrder?.deltaPct}/>
         <KpiCard title="Udział płatnych" value={fmt1(num(z.paidShare) * 100) + '%'} />
-        <KpiCard title="Wykonawcy" value={z.providersCount}/>
-        <KpiCard title="Zweryfikowani (KYC)" value={z.providersVerified}/>
-        <KpiCard title="Klienci" value={z.clientsCount}/>
+        <KpiCard title="Wykonawcy" value={num(z.providersCount)}/>
+        <KpiCard title="Zweryfikowani (KYC)" value={num(z.providersVerified)}/>
+        <KpiCard title="Klienci" value={num(z.clientsCount)}/>
       </div>
 
       {/* Monetization KPIs */}
@@ -472,7 +477,7 @@ export default function AdminAnalytics() {
           <div className="flex items-center justify-between">
             <div className="font-semibold">Monetyzacja (subskrypcje, promocje, kupony)</div>
             <div className="text-xs text-gray-500">
-              Zakres: {monetization.range?.from} – {monetization.range?.to}
+              Zakres: {safeRenderValue(monetization?.range?.from)} – {safeRenderValue(monetization?.range?.to)}
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
