@@ -178,9 +178,8 @@ export default function useChat({ conversationId, currentUser }) {
   useEffect(() => {
     if (!conversationId) return;
     
-    // Sprawdź czy to przykładowe dane DEMO
     const isDemo = String(conversationId || "").startsWith("demo-");
-    if (isDemo) {
+    if (isDemo && import.meta.env.DEV) {
       setMessages(DEMO_MESSAGES[String(conversationId)] || []);
       return;
     }
@@ -195,8 +194,8 @@ export default function useChat({ conversationId, currentUser }) {
   }, [conversationId]);
 
   const sendMessage = useCallback(async ({ text, files }) => {
-    // DEMO: nie wysyłaj do backendu, tylko dodaj lokalnie
-    if (conversationId?.startsWith("demo-")) {
+    // Dev: rozmowa demo-* bez backendu
+    if (conversationId?.startsWith("demo-") && import.meta.env.DEV) {
       const senderId = currentUser?._id || currentUser?.id || "demo-client";
       const t = (text || "").trim();
       if (!t) return;

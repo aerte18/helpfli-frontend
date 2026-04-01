@@ -2,7 +2,7 @@
  * Określa etykietę providera na podstawie jego usług
  * @param {Object} user - Obiekt użytkownika z polem services
  * @param {Array} allServices - Wszystkie dostępne usługi (opcjonalne, dla mapowania)
- * @returns {string} - Etykieta providera (np. "Jan Kowalski - Hydraulik" lub "Jan Kowalski - Złota rączka")
+ * @returns {string} - Etykieta providera (np. "Anna Nowak — Hydraulik" albo sam headline)
  */
 export function getProviderLabel(user, allServices = []) {
   if (!user || !user.name) {

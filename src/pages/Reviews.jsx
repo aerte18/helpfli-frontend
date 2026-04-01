@@ -15,36 +15,40 @@ export default function Reviews() {
         setReviews(data.reviews || []);
       } catch (error) {
         console.error('Błąd pobierania opinii:', error);
-        // Fallback - przykładowe opinie
-        setReviews([
-          {
-            _id: '1',
-            clientName: 'Anna K.',
-            providerName: 'Jan Kowalski',
-            service: 'Hydraulika',
-            rating: 5,
-            comment: 'Świetna obsługa, szybko i profesjonalnie. Polecam!',
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: '2',
-            clientName: 'Piotr M.',
-            providerName: 'Maria Nowak',
-            service: 'Elektryka',
-            rating: 5,
-            comment: 'Bardzo zadowolony z usługi. Wykonawca punktualny i kompetentny.',
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: '3',
-            clientName: 'Katarzyna L.',
-            providerName: 'Tomasz Wiśniewski',
-            service: 'Remont',
-            rating: 4,
-            comment: 'Dobra jakość wykonania, terminowość na wysokim poziomie.',
-            createdAt: new Date().toISOString()
-          }
-        ]);
+        // Produkcja: pusta lista; dev: neutralne przykłady (bez fikcyjnych „Janów”)
+        if (import.meta.env.DEV) {
+          setReviews([
+            {
+              _id: '1',
+              clientName: 'Anna K.',
+              providerName: 'Wykonawca A',
+              service: 'Hydraulika',
+              rating: 5,
+              comment: 'Świetna obsługa, szybko i profesjonalnie. Polecam!',
+              createdAt: new Date().toISOString()
+            },
+            {
+              _id: '2',
+              clientName: 'Piotr M.',
+              providerName: 'Wykonawca B',
+              service: 'Elektryka',
+              rating: 5,
+              comment: 'Bardzo zadowolony z usługi. Wykonawca punktualny i kompetentny.',
+              createdAt: new Date().toISOString()
+            },
+            {
+              _id: '3',
+              clientName: 'Katarzyna L.',
+              providerName: 'Wykonawca C',
+              service: 'Remont',
+              rating: 4,
+              comment: 'Dobra jakość wykonania, terminowość na wysokim poziomie.',
+              createdAt: new Date().toISOString()
+            }
+          ]);
+        } else {
+          setReviews([]);
+        }
       } finally {
         setLoading(false);
       }

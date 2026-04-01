@@ -11,11 +11,11 @@ import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 
-// DEMO fallback – pokaż przykładowych usługodawców, gdy backend nie zwróci wyników (jak w Home.jsx)
+// Tylko dev: przykładowi wykonawcy przy pustej odpowiedzi API (jak Home.jsx)
 const DEMO_PROVIDERS = [
   {
     id: "demo-1",
-    name: "Jan Kowalski",
+    name: "Wykonawca A",
     rating: 4.8,
     distanceKm: 2.1,
     priceFrom: 120,
@@ -536,8 +536,13 @@ const ProvidersPage = () => {
         avatar: p.avatar || p.avatarUrl || null,
       }));
 
-      // Jeśli brak wyników i nie ma żadnych filtrów, pokaż DEMO (jak w Home.jsx)
-      if (!normalized.length && page === 1 && (!filters || Object.keys(filters).every(k => !filters[k] || filters[k] === 'all' || filters[k] === 50 || filters[k] === 0))) {
+      // Dev: przy pustej odpowiedzi i braku filtrów — przykładowa lista (produkcja: pusta)
+      if (
+        import.meta.env.DEV &&
+        !normalized.length &&
+        page === 1 &&
+        (!filters || Object.keys(filters).every(k => !filters[k] || filters[k] === 'all' || filters[k] === 50 || filters[k] === 0))
+      ) {
         setProviders(DEMO_PROVIDERS);
         setHasMore(false);
       } else if (normalized.length === 0 && page === 1) {
@@ -556,7 +561,7 @@ const ProvidersPage = () => {
       setHasMore(normalized.length >= 20);
     } catch (error) {
       if (page === 1) {
-        setProviders(DEMO_PROVIDERS);
+        setProviders(import.meta.env.DEV ? DEMO_PROVIDERS : []);
       } else {
         setProviders([]);
       }

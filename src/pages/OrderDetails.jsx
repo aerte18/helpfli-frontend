@@ -1984,7 +1984,7 @@ export default function OrderDetails() {
     return user;
   }, [user]);
 
-  // Przykładowe dane DEMO
+  // Dane DEMO — tylko import.meta.env.DEV (build produkcyjny korzysta wyłącznie z API)
   const DEMO_ORDER_DATA = {
     "demo-order-1": {
       _id: "demo-order-1",
@@ -1995,7 +1995,7 @@ export default function OrderDetails() {
       description: "Kran w kuchni przecieka. Potrzebuję szybkiej naprawy.",
       location: { city: "Warszawa", address: "ul. Marszałkowska 10" },
       budget: 200,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       // W DEMO ustawiamy providera tylko po to, żeby działał widok czatu
       provider: { name: "Wykonawca", email: "wykonawca@example.com", _id: "demo-provider-1" },
       offers: [],
@@ -2010,7 +2010,7 @@ export default function OrderDetails() {
       description: "Iskrzy gniazdko w salonie. Proszę o diagnozę i wymianę.",
       location: { city: "Kraków", address: "ul. Floriańska 15" },
       budget: 150,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: null,
       offers: [
         {
@@ -2022,7 +2022,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2088,7 +2088,7 @@ export default function OrderDetails() {
       description: "Montaż karnisza w sypialni + drobne poprawki mocowań.",
       location: { city: "Gdańsk", address: "ul. Długa 5" },
       budget: 180,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: { name: "Wykonawca", email: "wykonawca@example.com", _id: "demo-provider-1" },
       offers: [],
       __demo: true,
@@ -2104,7 +2104,7 @@ export default function OrderDetails() {
       description: "Malowanie pokoju dziennego (ok. 25m²). Kolor biały, matowy. Wymagane przygotowanie powierzchni.",
       location: { city: "Wrocław", address: "ul. Kwiatowa 15" },
       budget: 800,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: { 
         name: "Marek Malarz",
         email: "marek@example.com",
@@ -2145,7 +2145,7 @@ export default function OrderDetails() {
       description: "Instalacja nowego oświetlenia sufitowego w salonie. Wymiana starego żyrandola na nowoczesne LED.",
       location: { city: "Poznań", address: "ul. Słoneczna 8" },
       budget: 450,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: { 
         name: "Piotr Elektryk",
         email: "piotr@example.com",
@@ -2186,7 +2186,7 @@ export default function OrderDetails() {
       description: "Wymiana starej baterii umywalkowej na nową. Podłączenie wody i odpływu.",
       location: { city: "Łódź", address: "ul. Główna 22" },
       budget: 300,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: { 
         name: "Tomasz Hydraulik",
         email: "tomasz@example.com",
@@ -2226,7 +2226,7 @@ export default function OrderDetails() {
       description: "Iskrzy gniazdko w salonie. Proszę o diagnozę i wymianę.",
       location: { city: "Kraków", address: "ul. Floriańska 15" },
       budget: 150,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
       provider: null,
       offers: [
         {
@@ -2238,7 +2238,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2259,8 +2259,8 @@ export default function OrderDetails() {
       description: "Montaż karnisza w sypialni + drobne poprawki mocowań.",
       location: { city: "Gdańsk", address: "ul. Długa 5" },
       budget: 180,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
-      provider: { name: "Jan Kowalski", email: "provider@example.com", _id: "demo-provider-1" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
+      provider: { name: "Wykonawca A", email: "provider@example.com", _id: "demo-provider-1" },
       acceptedOfferId: "demo-provider-offer-2",
       offers: [
         {
@@ -2272,7 +2272,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2294,8 +2294,8 @@ export default function OrderDetails() {
       description: "Malowanie pokoju dziennego (ok. 25m²). Kolor biały, matowy. Wymagane przygotowanie powierzchni.",
       location: { city: "Wrocław", address: "ul. Kwiatowa 15" },
       budget: 800,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
-      provider: { name: "Jan Kowalski", email: "provider@example.com", _id: "demo-provider-1" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
+      provider: { name: "Wykonawca A", email: "provider@example.com", _id: "demo-provider-1" },
       acceptedOfferId: "demo-provider-offer-3",
       offers: [
         {
@@ -2307,7 +2307,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2329,8 +2329,8 @@ export default function OrderDetails() {
       description: "Instalacja nowego oświetlenia sufitowego w salonie. Wymiana starego żyrandola na nowoczesne LED.",
       location: { city: "Poznań", address: "ul. Słoneczna 8" },
       budget: 450,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
-      provider: { name: "Jan Kowalski", email: "provider@example.com", _id: "demo-provider-1" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
+      provider: { name: "Wykonawca A", email: "provider@example.com", _id: "demo-provider-1" },
       acceptedOfferId: "demo-provider-offer-4",
       offers: [
         {
@@ -2342,7 +2342,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2364,8 +2364,8 @@ export default function OrderDetails() {
       description: "Wymiana starej baterii umywalkowej na nową. Podłączenie wody i odpływu.",
       location: { city: "Łódź", address: "ul. Główna 22" },
       budget: 300,
-      client: { name: "Jan Klient", email: "jan@example.com", _id: "demo-client" },
-      provider: { name: "Jan Kowalski", email: "provider@example.com", _id: "demo-provider-1" },
+      client: { name: "Klient", email: "jan@example.com", _id: "demo-client" },
+      provider: { name: "Wykonawca A", email: "provider@example.com", _id: "demo-provider-1" },
       acceptedOfferId: "demo-provider-offer-5",
       offers: [
         {
@@ -2377,7 +2377,7 @@ export default function OrderDetails() {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 13).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -2394,6 +2394,12 @@ export default function OrderDetails() {
     (async () => {
       try {
         const isDemo = orderId?.startsWith("demo-");
+        if (isDemo && !import.meta.env.DEV) {
+          setErr("Nie znaleziono zlecenia.");
+          setLoading(false);
+          setLoadingAI(false);
+          return;
+        }
         if (isDemo) {
           const demoOrder = DEMO_ORDER_DATA[orderId];
           if (demoOrder) {
@@ -2656,7 +2662,7 @@ export default function OrderDetails() {
         setActiveConversation({
           _id: `${order._id}:${chatSelectedProviderId || fallbackProvider}`,
           participants: [
-            { _id: "demo-client", name: "Jan Klient" },
+            { _id: "demo-client", name: "Klient" },
             { _id: chatSelectedProviderId || fallbackProvider, name: offers.find(o => String(o.providerId) === String(chatSelectedProviderId || fallbackProvider))?.providerMeta?.name || "Wykonawca" }
           ],
           __demo: true
@@ -2768,7 +2774,7 @@ export default function OrderDetails() {
     setActiveConversation({
       _id: `${order._id}:${providerId}`,
       participants: [
-        { _id: "demo-client", name: "Jan Klient" },
+        { _id: "demo-client", name: "Klient" },
         { _id: providerId, name: offers.find(o => String(o.providerId) === String(providerId))?.providerMeta?.name || "Wykonawca" }
       ],
       __demo: true

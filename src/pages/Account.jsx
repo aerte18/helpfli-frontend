@@ -444,7 +444,7 @@ function OrdersTab({ user }) {
       description: "Kran w kuchni przecieka. Potrzebuję szybkiej naprawy.",
       location: { city: "Warszawa" },
       budget: 200,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: null,
       offers: [],
       __demo: true,
@@ -458,7 +458,7 @@ function OrdersTab({ user }) {
       description: "Iskrzy gniazdko w salonie. Proszę o diagnozę i wymianę.",
       location: { city: "Kraków" },
       budget: 150,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: null,
       offers: [
         {
@@ -470,7 +470,7 @@ function OrdersTab({ user }) {
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
           providerId: "demo-provider-1",
           providerMeta: {
-            name: "Jan Kowalski",
+            name: "Wykonawca A",
             ratingAvg: 4.8,
             ratingCount: 24,
             level: "pro",
@@ -535,7 +535,7 @@ function OrdersTab({ user }) {
       description: "Montaż karnisza w sypialni + drobne poprawki mocowań.",
       location: { city: "Gdańsk" },
       budget: 180,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: { name: "Wykonawca" },
       offers: [],
       __demo: true,
@@ -551,7 +551,7 @@ function OrdersTab({ user }) {
       description: "Malowanie pokoju dziennego (ok. 25m²). Kolor biały, matowy. Wymagane przygotowanie powierzchni.",
       location: { city: "Wrocław", address: "ul. Kwiatowa 15" },
       budget: 800,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: { 
         name: "Marek Malarz",
         ratingAvg: 4.7,
@@ -589,7 +589,7 @@ function OrdersTab({ user }) {
       description: "Instalacja nowego oświetlenia sufitowego w salonie. Wymiana starego żyrandola na nowoczesne LED.",
       location: { city: "Poznań", address: "ul. Słoneczna 8" },
       budget: 450,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: { 
         name: "Piotr Elektryk",
         ratingAvg: 4.9,
@@ -627,7 +627,7 @@ function OrdersTab({ user }) {
       description: "Wymiana starej baterii umywalkowej na nową. Podłączenie wody i odpływu.",
       location: { city: "Łódź", address: "ul. Główna 22" },
       budget: 300,
-      client: { name: "Jan Klient" },
+      client: { name: "Klient" },
       provider: { 
         name: "Tomasz Hydraulik",
         ratingAvg: 4.8,
@@ -668,7 +668,7 @@ function OrdersTab({ user }) {
         description: "Iskrzy gniazdko w salonie. Proszę o diagnozę i wymianę.",
         location: { city: "Kraków" },
         budget: 150,
-        client: { name: "Jan Klient" },
+        client: { name: "Klient" },
         __demo: true,
       },
       offer: {
@@ -692,7 +692,7 @@ function OrdersTab({ user }) {
         description: "Montaż karnisza w sypialni + drobne poprawki mocowań.",
         location: { city: "Gdańsk" },
         budget: 180,
-        client: { name: "Jan Klient" },
+        client: { name: "Klient" },
         acceptedOfferId: "demo-provider-offer-2",
         __demo: true,
       },
@@ -718,7 +718,7 @@ function OrdersTab({ user }) {
         description: "Malowanie pokoju dziennego (ok. 25m²). Kolor biały, matowy.",
         location: { city: "Wrocław" },
         budget: 800,
-        client: { name: "Jan Klient" },
+        client: { name: "Klient" },
         acceptedOfferId: "demo-provider-offer-3",
         __demo: true,
       },
@@ -744,7 +744,7 @@ function OrdersTab({ user }) {
         description: "Instalacja nowego oświetlenia sufitowego w salonie.",
         location: { city: "Poznań" },
         budget: 450,
-        client: { name: "Jan Klient" },
+        client: { name: "Klient" },
         acceptedOfferId: "demo-provider-offer-4",
         __demo: true,
       },
@@ -770,7 +770,7 @@ function OrdersTab({ user }) {
         description: "Wymiana starej baterii umywalkowej na nową.",
         location: { city: "Łódź" },
         budget: 300,
-        client: { name: "Jan Klient" },
+        client: { name: "Klient" },
         acceptedOfferId: "demo-provider-offer-5",
         __demo: true,
       },
@@ -1722,31 +1722,14 @@ function RatingsTab({ user }) {
   );
 }
 
-// Favorites Tab (Client only)
+// Favorites Tab (Client only) — brak podłączonego API; bez mocków danych testowych
 function FavoritesTab() {
   return (
     <div className="space-y-4">
       <Card title="Ulubieni wykonawcy">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-indigo-600 font-semibold">JK</span>
-              </div>
-              <div>
-                <div className="font-medium">Jan Kowalski</div>
-                <div className="text-sm text-gray-500">Hydraulik</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 shrink-0" aria-hidden />
-                <span className="text-sm">4.8 (24 opinie)</span>
-              </div>
-              <button className="text-red-500 hover:text-red-700 p-1" aria-label="Ulubiony"><Heart className="w-4 h-4 shrink-0" aria-hidden /></button>
-            </div>
-          </div>
-        </div>
+        <p className="text-sm text-gray-600">
+          Nie masz jeszcze zapisanych ulubionych wykonawców. Gdy dodasz ich z profilu lub listy wyników, pojawią się tutaj.
+        </p>
       </Card>
     </div>
   );
@@ -1757,15 +1740,9 @@ function HistoryTab() {
   return (
     <div className="space-y-4">
       <Card title="Historia zleceń">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <div className="font-medium">Naprawa kranu</div>
-              <div className="text-sm text-gray-500">Jan Kowalski • 150 zł</div>
-            </div>
-            <div className="text-sm text-gray-500">2 dni temu</div>
-          </div>
-        </div>
+        <p className="text-sm text-gray-600">
+          Zrealizowane i archiwalne zlecenia znajdziesz w zakładce <strong>Moje zlecenia</strong> (filtry statusu).
+        </p>
       </Card>
     </div>
   );
@@ -2634,7 +2611,7 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
             <label className="block text-sm font-medium text-gray-700 mb-1">Imię i nazwa</label>
             <input
               type="text"
-              placeholder="np. Jan Kowalski"
+              placeholder="Imię i nazwisko"
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               value={accountForm.name}
               onChange={(e) => setAccountForm(f => ({ ...f, name: e.target.value }))}

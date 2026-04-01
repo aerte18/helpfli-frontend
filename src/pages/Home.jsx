@@ -33,11 +33,11 @@ function normalizeMobileViewMode(value) {
 }
 
 // Dane z backendu /api/search – fetchowane w useEffect poniżej
-// DEMO fallback – pokaż przykładowych usługodawców, gdy backend nie zwróci wyników
+// Tylko import.meta.env.DEV: przykładowi wykonawcy, gdy API zwróci pustą listę (bez ścisłych filtrów)
 const DEMO_PROVIDERS = [
   {
     id: "demo-1",
-    name: "Jan Kowalski",
+    name: "Wykonawca A",
     rating: 4.8,
     distanceKm: 2.1,
     priceFrom: 120,

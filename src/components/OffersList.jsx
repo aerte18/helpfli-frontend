@@ -52,7 +52,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
   const [stripeBlockReason, setStripeBlockReason] = useState("");
   const [orderData, setOrderData] = useState(null);
 
-  // Przykładowe oferty DEMO
+  // Dev: przykładowe oferty dla orderId demo-* (produkcja: API)
   const DEMO_OFFERS = {
     "demo-order-1": [],
     "demo-order-2": [
@@ -65,7 +65,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         providerId: "demo-provider-1",
         providerMeta: {
-          name: "Jan Kowalski",
+          name: "Wykonawca A",
           ratingAvg: 4.8,
           ratingCount: 24,
           level: "pro",
@@ -125,9 +125,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
     async function load() {
       try {
         const isDemo = orderId?.startsWith("demo-");
-        
-        if (isDemo) {
-          // Użyj przykładowych ofert DEMO
+
+        if (isDemo && import.meta.env.DEV) {
           setOffers(DEMO_OFFERS[orderId] || []);
           // Ustaw też przykładowe dane zlecenia (minimalne, pod UI)
           setOrderData({
@@ -143,6 +142,13 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
             location: { city: orderId === "demo-order-3" ? "Gdańsk" : (orderId === "demo-order-2" ? "Kraków" : "Warszawa") },
             __demo: true
           });
+          return;
+        }
+
+        if (isDemo && !import.meta.env.DEV) {
+          setOffers([]);
+          setOrderData(null);
+          setError("To zlecenie nie jest dostępne.");
           return;
         }
 

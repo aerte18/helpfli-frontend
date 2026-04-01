@@ -119,21 +119,21 @@ export default function SearchPage() {
       } catch (error) {
         console.error('Błąd pobierania providerów:', error);
         setError('Nie udało się pobrać danych providerów');
-        
-        // Fallback do demo danych z filtrowaniem po query
-        const demo = [
-          { id:"1", initials:"JK", name:"Jan Kowalski", service:"Hydraulik", level:"pro", rating:4.9, priceFrom:150, priceTo:260, eta:"30–45 min", distanceKm:3.2, quality:92, verified:true, b2b:true, badges:["Gwarancja Helpfli"], coords:[52.2297,21.0122], online:true },
-          { id:"2", initials:"AN", name:"Anna Nowak", service:"Elektryk", level:"standard", rating:4.7, priceFrom:100, priceTo:180, eta:"dzisiaj wieczór", distanceKm:5.8, quality:86, verified:true, b2b:false, badges:["Szybkie wyceny"], coords:[52.24,21.01], online:false },
-          { id:"3", initials:"PW", name:"Piotr Wiśniewski", service:"Złota rączka", level:"basic", rating:4.4, priceFrom:80, priceTo:120, eta:"jutro rano", distanceKm:7.3, quality:78, verified:false, b2b:true, badges:[], coords:[52.235,21.04], online:true },
-        ];
-        
-        // Filtruj demo dane po query
-        const filteredDemo = query ? demo.filter(p => 
-          p.service.toLowerCase().includes(query.toLowerCase()) ||
-          p.name.toLowerCase().includes(query.toLowerCase())
-        ) : demo;
-        
-        setProviders(filteredDemo);
+        // Produkcja: brak sztucznych kart — tylko dev pokazuje przykładową listę przy błędzie API
+        if (import.meta.env.DEV) {
+          const demo = [
+            { id:"1", initials:"WA", name:"Wykonawca A", service:"Hydraulik", level:"pro", rating:4.9, priceFrom:150, priceTo:260, eta:"30–45 min", distanceKm:3.2, quality:92, verified:true, b2b:true, badges:["Gwarancja Helpfli"], coords:[52.2297,21.0122], online:true },
+            { id:"2", initials:"WB", name:"Wykonawca B", service:"Elektryk", level:"standard", rating:4.7, priceFrom:100, priceTo:180, eta:"dzisiaj wieczór", distanceKm:5.8, quality:86, verified:true, b2b:false, badges:["Szybkie wyceny"], coords:[52.24,21.01], online:false },
+            { id:"3", initials:"WC", name:"Wykonawca C", service:"Złota rączka", level:"basic", rating:4.4, priceFrom:80, priceTo:120, eta:"jutro rano", distanceKm:7.3, quality:78, verified:false, b2b:true, badges:[], coords:[52.235,21.04], online:true },
+          ];
+          const filteredDemo = query ? demo.filter(p =>
+            p.service.toLowerCase().includes(query.toLowerCase()) ||
+            p.name.toLowerCase().includes(query.toLowerCase())
+          ) : demo;
+          setProviders(filteredDemo);
+        } else {
+          setProviders([]);
+        }
       } finally {
         setLoading(false);
       }
