@@ -498,12 +498,22 @@ export default function ProviderHome() {
   const [recommendedLoading, setRecommendedLoading] = useState(false);
   const [recommendedOnly, setRecommendedOnly] = useState(false);
   const recommendedById = useMemo(() => {
+    const normalizeReason = (value) => {
+      if (typeof value === "string") return value;
+      if (typeof value === "number" || typeof value === "boolean") return String(value);
+      if (Array.isArray(value)) return value.filter(Boolean).map((v) => String(v)).join(", ");
+      if (value && typeof value === "object") {
+        const candidate = value.reason || value.text || value.message || value.label;
+        if (typeof candidate === "string") return candidate;
+      }
+      return "Dopasowane do Twoich usług i lokalizacji";
+    };
     const map = new Map();
     (recommendedOrders || []).forEach((rec) => {
       const id = String(rec?.id || rec?._id || "").trim();
       if (!id) return;
       map.set(id, {
-        reason: rec?.reason || "Dopasowane do Twoich usług i lokalizacji",
+        reason: normalizeReason(rec?.reason),
       });
     });
     return map;
