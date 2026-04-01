@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -1110,87 +1110,150 @@ export default function ProviderHome() {
       <div className={`${viewMode === "map" ? "fixed" : "sticky"} ${viewMode === "map" ? "top-16" : "top-0"} left-0 right-0 z-40 ${viewMode === "map" ? "bg-white/30 backdrop-blur-lg" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}>
         <div
           className={`max-w-7xl mx-auto px-3 sm:px-4 ${
-            viewMode === "map" && isMobileViewport
+            isMobileViewport
               ? "flex flex-col gap-2"
               : "flex items-center justify-between gap-2 sm:gap-3"
-          } ${viewMode === "map" && isMobileViewport ? "py-2" : "py-3"}`}
+          } ${viewMode === "map" && isMobileViewport ? "py-2" : isMobileViewport ? "py-2.5" : "py-3"}`}
         >
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
-            <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
-            <div className="flex flex-wrap gap-2">
-              <StatusPill
-                active={status === "online"}
-                onClick={() => handleStatusChange("online")}
-                color="emerald"
+          {isMobileViewport ? (
+            <>
+              <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                <div
+                  className="inline-flex rounded-full border border-slate-200/90 bg-white/95 p-0.5 shadow-sm"
+                  role="group"
+                  aria-label="Status wykonawcy"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange("online")}
+                    title="Online — widoczny dla klientów"
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                      status === "online"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-slate-600 active:bg-slate-100"
+                    }`}
+                  >
+                    <Wifi className="w-4 h-4 shrink-0" aria-hidden />
+                    Online
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStatusChange("offline")}
+                    title="Offline — mniejsza widoczność w wynikach"
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${
+                      status === "offline"
+                        ? "bg-slate-700 text-white shadow-sm"
+                        : "text-slate-600 active:bg-slate-100"
+                    }`}
+                  >
+                    <WifiOff className="w-4 h-4 shrink-0" aria-hidden />
+                    Offline
+                  </button>
+                </div>
+                <Link
+                  to="/account?tab=schedule"
+                  title="Harmonogram dostępności"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]"
+                  aria-label="Harmonogram dostępności"
+                >
+                  <CalendarDays className="w-5 h-5" aria-hidden />
+                </Link>
+              </div>
+              {status === "offline" && viewMode !== "map" && (
+                <p className="text-[11px] leading-snug text-slate-600">
+                  Offline: klienci widzą niższą dostępność — ustaw Online, gdy możesz przyjmować zlecenia.
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+              <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
+              <div className="flex flex-wrap gap-2">
+                <StatusPill
+                  active={status === "online"}
+                  onClick={() => handleStatusChange("online")}
+                  color="emerald"
+                >
+                  Online
+                </StatusPill>
+                <StatusPill
+                  active={status === "offline"}
+                  onClick={() => handleStatusChange("offline")}
+                  color="slate"
+                >
+                  Offline
+                </StatusPill>
+              </div>
+              {status === "offline" && (
+                <p className="text-xs text-slate-600 max-w-xs">
+                  Gdy jesteś offline, nadal jesteś widoczny w wynikach wyszukiwania, ale klienci widzą status Offline. Przełącz na Online, aby zwiększyć szansę na szybki kontakt.
+                </p>
+              )}
+              <Link
+                to="/account?tab=schedule"
+                className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 shrink-0"
               >
-                Online
-              </StatusPill>
-              <StatusPill
-                active={status === "offline"}
-                onClick={() => handleStatusChange("offline")}
-                color="slate"
-              >
-                Offline
-              </StatusPill>
+                📅 Harmonogram dostępności
+              </Link>
             </div>
-            {status === "offline" && !(viewMode === "map" && isMobileViewport) && (
-              <p className="text-xs text-slate-600 max-w-xs">
-                Gdy jesteś offline, nadal jesteś widoczny w wynikach wyszukiwania, ale klienci widzą status Offline. Przełącz na Online, aby zwiększyć szansę na szybki kontakt.
-              </p>
+          )}
+
+          <div
+            className={`flex items-center gap-1.5 flex-wrap min-w-0 ${
+              isMobileViewport
+                ? "justify-start overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : "justify-start sm:justify-end"
+            }`}
+          >
+            <span className="qs-badge qs-badge-dark text-[10px] whitespace-nowrap shrink-0">
+              {list.length} zleceń
+            </span>
+            {freeRepliesLeft != null && (
+              <span
+                className="qs-badge qs-badge-success text-[10px] sm:text-[11px] whitespace-nowrap shrink-0"
+                title="Pozostało darmowych wycen w tym okresie"
+              >
+                {isMobileViewport ? `${freeRepliesLeft} wycen` : `Darmowe wyceny: ${freeRepliesLeft}`}
+              </span>
             )}
-            <Link 
-              to="/account?tab=schedule" 
-              className={`text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 shrink-0 ${
-                viewMode === "map" && isMobileViewport ? "text-xs ml-0" : "ml-4 text-sm"
+            <button
+              type="button"
+              title={
+                showAllServices
+                  ? "Widzisz wszystkie otwarte zlecenia w zasięgu. Kliknij, aby ograniczyć do usług z profilu."
+                  : "Widzisz tylko zlecenia zgodne z usługami w koncie. Kliknij, aby zobaczyć pełny rynek."
+              }
+              onClick={() => {
+                const next = !showAllServices;
+                setShowAllServices(next);
+                setFilters((s) => ({ ...s, service: "any" }));
+              }}
+              className={`qs-chip text-[11px] sm:text-xs whitespace-nowrap shrink-0 ${
+                !showAllServices
+                  ? "active shadow-md shadow-indigo-200"
+                  : "bg-white/70 border border-white/60 text-slate-600 hover:bg-white"
               }`}
             >
-              {viewMode === "map" && isMobileViewport ? "📅 Harmonogram" : "📅 Harmonogram dostępności"}
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-start sm:justify-end gap-2 flex-wrap min-w-0">
-              <span className="qs-badge qs-badge-dark text-[10px] whitespace-nowrap">
-                {list.length} zleceń
-              </span>
-              {freeRepliesLeft != null && (
-                <span className="qs-badge qs-badge-success text-[11px] whitespace-nowrap">
-                  Darmowe wyceny: {freeRepliesLeft}
-                </span>
-              )}
-              <button
-                type="button"
-                title={
-                  showAllServices
-                    ? "Widzisz wszystkie otwarte zlecenia w zasięgu. Kliknij, aby ograniczyć do usług z profilu."
-                    : "Widzisz tylko zlecenia zgodne z usługami w koncie. Kliknij, aby zobaczyć pełny rynek."
-                }
-                onClick={() => {
-                  const next = !showAllServices;
-                  setShowAllServices(next);
-                  // Czyść ukryty filtr usługi przy zmianie trybu, żeby nie blokował wyników.
-                  setFilters((s) => ({ ...s, service: "any" }));
-                }}
-                className={`qs-chip text-xs whitespace-nowrap ${
-                  !showAllServices
-                    ? 'active shadow-md shadow-indigo-200'
-                    : 'bg-white/70 border border-white/60 text-slate-600 hover:bg-white'
-                }`}
-              >
-                {showAllServices ? 'Wszystkie zlecenia' : 'Tylko moje usługi'}
-              </button>
-              <button
-                type="button"
-                title="Pokaż tylko zlecenia rekomendowane przez AI"
-                onClick={() => setRecommendedOnly((v) => !v)}
-                className={`qs-chip text-xs whitespace-nowrap ${
-                  recommendedOnly
-                    ? "active shadow-md shadow-indigo-200"
-                    : "bg-white/70 border border-white/60 text-slate-600 hover:bg-white"
-                }`}
-              >
-                {recommendedLoading ? "✨ Polecane..." : "✨ Tylko polecane"}
-              </button>
-            </div>
+              {isMobileViewport
+                ? showAllServices
+                  ? "Wszystkie"
+                  : "Moje usługi"
+                : showAllServices
+                  ? "Wszystkie zlecenia"
+                  : "Tylko moje usługi"}
+            </button>
+            <button
+              type="button"
+              title="Pokaż tylko zlecenia rekomendowane przez AI"
+              onClick={() => setRecommendedOnly((v) => !v)}
+              className={`qs-chip text-[11px] sm:text-xs whitespace-nowrap shrink-0 ${
+                recommendedOnly
+                  ? "active shadow-md shadow-indigo-200"
+                  : "bg-white/70 border border-white/60 text-slate-600 hover:bg-white"
+              }`}
+            >
+              {recommendedLoading ? "✨ …" : isMobileViewport ? "✨ Polecane" : "✨ Tylko polecane"}
+            </button>
           </div>
         </div>
 
