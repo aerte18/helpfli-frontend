@@ -519,26 +519,14 @@ export default function ProviderHome() {
     () => (Array.isArray(recommendedOrders) ? recommendedOrders : []),
     [recommendedOrders]
   );
-  const recommendedById = useMemo(() => {
-    const normalizeReason = (value) => {
-      if (typeof value === "string") return value;
-      if (typeof value === "number" || typeof value === "boolean") return String(value);
-      if (Array.isArray(value)) return value.filter(Boolean).map((v) => String(v)).join(", ");
-      if (value && typeof value === "object") {
-        const candidate = value.reason || value.text || value.message || value.label;
-        if (typeof candidate === "string") return candidate;
-      }
-      return "Dopasowane do Twoich usług i lokalizacji";
-    };
-    const map = new Map();
+  const recommendedIdSet = useMemo(() => {
+    const ids = new Set();
     recommendedOrdersSafe.forEach((rec) => {
       const id = String(rec?.id || rec?._id || "").trim();
       if (!id) return;
-      map.set(id, {
-        reason: normalizeReason(rec?.reason),
-      });
+      ids.add(id);
     });
-    return map;
+    return ids;
   }, [recommendedOrdersSafe]);
   const providerServiceSlugs = useMemo(
     () => expandProviderServiceSlugs(user?.services || [], allServices),
@@ -897,11 +885,10 @@ export default function ProviderHome() {
 
     const withRecommendation = sorted.map((o) => {
       const id = String(o?._id || o?.id || "").trim();
-      const rec = id ? recommendedById.get(id) : null;
       return {
         ...o,
-        isRecommendedForProvider: !!rec,
-        recommendedReason: rec?.reason || "",
+        isRecommendedForProvider: !!(id && recommendedIdSet.has(id)),
+        recommendedReason: "",
       };
     });
 
@@ -910,7 +897,7 @@ export default function ProviderHome() {
     }
 
     return withRecommendation;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedById, recommendedOnly]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedIdSet, recommendedOnly]);
 
   // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
