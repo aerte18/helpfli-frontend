@@ -63,6 +63,24 @@ function getExpiryInfo(x) {
   return { text: `Wygasa za ${timeText}`, cls };
 }
 
+function asDisplayText(value, fallback = "") {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    const joined = value
+      .filter(Boolean)
+      .map((v) => (typeof v === "string" ? v : (v && typeof v === "object" ? (v.name || v.label || v.text || "") : String(v))))
+      .filter(Boolean)
+      .join(", ");
+    return joined || fallback;
+  }
+  if (value && typeof value === "object") {
+    const candidate = value.name || value.name_pl || value.label || value.text || value.title || value.code || value.message;
+    if (typeof candidate === "string") return candidate;
+  }
+  return fallback;
+}
+
 // Funkcja do tworzenia nowoczesnych pinezek dla zleceń
 function orderIcon(order) {
   const urgency = order.urgency || 'flexible';
@@ -1863,11 +1881,11 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   
   // Obsługa różnych formatów danych (mock vs API)
   const title = data.title || data.description || `${data.service} - zlecenie`;
-  const service = data.service;
-  const serviceDetails = data.serviceDetails; // doprecyzowanie usługi
+  const service = asDisplayText(data.service, "Usługa");
+  const serviceDetails = asDisplayText(data.serviceDetails, ""); // doprecyzowanie usługi
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
-  const clientNote = data.clientNote || data.description;
+  const clientNote = asDisplayText(data.clientNote ?? data.description, "");
   const clientName = data.client?.name || 'Klient';
   const avatarUrl = data.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   
@@ -2136,8 +2154,8 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
 function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const u = URGENCY_BADGE[order.urgency] || URGENCY_BADGE.flexible;
   
-  const service = order.service;
-  const clientNote = order.clientNote || order.description;
+  const service = asDisplayText(order.service, "Usługa");
+  const clientNote = asDisplayText(order.clientNote ?? order.description, "");
   const clientName = order.client?.name || 'Klient';
   const avatarUrl = order.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   const distance = order.distanceKm;
@@ -2288,11 +2306,11 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
 function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const u = URGENCY_BADGE[data.urgency] || URGENCY_BADGE.flexible;
   
-  const service = data.service;
-  const serviceDetails = data.serviceDetails;
+  const service = asDisplayText(data.service, "Usługa");
+  const serviceDetails = asDisplayText(data.serviceDetails, "");
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
-  const clientNote = data.clientNote || data.description;
+  const clientNote = asDisplayText(data.clientNote ?? data.description, "");
   const clientName = data.client?.name || 'Klient';
   const avatarUrl = data.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
   
