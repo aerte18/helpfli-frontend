@@ -32,9 +32,6 @@ export default function Testimonials() {
             </article>
           ))}
         </div>
-        <p className="mt-2 text-center text-xs font-medium text-slate-500 md:hidden">
-          ← Przesuń palcem w bok, aby zobaczyć więcej opinii →
-        </p>
       </div>
     </section>
   );

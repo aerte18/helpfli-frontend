@@ -1186,12 +1186,9 @@ export default function Home() {
       {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
-          className={`sm:hidden fixed z-[70] ${
-            viewMode === "map"
-              ? `${user ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]"} left-3`
-              : "right-3"
+          className={`sm:hidden fixed z-[70] left-3 ${
+            user ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]"
           }`}
-          style={viewMode === "list" ? { top: activeFilters.length > 0 ? "208px" : "192px" } : undefined}
         >
           <button
             type="button"

@@ -200,9 +200,6 @@ export default function PopularServices({ onPick, services = null }) {
         )}
 
         {/* Scrollable Container */}
-        <p className="md:hidden text-center text-xs mb-1 font-medium" style={{ color: 'var(--muted-foreground)' }}>
-          ← Przesuń palcem w bok, aby zobaczyć więcej →
-        </p>
         <div 
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto pb-2 pt-2 scrollbar-hide snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] pl-2 pr-2 md:pl-0 md:pr-0"
@@ -267,11 +264,6 @@ export default function PopularServices({ onPick, services = null }) {
               </button>
             );
           })}
-        </div>
-        <div className="md:hidden mt-1 flex items-center justify-center gap-2 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
-          <span>Przewiń po więcej kategorii</span>
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
         </div>
       </div>
     </div>

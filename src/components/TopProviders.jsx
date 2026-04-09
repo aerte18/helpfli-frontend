@@ -47,7 +47,6 @@ export default function TopProviders({ service, city }) {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-6 md:mb-12">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-4">{UI.sectionPopularHelp}</h2>
-          <p className="md:hidden text-xs font-medium text-gray-500">← Przesuń palcem w bok, aby zobaczyć kolejnych wykonawców →</p>
         </div>
 
         <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 overflow-x-auto md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
@@ -95,11 +94,6 @@ export default function TopProviders({ service, city }) {
               </Link>
             </div>
           ))}
-        </div>
-        <div className="md:hidden -mt-4 mb-8 flex items-center justify-center gap-2 text-[11px] text-gray-500">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500" />
-          <span>Przewiń, aby odkryć więcej kart</span>
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500" />
         </div>
 
         {/* Link do wszystkich providerów - używamy tych samych parametrów co Home.jsx */}
