@@ -376,31 +376,10 @@ export default function LandingStart() {
             </Suspense>
           </div>
 
-          {/* Trust strip: szybkie "dlaczego warto" od razu pod hero */}
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-              <span className="inline-flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" aria-hidden />
-                Zweryfikowani wykonawcy
-              </span>
-            </div>
-            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-              <span className="inline-flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-500" aria-hidden />
-                Oceny i opinie klientów
-              </span>
-            </div>
-            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-indigo-600" aria-hidden />
-                Szybkie porównanie ofert
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
-      <div className={`flex flex-col ${!user ? "pb-20 md:pb-0" : ""}`}>
+      <div className="flex flex-col">
       {/* Popularne usługi */}
       <section className="order-1 pt-6 md:pt-8 pb-2 md:pb-3 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
@@ -651,19 +630,6 @@ export default function LandingStart() {
         </div>
       </section>
       </div>
-
-      {/* Sticky CTA mobile */}
-      {!user && (
-        <div className="fixed bottom-[calc(0.8rem+env(safe-area-inset-bottom,0px))] left-3 right-20 z-[55] md:hidden pointer-events-none">
-          <button
-            type="button"
-            onClick={() => nav(audience === "provider" ? "/register?role=provider" : "/home")}
-            className="btn-helpfli-primary w-full min-h-[48px] rounded-xl px-4 py-3 text-sm font-semibold shadow-lg shadow-indigo-900/20 pointer-events-auto"
-          >
-            {audience === "provider" ? "Dołącz jako wykonawca" : "Znajdź wykonawcę"}
-          </button>
-        </div>
-      )}
 
       {/* Popup powiadomień */}
       {(() => {
