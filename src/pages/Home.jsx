@@ -1187,7 +1187,13 @@ export default function Home() {
         <div
           ref={mobileViewMenuRef}
           className={`sm:hidden fixed z-[70] left-3 ${
-            user ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]"
+            viewMode === "list"
+              ? (user
+                  ? "bottom-[calc(6.8rem+env(safe-area-inset-bottom,0px))]"
+                  : "bottom-[calc(2.2rem+env(safe-area-inset-bottom,0px))]")
+              : (user
+                  ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]"
+                  : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]")
           }`}
         >
           <button

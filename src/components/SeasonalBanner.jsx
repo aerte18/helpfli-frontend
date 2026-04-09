@@ -198,7 +198,7 @@ export default function SeasonalBanner() {
         {services.map((svc, index) => (
           <div
             key={svc.slug || index}
-            className="flex h-[262px] w-[84vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:h-auto md:w-auto md:rounded-xl md:p-6 md:shadow-none"
+            className="flex h-[238px] w-[84vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:h-auto md:w-auto md:rounded-xl md:p-6 md:shadow-none"
             style={{
               backgroundColor: 'var(--card)',
               borderColor: 'var(--border)',

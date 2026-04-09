@@ -206,9 +206,18 @@ export default function LandingStart() {
   const location = useLocation();
   const { user } = useAuth();
   const [query, setQuery] = useState("");
+  const [audience, setAudience] = useState("client");
   const [aiOpen, setAiOpen] = useState(false);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [seed, setSeed] = useState("");
+
+  useEffect(() => {
+    if (user?.role === "provider") {
+      setAudience("provider");
+    } else {
+      setAudience("client");
+    }
+  }, [user?.role]);
 
   // Obsługa przewijania do sekcji po załadowaniu strony z hashem
   useEffect(() => {
@@ -271,9 +280,26 @@ export default function LandingStart() {
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text + primary actions */}
             <div className="min-w-0">
+              {!user && (
+                <div className="mb-3 inline-flex rounded-xl border p-1" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+                  <button
+                    type="button"
+                    onClick={() => setAudience("client")}
+                    className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${audience === "client" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    Szukam pomocy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAudience("provider")}
+                    className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${audience === "provider" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                  >
+                    Jestem wykonawcą
+                  </button>
+                </div>
+              )}
               <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl" style={{ color: 'var(--foreground)' }}>
-                Znajdź pomoc<br />
-                w kilka sekund
+                {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź sprawdzonego wykonawcę\nw kilka minut"}
               </h1>
 
               <div
@@ -284,9 +310,8 @@ export default function LandingStart() {
                   Szybki start
                 </p>
                 <p className="text-sm sm:text-[15px] leading-snug sm:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-                  Opisz, co jest do zrobienia, albo{' '}
-                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}>zapytaj AI</span>
-                  {' '}— pokażemy dopasowane oferty od zweryfikowanych specjalistów w Twojej okolicy.
+                  Wybierz usługę i porównaj oferty lokalnych fachowców.
+                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}> Szybko, bezpiecznie, bez dzwonienia po znajomych.</span>
                 </p>
               </div>
 
@@ -294,8 +319,29 @@ export default function LandingStart() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (user?.role === "provider" || audience === "provider") {
+                      nav("/provider-home");
+                    } else {
+                      nav("/home");
+                    }
+                  }}
+                  className="btn-helpfli-primary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left shadow-md shadow-indigo-900/10 active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                      <MapPin className="h-5 w-5 shrink-0" aria-hidden />
+                    </span>
+                    <span className="min-w-0 text-[15px] font-semibold leading-tight">
+                      {user?.role === "provider" || audience === "provider" ? "Przejdź do zleceń" : "Znajdź wykonawcę"}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 opacity-85" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     const seedValue = query || "";
-                    if (user?.role === "provider") {
+                    if (user?.role === "provider" || audience === "provider") {
                       window.dispatchEvent(
                         new CustomEvent("openProviderAi", {
                           detail: { prefill: seedValue || "Pomóż mi przygotować lepszą ofertę." },
@@ -306,25 +352,6 @@ export default function LandingStart() {
                       setAiOpen(true);
                     }
                   }}
-                  className="btn-helpfli-primary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left shadow-md shadow-indigo-900/10 active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                      <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
-                    </span>
-                    <span className="min-w-0 text-[15px] font-semibold leading-tight">Zapytaj Asystenta AI</span>
-                  </span>
-                  <ChevronRight className="h-5 w-5 shrink-0 opacity-85" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (user?.role === "provider") {
-                      nav("/provider-home");
-                    } else {
-                      nav("/home");
-                    }
-                  }}
                   className="btn-helpfli-secondary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
                 >
                   <span className="flex min-w-0 items-center gap-3">
@@ -332,10 +359,10 @@ export default function LandingStart() {
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
                       style={{ backgroundColor: 'oklch(0.92 0.05 240)' }}
                     >
-                      <MapPin className="h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
+                      <Sparkles className="h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
-                      {user?.role === "provider" ? "Znajdź oferty w okolicy" : "Potrzebuję pomocy teraz"}
+                      {user?.role === "provider" || audience === "provider" ? "Zapytaj Asystenta AI" : "Opisz problem z AI"}
                     </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 opacity-45" style={{ color: 'var(--muted-foreground)' }} aria-hidden />
@@ -348,11 +375,34 @@ export default function LandingStart() {
               <HeroMapAI />
             </Suspense>
           </div>
+
+          {/* Trust strip: szybkie "dlaczego warto" od razu pod hero */}
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+              <span className="inline-flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" aria-hidden />
+                Zweryfikowani wykonawcy
+              </span>
+            </div>
+            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+              <span className="inline-flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500" aria-hidden />
+                Oceny i opinie klientów
+              </span>
+            </div>
+            <div className="rounded-xl border px-3 py-2.5 text-sm font-medium" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+              <span className="inline-flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-indigo-600" aria-hidden />
+                Szybkie porównanie ofert
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
+      <div className={`flex flex-col ${!user ? "pb-20 md:pb-0" : ""}`}>
       {/* Popularne usługi */}
-      <section className="pt-6 md:pt-8 pb-2 md:pb-3">
+      <section className="order-1 pt-6 md:pt-8 pb-2 md:pb-3 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div className="rounded-xl p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <PopularServices 
@@ -376,67 +426,8 @@ export default function LandingStart() {
         </div>
       </section>
 
-      {/* Promo Carousel */}
-      <Suspense fallback={<div className="w-full h-40 rounded-3xl bg-slate-100 animate-pulse" />}>
-        <HelpfliPromoCarousel />
-      </Suspense>
-
-      {/* Banner reklamowy */}
-      <section className="py-6 md:py-8">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <SponsorAdBanner 
-            position="banner" 
-            page="landing_page_banner" 
-            limit={3}
-          />
-        </div>
-      </section>
-
-      {/* Baner sezonowy — ciaśniejszy wrapper na mobile (aplikacyjny panel) */}
-      <section className="pt-1 pb-4 md:pt-3 md:pb-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-          <div
-            className="rounded-2xl border p-3 sm:p-4 md:p-8 md:rounded-xl"
-            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
-          >
-            <SeasonalBanner />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA dla wykonawców — niższy w pionie na mobile */}
-      <section className="py-4 md:py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-          <div className="rounded-xl border p-3 md:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-            <div
-              className="rounded-xl px-4 py-4 md:px-8 md:py-8"
-              style={{ background: 'linear-gradient(to right, var(--primary), oklch(from var(--primary) calc(l * 1.1) calc(c * 1.2) h))', color: 'var(--primary-foreground)' }}
-            >
-              <div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-bold leading-snug md:text-2xl md:mb-2">Jesteś usługodawcą?</h3>
-                  <p className="mt-1 text-sm leading-snug opacity-90 md:mt-0 md:text-base lg:text-lg">
-                    Dołącz do Helpfli i pozyskuj zlecenia. Wyróżnienia, pakiety PRO i gwarancja.
-                  </p>
-                </div>
-                <div className="shrink-0 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => nav("/register?role=provider")}
-                    className="btn-helpfli-primary w-full min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold sm:w-auto md:px-6 md:py-3 md:text-base"
-                    style={{ backgroundColor: 'var(--primary-foreground)', color: 'var(--primary)' }}
-                  >
-                    Zarejestruj się jako wykonawca
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Dlaczego Helpfli + Jak to działa */}
-      <section className="py-6 md:py-8" id="jak-to-dziala">
+      <section className="order-2 py-6 md:py-8 md:order-none" id="jak-to-dziala">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div
             className="rounded-xl p-4 sm:p-6 md:p-8"
@@ -457,9 +448,6 @@ export default function LandingStart() {
                 <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>Dlaczego Helpfli?</h2>
                 <p className="text-sm md:text-base mb-4 md:mb-6" style={{ color: 'var(--muted-foreground)' }}>
                   Znajdź sprawdzonego wykonawcę w swojej okolicy w kilka minut. Bezpieczne rozliczenia i ochrona płatności.
-                </p>
-                <p className="md:hidden text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
-                  Przesuń palcem, aby zobaczyć kolejne atuty
                 </p>
                 <div className="flex sm:grid sm:grid-cols-2 gap-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
                   <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
@@ -561,13 +549,76 @@ export default function LandingStart() {
         </div>
       </section>
 
+      {/* Promo Carousel */}
+      <div className="order-3 md:order-none">
+        <Suspense fallback={<div className="w-full h-40 rounded-3xl bg-slate-100 animate-pulse" />}>
+          <HelpfliPromoCarousel />
+        </Suspense>
+      </div>
+
+      {/* Banner reklamowy */}
+      <section className="order-4 py-6 md:py-8 md:order-none">
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <SponsorAdBanner 
+            position="banner" 
+            page="landing_page_banner" 
+            limit={3}
+          />
+        </div>
+      </section>
+
+      {/* Baner sezonowy — ciaśniejszy wrapper na mobile (aplikacyjny panel) */}
+      <section className="order-5 pt-1 pb-4 md:pt-3 md:pb-8 md:order-none">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div
+            className="rounded-2xl border p-3 sm:p-4 md:p-8 md:rounded-xl"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}
+          >
+            <SeasonalBanner />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA dla wykonawców — niższy w pionie na mobile */}
+      <section className="order-6 py-4 md:py-8 md:order-none">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="rounded-xl border p-3 md:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <div
+              className="rounded-xl px-4 py-4 md:px-8 md:py-8"
+              style={{ background: 'linear-gradient(to right, var(--primary), oklch(from var(--primary) calc(l * 1.1) calc(c * 1.2) h))', color: 'var(--primary-foreground)' }}
+            >
+              <div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-bold leading-snug md:text-2xl md:mb-2">Jesteś usługodawcą?</h3>
+                  <p className="mt-1 text-sm leading-snug opacity-90 md:mt-0 md:text-base lg:text-lg">
+                    Dołącz do Helpfli i pozyskuj zlecenia. Wyróżnienia, pakiety PRO i gwarancja.
+                  </p>
+                </div>
+                <div className="shrink-0 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => nav("/register?role=provider")}
+                    className="btn-helpfli-primary w-full min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold sm:w-auto md:px-6 md:py-3 md:text-base"
+                    style={{ backgroundColor: 'var(--primary-foreground)', color: 'var(--primary)' }}
+                  >
+                    Zarejestruj się jako wykonawca
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Announcements */}
-      <Suspense fallback={null}>
-        <FeaturedAnnouncements />
-      </Suspense>
+      <div className="order-7 md:order-none">
+        <Suspense fallback={null}>
+          <FeaturedAnnouncements />
+        </Suspense>
+      </div>
 
       {/* Mini FAQ */}
-      <section className="py-6 md:py-8">
+      <section className="order-8 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <div className="text-center mb-8">
@@ -599,6 +650,20 @@ export default function LandingStart() {
           </div>
         </div>
       </section>
+      </div>
+
+      {/* Sticky CTA mobile */}
+      {!user && (
+        <div className="fixed bottom-[calc(0.8rem+env(safe-area-inset-bottom,0px))] left-3 right-20 z-[55] md:hidden pointer-events-none">
+          <button
+            type="button"
+            onClick={() => nav(audience === "provider" ? "/register?role=provider" : "/home")}
+            className="btn-helpfli-primary w-full min-h-[48px] rounded-xl px-4 py-3 text-sm font-semibold shadow-lg shadow-indigo-900/20 pointer-events-auto"
+          >
+            {audience === "provider" ? "Dołącz jako wykonawca" : "Znajdź wykonawcę"}
+          </button>
+        </div>
+      )}
 
       {/* Popup powiadomień */}
       {(() => {
