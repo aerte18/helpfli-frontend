@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut } from "lucide-react";
+import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock } from "lucide-react";
 import { registerPush } from "../push/registerPush";
 import { api } from "../api/client";
 import KycBadge from "../components/KycBadge";
@@ -296,7 +296,7 @@ export default function Account() {
           {activeTab === "billing" && <BillingTab user={user} />}
           {activeTab === "favorites" && user?.role === 'client' && <FavoritesTab />}
           {activeTab === "ratings" && <RatingsTab user={user} />}
-          {activeTab === "history" && user?.role === 'client' && <HistoryTab />}
+          {activeTab === "history" && user?.role === 'client' && <HistoryTab user={user} />}
           {activeTab === "profile" && user?.role === 'provider' && <ProfileTab user={user} fetchMe={fetchMe} />}
           {activeTab === "stats" && user?.role === 'provider' && <StatsTab stats={stats} />}
           {activeTab === "schedule" && user?.role === 'provider' && <ProviderSchedule />}
@@ -792,7 +792,7 @@ function OrdersTab({ user }) {
         const token = localStorage.getItem('token');
         // Pobierz wszystkie zlecenia - filtrowanie po stronie klienta (podobnie jak dla providera)
         const API = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(apiUrl(`/api/orders/my`), {
+        const res = await fetch(apiUrl(`/api/orders/my?limit=50`), {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -1028,6 +1028,32 @@ function OrdersTab({ user }) {
   const formatAmount = (amount) => {
     if (!amount) return 'Brak ceny';
     return `${amount} zł`;
+  };
+
+  const getExpiryParts = (order) => {
+    if (!order?.expiresAt) return null;
+    const h = Number(order?.hoursUntilExpiry);
+    const m = Number(order?.minutesUntilExpiry);
+    if (Number.isFinite(h) && Number.isFinite(m) && h >= 0 && m >= 0) {
+      return { hours: h, minutes: m };
+    }
+    const diffMs = new Date(order.expiresAt).getTime() - Date.now();
+    if (!Number.isFinite(diffMs) || diffMs <= 0) return { hours: 0, minutes: 0 };
+    const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+    return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+  };
+
+  const formatTimeUntilExpiry = (order) => {
+    if (!order?.expiresAt) return null;
+    if (order?.isExpired) return "Wygasło";
+    const p = getExpiryParts(order);
+    if (!p) return "Aktywne";
+    if (p.hours >= 24) {
+      const d = Math.floor(p.hours / 24);
+      const h = p.hours % 24;
+      return `${d}d ${h}h`;
+    }
+    return `${p.hours}h ${p.minutes}m`;
   };
 
   const getOrderTitle = (order) => {
@@ -1437,6 +1463,21 @@ function OrdersTab({ user }) {
                           <div className="mt-1">
                             {getStatusBadge(order)}
                           </div>
+                          {order.expiresAt && (order.status === 'open' || order.status === 'collecting_offers') && (
+                            <div
+                              className={`mt-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs ${
+                                order.isExpired
+                                  ? 'bg-red-100 text-red-700'
+                                  : (() => {
+                                      const p = getExpiryParts(order);
+                                      return p && p.hours < 6 ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+                                    })()
+                              }`}
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>{formatTimeUntilExpiry(order)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1736,13 +1777,86 @@ function FavoritesTab() {
 }
 
 // History Tab (Client only)
-function HistoryTab() {
+function HistoryTab({ user }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const archivedStatuses = new Set([
+    "completed",
+    "rated",
+    "released",
+    "done",
+    "cancelled",
+    "disputed",
+  ]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(apiUrl(`/api/orders/my?limit=100`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          setOrders([]);
+          return;
+        }
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.orders || data.items || []);
+        const onlyClientOrders = (Array.isArray(items) ? items : []).filter((o) => {
+          const c = o?.client;
+          const cid = c && typeof c === "object" ? c._id : c;
+          return cid ? String(cid) === String(user?._id || user?.id) : true;
+        });
+        const historyOnly = onlyClientOrders.filter((o) => archivedStatuses.has(String(o?.status || "")));
+        setOrders(historyOnly);
+      } catch (e) {
+        console.error("HISTORY_FETCH_ERROR:", e);
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [user?._id, user?.id]);
+
+  const statusLabel = (status) => {
+    const map = {
+      completed: "Zakończone",
+      rated: "Ocenione",
+      released: "Wypłacone",
+      done: "Zakończone",
+      cancelled: "Anulowane",
+      disputed: "Spór",
+    };
+    return map[status] || status || "—";
+  };
+
   return (
     <div className="space-y-4">
       <Card title="Historia zleceń">
-        <p className="text-sm text-gray-600">
-          Zrealizowane i archiwalne zlecenia znajdziesz w zakładce <strong>Moje zlecenia</strong> (filtry statusu).
-        </p>
+        {loading ? (
+          <p className="text-sm text-gray-500">Ładowanie historii...</p>
+        ) : orders.length ? (
+          <div className="space-y-3">
+            {orders.map((o) => (
+              <div key={o._id} className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{o.service || o.description || "Zlecenie"}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {o.createdAt ? new Date(o.createdAt).toLocaleDateString("pl-PL") : "—"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                    {statusLabel(o.status)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">Brak zrealizowanych lub archiwalnych zleceń.</p>
+        )}
       </Card>
     </div>
   );
