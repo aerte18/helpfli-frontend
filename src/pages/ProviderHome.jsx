@@ -1841,11 +1841,7 @@ export default function ProviderHome() {
           </button>
           {isMobileViewMenuOpen && (
             <div
-              className={`absolute bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 ${
-                viewMode === "list"
-                  ? "right-0 origin-bottom-right"
-                  : "left-0 origin-bottom-left"
-              }`}
+              className="absolute left-0 bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left"
             >
               <button
                 type="button"
@@ -1879,7 +1875,7 @@ export default function ProviderHome() {
       )}
 
       {/* Przycisk do rozwijania listy zleceń na mapie – jak „Dostępni wykonawcy” u klienta */}
-      {viewMode === "map" && !showAdvancedFilters && (
+      {viewMode === "map" && !showAdvancedFilters && (!isMobileViewport || !isOrderListExpanded) && (
         <button
           type="button"
           onClick={() => setIsOrderListExpanded(!isOrderListExpanded)}

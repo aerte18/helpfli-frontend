@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from 'react';
-import { Search, Bell, ClipboardList, Building2, X, Wrench, Plus } from "lucide-react";
+import { Search, Bell, ClipboardList, Building2, X, Wrench, Plus, LogOut } from "lucide-react";
 import { unreadTotal } from '../services/chatApi';
 import Logo from "./Logo";
 import { UI } from "../i18n/pl_ui";
@@ -501,6 +501,20 @@ export default function Navbar() {
                 )}
               </button>
             </div>
+          )}
+          {user && !loading && (
+            <button
+              type="button"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg transition-colors shrink-0"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onClick={() => logout()}
+              aria-label="Wyloguj"
+              title="Wyloguj"
+            >
+              <LogOut className="w-5 h-5" aria-hidden />
+            </button>
           )}
           <button
             type="button"

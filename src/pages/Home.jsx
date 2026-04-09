@@ -778,7 +778,7 @@ export default function Home() {
       {/* Usunięto sekcję rekomendacji pod aktywnymi filtrami */}
 
       {/* Przycisk rozwiń/zwijaj listę wykonawców - zawsze widoczny w tym samym miejscu */}
-      {viewMode === "map" && !showAdvancedFilters && (
+      {viewMode === "map" && !showAdvancedFilters && (!isMobileViewport || !isProviderListExpanded) && (
         <button
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
           className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${

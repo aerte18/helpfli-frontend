@@ -314,13 +314,13 @@ setMsgs((m) => [...m, {
 
   // Style w zależności od trybu
   const containerClass = mode === 'modal' 
-    ? "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    ? "fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
     : mode === 'inline'
     ? "w-full"
     : "min-h-screen bg-gray-50";
 
   const cardClass = mode === 'modal'
-    ? "w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col h-[75vh] max-h-[600px] relative z-50"
+    ? "w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col h-[72dvh] max-h-[72dvh] sm:h-[75vh] sm:max-h-[600px] relative z-50"
     : mode === 'inline'
     ? "w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[600px] relative z-50"
     : "bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)] relative z-50";
@@ -366,7 +366,7 @@ setMsgs((m) => [...m, {
         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,.02) 20px, rgba(0,0,0,.02) 21px)' }}
       >
         {isInitializing ? (
-          <div className="flex items-center justify-center h-full min-h-[400px]">
+          <div className="flex items-center justify-center h-full min-h-[220px] sm:min-h-[400px]">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center animate-pulse">
                 <Sparkles className="w-8 h-8 text-indigo-600" />
@@ -375,7 +375,7 @@ setMsgs((m) => [...m, {
             </div>
           </div>
         ) : msgs.length === 0 ? (
-          <div className="flex items-center justify-center h-full min-h-[400px]">
+          <div className="flex items-center justify-center h-full min-h-[220px] sm:min-h-[400px]">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                 <Sparkles className="w-8 h-8 text-indigo-600" />
