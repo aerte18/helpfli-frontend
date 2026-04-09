@@ -109,7 +109,7 @@ export default function Navbar() {
   }, [showUserMenu, searchExpanded, showNotifications]);
 
   return (
-    <header className="sticky top-0 z-50 relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+    <header className="sticky top-0 z-[70] relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="mx-auto max-w-7xl px-3 pr-2 sm:px-4 sm:pr-4 py-4">
         <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="flex items-center gap-8 min-w-0 shrink-0">
@@ -533,8 +533,8 @@ export default function Navbar() {
       {user && searchExpanded && !hideSearch && (
         <div
           ref={mobileSearchExpandedRef}
-          className="md:hidden border-t px-4 py-2 -mx-0"
-          style={{ borderColor: 'var(--border)' }}
+          className="md:hidden border-t px-4 py-2 -mx-0 shadow-md"
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}
         >
           <ServiceAutocomplete
             value={searchQuery}
