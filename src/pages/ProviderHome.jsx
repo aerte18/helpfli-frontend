@@ -418,6 +418,10 @@ export default function ProviderHome() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 1023px)").matches;
   });
+  const [isMobileLandscape, setIsMobileLandscape] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 1023px)").matches && window.innerWidth > window.innerHeight;
+  });
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
 
@@ -460,14 +464,28 @@ export default function ProviderHome() {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const media = window.matchMedia("(max-width: 1023px)");
-    const onChange = (e) => setIsMobileViewport(!!e.matches);
+    const onChange = (e) => {
+      setIsMobileViewport(!!e.matches);
+      setIsMobileLandscape(!!e.matches && window.innerWidth > window.innerHeight);
+    };
     onChange(media);
+    const onResize = () => {
+      const mobile = media.matches;
+      setIsMobileLandscape(mobile && window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener("resize", onResize);
     if (typeof media.addEventListener === "function") {
       media.addEventListener("change", onChange);
-      return () => media.removeEventListener("change", onChange);
+      return () => {
+        media.removeEventListener("change", onChange);
+        window.removeEventListener("resize", onResize);
+      };
     }
     media.addListener(onChange);
-    return () => media.removeListener(onChange);
+    return () => {
+      media.removeListener(onChange);
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -936,10 +954,14 @@ export default function ProviderHome() {
    * Tryb mapy na mobile: jeden rząd (Online/Offline + ikony) — niższy offset niż lista (2 rzędy).
    */
   const mapModeToolbarTopPx =
-    isMobileViewport && viewMode === "map" ? 124 : isMobileViewport ? 176 : 128;
+    isMobileViewport && viewMode === "map"
+      ? (isMobileLandscape ? 102 : 124)
+      : isMobileViewport
+        ? 176
+        : 128;
   const mapFullBleedTopPx =
     isMobileViewport && viewMode === "map"
-      ? mapModeToolbarTopPx + 52
+      ? mapModeToolbarTopPx + (isMobileLandscape ? 42 : 52)
       : isMobileViewport
         ? mapModeToolbarTopPx + 54
         : 190;

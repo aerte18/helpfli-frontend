@@ -273,11 +273,18 @@ export default function Home() {
   const [mapSize, setMapSize] = useState("lg"); // domyślnie większa
   const [isProviderListExpanded, setIsProviderListExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
-    const updateViewport = () => setIsMobileViewport(window.innerWidth < 640);
+    const updateViewport = () => {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const isPhoneLandscape = isLandscape && window.innerHeight <= 500 && window.innerWidth < 1024;
+      setIsMobileLandscape(isPhoneLandscape);
+      // W poziomie na telefonie traktuj widok jak mobile (mimo szerokości > 640).
+      setIsMobileViewport(window.innerWidth < 640 || isPhoneLandscape);
+    };
     updateViewport();
     window.addEventListener("resize", updateViewport);
     return () => window.removeEventListener("resize", updateViewport);
@@ -551,6 +558,9 @@ export default function Home() {
 
   // map layout helpers
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
+  const mapTopOffsetPx = isMobileLandscape
+    ? (activeFilters.length > 0 ? 96 : 84)
+    : (activeFilters.length > 0 ? 128 : 112);
   const gridClass =
     viewMode === "map"
       ? "grid-cols-1"
@@ -822,8 +832,8 @@ export default function Home() {
         <div 
           className="fixed inset-0 z-0 isolate w-full relative" 
           style={{ 
-            top: activeFilters.length > 0 ? '128px' : '112px',
-            height: activeFilters.length > 0 ? 'calc(100vh - 128px)' : 'calc(100vh - 112px)'
+            top: `${mapTopOffsetPx}px`,
+            height: `calc(100vh - ${mapTopOffsetPx}px)`
           }}
         >
           <div className="absolute top-2 right-2 z-20 hidden sm:flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
