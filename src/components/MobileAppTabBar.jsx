@@ -45,6 +45,15 @@ export default function MobileAppTabBar() {
     return "/home";
   }, [user]);
 
+  const isProviderSide = useMemo(() => {
+    if (!user) return false;
+    return (
+      user.role === "provider" ||
+      user.role === "company_owner" ||
+      user.role === "company_manager"
+    );
+  }, [user]);
+
   /** „Moje zlecenia” — działa dla klienta i wykonawcy (GET /api/orders/my). */
   const ordersPath = "/my-orders";
 
@@ -79,7 +88,7 @@ export default function MobileAppTabBar() {
           style={({ isActive }) => (isActive ? activeStyle : inactive)}
         >
           <ClipboardList className="w-6 h-6 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span className="truncate w-full text-center">Zlecenia</span>
+          <span className="truncate w-full text-center">{isProviderSide ? "Oferty" : "Zlecenia"}</span>
         </NavLink>
         <NavLink
           to="/inbox"
