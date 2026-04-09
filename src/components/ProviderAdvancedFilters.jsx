@@ -62,7 +62,7 @@ export default function ProviderAdvancedFilters({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[120] flex justify-end">
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
@@ -72,7 +72,7 @@ export default function ProviderAdvancedFilters({
         role="dialog"
         aria-modal="true"
         aria-labelledby="provider-advanced-filters-title"
-        className="relative flex h-full max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col bg-white shadow-2xl min-h-0 sm:max-w-md"
+        className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col bg-white shadow-2xl min-h-0 sm:max-w-md"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5">
           <h2 className="text-lg font-semibold text-[var(--qs-color-text)]">
@@ -87,7 +87,7 @@ export default function ProviderAdvancedFilters({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-4 space-y-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-5 pb-24 space-y-5">
           {/* Sortowanie */}
           <div>
             <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-2">
@@ -214,7 +214,7 @@ export default function ProviderAdvancedFilters({
           )}
         </div>
 
-        <div className="flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 z-10 flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={handleClear}

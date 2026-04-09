@@ -1823,7 +1823,7 @@ export default function ProviderHome() {
       {isMobileViewport && !showAdvancedFilters && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
-          className={`fixed z-[70] left-3 ${
+          className={`fixed z-[35] left-3 ${
             viewMode === "list"
               ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
               : "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]"

@@ -35,7 +35,8 @@ export default function UnifiedAIConcierge({
   const [analysisResult, setAnalysisResult] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [submittingOneClick, setSubmittingOneClick] = useState(false);
-  const [companyId, setCompanyId] = useState(undefined); // undefined = nie sprawdzono, null = brak firmy, string = id firmy
+  const [companyId, setCompanyId] = useState(null); // null = brak firmy, string = id firmy
+  const [companyResolved, setCompanyResolved] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const messagesEndRef = useRef(null);
@@ -43,13 +44,19 @@ export default function UnifiedAIConcierge({
 
   // Dla użytkownika firmy: pobierz companyId (żeby pokazać Asystenta dla firmy zamiast klienta)
   useEffect(() => {
-    if (!user || !open) return;
+    if (!open) return;
+    if (!user) {
+      setCompanyId(null);
+      setCompanyResolved(true);
+      return;
+    }
     const isCompanyUser = user.role === 'company_owner' || user.role === 'company_manager';
     if (!isCompanyUser) {
       setCompanyId(null);
+      setCompanyResolved(true);
       return;
     }
-    if (companyId !== undefined) return; // już mamy wynik
+    if (companyResolved) return;
     const token = localStorage.getItem('token');
     fetch(apiUrl(`/api/companies`), {
       headers: { Authorization: `Bearer ${token}` }
@@ -58,9 +65,13 @@ export default function UnifiedAIConcierge({
       .then((data) => {
         const id = data.success && data.companies?.length ? data.companies[0]._id : null;
         setCompanyId(id);
+        setCompanyResolved(true);
       })
-      .catch(() => setCompanyId(null));
-  }, [user, open, companyId]);
+      .catch(() => {
+        setCompanyId(null);
+        setCompanyResolved(true);
+      });
+  }, [user, open, companyResolved]);
 
   // Integracja z bus system (dla AIBar, AIAssistant, etc.)
   useEffect(() => {
@@ -85,12 +96,18 @@ export default function UnifiedAIConcierge({
     if (seedQuery && open) setInput(seedQuery);
   }, [seedQuery, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    // Reset rozpoznania kontekstu przy ponownym otwarciu.
+    setCompanyResolved(false);
+  }, [open]);
+
   // Inicjalizacja AI – powitalna wiadomość zależna od roli (firma vs klient)
   const clientWelcome = "Cześć! 👋 W czym mogę pomóc? Opisz swój problem, a znajdę najlepszego wykonawcę w Twojej okolicy.";
   const companyWelcome = "Cześć! 👋 Jestem Asystentem AI dla Twojej firmy. Mogę podsumować zespół i obciążenie, podpowiedzieć komu przypisać zlecenie, wskazać gdzie są faktury i ustawienia. O co chcesz zapytać?";
   useEffect(() => {
     if (!open || msgs.length !== 0) return;
-    if (companyId === undefined) {
+    if (!companyResolved) {
       setIsInitializing(true);
       return;
     }
@@ -98,14 +115,14 @@ export default function UnifiedAIConcierge({
     const timer = setTimeout(() => {
       setMsgs([{ role: "assistant", text: companyId ? companyWelcome : clientWelcome }]);
       setIsInitializing(false);
-    }, 300);
+    }, 120);
     return () => clearTimeout(timer);
-  }, [open, msgs.length, companyId]);
+  }, [open, msgs.length, companyId, companyResolved]);
 
   // Auto-wysłanie seedQuery
   useEffect(() => {
     if (open && seedQuery && seedQuery.trim() && msgs.length === 1) {
-      const timer = setTimeout(() => ask(), 2000);
+      const timer = setTimeout(() => ask(), 250);
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -314,13 +331,13 @@ setMsgs((m) => [...m, {
 
   // Style w zależności od trybu
   const containerClass = mode === 'modal' 
-    ? "fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+    ? "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
     : mode === 'inline'
     ? "w-full"
     : "min-h-screen bg-gray-50";
 
   const cardClass = mode === 'modal'
-    ? "w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col h-[72dvh] max-h-[72dvh] sm:h-[75vh] sm:max-h-[600px] relative z-50"
+    ? "w-full max-w-[560px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col h-[72dvh] max-h-[640px] relative z-50"
     : mode === 'inline'
     ? "w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[600px] relative z-50"
     : "bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)] relative z-50";

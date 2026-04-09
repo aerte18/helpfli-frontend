@@ -1186,7 +1186,7 @@ export default function Home() {
       {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
-          className={`sm:hidden fixed z-[70] left-3 ${
+          className={`sm:hidden fixed z-[35] left-3 ${
             viewMode === "list"
               ? (user
                   ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
