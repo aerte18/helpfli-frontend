@@ -145,8 +145,8 @@ export default function HelpfliPromoCarousel() {
               className="relative h-full flex items-center py-4 md:py-0"
               style={{ paddingLeft: 'clamp(1rem, 4vw, 2.5rem)', paddingRight: 'clamp(1rem, 4vw, 2.5rem)' }}
             >
-              {/* Background Image */}
-              <div className="absolute inset-0 overflow-hidden">
+              {/* Desktop: obraz jako tło po prawej */}
+              <div className="absolute inset-0 overflow-hidden hidden md:block">
                 <motion.img
                   src={currentSlide.imageSrc}
                   alt={currentSlide.title}
@@ -163,8 +163,37 @@ export default function HelpfliPromoCarousel() {
                 <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-white/20 to-transparent z-0" />
               </div>
 
-              {/* Text Content */}
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6 px-8 md:px-12 py-0 max-w-[min(100%,28rem)] md:max-w-none">
+              {/* Mobile: tekst + obraz bez nakładania */}
+              <div className="relative z-10 flex w-full flex-col gap-3 md:hidden px-3 pt-1 pb-14">
+                <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold mb-2 leading-tight" style={{ color: 'var(--foreground)' }}>
+                      {currentSlide.title}
+                    </h3>
+                    <p className="text-sm mb-3 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+                      {currentSlide.description}
+                    </p>
+                  </div>
+                  <motion.img
+                    src={currentSlide.imageSrc}
+                    alt={currentSlide.title}
+                    className="h-24 w-24 object-contain shrink-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(currentSlide.link)}
+                  className="btn-helpfli-primary inline-flex min-h-[44px] w-full items-center justify-center px-5 py-3 text-sm font-semibold transition-all"
+                >
+                  {currentSlide.ctaText}
+                </button>
+              </div>
+
+              {/* Desktop: dotychczasowy układ */}
+              <div className="relative z-10 hidden md:flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6 px-8 md:px-12 py-0 max-w-[min(100%,28rem)] md:max-w-none">
                 <div className="flex-1 min-w-0 pr-[30%] md:pr-0">
                   <h3 className="text-lg md:text-2xl font-bold mb-2 leading-tight" style={{ color: 'var(--foreground)' }}>
                     {currentSlide.title}

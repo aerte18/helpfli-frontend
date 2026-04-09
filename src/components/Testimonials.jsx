@@ -1,4 +1,4 @@
-﻿import { Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 const TESTIMONIALS = [
   { name: "Kasia", text: "Hydraulik był u mnie w 40 minut. Helpfli naprawdę działa szybciej niż telefon do znajomego.", rating: 5 },
@@ -32,6 +32,9 @@ export default function Testimonials() {
             </article>
           ))}
         </div>
+        <p className="mt-2 text-center text-xs font-medium text-slate-500 md:hidden">
+          ← Przesuń palcem w bok, aby zobaczyć więcej opinii →
+        </p>
       </div>
     </section>
   );

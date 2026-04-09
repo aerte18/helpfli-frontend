@@ -172,10 +172,10 @@ export default function SeasonalBanner() {
   if (!services.length) return null;
 
   return (
-    <section className="py-1 md:py-4">
+    <section className="py-2 md:py-4">
       {/* Mobile: panel jak ekran w apce — wyraźniejszy nagłówek; desktop: klasycznie wyśrodkowany */}
       <div
-        className="mb-3 rounded-2xl border p-3 text-left md:mb-10 md:border-0 md:bg-transparent md:p-0 md:text-center"
+        className="mb-4 rounded-2xl border p-4 text-left md:mb-10 md:border-0 md:bg-transparent md:p-0 md:text-center"
         style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, oklch(0.96 0.04 264 / 0.55), oklch(0.95 0.06 290 / 0.4))' }}
       >
         <span
@@ -185,20 +185,20 @@ export default function SeasonalBanner() {
           <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
           Sezon: {SEASON_NAMES[season]}
         </span>
-        <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl md:mt-0 md:text-4xl" style={{ color: 'var(--foreground)' }}>
+        <h2 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight sm:text-2xl md:mt-0 md:text-4xl" style={{ color: 'var(--foreground)' }}>
           Polecane usługi sezonowe
         </h2>
-        <p className="mt-1 max-w-2xl text-xs leading-snug sm:text-sm md:mx-auto md:mt-2 md:text-lg md:px-4" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed sm:text-sm md:mx-auto md:mt-2 md:text-lg md:px-4" style={{ color: 'var(--muted-foreground)' }}>
           Sprawdzone usługi na {SEASON_ADJECTIVE_FEMININE[season]} porę roku.
           <span className="md:hidden"> Przesuń palcem w bok.</span>
         </p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
         {services.map((svc, index) => (
           <div
             key={svc.slug || index}
-            className="flex h-full min-h-0 w-[min(300px,86vw)] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:w-auto md:rounded-xl md:p-6 md:shadow-none"
+            className="flex h-[284px] w-[88vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-4 shadow-md transition-all duration-300 md:h-auto md:w-auto md:rounded-xl md:p-6 md:shadow-none"
             style={{
               backgroundColor: 'var(--card)',
               borderColor: 'var(--border)',
@@ -213,10 +213,10 @@ export default function SeasonalBanner() {
               e.currentTarget.style.boxShadow = '';
             }}
           >
-            <div className="mb-2 flex items-start justify-between md:mb-4">
-              <div className="text-2xl leading-none md:text-3xl">{svc.icon}</div>
+            <div className="mb-3 flex items-start justify-between md:mb-4">
+              <div className="text-3xl leading-none md:text-3xl">{svc.icon}</div>
               <span
-                className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold md:px-2 md:py-1 md:text-xs"
+                className="rounded-md border px-2 py-1 text-[11px] font-semibold tracking-wide md:px-2 md:py-1 md:text-xs"
                 style={{
                   color: 'var(--primary)',
                   borderColor: 'var(--primary)',
@@ -227,24 +227,27 @@ export default function SeasonalBanner() {
               </span>
             </div>
 
-            <div className="mb-2 flex flex-1 flex-col space-y-1 md:mb-4 md:space-y-2">
-              <h3 className="line-clamp-3 text-[15px] font-bold leading-snug md:text-lg" style={{ color: 'var(--foreground)' }}>
+            <div className="mb-3 flex flex-1 flex-col space-y-2 md:mb-4 md:space-y-2">
+              <h3 className="line-clamp-3 text-[20px] font-extrabold leading-tight md:text-lg" style={{ color: 'var(--foreground)' }}>
                 {svc.title}
               </h3>
-              <p className="line-clamp-2 text-xs leading-snug md:line-clamp-3 md:text-sm md:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="line-clamp-3 text-sm leading-relaxed md:line-clamp-3 md:text-sm md:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
                 {svc.copy}
               </p>
             </div>
 
             <Link
               to={`/home?service=${encodeURIComponent(svc.slug)}`}
-              className="btn-helpfli-primary mt-auto inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-3 py-2.5 text-xs font-semibold md:min-h-0 md:rounded-xl md:px-4 md:py-2 md:text-sm"
+              className="btn-helpfli-primary mt-auto inline-flex min-h-[46px] w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold md:min-h-0 md:rounded-xl md:px-4 md:py-2 md:text-sm"
             >
               Pokaż wykonawców
             </Link>
           </div>
         ))}
       </div>
+      <p className="mt-2 text-center text-xs font-medium md:hidden" style={{ color: 'var(--muted-foreground)' }}>
+        ← Przesuń palcem w bok, aby zobaczyć więcej usług →
+      </p>
     </section>
   );
 }

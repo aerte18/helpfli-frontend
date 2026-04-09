@@ -124,8 +124,8 @@ export default function HelpfliActionTiles() {
   return (
     <section className="py-6 md:py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-        <p className="sm:hidden text-xs text-center mb-2" style={{ color: 'var(--muted-foreground)' }}>
-          Przesuń palcem, aby zobaczyć wszystkie skróty
+        <p className="sm:hidden text-xs text-center mb-2 font-medium" style={{ color: 'var(--muted-foreground)' }}>
+          ← Przesuń palcem w bok, aby zobaczyć wszystkie skróty →
         </p>
         <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
           <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
@@ -140,6 +140,11 @@ export default function HelpfliActionTiles() {
           <div className="shrink-0 w-[min(260px,86vw)] sm:w-auto snap-start min-h-[168px]">
             <TileBecomeProvider />
           </div>
+        </div>
+        <div className="sm:hidden mt-2 flex items-center justify-center gap-2 text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+          <span>Przewiń po więcej kafelków</span>
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
         </div>
       </div>
     </section>
