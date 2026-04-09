@@ -570,6 +570,8 @@ export default function Home() {
   const mapTopOffsetPx = isMobileLandscape
     ? (activeFilters.length > 0 ? 96 : 84)
     : (activeFilters.length > 0 ? 128 : 112);
+  /** Pasek „Dostępni wykonawcy” — tuż pod górną krawędzią mapy (wcześniej ~300px wyglądał jak „na środku”). */
+  const mapProviderDockTopPx = mapTopOffsetPx + 56;
   const gridClass =
     viewMode === "map"
       ? "grid-cols-1"
@@ -805,7 +807,7 @@ export default function Home() {
               ? `left-3 rounded-full ${isProviderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} ${user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"}`
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
-          style={!isMobileViewport ? { top: activeFilters.length > 0 ? "298px" : "300px" } : undefined}
+          style={!isMobileViewport ? { top: `${mapProviderDockTopPx}px` } : undefined}
         >
           {isMobileViewport ? (
             <>
@@ -837,7 +839,8 @@ export default function Home() {
 
       {/* Lista + Mapa */}
       {viewMode === "map" ? (
-        // Tryb mapy - pełnoekranowy; przyciski widoku w prawym górnym rogu na mapie
+        <>
+        {/* Tryb mapy — warstwa mapy zostaje pod UI; przełącznik widoku osobno (fixed + wysoki z-index), żeby Leaflet nie przejmował kliknięć */}
         <div 
           className="fixed inset-0 z-0 isolate w-full relative" 
           style={{ 
@@ -845,23 +848,6 @@ export default function Home() {
             height: `calc(100vh - ${mapTopOffsetPx}px)`
           }}
         >
-          <div className="absolute top-2 right-2 z-20 hidden sm:flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              title="Lista"
-            ><List className="w-4 h-4" aria-hidden /></button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              title="Mapa"
-            ><Map className="w-4 h-4" aria-hidden /></button>
-            <button
-              onClick={() => setViewMode("split")}
-              className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
-              title="Podział"
-            ><LayoutGrid className="w-4 h-4" aria-hidden /></button>
-          </div>
           <div className="w-full h-full">
             <MapViewEnhanced
               providers={list.map(p => ({ 
@@ -884,6 +870,32 @@ export default function Home() {
           </div>
 
         </div>
+        <div
+          className="pointer-events-auto hidden sm:flex fixed right-3 z-[100] items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/80 p-1.5"
+          style={{ top: mapTopOffsetPx + 8 }}
+          role="toolbar"
+          aria-label="Przełącz widok"
+        >
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+            title="Lista"
+          ><List className="w-4 h-4" aria-hidden /></button>
+          <button
+            type="button"
+            onClick={() => setViewMode("map")}
+            className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+            title="Mapa"
+          ><Map className="w-4 h-4" aria-hidden /></button>
+          <button
+            type="button"
+            onClick={() => setViewMode("split")}
+            className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+            title="Podział"
+          ><LayoutGrid className="w-4 h-4" aria-hidden /></button>
+        </div>
+        </>
       ) : (
         <>
           {/* Przełącznik widoku – w widoku lista nad listą, w prawym rogu (jak u providera) */}
@@ -1032,7 +1044,7 @@ export default function Home() {
           }`}
           style={
             !isMobileViewport && isProviderListExpanded
-              ? { top: activeFilters.length > 0 ? "298px" : "280px" }
+              ? { top: `${mapProviderDockTopPx}px` }
               : undefined
           }
         >
@@ -1043,7 +1055,7 @@ export default function Home() {
               style={
                 isMobileViewport
                   ? { maxHeight: "58vh" }
-                  : { height: activeFilters.length > 0 ? "calc(100vh - 268px)" : "calc(100vh - 240px)" }
+                  : { maxHeight: `calc(100vh - ${mapProviderDockTopPx + 24}px)` }
               }
             >
             {isMobileViewport && (
