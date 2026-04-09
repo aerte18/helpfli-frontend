@@ -110,9 +110,9 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-      <div className="mx-auto max-w-7xl px-4 py-4">
-        <div className="flex items-center gap-3">
-        <div className="flex items-center gap-8 min-w-0 flex-1">
+      <div className="mx-auto max-w-7xl px-3 pr-2 sm:px-4 sm:pr-4 py-4">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-8 min-w-0 shrink-0">
           <Link 
             to={!user ? "/" : (user.role === "provider" || user.role === "company_owner" || user.role === "company_manager") ? "/provider-home" : "/home"} 
             className="flex items-center"
@@ -169,7 +169,7 @@ export default function Navbar() {
         </div>
 
         {/* Prawa strona — ml-auto wymusza brzeg prawy (niezawodniejsze niż samo justify-between) */}
-        <div className="ml-auto flex items-center justify-end gap-1 sm:gap-2 md:gap-3 shrink-0">
+        <div className="flex items-center justify-end gap-0.5 sm:gap-2 md:gap-3 shrink-0">
           {/* Klient na telefonie: zawsze widoczna skrót do tworzenia zlecenia (pełny CTA jest w md:flex) */}
           {user && user.role === "client" && !loading && (
             <Link
