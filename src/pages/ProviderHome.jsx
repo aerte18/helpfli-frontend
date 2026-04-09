@@ -1994,6 +1994,7 @@ export default function ProviderHome() {
         onFiltersChange={setFilters}
         canManageCompany={canManageCompany}
         companyProviders={companyProviders}
+        mapViewMobile={isMobileViewport && viewMode === "map"}
       />
 
     </div>
