@@ -110,7 +110,7 @@ function matchesSelectedServiceLabel(selected, haystack) {
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({});
-  const { trackSearch, trackFilterApplied, trackCategorySelected, trackProviderView } = useTelemetry();
+  const { trackSearch, trackFilterApplied, trackCategorySelected, trackProviderView, trackClientApiError } = useTelemetry();
   const [quick, setQuick] = useState(null);
   const [providers, setProviders] = useState([]);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
@@ -446,15 +446,19 @@ export default function Home() {
     if (selectedServiceSlugs.length > 0) qs.set("service", selectedServiceSlugs.join(","));
 
     (async () => {
+      let res;
       try {
-        const res = await fetch(apiUrl(`/api/search?${qs.toString()}`), {
+        res = await fetch(apiUrl(`/api/search?${qs.toString()}`), {
           signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
           },
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || "Błąd pobierania wykonawców");
+        if (!res.ok) {
+          trackClientApiError("/api/search", res.status, data?.message);
+          throw new Error(data?.message || "Błąd pobierania wykonawców");
+        }
         // Backend zwraca dane bezpośrednio w tablicy, nie w data.providers
         const items = Array.isArray(data) ? data : (data?.providers || data?.results || []);
         
@@ -513,6 +517,11 @@ export default function Home() {
         }
       } catch (e) {
         if (e.name !== "AbortError") {
+          if (!res) {
+            trackClientApiError("/api/search", 0, e.message);
+          } else if (res.ok) {
+            trackClientApiError("/api/search", res.status, e.message);
+          }
           const strict =
             selectedServiceSlugs.length > 0 ||
             !!(filters?.search && String(filters.search).trim()) ||
@@ -526,7 +535,7 @@ export default function Home() {
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs]);
+  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs, trackClientApiError, trackSearch]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);

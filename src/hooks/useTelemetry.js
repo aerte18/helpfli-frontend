@@ -32,8 +32,34 @@ export const EVENT_TYPES = {
   REGISTER: 'register',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   DISPUTE_REPORTED: 'dispute_reported',
-  REFUND_REQUESTED: 'refund_requested'
+  REFUND_REQUESTED: 'refund_requested',
+  CLIENT_API_ERROR: 'client_api_error'
 };
+
+function extractPageName(path) {
+  const base = (path || '').split('?')[0] || '';
+  const segments = base.split('/').filter((s) => s);
+  if (segments.length === 0) return 'home';
+  return segments[0];
+}
+
+function parseUtmFromSearch(search) {
+  const q = typeof search === 'string' ? search : '';
+  const params = new URLSearchParams(q.startsWith('?') ? q.slice(1) : q);
+  const utm = {};
+  const keys = [
+    ['utm_source', 'source'],
+    ['utm_medium', 'medium'],
+    ['utm_campaign', 'campaign'],
+    ['utm_term', 'term'],
+    ['utm_content', 'content']
+  ];
+  for (const [raw, key] of keys) {
+    const val = params.get(raw);
+    if (val && val.trim()) utm[key] = val.trim().slice(0, 120);
+  }
+  return Object.keys(utm).length ? utm : undefined;
+}
 
 export function useTelemetry() {
   const { user } = useAuth();
@@ -57,15 +83,18 @@ export function useTelemetry() {
 
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      const url = token
+        ? apiUrl('/api/telemetry/batch')
+        : apiUrl('/api/telemetry/public/batch');
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Session-ID': sessionId.current || 'anon'
+      };
+      if (token) headers.Authorization = `Bearer ${token}`;
 
-      await fetch(apiUrl('/api/telemetry/batch'), {
+      await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-Session-ID': sessionId.current
-        },
+        headers,
         body: JSON.stringify({ events })
       });
     } catch (error) {
@@ -101,11 +130,32 @@ export function useTelemetry() {
     }
   }, [flushQueue]);
 
-  // Track page view
+  // Track page view (path może zawierać ?query — UTM zapisujemy osobno, path bez query)
   const trackPageView = useCallback((path, pageName = null) => {
+    const full = typeof path === 'string' ? path : '';
+    let pathname = full;
+    let search = '';
+    const qIdx = full.indexOf('?');
+    if (qIdx >= 0) {
+      pathname = full.slice(0, qIdx);
+      search = full.slice(qIdx);
+    }
+    const utm = parseUtmFromSearch(search);
     track(EVENT_TYPES.PAGE_VIEW, {
-      path,
-      page: pageName || extractPageName(path)
+      path: pathname || '/',
+      page: pageName || extractPageName(pathname),
+      ...(utm ? { utm } : {})
+    });
+  }, [track]);
+
+  const trackClientApiError = useCallback((endpoint, statusCode, detail) => {
+    let sc = statusCode;
+    if (sc != null && (!Number.isFinite(Number(sc)) || Number(sc) < 0)) sc = null;
+    else if (sc != null) sc = Math.round(Number(sc));
+    track(EVENT_TYPES.CLIENT_API_ERROR, {
+      endpoint: String(endpoint || '').slice(0, 300),
+      statusCode: sc,
+      detail: detail != null ? String(detail).slice(0, 200) : undefined
     });
   }, [track]);
 
@@ -212,13 +262,6 @@ export function useTelemetry() {
     });
   }, [track]);
 
-  // Helper do wyciągnięcia nazwy strony
-  const extractPageName = (path) => {
-    const segments = path.split('/').filter(s => s);
-    if (segments.length === 0) return 'home';
-    return segments[0];
-  };
-
   // Cleanup na unmount
   useEffect(() => {
     return () => {
@@ -233,6 +276,7 @@ export function useTelemetry() {
   return {
     track,
     trackPageView,
+    trackClientApiError,
     trackSearch,
     trackFilterApplied,
     trackCategorySelected,

@@ -106,6 +106,7 @@ import PaymentResult from "./payment/PaymentResult";
 import NotFound from "./pages/NotFound";
 import ErrorBoundary from "./components/ErrorBoundary";
 import SkipLinks from "./components/SkipLinks";
+import TelemetryRouteListener from "./components/TelemetryRouteListener";
 
 // Lazy loaded - Provider komponenty (najcięższe)
 const ProviderHome = lazy(() => import("./pages/ProviderHome"));
@@ -149,6 +150,7 @@ function App() {
         
         {/* Navbar */}
         <Navbar />
+        {!isAdminRoute && <TelemetryRouteListener />}
         {!isAdminRoute && <Breadcrumbs />}
         {!isAdminRoute && <MobileAppTabBar />}
 

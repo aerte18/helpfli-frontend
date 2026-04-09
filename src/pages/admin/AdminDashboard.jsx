@@ -55,6 +55,10 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-semibold">Admin</h1>
         <Link to="/home" className="text-slate-600 hover:underline">Podgląd Home</Link>
       </div>
+      <p className="text-sm text-slate-600 mb-3">
+        <Link to="/admin/analytics" className="font-medium text-indigo-600 hover:underline">Analityka</Link>
+        {" — "}odsłony, wejścia, popularne wyszukiwania i zapytania bez wyników (wymaga zgody na cookies u użytkowników).
+      </p>
 
           {/* KPI */}
           <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
