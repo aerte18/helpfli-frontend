@@ -114,23 +114,33 @@ const MyOrders = () => {
     }
   };
 
+  const getExpiryParts = (order) => {
+    if (!order?.expiresAt) return null;
+    const h = Number(order?.hoursUntilExpiry);
+    const m = Number(order?.minutesUntilExpiry);
+    if (Number.isFinite(h) && Number.isFinite(m) && h >= 0 && m >= 0) {
+      return { hours: h, minutes: m };
+    }
+    const diffMs = new Date(order.expiresAt).getTime() - Date.now();
+    if (!Number.isFinite(diffMs) || diffMs <= 0) return { hours: 0, minutes: 0 };
+    const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+    return {
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+    };
+  };
+
   const formatTimeUntilExpiry = (order) => {
-    if (!order.expiresAt) return null;
-    
-    if (order.isExpired) {
-      return "Wygasło";
+    if (!order?.expiresAt) return null;
+    if (order?.isExpired) return "Wygasło";
+    const parts = getExpiryParts(order);
+    if (!parts) return "Aktywne";
+    if (parts.hours >= 24) {
+      const days = Math.floor(parts.hours / 24);
+      const hours = parts.hours % 24;
+      return `${days}d ${hours}h`;
     }
-    
-    if (order.hoursUntilExpiry !== null) {
-      if (order.hoursUntilExpiry > 24) {
-        const days = Math.floor(order.hoursUntilExpiry / 24);
-        const hours = order.hoursUntilExpiry % 24;
-        return `${days}d ${hours}h`;
-      }
-      return `${order.hoursUntilExpiry}h ${order.minutesUntilExpiry || 0}m`;
-    }
-    
-    return "Aktywne";
+    return `${parts.hours}h ${parts.minutes}m`;
   };
 
   return (
@@ -162,7 +172,10 @@ const MyOrders = () => {
                   <div className={`ml-4 px-3 py-2 rounded-lg flex items-center gap-2 ${
                     order.isExpired 
                       ? 'bg-red-100 text-red-700' 
-                      : order.hoursUntilExpiry !== null && order.hoursUntilExpiry < 6
+                      : (() => {
+                          const p = getExpiryParts(order);
+                          return p && p.hours < 6;
+                        })()
                       ? 'bg-orange-100 text-orange-700'
                       : 'bg-blue-100 text-blue-700'
                   }`}>

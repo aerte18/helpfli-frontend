@@ -1,6 +1,7 @@
 // src/pages/Inbox.jsx
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useMemo, useRef } from 'react';
+import { ChevronLeft } from "lucide-react";
 import {
   fetchConversations,
   fetchMessages,
@@ -27,7 +28,7 @@ function ConversationItem({ conv, active, onClick, meId }) {
   );
 }
 
-function ChatWindow({ conversation, meId }) {
+function ChatWindow({ conversation, meId, onBack, isMobile = false }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -179,13 +180,25 @@ function ChatWindow({ conversation, meId }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b px-4 py-3 font-semibold flex justify-between items-center">
-        <span>
-          {(conversation.participants || []).find(p => p._id !== meId)?.name || 'Rozmowa'}
-        </span>
-        <button 
+      <div className="border-b px-3 py-3 font-semibold flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {isMobile && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100"
+              aria-label="Wróć do listy rozmów"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <span className="truncate">
+            {(conversation.participants || []).find(p => p._id !== meId)?.name || 'Rozmowa'}
+          </span>
+        </div>
+        <button
           onClick={handleExport}
-          className="text-sm px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+          className="text-sm px-2 py-1 bg-gray-100 rounded hover:bg-gray-200 shrink-0"
         >
           Eksportuj
         </button>
@@ -292,14 +305,21 @@ export default function Inbox() {
 
   const [conversations, setConversations] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     (async () => {
       const list = await fetchConversations();
       setConversations(list);
-      if (list.length && !activeId) setActiveId(list[0]._id);
+      if (list.length && !activeId && !isMobile) setActiveId(list[0]._id);
     })();
-  }, []);
+  }, [activeId, isMobile]);
 
   const activeConv = useMemo(
     () => conversations.find(c => c._id === activeId),
@@ -307,8 +327,8 @@ export default function Inbox() {
   );
 
   return (
-    <div className="h-[calc(100vh-80px)] flex border rounded-2xl overflow-hidden bg-white">
-      <aside className="w-[340px] border-r overflow-y-auto">
+    <div className="h-[calc(100dvh-150px)] md:h-[calc(100vh-80px)] flex border rounded-2xl overflow-hidden bg-white">
+      <aside className={`${activeId && isMobile ? "hidden" : "block"} w-full md:w-[340px] border-r overflow-y-auto`}>
         <div className="px-4 py-3 font-semibold border-b">Rozmowy</div>
         {conversations.map(c => (
           <ConversationItem
@@ -324,8 +344,13 @@ export default function Inbox() {
         )}
       </aside>
 
-      <main className="flex-1">
-        <ChatWindow conversation={activeConv} meId={meId} />
+      <main className={`${!activeId && isMobile ? "hidden" : "flex"} flex-1 min-w-0`}>
+        <ChatWindow
+          conversation={activeConv}
+          meId={meId}
+          isMobile={isMobile}
+          onBack={() => setActiveId(null)}
+        />
       </main>
     </div>
   );
