@@ -87,7 +87,7 @@ export default function ProviderAdvancedFilters({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-5 pb-24 space-y-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-5 pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:pb-24 space-y-5">
           {/* Sortowanie */}
           <div>
             <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-2">
@@ -214,7 +214,7 @@ export default function ProviderAdvancedFilters({
           )}
         </div>
 
-        <div className="sticky bottom-0 z-10 flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 z-10 flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
           <button
             type="button"
             onClick={handleClear}
