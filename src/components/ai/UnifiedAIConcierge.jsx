@@ -160,6 +160,29 @@ export default function UnifiedAIConcierge({
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const buildCreateOrderState = (draft = analysisResult?.orderDraft) => {
+    const payload = draft?.orderPayload || {};
+    const budget = payload.budget;
+    return {
+      fromAI: true,
+      preFilled: {
+        description: payload.description || input || 'Problem wykryty przez Asystenta AI',
+        service: payload.service || analysisResult?.serviceCandidate?.code,
+        location: payload.location || '',
+        urgency: payload.urgency || analysisResult?.urgency || 'standard',
+        budget: budget?.max || budget?.min || '',
+        diySteps: analysisResult?.diySteps,
+        parts: analysisResult?.parts
+      },
+      prefill: {
+        description: payload.description || input || 'Problem wykryty przez Asystenta AI',
+        service: payload.service || analysisResult?.serviceCandidate?.code,
+        location: payload.location || '',
+        urgency: payload.urgency || analysisResult?.urgency || 'standard'
+      }
+    };
+  };
+
   const ask = async () => {
     if (!input.trim() && attachedFiles.length === 0) return;
     
@@ -306,6 +329,8 @@ setMsgs((m) => [...m, {
           toolUsed: data.toolUsed || null,
           toolResult: data.toolResult || null,
           questions: result.questions || [],
+          quickReplies: agents.orderDraft?.quickReplies || [],
+          orderDraft: agents.orderDraft || null,
           sessionId: sessionId,
           messageId: messageId,
           requestId: data.requestId
@@ -545,16 +570,56 @@ setMsgs((m) => [...m, {
                         </button>
                       </div>
                     )}
-                    {m.questions && m.questions.length > 0 && (
+                    {m.orderDraft && (
+                      <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div>
+                            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Draft zlecenia</div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {m.orderDraft.canCreate ? 'Gotowy do utworzenia' : 'Uzupełnij brakujące dane'}
+                            </div>
+                          </div>
+                          <div className="text-xs font-semibold text-indigo-700">
+                            {m.orderDraft.completion?.percent ?? 0}%
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-xs text-slate-700">
+                          <div><span className="font-medium">Usługa:</span> {m.orderDraft.summary?.service || m.orderDraft.orderPayload?.service || 'Nie wybrano'}</div>
+                          <div><span className="font-medium">Opis:</span> {m.orderDraft.summary?.description || m.orderDraft.orderPayload?.description || 'Brak'}</div>
+                          <div><span className="font-medium">Lokalizacja:</span> {m.orderDraft.summary?.location || 'Brak'}</div>
+                          <div><span className="font-medium">Termin:</span> {m.orderDraft.summary?.preferredTime || 'Do ustalenia'}</div>
+                        </div>
+                        {m.orderDraft.missing?.length > 0 && (
+                          <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                            Brakuje: {m.orderDraft.missing.join(', ')}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) });
+                            if (mode === 'modal' && onClose) onClose();
+                          }}
+                          className={`mt-3 w-full rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                            m.orderDraft.canCreate
+                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                          }`}
+                        >
+                          {m.orderDraft.canCreate ? 'Utwórz zlecenie z draftu' : 'Otwórz formularz i uzupełnij'}
+                        </button>
+                      </div>
+                    )}
+                    {((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
-                        {m.questions.slice(0, 4).map((question, idx) => (
+                        {[...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))].slice(0, 6).map((reply, idx) => (
                           <button
-                            key={`${question}-${idx}`}
+                            key={`${reply.label}-${idx}`}
                             type="button"
-                            onClick={() => setInput(question)}
+                            onClick={() => setInput(reply.value || reply.label)}
                             className="px-3 py-1.5 text-xs rounded-full border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
                           >
-                            {question}
+                            {reply.label}
                           </button>
                         ))}
                       </div>
@@ -588,16 +653,7 @@ setMsgs((m) => [...m, {
                                   urgency: analysisResult.urgency || 'normal'
                                 });
                               } else {
-                                navigate('/create-order', {
-                                  state: {
-                                    prefill: {
-                                      description: input || 'Problem wykryty przez Asystenta AI',
-                                      service: analysisResult?.serviceCandidate?.code,
-                                      urgency: analysisResult?.urgency || 'normal'
-                                    },
-                                    fromAI: true
-                                  }
-                                });
+                                navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) });
                               }
                               if (mode === 'modal' && onClose) onClose();
                             }}
@@ -662,18 +718,7 @@ setMsgs((m) => [...m, {
                                   parts: analysisResult.parts
                                 });
                               } else {
-                                navigate('/create-order', {
-                                  state: {
-                                    prefill: {
-                                      description: input || 'Problem wykryty przez Asystenta AI',
-                                      service: analysisResult?.serviceCandidate?.code,
-                                      urgency: analysisResult?.urgency || 'normal',
-                                      diySteps: analysisResult?.diySteps,
-                                      parts: analysisResult?.parts
-                                    },
-                                    fromAI: true
-                                  }
-                                });
+                                navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) });
                               }
                               if (mode === 'modal' && onClose) onClose();
                             }}
@@ -1003,18 +1048,7 @@ setMsgs((m) => [...m, {
                             parts: analysisResult.parts
                           });
                         } else {
-                          navigate('/create-order', {
-                            state: {
-                              prefill: {
-                                description: input || 'Problem wykryty przez Asystenta AI',
-                                service: analysisResult.serviceCandidate.code,
-                                urgency: analysisResult.urgency || 'normal',
-                                diySteps: analysisResult.diySteps,
-                                parts: analysisResult.parts
-                              },
-                              fromAI: true
-                            }
-                          });
+                          navigate('/create-order', { state: buildCreateOrderState(analysisResult.orderDraft) });
                         }
                         if (mode === 'modal' && onClose) onClose();
                       }}

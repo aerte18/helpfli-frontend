@@ -26,7 +26,7 @@ export default function CreateOrder() {
   // parametry z URL i pre-wypełnione dane z profilu
   const serviceFromUrl = q.get("service") || "";
   const descFromUrl = q.get("desc") || "";
-  const preFilled = locationState.state?.preFilled || {};
+  const preFilled = locationState.state?.preFilled || locationState.state?.prefill || {};
   const initialIsDirect = locationState.state?.direct || false;
   const mode = locationState.state?.mode || "order"; // "order" | "diy"
   const diySteps = preFilled.diySteps || [];
@@ -36,7 +36,7 @@ export default function CreateOrder() {
   const [service, setService] = useState(preFilled.service || serviceFromUrl);
   const [serviceDetails, setServiceDetails] = useState(""); // doprecyzowanie usługi
   const [isOtherSubcategory, setIsOtherSubcategory] = useState(false); // czy wybrana podkategoria to "Inne"
-  const [description, setDescription] = useState(descFromUrl);
+  const [description, setDescription] = useState(preFilled.description || descFromUrl);
   const [location, setLocation] = useState(preFilled.location || "");
   const [selectedProvider, setSelectedProvider] = useState(preFilled.providerId ? {
     id: preFilled.providerId,
@@ -77,8 +77,8 @@ export default function CreateOrder() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [budget, setBudget] = useState(""); // opcjonalny budżet
-  const [urgency, setUrgency] = useState(""); // pilność
+  const [budget, setBudget] = useState(preFilled.budget ? String(preFilled.budget) : ""); // opcjonalny budżet
+  const [urgency, setUrgency] = useState(preFilled.urgency || ""); // pilność
   const [contactPreference, setContactPreference] = useState(""); // preferencje kontaktu
   const [paymentPreference, setPaymentPreference] = useState("system"); // preferencje płatności: "system" | "external"
   const [userLocation, setUserLocation] = useState(null); // geolokalizacja
