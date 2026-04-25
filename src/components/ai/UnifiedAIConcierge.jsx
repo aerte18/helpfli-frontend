@@ -305,6 +305,7 @@ setMsgs((m) => [...m, {
           agents: agents,
           toolUsed: data.toolUsed || null,
           toolResult: data.toolResult || null,
+          questions: result.questions || [],
           sessionId: sessionId,
           messageId: messageId,
           requestId: data.requestId
@@ -542,6 +543,20 @@ setMsgs((m) => [...m, {
                         >
                           👎
                         </button>
+                      </div>
+                    )}
+                    {m.questions && m.questions.length > 0 && (
+                      <div className="mt-3 ml-12 flex flex-wrap gap-2">
+                        {m.questions.slice(0, 4).map((question, idx) => (
+                          <button
+                            key={`${question}-${idx}`}
+                            type="button"
+                            onClick={() => setInput(question)}
+                            className="px-3 py-1.5 text-xs rounded-full border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
+                          >
+                            {question}
+                          </button>
+                        ))}
                       </div>
                     )}
                     
