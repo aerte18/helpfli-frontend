@@ -8,6 +8,7 @@ import WorkflowManagement from '../../components/company/WorkflowManagement';
 import RolesManagement from '../../components/company/RolesManagement';
 import AuditLog from '../../components/company/AuditLog';
 import TeamPerformance from '../../components/company/TeamPerformance';
+import { useToast } from '../../components/toast/ToastProvider';
 import {
   getCompanyRoles,
   assignCustomRole,
@@ -21,6 +22,7 @@ import {
 import { Sparkles, ChevronDown, ChevronUp, Send } from 'lucide-react';
 
 const CompanyDashboard = () => {
+  const { push: toast } = useToast();
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -171,13 +173,13 @@ const CompanyDashboard = () => {
 
       const data = await response.json();
       if (data.success) {
-        alert('Zaproszenie zostało wysłane!');
+        toast({ title: 'Zaproszenie zostało wysłane', variant: 'success' });
         setShowInviteModal(false);
         setInviteEmail('');
         fetchCompanyData(); // Odśwież dane
       }
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd wysyłki zaproszenia', description: err.message, variant: 'error' });
     }
   };
 
@@ -199,10 +201,10 @@ const CompanyDashboard = () => {
         throw new Error('Błąd podczas usuwania członka');
       }
 
-      alert('Członek został usunięty z firmy');
+      toast({ title: 'Członek został usunięty z firmy', variant: 'success' });
       fetchCompanyData(); // Odśwież dane
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd usuwania członka', description: err.message, variant: 'error' });
     }
   };
 
@@ -241,15 +243,15 @@ const CompanyDashboard = () => {
       });
 
       if (response.ok) {
-        alert('Prośba została zaakceptowana');
+        toast({ title: 'Prośba została zaakceptowana', variant: 'success' });
         fetchJoinRequests();
         fetchCompanyData();
       } else {
         const errorData = await response.json();
-        alert(`Błąd: ${errorData.message || 'Nie udało się zaakceptować prośby'}`);
+        toast({ title: 'Błąd akceptacji prośby', description: errorData.message || 'Nie udało się zaakceptować prośby', variant: 'error' });
       }
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd akceptacji prośby', description: err.message, variant: 'error' });
     }
   };
 
@@ -269,14 +271,14 @@ const CompanyDashboard = () => {
       });
 
       if (response.ok) {
-        alert('Prośba została odrzucona');
+        toast({ title: 'Prośba została odrzucona', variant: 'success' });
         fetchJoinRequests();
       } else {
         const errorData = await response.json();
-        alert(`Błąd: ${errorData.message || 'Nie udało się odrzucić prośby'}`);
+        toast({ title: 'Błąd odrzucenia prośby', description: errorData.message || 'Nie udało się odrzucić prośby', variant: 'error' });
       }
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd odrzucenia prośby', description: err.message, variant: 'error' });
     }
   };
 
@@ -296,21 +298,21 @@ const CompanyDashboard = () => {
         throw new Error('Błąd podczas zmiany roli');
       }
 
-      alert('Rola została zmieniona');
+      toast({ title: 'Rola została zmieniona', variant: 'success' });
       fetchCompanyData(); // Odśwież dane
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd zmiany roli', description: err.message, variant: 'error' });
     }
   };
 
   const handleAssignCustomRole = async (userId, roleId) => {
     try {
       await assignCustomRole(company._id, userId, roleId);
-      alert('Rola została przypisana');
+      toast({ title: 'Rola została przypisana', variant: 'success' });
       fetchCompanyData(); // Odśwież dane
       fetchRoles(); // Odśwież listę ról
     } catch (err) {
-      alert(`Błąd: ${err.message}`);
+      toast({ title: 'Błąd przypisania roli', description: err.message, variant: 'error' });
     }
   };
 
@@ -668,7 +670,7 @@ const CompanyDashboard = () => {
                       const sent = data?.followup?.notificationsSent ?? 0;
                       const considered = data?.followup?.offersConsidered ?? 0;
                       setShortlistError('');
-                      alert(`Follow-up wysłany: ${sent}/${considered} ofert.`);
+                      toast({ title: `Follow-up wysłany: ${sent}/${considered} ofert`, variant: 'success' });
                     } catch (err) {
                       setShortlistError(err.message || 'Nie udało się wysłać follow-up');
                     } finally {
@@ -690,9 +692,9 @@ const CompanyDashboard = () => {
                       const triggered = Boolean(data?.autoFollowup?.triggered);
                       if (!triggered) {
                         const reason = data?.autoFollowup?.reason || 'brak warunków';
-                        alert(`Auto follow-up nie został uruchomiony (${reason}).`);
+                        toast({ title: 'Auto follow-up nie został uruchomiony', description: reason, variant: 'warning' });
                       } else {
-                        alert(`Auto follow-up uruchomiony: ${data?.autoFollowup?.notificationsSent || 0} powiadomień.`);
+                        toast({ title: `Auto follow-up uruchomiony: ${data?.autoFollowup?.notificationsSent || 0} powiadomień`, variant: 'success' });
                       }
                       setShortlistError('');
                     } catch (err) {

@@ -15,6 +15,20 @@ function fmtRate(r) {
   return `${(Number(r) * 100).toFixed(2)}%`;
 }
 
+function fmtDeltaPp(a, b) {
+  if (a == null || b == null || !Number.isFinite(Number(a)) || !Number.isFinite(Number(b))) return "—";
+  const delta = (Number(a) - Number(b)) * 100;
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${delta.toFixed(2)} pp`;
+}
+
+function fmtDeltaHours(a, b) {
+  if (a == null || b == null || !Number.isFinite(Number(a)) || !Number.isFinite(Number(b))) return "—";
+  const delta = Number(a) - Number(b);
+  const sign = delta >= 0 ? "+" : "";
+  return `${sign}${delta.toFixed(2)} h`;
+}
+
 function asText(v) {
   if (v == null) return "—";
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
@@ -23,6 +37,13 @@ function asText(v) {
   } catch {
     return String(v);
   }
+}
+
+function fmtDateTime(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("pl-PL", { hour12: false });
 }
 
 export default function AdminAnalytics() {
@@ -34,6 +55,7 @@ export default function AdminAnalytics() {
   const [productInsights, setProductInsights] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
   const [aiInsights, setAiInsights] = useState(null);
+  const [companyProCronHealth, setCompanyProCronHealth] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -53,7 +75,7 @@ export default function AdminAnalytics() {
       if (Array.isArray(funnelJson)) setFunnel(funnelJson);
       else setFunnel(Array.isArray(funnelJson?.overall) ? funnelJson.overall : []);
 
-      const [piRes, healthRes, aiRes] = await Promise.all([
+      const [piRes, healthRes, aiRes, cronHealthRes] = await Promise.all([
         fetch(apiUrl(`/api/admin/analytics/product-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -63,6 +85,9 @@ export default function AdminAnalytics() {
         fetch(apiUrl(`/api/admin/analytics/ai-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch(apiUrl(`/api/admin/analytics/company-pro-cron-health`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
       const piJson = await piRes.json().catch(() => null);
       setProductInsights(piJson && typeof piJson === "object" ? piJson : null);
@@ -70,6 +95,8 @@ export default function AdminAnalytics() {
       setApiHealth(hJson && typeof hJson === "object" ? hJson : null);
       const aiJson = await aiRes.json().catch(() => null);
       setAiInsights(aiJson && typeof aiJson === "object" ? aiJson : null);
+      const cronHealthJson = await cronHealthRes.json().catch(() => null);
+      setCompanyProCronHealth(cronHealthJson && typeof cronHealthJson === "object" ? cronHealthJson : null);
     } catch (error) {
       console.error("AdminAnalytics load error:", error);
       setSummary({});
@@ -77,6 +104,7 @@ export default function AdminAnalytics() {
       setProductInsights(null);
       setApiHealth(null);
       setAiInsights(null);
+      setCompanyProCronHealth(null);
     } finally {
       setLoading(false);
     }
@@ -159,6 +187,14 @@ export default function AdminAnalytics() {
   );
   const aiPromptStats = aiInsights?.promptAnalytics || {};
   const aiProcess = aiInsights?.process || {};
+  const aiCompanyPlanComparison = aiProcess?.companyPlanComparison || {};
+  const aiCompanyPlanPro = aiCompanyPlanComparison?.pro || {};
+  const aiCompanyPlanNonPro = aiCompanyPlanComparison?.nonPro || {};
+  const companyPlanDelta = {
+    offerCoveragePp: fmtDeltaPp(aiCompanyPlanPro.offerCoverageRate, aiCompanyPlanNonPro.offerCoverageRate),
+    acceptancePp: fmtDeltaPp(aiCompanyPlanPro.acceptanceRate, aiCompanyPlanNonPro.acceptanceRate),
+    firstOfferHours: fmtDeltaHours(aiCompanyPlanPro.avgFirstOfferHours, aiCompanyPlanNonPro.avgFirstOfferHours)
+  };
   const aiProcessFunnel = useMemo(
     () => (Array.isArray(aiProcess?.funnel) ? aiProcess.funnel : []),
     [aiProcess]
@@ -171,6 +207,7 @@ export default function AdminAnalytics() {
   const aiMessagePreflight = aiProcess?.messagePreflight || {};
   const aiOfferFormPreflight = aiProcess?.offerFormPreflight || {};
   const aiCompanyPro = aiProcess?.companyPro || {};
+  const cronHealth = companyProCronHealth?.health || {};
   const aiOfferFormPreflightDaily = useMemo(
     () => (Array.isArray(aiOfferFormPreflight?.daily) ? aiOfferFormPreflight.daily : []),
     [aiOfferFormPreflight]
@@ -339,9 +376,15 @@ export default function AdminAnalytics() {
         <Card title="Shortlist wygenerowane" value={asText(num(aiCompanyPro.shortlistGenerated))} />
         <Card title="Follow-up wysłane" value={asText(num(aiCompanyPro.followupSent))} />
         <Card title="Auto follow-up wysłane" value={asText(num(aiCompanyPro.autoFollowupSent))} />
-        <Card title="Auto follow-up cron runs" value={asText(num(aiCompanyPro.autoFollowupCronRuns))} />
+        <Card title="Auto follow-up cron runs" value={asText(num(aiCompanyPro.autoFollowupCronRuns))} hint="Liczba zakończonych przebiegów cron auto-follow-up w wybranym zakresie." />
         <Card title="SLA breach (wykryte)" value={asText(num(aiCompanyPro.slaBreaches))} />
         <Card title="Follow-up / shortlist" value={fmtRate(aiCompanyPro.followupPerShortlistRate)} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Cron health: status" value={asText(cronHealth.lastStatus || '—')} hint="Ostatni znany status joba: running/ok/error." />
+        <Card title="Cron health: stale" value={companyProCronHealth?.stale ? 'TAK' : 'NIE'} hint="TAK oznacza brak świeżego zakończonego runu względem progu stale." />
+        <Card title="Cron health: spec" value={asText(cronHealth.scheduledSpec || '—')} hint="Aktualny cron spec uruchamiania joba." />
+        <Card title="Cron health: last finish" value={fmtDateTime(cronHealth.lastRunFinishedAt)} hint="Data i czas ostatniego zakończonego przebiegu joba." />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Auto follow-up / shortlist" value={fmtRate(aiCompanyPro.autoFollowupPerShortlistRate)} />
@@ -350,15 +393,33 @@ export default function AdminAnalytics() {
         <Card title="SLA breach: brak 1. kwalifikowanej" value={asText(num(aiCompanyPro.slaBreachesQualifiedOffer))} />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card title="Auto FU: śledzone ordery" value={asText(num(aiCompanyPro.autoFollowupTrackedOrders))} />
-        <Card title="Auto FU: sukces <=12h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin12h))} />
-        <Card title="Auto FU: success rate <=12h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin12hRate)} />
-        <Card title="Auto FU: sukces <=24h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin24h))} />
-        <Card title="Auto FU: success rate <=24h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin24hRate)} />
+        <Card title="Auto FU: śledzone ordery" value={asText(num(aiCompanyPro.autoFollowupTrackedOrders))} hint="Liczba zleceń, dla których wystąpił auto-follow-up i można mierzyć efekt." />
+        <Card title="Auto FU: sukces <=12h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin12h))} hint="Liczba orderów, gdzie po auto-follow-up pojawiła się oferta z aiQuality >=45% w 12h." />
+        <Card title="Auto FU: success rate <=12h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin12hRate)} hint="Udział sukcesów <=12h względem śledzonych orderów." />
+        <Card title="Auto FU: sukces <=24h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin24h))} hint="Liczba orderów z sukcesem w oknie 24h." />
+        <Card title="Auto FU: success rate <=24h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin24hRate)} hint="Udział sukcesów <=24h względem śledzonych orderów." />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card title="Auto FU: sukces <=48h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin48h))} />
-        <Card title="Auto FU: success rate <=48h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin48hRate)} />
+        <Card title="Auto FU: sukces <=48h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin48h))} hint="Liczba orderów z sukcesem w oknie 48h." />
+        <Card title="Auto FU: success rate <=48h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin48hRate)} hint="Udział sukcesów <=48h względem śledzonych orderów." />
+      </div>
+      <h3 className="text-base font-semibold text-slate-800 pt-1">Porównanie firm PRO vs non-PRO (zlecenia AI)</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="PRO: zlecenia" value={asText(num(aiCompanyPlanPro.orders))} />
+        <Card title="non-PRO: zlecenia" value={asText(num(aiCompanyPlanNonPro.orders))} />
+        <Card title="PRO: offer coverage" value={fmtRate(aiCompanyPlanPro.offerCoverageRate)} />
+        <Card title="non-PRO: offer coverage" value={fmtRate(aiCompanyPlanNonPro.offerCoverageRate)} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="PRO: acceptance rate" value={fmtRate(aiCompanyPlanPro.acceptanceRate)} />
+        <Card title="non-PRO: acceptance rate" value={fmtRate(aiCompanyPlanNonPro.acceptanceRate)} />
+        <Card title="PRO: avg 1st offer (h)" value={aiCompanyPlanPro.avgFirstOfferHours != null ? asText(aiCompanyPlanPro.avgFirstOfferHours) : "—"} />
+        <Card title="non-PRO: avg 1st offer (h)" value={aiCompanyPlanNonPro.avgFirstOfferHours != null ? asText(aiCompanyPlanNonPro.avgFirstOfferHours) : "—"} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="DELTA coverage (PRO - non-PRO)" value={companyPlanDelta.offerCoveragePp} />
+        <Card title="DELTA acceptance (PRO - non-PRO)" value={companyPlanDelta.acceptancePp} />
+        <Card title="DELTA avg 1st offer (h)" value={companyPlanDelta.firstOfferHours} />
       </div>
 
       <h3 className="text-base font-semibold text-slate-800 pt-1">AI pre-send wiadomości providera</h3>
@@ -630,9 +691,9 @@ export default function AdminAnalytics() {
   );
 }
 
-function Card({ title, value }) {
+function Card({ title, value, hint = "" }) {
   return (
-    <div className="border rounded-2xl p-4 bg-white">
+    <div className="border rounded-2xl p-4 bg-white" title={hint || undefined}>
       <div className="text-sm text-gray-600">{title}</div>
       <div className="text-2xl font-semibold">{value}</div>
     </div>
