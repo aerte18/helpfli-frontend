@@ -94,6 +94,15 @@ function providerTrustReasons(provider = {}) {
   return reasons;
 }
 
+function filePreviewUrl(file = {}) {
+  const url = file.previewUrl || file.url || '';
+  if (!url) return '';
+  if (url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return apiUrl(url);
+}
+
 function DiagnosticFlowCard({ flow, onHelped, onFailed }) {
   if (!flow) return null;
   return (
@@ -284,7 +293,14 @@ export default function UnifiedAIConcierge({
       });
       const data = await res.json();
       if (data.success) {
-        setAttachedFiles(prev => [...prev, ...data.files]);
+        const localFiles = Array.from(files);
+        const enrichedFiles = (data.files || []).map((file, index) => ({
+          ...file,
+          previewUrl: localFiles[index]?.type?.startsWith('image/')
+            ? URL.createObjectURL(localFiles[index])
+            : null
+        }));
+        setAttachedFiles(prev => [...prev, ...enrichedFiles]);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -294,7 +310,13 @@ export default function UnifiedAIConcierge({
   };
 
   const removeFile = (index) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachedFiles(prev => {
+      const removed = prev[index];
+      if (removed?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const buildCreateOrderState = (draft = analysisResult?.orderDraft) => {
@@ -343,13 +365,21 @@ export default function UnifiedAIConcierge({
       return;
     }
     
-    const imageUrls = attachedFiles.map(f => f.url);
+    const filesForMessage = attachedFiles;
+    const imageUrls = filesForMessage.map(f => f.url);
     
     setMsgs((m) => [...m, { 
       role: "user", 
-      text: q || (attachedFiles.length > 0 ? `Przesłano ${attachedFiles.length} plik(ów) do analizy` : ''),
-      files: attachedFiles.length > 0 ? attachedFiles : undefined
+      text: q || (filesForMessage.length > 0 ? `Przesłano ${filesForMessage.length} plik(ów) do analizy` : ''),
+      files: filesForMessage.length > 0 ? filesForMessage : undefined
     }]);
+    if (filesForMessage.length > 0) {
+      setMsgs((m) => [...m, {
+        role: 'assistant',
+        text: 'Analizuję załączone zdjęcie. To może potrwać chwilę, bo najpierw odczytuję obraz, a potem dopasowuję odpowiedź krok po kroku.',
+        transient: true
+      }]);
+    }
     setBusy(true);
     
     try {
@@ -369,7 +399,7 @@ export default function UnifiedAIConcierge({
       if (companyId) {
         const data = await companyAiChat(companyId, q || (attachedFiles.length > 0 ? `Przesłano ${attachedFiles.length} plik(ów)` : ''), conversationHistory);
         const replyText = data.response || 'Brak odpowiedzi.';
-        setMsgs((m) => [...m, {
+        setMsgs((m) => [...m.filter((msg) => !msg.transient), {
           role: 'assistant',
           text: replyText,
           actionCard: data.actionCard || null
@@ -470,7 +500,7 @@ export default function UnifiedAIConcierge({
         // Główna odpowiedź = naturalna wypowiedź agenta (jak rozmowa). Szczegóły (ceny, wykonawcy) w blokach poniżej.
         const replyText = result.reply || "Analizuję Twój problem...";
 
-setMsgs((m) => [...m, {
+setMsgs((m) => [...m.filter((msg) => !msg.transient), {
           role: "assistant",
           text: replyText,
           nextStep: result.nextStep,
@@ -499,17 +529,20 @@ setMsgs((m) => [...m, {
         const text = data?.serviceCandidate?.name || 
                     data?.diySteps?.[0]?.text || 
                     "Analizuję Twój problem... Mogę zaproponować rozwiązanie lub znaleźć wykonawcę.";
-        setMsgs((m) => [...m, { role: "assistant", text, showCameraButton: true, sponsorAds: data?.sponsorAds }]);
+        setMsgs((m) => [...m.filter((msg) => !msg.transient), { role: "assistant", text, showCameraButton: true, sponsorAds: data?.sponsorAds }]);
       }
     } catch (error) {
       console.error('Asystent AI error:', error);
-      setMsgs((m) => [...m, { 
+      setMsgs((m) => [...m.filter((msg) => !msg.transient), { 
         role: "assistant", 
         text: error.message || "Ups, spróbuj ponownie." 
       }]);
     } finally {
       setBusy(false);
       setInput("");
+      filesForMessage.forEach((file) => {
+        if (file.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(file.previewUrl);
+      });
       setAttachedFiles([]);
     }
   };
@@ -748,11 +781,19 @@ setMsgs((m) => [...m, {
                       <div className="mt-2 flex justify-end">
                         <div className="space-y-2 max-w-[80%]">
                           {m.files.map((file, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-xs bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
-                              <span className="text-indigo-600">
-                                {file.type === 'image' ? '🖼️' : '🎥'}
-                              </span>
-                              <span className="truncate text-gray-700">{file.originalName}</span>
+                            <div key={idx} className="flex items-center gap-2 text-xs bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-2 shadow-sm">
+                              {file.type === 'image' ? (
+                                <img
+                                  src={filePreviewUrl(file)}
+                                  alt={file.originalName || file.filename || 'Załączone zdjęcie'}
+                                  className="h-12 w-12 rounded-md object-cover bg-white border border-indigo-100"
+                                />
+                              ) : (
+                                <div className="h-12 w-12 rounded-md bg-white border border-indigo-100 flex items-center justify-center">
+                                  <Video className="w-5 h-5 text-indigo-600" />
+                                </div>
+                              )}
+                              <span className="truncate text-gray-700 max-w-[170px]">{file.originalName || file.filename || 'Załącznik'}</span>
                             </div>
                           ))}
                         </div>
@@ -1612,7 +1653,7 @@ setMsgs((m) => [...m, {
               <div key={idx} className="relative group">
                 {file.type === 'image' ? (
                   <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
-                    <img src={file.url} alt={file.originalName} className="w-full h-full object-cover" />
+                    <img src={filePreviewUrl(file)} alt={file.originalName} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
@@ -1680,7 +1721,7 @@ setMsgs((m) => [...m, {
           />
           <button
             onClick={ask}
-            disabled={busy || uploading || !input.trim()}
+            disabled={busy || uploading || (!input.trim() && attachedFiles.length === 0)}
             className="p-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex-shrink-0"
             title="Wyślij"
           >
