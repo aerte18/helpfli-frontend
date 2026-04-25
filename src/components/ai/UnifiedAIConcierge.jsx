@@ -636,6 +636,7 @@ setMsgs((m) => [...m, {
     ? "Pomogę wybrać najlepsze zlecenia, wycenić ofertę i napisać wiadomość do klienta."
     : "Najlepiej sprawdzam się, gdy szukasz fachowca, ceny albo nie wiesz, jak opisać problem.";
   const showStartSuggestions = !companyId && msgs.length <= 1 && !msgs.some((m) => m.role === 'user') && !analysisResult;
+  const isDiagnosticActive = Boolean(analysisResult?.diagnosticFlow);
   const visibleMessages = showStartSuggestions
     ? msgs.filter((m, idx) => !(idx === 0 && m.role === 'assistant'))
     : msgs;
@@ -944,7 +945,7 @@ setMsgs((m) => [...m, {
                         </button>
                       </div>
                     )}
-                    {((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
+                    {!m.diagnosticFlow && ((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
                         {[...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))].slice(0, 6).map((reply, idx) => (
                           <button
@@ -960,7 +961,7 @@ setMsgs((m) => [...m, {
                     )}
                     
                     {/* Przyciski akcji na podstawie nextStep (V2) */}
-                    {m.nextStep && (
+                    {m.nextStep && !m.diagnosticFlow && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
                         {m.nextStep === 'suggest_diy' && (
                           <button
@@ -1076,7 +1077,7 @@ setMsgs((m) => [...m, {
                     )}
                     
                     {/* Fallback dla V1 (bez nextStep) */}
-                    {!m.nextStep && m.showCameraButton && (
+                    {!m.nextStep && !m.diagnosticFlow && m.showCameraButton && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
                         <button
                           onClick={() => setShowLiveCamera(true)}
@@ -1096,7 +1097,7 @@ setMsgs((m) => [...m, {
             {analysisResult && (
               <div className="mt-4 space-y-3">
                 {/* Helpfli poleca: DIY / wezwij fachowca */}
-                {analysisResult.recommendation && (
+                {analysisResult.recommendation && !isDiagnosticActive && (
                   <div className={`rounded-xl border p-4 ${
                     analysisResult.recommendation.type === 'provider'
                       ? 'bg-amber-50 border-amber-200'
@@ -1114,7 +1115,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
                 {/* Sugerowana usługa */}
-                {analysisResult.serviceCandidate && (
+                {analysisResult.serviceCandidate && !isDiagnosticActive && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                     <p className="text-xs text-indigo-600 font-medium mb-1">Sugerowana usługa</p>
                     <p className="font-semibold text-indigo-900">{serviceLabel(analysisResult.serviceCandidate.name)}</p>
@@ -1124,7 +1125,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
 
-                {!analysisResult.diagnosticFlow && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
+                {!isDiagnosticActive && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
                   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
@@ -1188,7 +1189,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* DIY Steps - z agenta DIY */}
-                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && (
+                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && !isDiagnosticActive && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" data-diy-section>
                     <div className="font-semibold text-foreground mb-3 flex items-center gap-2">
                       🔧 Kroki do wykonania
@@ -1230,7 +1231,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Pricing - Widełki cenowe z agenta */}
-                {analysisResult.pricing?.ranges && (
+                {analysisResult.pricing?.ranges && !isDiagnosticActive && (
                   <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
                     <div className="font-semibold text-gray-800 mb-3">💰 Widełki cenowe</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1264,7 +1265,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Matching - Wykonawcy z agenta */}
-                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && (
+                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && !isDiagnosticActive && (
                   <div className="bg-white border border-indigo-200 rounded-xl p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
@@ -1389,7 +1390,7 @@ setMsgs((m) => [...m, {
                 )}
 
                 {/* Reklamy / Polecane sklepy i usługi */}
-                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && (
+                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && !isDiagnosticActive && (
                   <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
                       <span>🏪</span> Polecane dla Ciebie
@@ -1420,7 +1421,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Diagnostic - Ocena ryzyka */}
-                {analysisResult.diagnostic && (
+                {analysisResult.diagnostic && !isDiagnosticActive && (
                   <div className={`border rounded-xl p-4 ${
                     analysisResult.diagnostic.risk === 'high' 
                       ? 'bg-red-50 border-red-200' 
@@ -1452,7 +1453,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Parts */}
-                {analysisResult.parts && analysisResult.parts.length > 0 && (
+                {analysisResult.parts && analysisResult.parts.length > 0 && !isDiagnosticActive && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-foreground mb-2">🛒 Części przydatne do naprawy</div>
                     <ul className="text-sm space-y-1 text-muted-foreground">
@@ -1520,7 +1521,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Utwórz zlecenie w 1 kliknięciu (gdy Helpfli poleca fachowca i mamy draft) */}
-                {analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
+                {!isDiagnosticActive && analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
                   <div className="mt-3">
                     <button
                       onClick={async () => {
@@ -1563,7 +1564,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
                 {/* Przycisk Utwórz zlecenie (gdy brak draftId lub inna ścieżka) */}
-                {analysisResult.serviceCandidate && (
+                {!isDiagnosticActive && analysisResult.serviceCandidate && (
                   <div className="mt-3">
                     <button
                       onClick={() => {
