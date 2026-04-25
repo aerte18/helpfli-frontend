@@ -33,6 +33,7 @@ export default function AdminAnalytics() {
   const [funnel, setFunnel] = useState([]);
   const [productInsights, setProductInsights] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
+  const [aiInsights, setAiInsights] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -52,11 +53,14 @@ export default function AdminAnalytics() {
       if (Array.isArray(funnelJson)) setFunnel(funnelJson);
       else setFunnel(Array.isArray(funnelJson?.overall) ? funnelJson.overall : []);
 
-      const [piRes, healthRes] = await Promise.all([
+      const [piRes, healthRes, aiRes] = await Promise.all([
         fetch(apiUrl(`/api/admin/analytics/product-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(apiUrl(`/api/admin/analytics/api-health?from=${from}&to=${to}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl(`/api/admin/analytics/ai-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -64,12 +68,15 @@ export default function AdminAnalytics() {
       setProductInsights(piJson && typeof piJson === "object" ? piJson : null);
       const hJson = await healthRes.json().catch(() => null);
       setApiHealth(hJson && typeof hJson === "object" ? hJson : null);
+      const aiJson = await aiRes.json().catch(() => null);
+      setAiInsights(aiJson && typeof aiJson === "object" ? aiJson : null);
     } catch (error) {
       console.error("AdminAnalytics load error:", error);
       setSummary({});
       setFunnel([]);
       setProductInsights(null);
       setApiHealth(null);
+      setAiInsights(null);
     } finally {
       setLoading(false);
     }
@@ -125,6 +132,31 @@ export default function AdminAnalytics() {
     [productInsights]
   );
   const searchApiHealth = apiHealth?.search || {};
+  const aiKpi = aiInsights?.kpi || {};
+  const aiAgents = useMemo(
+    () => (Array.isArray(aiInsights?.agentBreakdown) ? aiInsights.agentBreakdown : []),
+    [aiInsights]
+  );
+  const aiNextSteps = useMemo(
+    () => (Array.isArray(aiInsights?.nextSteps) ? aiInsights.nextSteps : []),
+    [aiInsights]
+  );
+  const aiServices = useMemo(
+    () => (Array.isArray(aiInsights?.detectedServices) ? aiInsights.detectedServices : []),
+    [aiInsights]
+  );
+  const aiQualityLevels = useMemo(
+    () => (Array.isArray(aiInsights?.qualityLevels) ? aiInsights.qualityLevels : []),
+    [aiInsights]
+  );
+  const aiOrderServices = useMemo(
+    () => (Array.isArray(aiInsights?.aiOrdersByService) ? aiInsights.aiOrdersByService : []),
+    [aiInsights]
+  );
+  const aiErrors = useMemo(
+    () => (Array.isArray(aiInsights?.topErrors) ? aiInsights.topErrors : []),
+    [aiInsights]
+  );
   const statusCodesHealth = useMemo(
     () => (Array.isArray(searchApiHealth?.statusCodes) ? searchApiHealth.statusCodes : []),
     [searchApiHealth]
@@ -154,6 +186,72 @@ export default function AdminAnalytics() {
         <Card title="Obrót (PLN)" value={asText(fmt2(num(kpi.revenue) / 100))} />
         <Card title="Średnia wartość (PLN)" value={asText(fmt2(num(kpi.avgOrder) / 100))} />
       </div>
+
+      <h2 className="text-lg font-semibold text-slate-800 pt-2">AI Concierge i automatyzacja</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Zapytania AI" value={asText(num(aiKpi.requests))} />
+        <Card title="Sesje AI" value={asText(num(aiKpi.uniqueSessions))} />
+        <Card title="Zlecenia z AI" value={asText(num(aiKpi.ordersFromAi))} />
+        <Card title="Safety alerty" value={asText(num(aiKpi.safetyAlerts))} />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="AI success rate" value={fmtRate(aiKpi.successRate)} />
+        <Card title="AI failure rate" value={fmtRate(aiKpi.failureRate)} />
+        <Card title="Śr. czas AI (ms)" value={asText(aiKpi.avgResponseTime ?? "—")} />
+        <Card title="Śr. jakość briefu" value={aiKpi.avgBriefQuality != null ? `${asText(aiKpi.avgBriefQuality)}%` : "—"} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="AI: agenci i stabilność">
+          <SimpleTable
+            headers={["Agent", "Requesty", "Śr. ms", "Błędy", "Failure rate"]}
+            rows={aiAgents.map((a) => [
+              asText(a?.agent),
+              asText(num(a?.count)),
+              asText(num(a?.avgMs)),
+              asText(num(a?.failures)),
+              fmtRate(a?.failureRate),
+            ])}
+          />
+        </Panel>
+        <Panel title="AI: kolejne kroki użytkownika">
+          <SimpleTable
+            headers={["Next step", "Razy"]}
+            rows={aiNextSteps.map((s) => [asText(s?.nextStep), asText(num(s?.count))])}
+          />
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="AI: wykryte usługi">
+          <SimpleTable
+            headers={["Usługa", "Razy"]}
+            rows={aiServices.map((s) => [asText(s?.service), asText(num(s?.count))])}
+          />
+        </Panel>
+        <Panel title="AI: jakość briefów i zlecenia z AI">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SimpleTable
+              headers={["Poziom", "Zlecenia"]}
+              rows={aiQualityLevels.map((q) => [asText(q?.level), asText(num(q?.count))])}
+            />
+            <SimpleTable
+              headers={["Usługa", "Zlecenia z AI"]}
+              rows={aiOrderServices.map((s) => [asText(s?.service), asText(num(s?.count))])}
+            />
+          </div>
+        </Panel>
+      </div>
+
+      {aiErrors.length > 0 && (
+        <Panel title="AI: najczęstsze błędy">
+          <SimpleTable
+            headers={["Typ", "Błąd", "Razy"]}
+            rows={aiErrors.map((e) => [asText(e?.type), asText(e?.error).slice(0, 120), asText(num(e?.count))])}
+          />
+        </Panel>
+      )}
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">Ruch i wyszukiwania (produkt)</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

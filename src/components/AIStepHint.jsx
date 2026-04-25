@@ -28,7 +28,7 @@ const STAGE_TIPS = {
   }
 };
 
-export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOverride }) {
+export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOverride, title, ctaLabel, priority = 'low' }) {
   const config = STAGE_TIPS[stage] || {};
   const tip = tipOverride || config.tip;
   const seedQuery = seedOverride || config.seedQuery || "";
@@ -40,12 +40,21 @@ export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOve
   };
 
   return (
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 px-4 py-3 flex items-start justify-between gap-3">
+    <div className={`rounded-xl border px-4 py-3 flex items-start justify-between gap-3 ${
+      priority === 'high'
+        ? 'border-amber-200 bg-amber-50'
+        : priority === 'medium'
+          ? 'border-blue-200 bg-blue-50'
+          : 'border-indigo-200 bg-indigo-50/80'
+    }`}>
       <div className="flex items-start gap-2 min-w-0">
-        <span className="text-indigo-600 shrink-0 mt-0.5">
+        <span className={`shrink-0 mt-0.5 ${priority === 'high' ? 'text-amber-600' : priority === 'medium' ? 'text-blue-600' : 'text-indigo-600'}`}>
           <Sparkles className="w-4 h-4" />
         </span>
-        <p className="text-sm text-indigo-900">{tip}</p>
+        <div>
+          {title && <div className="text-sm font-semibold text-slate-900 mb-0.5">{title}</div>}
+          <p className="text-sm text-slate-800">{tip}</p>
+        </div>
       </div>
       {seedQuery && (
         <button
@@ -53,7 +62,7 @@ export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOve
           onClick={handleAskAI}
           className="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition-colors"
         >
-          Zapytaj Asystenta
+          {ctaLabel || 'Zapytaj Asystenta'}
         </button>
       )}
     </div>

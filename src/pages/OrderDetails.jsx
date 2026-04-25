@@ -2029,6 +2029,7 @@ export default function OrderDetails() {
   const [savingEditOffer, setSavingEditOffer] = useState(false);
   const [editOfferForm, setEditOfferForm] = useState({ amount: '', message: '', completionDate: '', paymentMethod: '' });
   const [videoSession, setVideoSession] = useState(null);
+  const [aiFollowup, setAiFollowup] = useState(null);
 
   // Chat state (multi-conversation per order)
   const [orderOffers, setOrderOffers] = useState([]);
@@ -2531,6 +2532,12 @@ export default function OrderDetails() {
 
         setMe(meRes?.user || meRes);
         setOrder(orderRes);
+        try {
+          const followupData = await apiGet(`/api/orders/${orderId}/ai-followup`);
+          setAiFollowup(followupData.followup || null);
+        } catch {
+          setAiFollowup(null);
+        }
 
         // Jeśli to klient, spróbuj pobrać faktury powiązane z tym zleceniem
         if (meRes?.role === "client" || meRes?.user?.role === "client") {
@@ -2664,6 +2671,12 @@ export default function OrderDetails() {
         const fresh = await apiGet(`/api/orders/${orderId}`);
         if (cancelled) return;
         setOrder(fresh);
+        try {
+          const followupData = await apiGet(`/api/orders/${orderId}/ai-followup`);
+          if (!cancelled) setAiFollowup(followupData.followup || null);
+        } catch {
+          if (!cancelled) setAiFollowup(null);
+        }
 
         // odśwież myOffer u providera, żeby progress był poprawny
         const role = (me?.role || user?.role || "").toLowerCase();
@@ -3514,9 +3527,18 @@ export default function OrderDetails() {
               </div>
             </div>
           )}
-          {/* Podpowiedź AI dla klienta gdy zlecenie dopiero otwarte (0 ofert) */}
-          {tab === "details" && isClient && order.status === 'open' && (order.offers?.length || 0) === 0 && (
-            <div className="mb-5"><AIStepHint stage="open" /></div>
+          {/* Dynamiczna podpowiedź AI dla klienta/providera */}
+          {tab === "details" && aiFollowup && (
+            <div className="mb-5">
+              <AIStepHint
+                stage={order.status === 'completed' ? 'completed' : order.status === 'in_progress' ? 'in_progress' : 'open'}
+                title={aiFollowup.title}
+                tip={aiFollowup.tip}
+                seedQuery={aiFollowup.seedQuery}
+                ctaLabel={aiFollowup.cta}
+                priority={aiFollowup.priority}
+              />
+            </div>
           )}
 
           {/* Info dla providera: ważność zlecenia (open/collecting_offers) - tylko informacja */}

@@ -925,10 +925,40 @@ setMsgs((m) => [...m, {
                                 Poziom: {provider.level}
                               </div>
                             </div>
+                            {provider.matchScore != null && (
+                              <div className={`ml-3 rounded-full px-2.5 py-1 text-xs font-bold ${
+                                provider.matchScore >= 90
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : provider.matchScore >= 80
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {provider.matchScore}%
+                              </div>
+                            )}
                           </div>
-                          {provider.reason && provider.reason.length > 0 && (
-                            <div className="text-xs text-indigo-700 mt-2">
-                              💡 {provider.reason[0]}
+                          {provider.matchLabel && (
+                            <div className="text-xs font-semibold text-indigo-800">
+                              {provider.matchLabel}
+                            </div>
+                          )}
+                          {provider.matchReasons?.length > 0 && (
+                            <ul className="mt-2 space-y-1 text-xs text-slate-700">
+                              {provider.matchReasons.slice(0, 3).map((reason, reasonIdx) => (
+                                <li key={reasonIdx} className="flex gap-2">
+                                  <span className="text-indigo-500">•</span>
+                                  <span>{reason}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {provider.matchHighlights?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {provider.matchHighlights.slice(0, 3).map((item, hIdx) => (
+                                <span key={`${item.type}-${hIdx}`} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                                  {item.label}: {item.detail}
+                                </span>
+                              ))}
                             </div>
                           )}
                         </div>
