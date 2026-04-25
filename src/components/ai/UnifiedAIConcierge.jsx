@@ -94,6 +94,57 @@ function providerTrustReasons(provider = {}) {
   return reasons;
 }
 
+function DiagnosticFlowCard({ flow, onHelped, onFailed }) {
+  if (!flow) return null;
+  return (
+    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-950">
+        <Sparkles className="h-4 w-4 text-blue-600" />
+        {flow.title || 'Szybka diagnoza'}
+      </div>
+      {Array.isArray(flow.causes) && flow.causes.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Co może być przyczyną</div>
+          <ul className="mt-1 space-y-1 text-xs text-blue-900">
+            {flow.causes.slice(0, 4).map((cause, idx) => (
+              <li key={`${cause}-${idx}`}>• {cause}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {Array.isArray(flow.steps) && flow.steps.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Co możesz sprawdzić bezpiecznie</div>
+          <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs text-blue-900">
+            {flow.steps.slice(0, 4).map((step, idx) => (
+              <li key={`${step}-${idx}`}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+      <div className="rounded-lg border border-blue-100 bg-white px-3 py-2">
+        <div className="text-xs font-semibold text-slate-900">{flow.helpedQuestion || 'Czy pomogło?'}</div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onHelped}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            Tak, pomogło
+          </button>
+          <button
+            type="button"
+            onClick={onFailed}
+            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"
+          >
+            Nie działa dalej
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Ujednolicony komponent Asystenta AI - używany wszędzie w aplikacji
  * Wspiera tryby: 'page' (pełna strona), 'modal' (modal overlay), 'inline' (wbudowany)
@@ -410,6 +461,7 @@ export default function UnifiedAIConcierge({
           dangerFlags: result.safety?.flag ? [result.safety.reason] : [],
           pricing: agents.pricing || null, // Widełki cenowe
           diagnostic: agents.diagnostic || null, // Ocena ryzyka
+          diagnosticFlow: result.diagnosticFlow || null,
           matching: agents.matching || null, // Wykonawcy
           orderDraft: agents.orderDraft || null // Draft zlecenia
         });
@@ -428,6 +480,7 @@ setMsgs((m) => [...m, {
           questions: result.questions || [],
           quickReplies: agents.orderDraft?.quickReplies || [],
           orderDraft: agents.orderDraft || null,
+          diagnosticFlow: result.diagnosticFlow || null,
           sessionId: sessionId,
           messageId: messageId,
           requestId: data.requestId
@@ -546,6 +599,18 @@ setMsgs((m) => [...m, {
     const service = serviceLabel(analysisResult?.matching?.service || analysisResult?.serviceCandidate?.code || 'tej usługi', 'tej usługi');
     const providerName = provider?.name ? ` u wykonawcy ${provider.name}` : '';
     handleStartPrompt(`Ile może kosztować ${service}${providerName}? Uwzględnij wariant basic, standard i PRO oraz co wpływa na cenę.`);
+  };
+
+  const handleDiagnosticHelped = (flow) => {
+    setMsgs((m) => [...m, {
+      role: 'assistant',
+      text: flow?.successReply || 'Super, cieszę się że pomogło. Jeśli problem wróci, opisz objaw albo dodaj zdjęcie.'
+    }]);
+  };
+
+  const handleDiagnosticFailed = (flow) => {
+    const prompt = flow?.escalationPrompt || 'Nie pomogło. Problem nadal występuje. Przygotuj zlecenie i pokaż TOP wykonawców.';
+    ask(prompt);
   };
 
   // Style w zależności od trybu
@@ -798,7 +863,16 @@ setMsgs((m) => [...m, {
                         </button>
                       </div>
                     )}
-                    {m.orderDraft && (
+                    {m.diagnosticFlow && (
+                      <div className="mt-3 ml-12 max-w-md">
+                        <DiagnosticFlowCard
+                          flow={m.diagnosticFlow}
+                          onHelped={() => handleDiagnosticHelped(m.diagnosticFlow)}
+                          onFailed={() => handleDiagnosticFailed(m.diagnosticFlow)}
+                        />
+                      </div>
+                    )}
+                    {m.orderDraft && !m.diagnosticFlow && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
@@ -1050,7 +1124,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
 
-                {(analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
+                {!analysisResult.diagnosticFlow && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
                   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
