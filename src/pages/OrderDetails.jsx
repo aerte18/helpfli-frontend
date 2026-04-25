@@ -537,7 +537,7 @@ function PaymentStatusBadge({ paymentStatus, paidInSystem }) {
 }
 
 // Komponenty widoków etapowych
-function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, onEditOffer, onEditOrder, isClient, isProvider, myOffer, showOrderInfo = true, showMyOfferCard = true }) {
+function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, onEditOffer, onEditOrder, isClient, isProvider, myOffer, showOrderInfo = true, showMyOfferCard = true, showAiHint = true }) {
   const [aiRecommendation, setAiRecommendation] = useState(null);
   const { user } = useAuth();
   const [providerOfferAnalysis, setProviderOfferAnalysis] = useState(null);
@@ -719,6 +719,27 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                 ) : order.aiBrief.customerSummary ? (
                   <p className="text-sm text-slate-800 whitespace-pre-wrap">{order.aiBrief.customerSummary}</p>
                 ) : null}
+                {(order.aiBrief.contextSnapshot?.handoffNote || order.aiBrief.contextSnapshot?.extractedFacts?.length > 0) && (
+                  <div className="mt-3 rounded-lg border border-indigo-100 bg-white/80 p-3">
+                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                      Kontekst z rozmowy AI
+                    </div>
+                    {order.aiBrief.contextSnapshot.handoffNote && (
+                      <p className="text-xs text-slate-700">
+                        {order.aiBrief.contextSnapshot.handoffNote}
+                      </p>
+                    )}
+                    {order.aiBrief.contextSnapshot.extractedFacts?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {order.aiBrief.contextSnapshot.extractedFacts.slice(0, 6).map((fact, idx) => (
+                          <span key={`${fact}-${idx}`} className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[11px] text-indigo-800">
+                            {fact}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {order.aiBrief.safety?.flag && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-white p-3 text-sm text-red-800">
                     <div className="font-semibold">{order.aiBrief.safety.title || 'Uwaga bezpieczeństwa'}</div>
@@ -1225,7 +1246,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
   // bo są one w górnym bloku z akcjami (Edytuj / Wydłuż ważność).
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && <div className="mb-4"><AIStepHint stage="offers" /></div>}
+      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="offers" /></div>}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
           <Package className="h-4 w-4 text-yellow-600" />
@@ -1263,7 +1284,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
   );
 }
 
-function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEscrow, CheckoutButton, onStartWork, isLoadingStartWork = false, isLoadingFundEscrow = false, videoSession = null }) {
+function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEscrow, CheckoutButton, onStartWork, isLoadingStartWork = false, isLoadingFundEscrow = false, videoSession = null, showAiHint = true }) {
   const navigate = useNavigate();
   const provider = order.provider || order.acceptedOffer?.providerMeta;
   const acceptedOffer = order.acceptedOffer || order.offers?.find(o => o._id === order.acceptedOfferId);
@@ -1273,7 +1294,7 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && <div className="mb-4"><AIStepHint stage="accepted" /></div>}
+      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="accepted" /></div>}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
           <CheckCircle2 className="h-4 w-4 text-orange-600" />
@@ -1507,10 +1528,10 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
   );
 }
 
-function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoadingStartWork = false }) {
+function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoadingStartWork = false, showAiHint = true }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && <div className="mb-4"><AIStepHint stage="funded" /></div>}
+      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="funded" /></div>}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
           <CreditCard className="h-4 w-4 text-emerald-600" />
@@ -1613,7 +1634,7 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
   );
 }
 
-function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onConfirmReceipt, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null }) {
+function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onConfirmReceipt, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null, showAiHint = true }) {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { push: toast } = useToast();
@@ -1645,7 +1666,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && <div className="mb-4"><AIStepHint stage="in_progress" /></div>}
+      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="in_progress" /></div>}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
           <Settings className="h-4 w-4 text-purple-600" />
@@ -1967,7 +1988,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
   );
 }
 
-function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId, onRefresh }) {
+function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId, onRefresh, showAiHint = true }) {
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState(null);
 
@@ -2010,7 +2031,7 @@ function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId,
   };
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && <div className="mb-4"><AIStepHint stage="completed" /></div>}
+      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="completed" /></div>}
       <div className="flex items-start gap-3 mb-4">
         <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
           <CheckSquare className="h-4 w-4 text-emerald-600" />
@@ -3499,6 +3520,8 @@ export default function OrderDetails() {
       orderClientId &&
       String(currentUserId) === String(orderClientId));
   const providerMatch = aiFollowup?.providerMatch || providerOrderMatch(order, currentUser || me);
+  const hasAiPilot = Boolean(aiFollowup?.tip || aiFollowup?.title || aiFollowup?.seedQuery);
+  const showStageAiHint = !hasAiPilot;
 
   const openEditOrder = useCallback(() => {
     setEditForm({
@@ -3526,7 +3549,7 @@ export default function OrderDetails() {
       goTab(myOffer ? 'my_offer' : 'offers');
       return;
     }
-    if (['chat', 'schedule', 'contact_provider', 'payment', 'payment_or_schedule', 'schedule_work', 'provider_schedule'].includes(actionType)) {
+    if (['chat', 'schedule', 'contact_provider', 'payment', 'payment_or_schedule', 'schedule_work', 'provider_schedule', 'provider_scope', 'provider_review'].includes(actionType)) {
       goTab('chat');
       return;
     }
@@ -3704,7 +3727,7 @@ export default function OrderDetails() {
             </div>
           )}
           {/* Dynamiczna podpowiedź AI dla klienta/providera */}
-          {tab === "details" && aiFollowup && (
+          {tab === "details" && hasAiPilot && (
             <div className="mb-5">
               <AIStepHint
                 stage={order.status === 'completed' ? 'completed' : order.status === 'in_progress' ? 'in_progress' : 'open'}
@@ -3713,6 +3736,9 @@ export default function OrderDetails() {
                 seedQuery={aiFollowup.seedQuery}
                 ctaLabel={aiFollowup.cta}
                 priority={aiFollowup.priority}
+                phaseLabel={aiFollowup.phaseLabel}
+                stepLabel={aiFollowup.stepLabel}
+                oneActionReason={aiFollowup.oneActionReason}
                 onAction={handleAiFollowupAction}
               />
             </div>
@@ -4270,6 +4296,7 @@ export default function OrderDetails() {
                         myOffer={myOffer}
                         showOrderInfo={true}
                         showMyOfferCard={false}
+                showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4288,6 +4315,7 @@ export default function OrderDetails() {
                         isLoadingStartWork={startingWork}
                         isLoadingFundEscrow={fundingEscrow}
                         videoSession={videoSession}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4301,6 +4329,7 @@ export default function OrderDetails() {
                         isProvider={true}
                         onStartWork={startWork}
                         isLoadingStartWork={startingWork}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4322,6 +4351,7 @@ export default function OrderDetails() {
                         isLoadingReportDispute={reportingDispute}
                         isLoadingRequestRefund={requestingRefund}
                         videoSession={videoSession}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4334,6 +4364,7 @@ export default function OrderDetails() {
                         isClient={false}
                         isProvider={true}
                         onRate={() => setOpenRate(true)}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4595,6 +4626,7 @@ export default function OrderDetails() {
                         isClient={isClient}
                         isProvider={isProvider}
                         myOffer={myOffer}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4613,6 +4645,7 @@ export default function OrderDetails() {
                         isLoadingStartWork={startingWork}
                         isLoadingFundEscrow={fundingEscrow}
                         videoSession={videoSession}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4626,6 +4659,7 @@ export default function OrderDetails() {
                         isProvider={isProvider}
                         onStartWork={startWork}
                         isLoadingStartWork={startingWork}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4646,6 +4680,7 @@ export default function OrderDetails() {
                         isLoadingConfirmReceipt={confirmingReceipt}
                         isLoadingReportDispute={reportingDispute}
                         isLoadingRequestRefund={requestingRefund}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }
@@ -4658,6 +4693,7 @@ export default function OrderDetails() {
                         isClient={isClient}
                         isProvider={isProvider}
                         onRate={() => setOpenRate(true)}
+                        showAiHint={showStageAiHint}
                       />
                     );
                   }

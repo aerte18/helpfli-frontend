@@ -34,14 +34,15 @@ export async function getPricingAdvice(orderId, proposedAmount, orderDescription
  * POST /api/ai/advanced/offer-chat
  * AI chat dla wykonawców - pomoc w tworzeniu ofert
  */
-export async function sendOfferChatMessage(orderId, message, conversationHistory = []) {
+export async function sendOfferChatMessage(orderId, message, conversationHistory = [], options = {}) {
   const res = await fetch(`${API_URL}/api/ai/advanced/offer-chat`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({
       orderId,
       message,
-      conversationHistory
+      conversationHistory,
+      assistantMode: options.assistantMode
     }),
   });
   if (!res.ok) {

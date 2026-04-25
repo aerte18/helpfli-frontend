@@ -4,11 +4,65 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { sendOfferChatMessage } from '../api/ai_advanced';
 
+const PROVIDER_AI_MODES = {
+  offer: {
+    label: 'Oferta',
+    subtitle: 'Cena, zakres i wiadomość',
+    welcome: 'Cześć! Pomogę Ci przygotować dobrą ofertę: cena, zakres, komunikacja i szansa wygranej.',
+    questions: [
+      'Przygotuj gotową ofertę z ceną i wiadomością',
+      'Jak zwiększyć szansę wygrania tego zlecenia?',
+      'Jakie pytania zadać klientowi przed wyceną?'
+    ]
+  },
+  pricing: {
+    label: 'Wycena',
+    subtitle: 'Kwota i założenia',
+    welcome: 'Pomogę dobrać cenę i jasno opisać, co jest w niej zawarte.',
+    questions: [
+      'Jaką cenę zaproponować?',
+      'Czy cena powinna być finalna czy orientacyjna?',
+      'Co powinno być wliczone w cenę?'
+    ]
+  },
+  risks: {
+    label: 'Ryzyka',
+    subtitle: 'Braki i pytania',
+    welcome: 'Sprawdzę ryzyka, braki w opisie i pytania, które warto zadać przed ofertą.',
+    questions: [
+      'Jakie są ryzyka w tym zleceniu?',
+      'Jakie pytania zadać klientowi przed wyceną?',
+      'Czego brakuje, żeby nie było sporu?'
+    ]
+  },
+  negotiation: {
+    label: 'Negocjacja',
+    subtitle: 'Cena i argumenty',
+    welcome: 'Pomogę przygotować odpowiedź, gdy klient negocjuje cenę lub zakres.',
+    questions: [
+      'Napisz odpowiedź na negocjację ceny',
+      'Jak obronić cenę bez tracenia klienta?',
+      'Zaproponuj tańszy wariant zakresu'
+    ]
+  },
+  followup: {
+    label: 'Follow-up',
+    subtitle: 'Po ofercie i po realizacji',
+    welcome: 'Pomogę Ci napisać krótki follow-up do klienta, ustalić termin albo domknąć zlecenie.',
+    questions: [
+      'Napisz krótkie przypomnienie do klienta',
+      'Napisz wiadomość z propozycją terminu',
+      'Napisz prośbę o odbiór i opinię'
+    ]
+  }
+};
+
 export default function ProviderAIChat({ orderId, orderDescription = '', contextMode = 'offer' }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [activeMode, setActiveMode] = useState(contextMode === 'followup' ? 'followup' : 'offer');
   const messagesEndRef = useRef(null);
 
   // Zapamiętaj stan rozwinięcia per orderId (żeby nie klikać za każdym razem)
@@ -40,12 +94,10 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: contextMode === 'followup'
-          ? 'Cześć! Pomogę Ci napisać krótki follow-up do klienta, poprawić ofertę albo ustalić kolejny krok po wysłanej propozycji.'
-          : 'Cześć! Jestem Asystentem AI Helpfli. Pomogę Ci przygotować dobrą ofertę: cena, zakres, komunikacja i szansa wygranej. O co chcesz zapytać?'
+        text: `${PROVIDER_AI_MODES[activeMode]?.welcome || PROVIDER_AI_MODES.offer.welcome} Wybierz tryb albo napisz, czego potrzebujesz.`
       }]);
     }
-  }, [contextMode]);
+  }, [activeMode, messages.length]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -67,7 +119,9 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
         content: m.text
       }));
 
-      const response = await sendOfferChatMessage(orderId, userMessage, conversationHistory);
+      const response = await sendOfferChatMessage(orderId, userMessage, conversationHistory, {
+        assistantMode: activeMode
+      });
       const mainText = typeof response.response === 'string' ? response.response : (response.response?.message ?? response.message ?? 'Przepraszam, nie udało się uzyskać odpowiedzi.');
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -84,19 +138,8 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
     }
   };
 
-  const quickQuestions = contextMode === 'followup'
-    ? [
-        'Napisz krótkie przypomnienie do klienta',
-        'Jak poprawić moją ofertę, żeby klient odpowiedział?',
-        'Napisz wiadomość z propozycją terminu',
-        'Czy warto zmienić cenę albo zakres?'
-      ]
-    : [
-        'Przygotuj gotową ofertę z ceną i wiadomością',
-        'Jaką cenę zaproponować?',
-        'Jak zwiększyć szansę wygrania tego zlecenia?',
-        'Jakie pytania zadać klientowi przed wyceną?'
-      ];
+  const quickQuestions = PROVIDER_AI_MODES[activeMode]?.questions || PROVIDER_AI_MODES.offer.questions;
+  const activeModeConfig = PROVIDER_AI_MODES[activeMode] || PROVIDER_AI_MODES.offer;
 
   const applyOfferDraft = (offer) => {
     if (!offer) return;
@@ -140,7 +183,7 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
           </div>
           <div className="text-left">
             <div className="font-semibold text-slate-900">Asystent AI</div>
-            <div className="text-sm text-slate-600">{contextMode === 'followup' ? 'Follow-up i wiadomości do klienta' : 'Pomoc w tworzeniu oferty'}</div>
+            <div className="text-sm text-slate-600">{activeModeConfig.label} · {activeModeConfig.subtitle}</div>
           </div>
         </div>
         {expanded ? (
@@ -153,6 +196,32 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
       {/* Messages - podobny styl do chatów w aplikacji */}
       {expanded ? (
         <div className="flex flex-col h-[400px] overflow-hidden">
+        <div className="border-t border-purple-100 bg-white/70 px-4 py-3">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Tryb pracy AI
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {Object.entries(PROVIDER_AI_MODES).map(([mode, config]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => {
+                  setActiveMode(mode);
+                  if (messages.length <= 1) {
+                    setInput(config.questions[0] || '');
+                  }
+                }}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  activeMode === mode
+                    ? 'border-indigo-500 bg-indigo-600 text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {config.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div
           className="flex-1 overflow-y-auto p-4 space-y-3 bg-white/60"
           style={{
@@ -278,7 +347,7 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
         {/* Quick questions - podobny styl do przycisków w CreateOrder */}
         {messages.length === 1 && (
           <div className="px-5 pb-3">
-            <div className="text-sm text-slate-600 mb-2">Szybkie pytania:</div>
+            <div className="text-sm text-slate-600 mb-2">Szybkie akcje w trybie: {activeModeConfig.label}</div>
             <div className="space-y-2">
               {quickQuestions.map((q, idx) => (
                 <button
@@ -301,7 +370,7 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Zadaj pytanie..."
+              placeholder={`Tryb ${activeModeConfig.label}: zadaj pytanie...`}
               className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
               disabled={loading}
             />

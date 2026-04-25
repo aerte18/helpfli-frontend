@@ -242,6 +242,89 @@ export default function OfferForm({
     };
   }, [bands]);
 
+  const offerQuality = useMemo(() => {
+    let score = 35;
+    const strengths = [];
+    const warnings = [];
+    const missing = [];
+    const amountNum = Number(amount);
+    const text = String(message || '').toLowerCase();
+
+    if (amountNum > 0) {
+      score += 18;
+      strengths.push("Cena jest podana jasno.");
+      if (priceHint && amountNum >= priceHint.suggestedLo && amountNum <= priceHint.suggestedHi) {
+        score += 8;
+        strengths.push("Cena mieści się w rekomendowanym zakresie.");
+      } else if (priceHint && (amountNum < priceHint.suggestedLo || amountNum > priceHint.suggestedHi)) {
+        warnings.push("Cena jest poza rekomendowanym zakresem - wyjaśnij w opisie, skąd wynika.");
+      }
+    } else {
+      missing.push("Podaj cenę.");
+    }
+
+    if (completionDate) {
+      score += 14;
+      strengths.push("Termin realizacji jest określony.");
+    } else {
+      missing.push("Dodaj termin realizacji.");
+    }
+
+    if (message.trim().length >= 80) {
+      score += 16;
+      strengths.push("Opis jest wystarczająco konkretny.");
+    } else if (message.trim().length >= 25) {
+      score += 8;
+      warnings.push("Opis jest krótki - dodaj zakres prac i założenia ceny.");
+    } else {
+      missing.push("Dodaj krótki opis oferty.");
+    }
+
+    if (/zakres|obejm|wykon|diagnoz|robocizn|materiał|material|części|czesci/.test(text)) {
+      score += 8;
+      strengths.push("Opis mówi, co zawiera oferta.");
+    } else {
+      warnings.push("Dopisz, co dokładnie zawiera cena.");
+    }
+
+    if (/gwaranc|rękojm|rekojm|popraw|odpowiedzial/.test(text)) {
+      score += 5;
+      strengths.push("Oferta buduje zaufanie gwarancją lub odpowiedzialnością.");
+    }
+
+    if (priceIncludes.length > 0) {
+      score += 8;
+      strengths.push("Cena ma doprecyzowane elementy.");
+    } else {
+      warnings.push("Zaznacz, czy cena obejmuje robociznę, dojazd lub materiały.");
+    }
+
+    if (contactMethod) {
+      score += 5;
+    } else {
+      warnings.push("Wybierz sposób kontaktu, jeśli realizacja wymaga ustaleń.");
+    }
+
+    if (!isFinalPrice && !/(może|moze|zmian|po diagnoz|po oględzin|po ogledzin|części|czesci)/.test(text)) {
+      warnings.push("Jeśli cena może się zmienić, wyjaśnij w opisie co może wpłynąć na koszt.");
+      score -= 6;
+    }
+
+    if (aiSuggestions?.suggestions?.risks?.length > 0 && message.trim().length < 120) {
+      warnings.push("AI widzi ryzyka w zleceniu - warto odnieść się do nich w opisie.");
+    }
+
+    const percent = Math.max(20, Math.min(100, Math.round(score)));
+    return {
+      percent,
+      label: percent >= 85 ? "Bardzo mocna oferta" : percent >= 70 ? "Dobra oferta" : percent >= 55 ? "Do dopracowania" : "Słaba oferta",
+      tone: percent >= 85 ? "emerald" : percent >= 70 ? "blue" : percent >= 55 ? "amber" : "rose",
+      strengths: strengths.slice(0, 4),
+      warnings: warnings.slice(0, 4),
+      missing: missing.slice(0, 3)
+    };
+  }, [amount, completionDate, message, priceHint, priceIncludes, contactMethod, isFinalPrice, aiSuggestions]);
+
   // Walidacja formularza
   const validateForm = () => {
     const errors = {};
@@ -323,6 +406,14 @@ export default function OfferForm({
           completionDate: finalCompletionDate,
           priceInfo, // Informacje o cenie
           contactMethod, // Sposób kontaktu
+          aiQuality: {
+            percent: offerQuality.percent,
+            label: offerQuality.label,
+            tone: offerQuality.tone,
+            missing: offerQuality.missing,
+            warnings: offerQuality.warnings,
+            strengths: offerQuality.strengths
+          },
           // paymentMethod nie jest już potrzebne - klient już wybrał przy tworzeniu zlecenia
           boost 
         }
@@ -926,6 +1017,56 @@ export default function OfferForm({
         )}
 
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Krok 3/3 — Opis i wyślij</div>
+        <div className={`rounded-xl border p-4 ${
+          offerQuality.tone === 'emerald'
+            ? 'border-emerald-200 bg-emerald-50'
+            : offerQuality.tone === 'blue'
+              ? 'border-blue-200 bg-blue-50'
+              : offerQuality.tone === 'amber'
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-rose-200 bg-rose-50'
+        }`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Sparkles className="h-4 w-4 text-indigo-600" aria-hidden />
+                AI ocena jakości oferty
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                Sprawdza, czy oferta jest konkretna, zrozumiała i zmniejsza ryzyko pytań od klienta.
+              </p>
+            </div>
+            <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+              <div className="text-xl font-bold text-slate-900">{offerQuality.percent}%</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{offerQuality.label}</div>
+            </div>
+          </div>
+
+          {(offerQuality.missing.length > 0 || offerQuality.warnings.length > 0 || offerQuality.strengths.length > 0) && (
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              {(offerQuality.missing.length > 0 || offerQuality.warnings.length > 0) && (
+                <div className="rounded-lg border border-white/70 bg-white/70 p-3">
+                  <div className="mb-1 text-xs font-semibold text-amber-900">Do poprawy przed wysłaniem</div>
+                  <ul className="space-y-1 text-xs text-slate-700">
+                    {[...offerQuality.missing, ...offerQuality.warnings].slice(0, 4).map((item, idx) => (
+                      <li key={`${item}-${idx}`}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {offerQuality.strengths.length > 0 && (
+                <div className="rounded-lg border border-white/70 bg-white/70 p-3">
+                  <div className="mb-1 text-xs font-semibold text-emerald-900">Mocne strony</div>
+                  <ul className="space-y-1 text-xs text-slate-700">
+                    {offerQuality.strengths.slice(0, 4).map((item, idx) => (
+                      <li key={`${item}-${idx}`}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div className="space-y-2">
           <label htmlFor="offer-description" className="text-sm font-medium text-slate-900">
             Opis oferty <span className="text-slate-500 text-xs font-normal">(opcjonalne)</span>

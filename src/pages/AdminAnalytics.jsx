@@ -158,6 +158,20 @@ export default function AdminAnalytics() {
     [aiInsights]
   );
   const aiPromptStats = aiInsights?.promptAnalytics || {};
+  const aiProcess = aiInsights?.process || {};
+  const aiProcessFunnel = useMemo(
+    () => (Array.isArray(aiProcess?.funnel) ? aiProcess.funnel : []),
+    [aiProcess]
+  );
+  const aiOfferStatuses = useMemo(
+    () => (Array.isArray(aiProcess?.offerStatuses) ? aiProcess.offerStatuses : []),
+    [aiProcess]
+  );
+  const aiOfferQuality = aiProcess?.offerQuality || {};
+  const aiOfferQualityBuckets = useMemo(
+    () => (Array.isArray(aiOfferQuality?.buckets) ? aiOfferQuality.buckets : []),
+    [aiOfferQuality]
+  );
   const aiStartPrompts = useMemo(
     () => (Array.isArray(aiPromptStats?.startPrompts) ? aiPromptStats.startPrompts : []),
     [aiPromptStats]
@@ -210,6 +224,60 @@ export default function AdminAnalytics() {
         <Card title="Śr. czas AI (ms)" value={asText(aiKpi.avgResponseTime ?? "—")} />
         <Card title="Śr. jakość briefu" value={aiKpi.avgBriefQuality != null ? `${asText(aiKpi.avgBriefQuality)}%` : "—"} />
       </div>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">AI proces: od rozmowy do realizacji</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="AI sesja → zlecenie" value={fmtRate(aiProcess.aiSessionToOrderRate)} />
+        <Card title="AI zlecenia z ofertami" value={fmtRate(aiProcess.aiOrderOfferRate)} />
+        <Card title="AI zlecenia zaakceptowane" value={fmtRate(aiProcess.aiOrderAcceptedRate)} />
+        <Card title="AI zlecenia ukończone" value={fmtRate(aiProcess.aiOrderCompletedRate)} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="AI brief coverage" value={fmtRate(aiProcess.aiBriefCoverageRate)} />
+        <Card title="AI context handoff" value={fmtRate(aiProcess.aiContextCoverageRate)} />
+        <Card title="Śr. ofert / AI zlecenie" value={asText(aiProcess.avgOffersPerAiOrder ?? "—")} />
+        <Card title="AI safety w zleceniach" value={asText(num(aiProcess.aiOrdersWithSafety))} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="AI: lejek procesu">
+          <SimpleTable
+            headers={["Etap", "Liczba"]}
+            rows={aiProcessFunnel.map((row) => [asText(row?.step), asText(num(row?.count))])}
+          />
+        </Panel>
+        <Panel title="AI: statusy ofert do zleceń AI">
+          <SimpleTable
+            headers={["Status oferty", "Oferty", "Śr. kwota"]}
+            rows={aiOfferStatuses.map((row) => [
+              asText(row?.status),
+              asText(num(row?.count)),
+              row?.avgAmount != null ? `${asText(row.avgAmount)} zł` : "—",
+            ])}
+          />
+        </Panel>
+      </div>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">AI jakość ofert providerów</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Oferty z oceną AI" value={asText(num(aiOfferQuality.measuredOffers))} />
+        <Card title="Śr. jakość oferty" value={aiOfferQuality.avgQuality != null ? `${asText(aiOfferQuality.avgQuality)}%` : "—"} />
+        <Card title="Oferty 80%+" value={fmtRate(aiOfferQuality.highQualityRate)} />
+        <Card title="Wysłane mimo ostrzeżeń" value={fmtRate(aiOfferQuality.warningSendRate)} />
+      </div>
+
+      <Panel title="AI: jakość ofert a akceptacja">
+        <SimpleTable
+          headers={["Jakość", "Oferty", "Zaakceptowane", "Acceptance rate", "Śr. kwota"]}
+          rows={aiOfferQualityBuckets.map((row) => [
+            asText(row?.bucket),
+            asText(num(row?.count)),
+            asText(num(row?.accepted)),
+            fmtRate(row?.acceptanceRate),
+            row?.avgAmount != null ? `${asText(row.avgAmount)} zł` : "—",
+          ])}
+        />
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Panel title="AI: agenci i stabilność">

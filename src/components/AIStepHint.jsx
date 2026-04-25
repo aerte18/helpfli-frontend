@@ -28,7 +28,18 @@ const STAGE_TIPS = {
   }
 };
 
-export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOverride, title, ctaLabel, priority = 'low', onAction }) {
+export default function AIStepHint({
+  stage,
+  tip: tipOverride,
+  seedQuery: seedOverride,
+  title,
+  ctaLabel,
+  priority = 'low',
+  onAction,
+  phaseLabel,
+  stepLabel,
+  oneActionReason
+}) {
   const config = STAGE_TIPS[stage] || {};
   const tip = tipOverride || config.tip;
   const seedQuery = seedOverride || config.seedQuery || "";
@@ -56,8 +67,15 @@ export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOve
           <Sparkles className="w-4 h-4" />
         </span>
         <div>
+          {phaseLabel && (
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {phaseLabel}
+            </div>
+          )}
           {title && <div className="text-sm font-semibold text-slate-900 mb-0.5">{title}</div>}
+          {stepLabel && <div className="mb-1 text-xs font-medium text-indigo-700">{stepLabel}</div>}
           <p className="text-sm text-slate-800">{tip}</p>
+          {oneActionReason && <p className="mt-1 text-xs text-slate-500">{oneActionReason}</p>}
         </div>
       </div>
       {seedQuery && (

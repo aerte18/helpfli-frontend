@@ -327,7 +327,18 @@ export default function UnifiedAIConcierge({
       source: 'concierge',
       providerBrief: draft.providerBrief || null,
       quality: draft.quality || null,
-      safety: analysisResult?.safety || null
+      safety: analysisResult?.safety || null,
+      contextSnapshot: draft.contextSnapshot || {
+        originalProblem: draft.summary?.description || payload.description || input || '',
+        extractedFacts: [
+          draft.summary?.service ? `Usługa: ${serviceLabel(draft.summary.service)}` : null,
+          draft.summary?.location ? `Lokalizacja: ${draft.summary.location}` : null,
+          draft.summary?.preferredTime ? `Termin: ${draft.summary.preferredTime}` : null,
+          draft.summary?.budget ? `Budżet: ${draft.summary.budget}` : null
+        ].filter(Boolean),
+        handoffNote: draft.providerBrief?.customerSummary || payload.description || '',
+        lastUpdatedAt: new Date().toISOString()
+      }
     } : null;
     return {
       fromAI: true,
@@ -680,7 +691,8 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
     latestAssistant?.questions?.length &&
     !actionNextSteps.includes(latestAssistant?.nextStep)
   );
-  const shouldShowHeavyAnalysis = !isDiagnosticActive && !latestAssistantIsClarifying && actionNextSteps.includes(analysisResult?.nextStep);
+  const shouldShowFlowPanel = !isDiagnosticActive && !latestAssistantIsClarifying && actionNextSteps.includes(analysisResult?.nextStep);
+  const shouldShowHeavyAnalysis = false;
 
   const content = (
     <div className={cardClass} style={{ pointerEvents: 'auto' }}>
@@ -922,7 +934,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                         />
                       </div>
                     )}
-                    {m.orderDraft && !m.diagnosticFlow && ['suggest_providers', 'create_order'].includes(m.nextStep) && (
+                    {latestAssistant === m && m.orderDraft && !m.diagnosticFlow && m.nextStep === 'create_order' && !shouldShowFlowPanel && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
@@ -994,9 +1006,9 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                         </button>
                       </div>
                     )}
-                    {!m.diagnosticFlow && ((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
+                    {latestAssistant === m && !m.diagnosticFlow && ((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
-                        {[...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))].slice(0, 6).map((reply, idx) => (
+                        {[...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))].slice(0, 3).map((reply, idx) => (
                           <button
                             key={`${reply.label}-${idx}`}
                             type="button"
@@ -1010,20 +1022,17 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                     )}
                     
                     {/* Przyciski akcji na podstawie nextStep (V2) */}
-                    {m.nextStep && !m.diagnosticFlow && (
+                    {latestAssistant === m && m.nextStep && !m.diagnosticFlow && !actionNextSteps.includes(m.nextStep) && !(m.orderDraft && m.nextStep === 'create_order') && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
                         {m.nextStep === 'suggest_diy' && (
                           <button
                             onClick={() => {
-                              // Przewiń do sekcji DIY Steps jeśli są w analysisResult
-                              if (analysisResult?.diySteps?.length > 0) {
-                                document.querySelector('[data-diy-section]')?.scrollIntoView({ behavior: 'smooth' });
-                              }
+                              setInput('Pokaż mi bezpieczne kroki po kolei i zapytaj, czy pomogło.');
                             }}
                             className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg"
                           >
                             <Sparkles className="w-4 h-4" />
-                            <span>Zobacz kroki DIY</span>
+                            <span>Pokaż kroki po kolei</span>
                           </button>
                         )}
                         
@@ -1049,45 +1058,13 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                         )}
                         
                         {m.nextStep === 'show_pricing' && (
-                          <>
-                            {m.agents?.pricing?.ranges ? (
-                              <div className="w-full bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4 mb-2">
-                                <div className="font-semibold text-gray-800 mb-3">💰 Widełki cenowe</div>
-                                <div className="grid grid-cols-3 gap-3">
-                                  {['basic', 'standard', 'pro'].map(level => {
-                                    const range = m.agents.pricing.ranges[level];
-                                    if (!range) return null;
-                                    return (
-                                      <div key={level} className="bg-white rounded-lg p-3 border border-yellow-200">
-                                        <div className="text-xs font-medium text-gray-600 mb-1 uppercase">{level}</div>
-                                        <div className="text-lg font-bold text-gray-900">{range.min}-{range.max} PLN</div>
-                                        <ul className="text-xs text-gray-600 mt-2 space-y-1">
-                                          {range.whatYouGet?.slice(0, 2).map((item, i) => (
-                                            <li key={i}>• {item}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                {m.agents.pricing.priceDrivers && m.agents.pricing.priceDrivers.length > 0 && (
-                                  <div className="mt-3 text-xs text-gray-600">
-                                    <strong>Czynniki:</strong> {m.agents.pricing.priceDrivers.slice(0, 3).join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  alert('Ładuję widełki cenowe...');
-                                }}
-                                className="px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg"
-                              >
-                                <span>💰</span>
-                                <span>Zobacz widełki cenowe</span>
-                              </button>
-                            )}
-                          </>
+                          <button
+                            onClick={() => navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) })}
+                            className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            <span>Utwórz zlecenie z tą wyceną</span>
+                          </button>
                         )}
                         
                         {m.nextStep === 'create_order' && (
@@ -1145,6 +1122,62 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
             {/* Wyświetlanie wyników analizy */}
             {analysisResult && (
               <div className="mt-4 space-y-3">
+                {shouldShowFlowPanel && (
+                  <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                          Następny krok AI
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-900">
+                          {analysisResult.nextStep === 'show_pricing'
+                            ? 'Masz orientacyjną wycenę. Najlepiej przygotować zlecenie albo doprecyzować zakres.'
+                            : analysisResult.nextStep === 'suggest_providers'
+                              ? 'AI znalazło kierunek usługi. Teraz najlepiej pokazać wykonawców.'
+                              : analysisResult.nextStep === 'create_order'
+                                ? 'Dane są gotowe do sprawdzenia i utworzenia zlecenia.'
+                                : 'AI wybrało kolejny najlepszy krok.'}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-600">
+                          Pokazuję tylko najważniejszą akcję, żeby nie mieszać kilku ścieżek naraz.
+                        </div>
+                      </div>
+                      {analysisResult.serviceCandidate && (
+                        <div className="shrink-0 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                          {serviceLabel(analysisResult.serviceCandidate.code || analysisResult.serviceCandidate.name, 'Usługa')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {analysisResult.nextStep === 'suggest_providers' ? (
+                        <button
+                          type="button"
+                          onClick={openProviderSearch}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                        >
+                          Pokaż wykonawców
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/create-order', { state: buildCreateOrderState(analysisResult.orderDraft) })}
+                          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                        >
+                          {analysisResult.nextStep === 'show_pricing' ? 'Utwórz zlecenie z wyceną' : 'Sprawdź i utwórz zlecenie'}
+                        </button>
+                      )}
+                      {analysisResult.nextStep !== 'show_pricing' && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartPrompt(`Zapytaj o cenę dla usługi ${serviceLabel(analysisResult.matching?.service || analysisResult.serviceCandidate?.code || 'wybranej usługi')}. Pokaż krótkie widełki.`)}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Najpierw sprawdź cenę
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Helpfli poleca: DIY / wezwij fachowca */}
                 {analysisResult.recommendation && shouldShowHeavyAnalysis && (
                   <div className={`rounded-xl border p-4 ${
