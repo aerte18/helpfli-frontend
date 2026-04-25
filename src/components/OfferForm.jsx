@@ -67,6 +67,37 @@ export default function OfferForm({
   const { push: toast } = useToast();
   const { trackOfferFormStart, trackOfferStepView, trackOfferFormSubmit } = useTelemetry();
   const offerStepTracked = useRef({ 1: false, 2: false, 3: false });
+  const autoAppliedAiDraftRef = useRef(false);
+
+  const applyAiDraft = (draft = {}) => {
+    const price = draft.price ?? draft.amount ?? draft.suggestedPrice?.recommended ?? draft.pricing?.suggested;
+    const text = draft.message || draft.description || draft.suggestedMessage || draft.suggestions?.description;
+    const date = draft.completionDate || draft.suggestedCompletionDate || draft.suggestions?.completionDate;
+    if (price) setAmount(String(Math.round(Number(price))));
+    if (text) setMessage(text);
+    if (date) {
+      const parsed = new Date(date);
+      if (!Number.isNaN(parsed.getTime()) && parsed > new Date()) {
+        setCompletionDate(parsed.toISOString().slice(0, 16));
+      }
+    }
+    if (Array.isArray(draft.recommendedIncludes)) setPriceIncludes(draft.recommendedIncludes);
+    if (draft.recommendedContactMethod) setContactMethod(draft.recommendedContactMethod);
+    if (typeof draft.isFinalPriceRecommended === 'boolean') setIsFinalPrice(draft.isFinalPriceRecommended);
+    setShowAdvanced(true);
+    setFieldErrors({});
+    toast({ title: "Oferta AI wstawiona", description: "Sprawdź cenę, termin i opis przed wysłaniem.", variant: "success" });
+  };
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail || {};
+      if (String(detail.orderId || '') !== String(orderId || '')) return;
+      applyAiDraft(detail.draft || detail);
+    };
+    window.addEventListener('applyProviderAiOfferDraft', handler);
+    return () => window.removeEventListener('applyProviderAiOfferDraft', handler);
+  }, [orderId]);
 
   const setShowAiSuggestionsAndPersist = (v) => {
     setShowAiSuggestions(v);
@@ -111,6 +142,18 @@ export default function OfferForm({
           // Automatycznie ustaw sugerowaną cenę jeśli pole jest puste
           if (!amount && data.pricing?.suggested) {
             setAmount(String(Math.round(data.pricing.suggested)));
+          }
+          const shouldAutoDraft = new URLSearchParams(window.location.search).get('aiDraft') === '1';
+          if (shouldAutoDraft && !autoAppliedAiDraftRef.current) {
+            autoAppliedAiDraftRef.current = true;
+            applyAiDraft({
+              price: data.pricing?.suggested,
+              description: data.suggestions?.description,
+              completionDate: data.suggestions?.completionDate,
+              recommendedIncludes: data.suggestions?.recommendedIncludes,
+              recommendedContactMethod: data.suggestions?.recommendedContactMethod,
+              isFinalPriceRecommended: data.suggestions?.isFinalPriceRecommended
+            });
           }
         }
       } catch (e) {
@@ -396,6 +439,30 @@ export default function OfferForm({
                         {aiSuggestions.pricing.reasoning}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => applyAiDraft({
+                        price: aiSuggestions.pricing.suggested,
+                        description: aiSuggestions.suggestions?.description,
+                        completionDate: aiSuggestions.suggestions?.completionDate,
+                        recommendedIncludes: aiSuggestions.suggestions?.recommendedIncludes,
+                        recommendedContactMethod: aiSuggestions.suggestions?.recommendedContactMethod,
+                        isFinalPriceRecommended: aiSuggestions.suggestions?.isFinalPriceRecommended
+                      })}
+                      className="mt-2 inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+                    >
+                      Wstaw całą propozycję do formularza
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {aiSuggestions.suggestions?.winScore && (
+                <div className="bg-white/60 rounded-lg p-3 border border-emerald-100">
+                  <div className="font-medium text-emerald-900 mb-1">Szansa oferty</div>
+                  <div className="flex items-center gap-2 text-sm text-emerald-800">
+                    <span className="text-lg font-bold">{aiSuggestions.suggestions.winScore}%</span>
+                    <span>{aiSuggestions.suggestions.winLabel || 'Dobra szansa'}</span>
                   </div>
                 </div>
               )}
@@ -446,6 +513,22 @@ export default function OfferForm({
                     {aiSuggestions.suggestions.timeline && (
                       <div className="mt-2">
                         <strong>⏱️ Sugerowany termin:</strong> {aiSuggestions.suggestions.timeline}
+                      </div>
+                    )}
+                    {aiSuggestions.suggestions.risks?.length > 0 && (
+                      <div className="mt-2 rounded-lg border border-amber-100 bg-amber-50 p-2">
+                        <div className="font-medium text-amber-900 mb-1">Na co uważać:</div>
+                        <ul className="list-disc list-inside space-y-1 text-amber-800">
+                          {aiSuggestions.suggestions.risks.slice(0, 3).map((risk, idx) => <li key={idx}>{risk}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {aiSuggestions.suggestions.questions?.length > 0 && (
+                      <div className="mt-2">
+                        <div className="font-medium text-indigo-900 mb-1">Pytania do klienta:</div>
+                        <ul className="list-disc list-inside space-y-1">
+                          {aiSuggestions.suggestions.questions.slice(0, 3).map((question, idx) => <li key={idx}>{question}</li>)}
+                        </ul>
                       </div>
                     )}
                   </div>

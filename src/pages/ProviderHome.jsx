@@ -1005,6 +1005,105 @@ export default function ProviderHome() {
     return set;
   }, [offers]);
 
+  const providerAiInbox = useMemo(() => {
+    const scoreOrderPriority = (order) => {
+      const offersCount = Number(order.offersCount ?? order.offers?.length ?? 0);
+      const budgetMax = Number(order.budgetTo ?? order.budgetRange?.max ?? order.budget ?? 0);
+      let score = Number(order.aiMatch?.score || 0);
+      if (order.urgency === 'now') score += 14;
+      else if (order.urgency === 'today') score += 9;
+      if (offersCount === 0) score += 9;
+      else if (offersCount <= 3) score += 5;
+      if (budgetMax >= 500) score += 6;
+      if (Array.isArray(order.attachments) && order.attachments.length > 0) score += 4;
+      return score;
+    };
+
+    const priorityOrders = (list || [])
+      .filter((order) => {
+        const id = String(order._id || order.id || '');
+        return id && !orderIdsWithMyOffer.has(id) && Number(order.aiMatch?.score || 0) >= 68;
+      })
+      .map((order) => ({ ...order, aiPriorityScore: scoreOrderPriority(order) }))
+      .sort((a, b) => b.aiPriorityScore - a.aiPriorityScore)
+      .slice(0, 3);
+
+    const now = Date.now();
+    const followUps = (offers || [])
+      .filter((offer) => {
+        const status = String(offer.status || 'submitted');
+        const created = new Date(offer.createdAt || offer.updatedAt || 0).getTime();
+        const ageHours = created ? (now - created) / 36e5 : 0;
+        const orderStatus = offer.orderId?.status || '';
+        return ['submitted', 'pending'].includes(status) && ageHours >= 4 && !['accepted', 'completed', 'cancelled'].includes(orderStatus);
+      })
+      .slice(0, 3);
+
+    const quickWins = priorityOrders.filter((order) => Number(order.offersCount ?? order.offers?.length ?? 0) <= 2).length;
+    return { priorityOrders, followUps, quickWins };
+  }, [list, offers, orderIdsWithMyOffer]);
+
+  const providerAiCoach = useMemo(() => {
+    const tips = [];
+    if (stats.acceptanceRate < 25 && (offers || []).length >= 3) {
+      tips.push({
+        title: 'Podnieś skuteczność ofert',
+        text: 'Twoja akceptacja jest niska. AI sugeruje krótszy opis, jasny termin i informację, czy cena zawiera dojazd oraz materiały.',
+        cta: 'Zobacz polecane zlecenia',
+        action: () => setRecommendedOnly(true)
+      });
+    }
+    if (stats.sentOffers7d < 3 && (list || []).length > 0) {
+      tips.push({
+        title: 'Wyślij więcej dobrych ofert',
+        text: 'Masz dostępne zlecenia, ale mało ofert z ostatnich 7 dni. Zacznij od zleceń z AI Inbox.',
+        cta: 'Pokaż tylko polecane',
+        action: () => setRecommendedOnly(true)
+      });
+    }
+    const tooManyHighCompetition = (list || []).filter((order) => Number(order.offersCount ?? order.offers?.length ?? 0) > 5).length;
+    if (tooManyHighCompetition > 0) {
+      tips.push({
+        title: 'Szukaj zleceń z małą konkurencją',
+        text: 'Najlepiej reagować tam, gdzie jest 0-3 ofert. To zwykle większa szansa niż walka o zlecenia z dużą liczbą odpowiedzi.',
+        cta: 'Filtruj max 3 oferty',
+        action: () => setFilters((s) => ({ ...s, offersStatus: 'max_3' }))
+      });
+    }
+    if (tips.length === 0) {
+      tips.push({
+        title: 'Dobra baza do sprzedaży',
+        text: 'Masz aktywność i dopasowane zlecenia. Używaj AI draftu, żeby każda oferta miała cenę, termin, zakres i krótkie uzasadnienie.',
+        cta: 'Pokaż polecane AI',
+        action: () => setRecommendedOnly(true)
+      });
+    }
+    return tips.slice(0, 3);
+  }, [stats.acceptanceRate, stats.sentOffers7d, offers, list]);
+
+  const providerProfileAudit = useMemo(() => {
+    const issues = [];
+    const servicesCount = Array.isArray(user?.services) ? user.services.length : 0;
+    const hasAvatar = Boolean(user?.avatar || user?.profileImage || user?.photo);
+    const hasDescription = Boolean((user?.description || user?.bio || user?.about || '').trim?.());
+    const hasLocation = Boolean(user?.location || user?.city);
+    const hasRating = Number(user?.rating || user?.ratingAvg || 0) > 0;
+    const verified = Boolean(user?.verified || user?.kycVerified || user?.isVerified);
+
+    if (!hasAvatar) issues.push('Dodaj zdjęcie profilowe lub logo.');
+    if (!hasDescription) issues.push('Uzupełnij krótki opis doświadczenia i zakresu usług.');
+    if (servicesCount === 0) issues.push('Dodaj usługi w profilu, żeby AI lepiej dopasowywało zlecenia.');
+    if (!hasLocation) issues.push('Ustaw lokalizację lub obszar działania.');
+    if (!verified) issues.push('Dokończ weryfikację profilu, żeby zwiększyć zaufanie klienta.');
+    if (!hasRating) issues.push('Po realizacji poproś klienta o pierwsze opinie.');
+
+    const completed = 6 - issues.length;
+    return {
+      score: Math.max(20, Math.round((completed / 6) * 100)),
+      issues: issues.slice(0, 4)
+    };
+  }, [user]);
+
   const hasActiveFilters = useMemo(() => {
     const d = filters;
     return (
@@ -1210,6 +1309,161 @@ export default function ProviderHome() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode !== "map" && (providerAiInbox.priorityOrders.length > 0 || providerAiInbox.followUps.length > 0) && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-950">AI Inbox wykonawcy</h2>
+                    <p className="text-xs text-slate-600">
+                      Priorytety na teraz: {providerAiInbox.priorityOrders.length} zleceń do odpowiedzi
+                      {providerAiInbox.followUps.length > 0 ? `, ${providerAiInbox.followUps.length} follow-up` : ''}.
+                    </p>
+                  </div>
+                </div>
+                {providerAiInbox.quickWins > 0 && (
+                  <div className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                    {providerAiInbox.quickWins} szybkie szanse z małą konkurencją
+                  </div>
+                )}
+              </div>
+
+              <div className="grid flex-1 gap-3 lg:grid-cols-2">
+                {providerAiInbox.priorityOrders.length > 0 && (
+                  <div className="rounded-xl border border-indigo-100 bg-white p-3">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-700">Najpierw odpowiedz</div>
+                    <div className="space-y-2">
+                      {providerAiInbox.priorityOrders.map((order) => {
+                        const orderId = order._id || order.id;
+                        const offersCount = Number(order.offersCount ?? order.offers?.length ?? 0);
+                        return (
+                          <button
+                            key={orderId}
+                            type="button"
+                            onClick={() => handleOpenDetails(order, 'offers')}
+                            className="w-full rounded-lg border border-slate-100 bg-slate-50 p-2 text-left transition hover:border-indigo-200 hover:bg-indigo-50"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-sm font-semibold text-slate-900">{serviceLabel(order.service, 'Zlecenie')}</span>
+                              <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">{order.aiMatch?.score || Math.round(order.aiPriorityScore)}%</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-slate-600">
+                              {order.urgency === 'now' && <span className="text-red-700">Pilne</span>}
+                              {offersCount <= 2 && <span>Mało ofert: {offersCount}</span>}
+                              {order.budget || order.budgetTo ? <span>Budżet podany</span> : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {providerAiInbox.followUps.length > 0 && (
+                  <div className="rounded-xl border border-amber-100 bg-white p-3">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Follow-up po ofertach</div>
+                    <div className="space-y-2">
+                      {providerAiInbox.followUps.map((offer) => {
+                        const order = offer.orderId || {};
+                        const orderId = order._id || order.id || offer.orderId;
+                        return (
+                          <button
+                            key={offer._id || `${orderId}-${offer.createdAt}`}
+                            type="button"
+                            onClick={() => handleOpenDetails({ _id: orderId }, 'my_offer')}
+                            className="w-full rounded-lg border border-slate-100 bg-amber-50/70 p-2 text-left transition hover:border-amber-200 hover:bg-amber-50"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-sm font-semibold text-slate-900">{serviceLabel(order.service, 'Oferta')}</span>
+                              <span className="shrink-0 text-[11px] font-semibold text-amber-700">{formatTimeAgo(offer.createdAt)}</span>
+                            </div>
+                            <div className="mt-1 text-[11px] text-slate-600">
+                              Brak decyzji klienta. AI pomoże napisać krótkie przypomnienie.
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode !== "map" && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-purple-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                    <Sparkles className="h-4 w-4 text-purple-600" aria-hidden />
+                    AI Coach skuteczności
+                  </h2>
+                  <p className="text-xs text-slate-600">Podpowiedzi, które pomagają zdobywać więcej zleceń.</p>
+                </div>
+                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-700">
+                  Akceptacja {stats.acceptanceRate}%
+                </span>
+              </div>
+              <div className="grid gap-2 md:grid-cols-3">
+                {providerAiCoach.map((tip, idx) => (
+                  <div key={`${tip.title}-${idx}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
+                    <p className="mt-1 text-xs text-slate-600">{tip.text}</p>
+                    <button
+                      type="button"
+                      onClick={tip.action}
+                      className="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
+                    >
+                      {tip.cta}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-950">Audyt profilu AI</h2>
+                  <p className="text-xs text-slate-600">Co poprawić, żeby klient chętniej wybrał Twoją ofertę.</p>
+                </div>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                  {providerProfileAudit.score}%
+                </span>
+              </div>
+              {providerProfileAudit.issues.length > 0 ? (
+                <div className="space-y-2">
+                  {providerProfileAudit.issues.map((issue, idx) => (
+                    <div key={`${issue}-${idx}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                      {issue}
+                    </div>
+                  ))}
+                  <Link
+                    to="/account"
+                    className="inline-flex text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                  >
+                    Popraw profil
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                  Profil wygląda dobrze. Teraz najwięcej da szybka reakcja i konkretna oferta.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2457,7 +2711,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
           {!hasMyOffer && (
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('openProviderAi', { detail: { prefill: 'Jaką cenę zaproponować dla tego zlecenia?' } }))}
+              onClick={() => onDetails?.('offers&aiDraft=1')}
               className="w-full sm:w-auto px-4 py-2.5 text-sm rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium"
             >
               ✨ AI podpowie cenę
@@ -2603,7 +2857,7 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
             {!hasMyOffer && (
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('openProviderAi', { detail: { prefill: 'Jaką cenę zaproponować dla tego zlecenia?' } }))}
+                onClick={() => onDetails?.('offers&aiDraft=1')}
                 className="w-full px-2 py-1.5 text-xs rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium"
               >
                 ✨ AI podpowie cenę
@@ -2750,7 +3004,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
           {!hasMyOffer && (
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('openProviderAi', { detail: { prefill: 'Jaką cenę zaproponować dla tego zlecenia?' } }))}
+              onClick={() => onDetails?.('offers&aiDraft=1')}
               className="w-full px-2 py-1 text-xs rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium"
             >
               ✨ AI podpowie cenę

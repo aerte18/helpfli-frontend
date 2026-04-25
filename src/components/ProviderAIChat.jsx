@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { sendOfferChatMessage } from '../api/ai_advanced';
 
-export default function ProviderAIChat({ orderId, orderDescription = '' }) {
+export default function ProviderAIChat({ orderId, orderDescription = '', contextMode = 'offer' }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,10 +40,12 @@ export default function ProviderAIChat({ orderId, orderDescription = '' }) {
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: 'Cześć! 👋 Jestem Asystentem AI Helpfli. Pomogę Ci przygotować dobrą ofertę (cena, zakres, komunikacja). O co chcesz zapytać?'
+        text: contextMode === 'followup'
+          ? 'Cześć! Pomogę Ci napisać krótki follow-up do klienta, poprawić ofertę albo ustalić kolejny krok po wysłanej propozycji.'
+          : 'Cześć! Jestem Asystentem AI Helpfli. Pomogę Ci przygotować dobrą ofertę: cena, zakres, komunikacja i szansa wygranej. O co chcesz zapytać?'
       }]);
     }
-  }, []);
+  }, [contextMode]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -82,12 +84,46 @@ export default function ProviderAIChat({ orderId, orderDescription = '' }) {
     }
   };
 
-  const quickQuestions = [
-    'Jaką cenę zaproponować?',
-    'Co powinienem uwzględnić w ofercie?',
-    'Jakie są typowe ceny dla tego typu zlecenia?',
-    'Jak sformułować wiadomość do klienta?'
-  ];
+  const quickQuestions = contextMode === 'followup'
+    ? [
+        'Napisz krótkie przypomnienie do klienta',
+        'Jak poprawić moją ofertę, żeby klient odpowiedział?',
+        'Napisz wiadomość z propozycją terminu',
+        'Czy warto zmienić cenę albo zakres?'
+      ]
+    : [
+        'Przygotuj gotową ofertę z ceną i wiadomością',
+        'Jaką cenę zaproponować?',
+        'Jak zwiększyć szansę wygrania tego zlecenia?',
+        'Jakie pytania zadać klientowi przed wyceną?'
+      ];
+
+  const applyOfferDraft = (offer) => {
+    if (!offer) return;
+    window.dispatchEvent(new CustomEvent('applyProviderAiOfferDraft', {
+      detail: {
+        orderId,
+        draft: {
+          price: offer.suggestedPrice?.recommended,
+          suggestedPrice: offer.suggestedPrice,
+          message: offer.suggestedMessage || offer.suggestedDescription,
+          completionDate: offer.suggestedCompletionDate,
+          recommendedIncludes: offer.recommendedIncludes,
+          recommendedContactMethod: offer.recommendedContactMethod,
+          isFinalPriceRecommended: offer.isFinalPriceRecommended
+        }
+      }
+    }));
+  };
+
+  const copyText = async (text) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard może być niedostępny w starszej przeglądarce.
+    }
+  };
 
   return (
     <div className="rounded-2xl overflow-hidden border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
@@ -104,7 +140,7 @@ export default function ProviderAIChat({ orderId, orderDescription = '' }) {
           </div>
           <div className="text-left">
             <div className="font-semibold text-slate-900">Asystent AI</div>
-            <div className="text-sm text-slate-600">Pomoc w tworzeniu oferty</div>
+            <div className="text-sm text-slate-600">{contextMode === 'followup' ? 'Follow-up i wiadomości do klienta' : 'Pomoc w tworzeniu oferty'}</div>
           </div>
         </div>
         {expanded ? (
@@ -135,6 +171,15 @@ export default function ProviderAIChat({ orderId, orderDescription = '' }) {
               >
                 <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</div>
               </div>
+              {msg.role === 'assistant' && msg.text && idx > 0 && (
+                <button
+                  type="button"
+                  onClick={() => copyText(msg.text)}
+                  className="mt-1 text-[11px] font-medium text-slate-500 hover:text-indigo-700"
+                >
+                  Kopiuj wiadomość
+                </button>
+              )}
               {msg.role === 'assistant' && msg.agents && (msg.agents.offer || msg.agents.pricing) && (
                 <div className="mt-2 max-w-[85%] rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-left">
                   {msg.agents.offer?.suggestedPrice && (
@@ -153,11 +198,44 @@ export default function ProviderAIChat({ orderId, orderDescription = '' }) {
                       <span className="font-medium">✉️ Pierwsze zdanie do klienta:</span> „{msg.agents.offer.firstMessageSuggestion}”
                     </div>
                   )}
+                  {msg.agents.offer?.winScore && (
+                    <div className="mt-1.5 text-xs text-emerald-800">
+                      <span className="font-medium">🎯 Szansa:</span> {msg.agents.offer.winScore}% · {msg.agents.offer.winLabel}
+                    </div>
+                  )}
+                  {msg.agents.offer?.risks?.length > 0 && (
+                    <div className="mt-1.5 text-xs text-amber-800">
+                      <span className="font-medium">Uwaga:</span> {msg.agents.offer.risks.slice(0, 2).join(' • ')}
+                    </div>
+                  )}
                   {(msg.agents.offer?.tips?.length || msg.agents.pricing?.tips?.length) ? (
                     <div className="mt-1.5 text-xs text-purple-700">
                       💡 {[...(msg.agents.offer?.tips || []), ...(msg.agents.pricing?.tips || [])].slice(0, 2).join(' • ')}
                     </div>
                   ) : null}
+                  {msg.agents.offer?.suggestedMessage && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      <div className="rounded-lg border border-indigo-100 bg-white p-2 text-xs text-slate-700 whitespace-pre-wrap">
+                        {msg.agents.offer.suggestedMessage}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => applyOfferDraft(msg.agents.offer)}
+                          className="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                        >
+                          Wstaw do formularza
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyText(msg.agents.offer.suggestedMessage)}
+                          className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          Kopiuj
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {msg.role === 'assistant' && msg.agents?.searchOrders?.orders?.length > 0 && (

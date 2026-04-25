@@ -278,6 +278,110 @@ const OrderAttachmentItem = memo(function OrderAttachmentItem({ orderId, att, id
   );
 });
 
+function ProviderJobAssistant({ order, onGoChat }) {
+  const [copiedKey, setCopiedKey] = useState(null);
+  if (!order) return null;
+
+  const status = order.status || 'open';
+  const service = serviceLabel(order.service, 'tej usługi');
+  const isActiveJob = ['accepted', 'funded', 'paid', 'in_progress', 'completed'].includes(status);
+  if (!isActiveJob) return null;
+
+  const messages = [];
+  if (status === 'accepted' || status === 'funded' || status === 'paid') {
+    messages.push({
+      key: 'schedule',
+      label: 'Ustal termin',
+      text: `Dzień dobry, dziękuję za akceptację oferty. Proponuję ustalić dogodny termin realizacji usługi: ${service}. Przed przyjazdem potwierdzę zakres prac i ewentualne materiały/części. Jaki dzień i godzina będą dla Państwa najwygodniejsze?`
+    });
+    messages.push({
+      key: 'prepare',
+      label: 'Co przygotować',
+      text: 'Dzień dobry, przed realizacją proszę przygotować dostęp do miejsca pracy oraz, jeśli to możliwe, dodatkowe zdjęcia/problemowe szczegóły. Dzięki temu szybciej potwierdzę zakres i unikniemy niespodzianek na miejscu.'
+    });
+  }
+  if (status === 'in_progress') {
+    messages.push({
+      key: 'arrival',
+      label: 'Przed przyjazdem',
+      text: 'Dzień dobry, potwierdzam realizację zlecenia. Przed przyjazdem dam znać, gdy będę w drodze. Jeśli pojawiły się nowe informacje lub zakres się zmienił, proszę napisać teraz, żebym mógł się przygotować.'
+    });
+    messages.push({
+      key: 'scope',
+      label: 'Zmiana zakresu',
+      text: 'Dzień dobry, podczas realizacji zauważyłem, że zakres może wymagać doprecyzowania. Zanim wykonam dodatkowe prace lub użyję dodatkowych części, chciałbym potwierdzić z Państwem zakres i ewentualny koszt.'
+    });
+  }
+  if (status === 'completed') {
+    messages.push({
+      key: 'review',
+      label: 'Prośba o opinię',
+      text: 'Dzień dobry, dziękuję za zlecenie. Jeśli wszystko jest w porządku, będę wdzięczny za potwierdzenie odbioru i krótką opinię w Helpfli. To bardzo pomaga mi zdobywać kolejne zlecenia.'
+    });
+  }
+
+  const checklist = [
+    ['accepted', 'funded', 'paid'].includes(status) ? 'Potwierdź termin i dokładny adres/dostęp.' : null,
+    ['accepted', 'funded', 'paid'].includes(status) ? 'Doprecyzuj, czy materiały/części są po Twojej stronie.' : null,
+    status === 'in_progress' ? 'Nie rozszerzaj zakresu bez zgody klienta.' : null,
+    status === 'in_progress' ? 'Zapisz zdjęcia/przebieg prac, jeśli mogą być potrzebne przy odbiorze.' : null,
+    status === 'completed' ? 'Poproś o potwierdzenie odbioru i opinię.' : null,
+    'Komunikuj zmiany ceny lub terminu przed wykonaniem dodatkowych prac.'
+  ].filter(Boolean);
+
+  const handleCopy = async (key, text) => {
+    await copyToClipboard(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1600);
+  };
+
+  return (
+    <div className="mb-5 rounded-2xl border border-purple-200 bg-gradient-to-br from-white to-purple-50 p-4 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-semibold text-purple-950">
+            <Sparkles className="h-4 w-4 text-purple-600" aria-hidden />
+            AI asystent realizacji
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
+            Pomaga po wygraniu zlecenia: termin, zakres, wiadomości i bezpieczna komunikacja z klientem.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {checklist.slice(0, 4).map((item, idx) => (
+              <span key={`${item}-${idx}`} className="rounded-full border border-purple-100 bg-white px-2 py-0.5 text-[11px] text-purple-800">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onGoChat}
+          className="rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50"
+        >
+          Przejdź do czatu
+        </button>
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        {messages.map((message) => (
+          <div key={message.key} className="rounded-xl border border-slate-100 bg-white p-3">
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{message.label}</div>
+            <p className="line-clamp-3 text-sm text-slate-700">{message.text}</p>
+            <button
+              type="button"
+              onClick={() => handleCopy(message.key, message.text)}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
+            >
+              {copiedKey === message.key ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copiedKey === message.key ? 'Skopiowano' : 'Kopiuj wiadomość'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const normalizeOrderPayload = (raw) => {
   const source = raw?.order || raw?.data?.order || raw?.data || raw;
   if (!source || typeof source !== "object") return source;
@@ -3641,6 +3745,13 @@ export default function OrderDetails() {
             </div>
           )}
 
+          {tab === "details" && isProvider && myOffer && (
+            <ProviderJobAssistant
+              order={order}
+              onGoChat={() => goTab('chat')}
+            />
+          )}
+
           {/* Info dla providera: ważność zlecenia (open/collecting_offers) - tylko informacja */}
           {tab === "details" && isProvider && (order.status === 'open' || order.status === 'collecting_offers') && (order.expiresAt != null || order.isExpired != null) && (
             <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -3915,7 +4026,7 @@ export default function OrderDetails() {
 
           {/* TAB: TWOJA OFERTA (tylko gdy wykonawca ma złożoną ofertę) */}
           {tab === "my_offer" && isProvider && myOffer && (
-            <div className="max-w-2xl">
+            <div className="max-w-2xl space-y-4">
               <OrderOffersStageView
                 order={order}
                 orderId={orderId}
@@ -3936,6 +4047,22 @@ export default function OrderDetails() {
                 showOrderInfo={true}
                 showMyOfferCard={true}
               />
+              <div className="rounded-2xl border border-purple-200 bg-white p-4 shadow-sm">
+                <div className="mb-3">
+                  <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    AI follow-up po ofercie
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Wygeneruj krótkie przypomnienie, propozycję terminu albo poprawkę oferty, jeśli klient jeszcze nie odpowiedział.
+                  </p>
+                </div>
+                <ProviderAIChat
+                  orderId={orderId}
+                  orderDescription={order?.description || ""}
+                  contextMode="followup"
+                />
+              </div>
             </div>
           )}
 

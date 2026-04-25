@@ -186,10 +186,10 @@ export default function ProviderAIWidget() {
   };
 
   const quickQuestions = [
-    'Jaką cenę zaproponować?',
-    'Co powinienem uwzględnić w ofercie?',
-    'Jakie są typowe ceny dla tego typu zlecenia?',
-    'Jak sformułować wiadomość do klienta?'
+    'Pokaż najlepsze zlecenia dla mnie',
+    'Gdzie mam największą szansę zarobić?',
+    'Jak poprawić skuteczność moich ofert?',
+    'Napisz krótką odpowiedź do klienta'
   ];
 
   // Ukryj widget jeśli nie jest providerem
