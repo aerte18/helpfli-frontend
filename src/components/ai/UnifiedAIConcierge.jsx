@@ -163,22 +163,32 @@ export default function UnifiedAIConcierge({
   const buildCreateOrderState = (draft = analysisResult?.orderDraft) => {
     const payload = draft?.orderPayload || {};
     const budget = payload.budget;
+    const description = draft?.providerBrief?.customerSummary || payload.description || input || 'Problem wykryty przez Asystenta AI';
+    const aiBrief = draft ? {
+      source: 'concierge',
+      providerBrief: draft.providerBrief || null,
+      quality: draft.quality || null,
+      safety: analysisResult?.safety || null
+    } : null;
     return {
       fromAI: true,
+      aiBrief,
       preFilled: {
-        description: payload.description || input || 'Problem wykryty przez Asystenta AI',
+        description,
         service: payload.service || analysisResult?.serviceCandidate?.code,
         location: payload.location || '',
         urgency: payload.urgency || analysisResult?.urgency || 'standard',
         budget: budget?.max || budget?.min || '',
         diySteps: analysisResult?.diySteps,
-        parts: analysisResult?.parts
+        parts: analysisResult?.parts,
+        aiBrief
       },
       prefill: {
-        description: payload.description || input || 'Problem wykryty przez Asystenta AI',
+        description,
         service: payload.service || analysisResult?.serviceCandidate?.code,
         location: payload.location || '',
-        urgency: payload.urgency || analysisResult?.urgency || 'standard'
+        urgency: payload.urgency || analysisResult?.urgency || 'standard',
+        aiBrief
       }
     };
   };
@@ -310,6 +320,7 @@ export default function UnifiedAIConcierge({
           } : null,
           urgency: result.urgency,
           diySteps: agents.diy?.steps || [],
+          safety: result.safety || agents.diagnostic?.safety || null,
           dangerFlags: result.safety?.flag ? [result.safety.reason] : [],
           pricing: agents.pricing || null, // Widełki cenowe
           diagnostic: agents.diagnostic || null, // Ocena ryzyka
@@ -574,9 +585,11 @@ setMsgs((m) => [...m, {
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
-                            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Draft zlecenia</div>
+                            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                              {m.orderDraft.canCreate ? 'Potwierdzenie zlecenia' : 'Draft zlecenia'}
+                            </div>
                             <div className="text-sm font-semibold text-slate-900">
-                              {m.orderDraft.canCreate ? 'Gotowy do utworzenia' : 'Uzupełnij brakujące dane'}
+                              {m.orderDraft.canCreate ? 'Sprawdź dane przed utworzeniem' : 'Uzupełnij brakujące dane'}
                             </div>
                           </div>
                           <div className="text-xs font-semibold text-indigo-700">
@@ -589,9 +602,39 @@ setMsgs((m) => [...m, {
                           <div><span className="font-medium">Lokalizacja:</span> {m.orderDraft.summary?.location || 'Brak'}</div>
                           <div><span className="font-medium">Termin:</span> {m.orderDraft.summary?.preferredTime || 'Do ustalenia'}</div>
                         </div>
+                        {m.orderDraft.providerBrief && (
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="text-xs font-semibold text-slate-800">Brief dla wykonawcy</div>
+                              {m.orderDraft.quality && (
+                                <div className="text-[11px] font-semibold text-indigo-700">
+                                  Jakość: {m.orderDraft.quality.percent}% ({m.orderDraft.quality.level})
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs font-medium text-slate-900">
+                              {m.orderDraft.providerBrief.title}
+                            </div>
+                            {m.orderDraft.providerBrief.suggestedAttachments?.length > 0 && (
+                              <div className="mt-2 text-[11px] text-slate-600">
+                                Warto dodać: {m.orderDraft.providerBrief.suggestedAttachments.join(', ')}
+                              </div>
+                            )}
+                            {m.orderDraft.quality?.missingForPro?.length > 0 && (
+                              <div className="mt-1 text-[11px] text-amber-700">
+                                Do wersji pro brakuje: {m.orderDraft.quality.missingForPro.slice(0, 3).join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         {m.orderDraft.missing?.length > 0 && (
                           <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
                             Brakuje: {m.orderDraft.missing.join(', ')}
+                          </div>
+                        )}
+                        {m.orderDraft.nextQuestion && !m.orderDraft.canCreate && (
+                          <div className="mt-2 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5">
+                            Następne pytanie: {m.orderDraft.nextQuestion}
                           </div>
                         )}
                         <button
@@ -606,7 +649,7 @@ setMsgs((m) => [...m, {
                               : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
                           }`}
                         >
-                          {m.orderDraft.canCreate ? 'Utwórz zlecenie z draftu' : 'Otwórz formularz i uzupełnij'}
+                          {m.orderDraft.canCreate ? 'Potwierdzam, utwórz zlecenie' : 'Otwórz formularz i uzupełnij'}
                         </button>
                       </div>
                     )}
@@ -978,16 +1021,55 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
                 
-                {/* Danger Flags */}
-                {analysisResult.dangerFlags && analysisResult.dangerFlags.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-red-800" />
-                      <p className="text-sm font-medium text-red-800">Uwaga!</p>
+                {/* Safety Triage */}
+                {analysisResult.safety?.flag && (
+                  <div className={`rounded-xl border p-4 ${
+                    analysisResult.safety.level === 'critical'
+                      ? 'bg-red-50 border-red-300'
+                      : 'bg-orange-50 border-orange-200'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className={`w-5 h-5 mt-0.5 ${
+                        analysisResult.safety.level === 'critical' ? 'text-red-800' : 'text-orange-700'
+                      }`} />
+                      <div className="flex-1">
+                        <p className={`text-sm font-semibold ${
+                          analysisResult.safety.level === 'critical' ? 'text-red-900' : 'text-orange-900'
+                        }`}>
+                          {analysisResult.safety.title || 'Wykryto potencjalne zagrożenie'}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          analysisResult.safety.level === 'critical' ? 'text-red-700' : 'text-orange-700'
+                        }`}>
+                          {analysisResult.safety.reason || analysisResult.safety.recommendation || 'Zalecamy kontakt z fachowcem.'}
+                        </p>
+                        {analysisResult.safety.actions?.length > 0 && (
+                          <ul className="mt-3 space-y-1 text-xs text-slate-800">
+                            {analysisResult.safety.actions.slice(0, 5).map((action, idx) => (
+                              <li key={idx} className="flex gap-2">
+                                <span className="font-semibold">{idx + 1}.</span>
+                                <span>{action}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {analysisResult.safety.blockDIY && (
+                          <div className="mt-3 text-xs font-medium text-red-800 bg-white/70 border border-red-200 rounded-lg px-3 py-2">
+                            AI nie będzie proponować DIY przy tym ryzyku. Najbezpieczniej od razu wezwać fachowca.
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate('/create-order', { state: buildCreateOrderState(analysisResult.orderDraft) });
+                            if (mode === 'modal' && onClose) onClose();
+                          }}
+                          className="mt-3 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+                        >
+                          Wezwij fachowca pilnie
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-red-600">
-                      Wykryto potencjalne zagrożenie. Zalecamy kontakt z fachowcem.
-                    </p>
                   </div>
                 )}
                 

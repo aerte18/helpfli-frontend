@@ -547,6 +547,65 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
               <p className="mt-1 text-sm text-slate-900 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg border border-slate-200">{order.description || 'Brak opisu'}</p>
             </div>
 
+            {order.aiBrief && (order.aiBrief.title || order.aiBrief.customerSummary || order.aiBrief.bullets?.length > 0) && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-indigo-950">
+                      <Sparkles className="h-4 w-4 text-indigo-600" />
+                      AI brief dla wykonawcy
+                    </div>
+                    <p className="text-xs text-indigo-700 mt-0.5">
+                      Dane przygotowane przez asystenta z rozmowy klienta.
+                    </p>
+                  </div>
+                  {order.aiBrief.quality?.percent != null && (
+                    <div className="rounded-full bg-white border border-indigo-200 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                      Jakość {order.aiBrief.quality.percent}%
+                    </div>
+                  )}
+                </div>
+                {order.aiBrief.title && (
+                  <div className="text-sm font-semibold text-slate-900 mb-2">{order.aiBrief.title}</div>
+                )}
+                {order.aiBrief.bullets?.length > 0 ? (
+                  <ul className="space-y-1 text-sm text-slate-800">
+                    {order.aiBrief.bullets.slice(0, 6).map((item, idx) => (
+                      <li key={idx} className="flex gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : order.aiBrief.customerSummary ? (
+                  <p className="text-sm text-slate-800 whitespace-pre-wrap">{order.aiBrief.customerSummary}</p>
+                ) : null}
+                {order.aiBrief.safety?.flag && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-white p-3 text-sm text-red-800">
+                    <div className="font-semibold">{order.aiBrief.safety.title || 'Uwaga bezpieczeństwa'}</div>
+                    <div className="mt-1 text-xs">{order.aiBrief.safety.reason || order.aiBrief.safety.recommendation}</div>
+                    {order.aiBrief.safety.actions?.length > 0 && (
+                      <ul className="mt-2 list-disc pl-5 text-xs space-y-0.5">
+                        {order.aiBrief.safety.actions.slice(0, 4).map((action, idx) => (
+                          <li key={idx}>{action}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+                {order.aiBrief.suggestedAttachments?.length > 0 && (
+                  <div className="mt-3 text-xs text-indigo-800 bg-white/70 border border-indigo-100 rounded-lg px-3 py-2">
+                    Zdjęcia/dane, które warto poprosić klienta o dosłanie: {order.aiBrief.suggestedAttachments.join(', ')}
+                  </div>
+                )}
+                {order.aiBrief.questionsForProvider?.length > 0 && (
+                  <div className="mt-2 text-xs text-slate-700">
+                    Pytania pomocnicze: {order.aiBrief.questionsForProvider.join(' · ')}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Lokalizacja i Budżet */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>

@@ -27,6 +27,7 @@ export default function CreateOrder() {
   const serviceFromUrl = q.get("service") || "";
   const descFromUrl = q.get("desc") || "";
   const preFilled = locationState.state?.preFilled || locationState.state?.prefill || {};
+  const aiBrief = preFilled.aiBrief || locationState.state?.aiBrief || null;
   const initialIsDirect = locationState.state?.direct || false;
   const mode = locationState.state?.mode || "order"; // "order" | "diy"
   const diySteps = preFilled.diySteps || [];
@@ -288,6 +289,10 @@ export default function CreateOrder() {
         status: "open", // zlecenie otwarte na propozycje (lub bezpośrednie do wykonawcy)
         priority: "normal", // zawsze normal, pilność jest w urgency
       };
+      if (aiBrief) {
+        payload.aiBrief = aiBrief;
+        payload.matchMode = "ai_suggested";
+      }
 
       // Dla zleceń bezpośrednich dodaj providerId
       if (orderType === "direct" && selectedProvider?.id) {
