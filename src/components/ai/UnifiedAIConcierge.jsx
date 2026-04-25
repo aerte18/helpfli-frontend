@@ -456,6 +456,7 @@ export default function UnifiedAIConcierge({
             name: serviceLabel(result.detectedService)
           } : null,
           urgency: result.urgency,
+          nextStep: result.nextStep,
           diySteps: agents.diy?.steps || [],
           safety: result.safety || agents.diagnostic?.safety || null,
           dangerFlags: result.safety?.flag ? [result.safety.reason] : [],
@@ -640,6 +641,13 @@ setMsgs((m) => [...m, {
   const visibleMessages = showStartSuggestions
     ? msgs.filter((m, idx) => !(idx === 0 && m.role === 'assistant'))
     : msgs;
+  const latestAssistant = [...visibleMessages].reverse().find((m) => m.role === 'assistant');
+  const actionNextSteps = ['suggest_providers', 'create_order', 'show_pricing', 'order_created'];
+  const latestAssistantIsClarifying = Boolean(
+    latestAssistant?.questions?.length &&
+    !actionNextSteps.includes(latestAssistant?.nextStep)
+  );
+  const shouldShowHeavyAnalysis = !isDiagnosticActive && !latestAssistantIsClarifying && actionNextSteps.includes(analysisResult?.nextStep);
 
   const content = (
     <div className={cardClass} style={{ pointerEvents: 'auto' }}>
@@ -873,7 +881,7 @@ setMsgs((m) => [...m, {
                         />
                       </div>
                     )}
-                    {m.orderDraft && !m.diagnosticFlow && (
+                    {m.orderDraft && !m.diagnosticFlow && ['suggest_providers', 'create_order'].includes(m.nextStep) && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
@@ -1097,7 +1105,7 @@ setMsgs((m) => [...m, {
             {analysisResult && (
               <div className="mt-4 space-y-3">
                 {/* Helpfli poleca: DIY / wezwij fachowca */}
-                {analysisResult.recommendation && !isDiagnosticActive && (
+                {analysisResult.recommendation && shouldShowHeavyAnalysis && (
                   <div className={`rounded-xl border p-4 ${
                     analysisResult.recommendation.type === 'provider'
                       ? 'bg-amber-50 border-amber-200'
@@ -1115,7 +1123,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
                 {/* Sugerowana usługa */}
-                {analysisResult.serviceCandidate && !isDiagnosticActive && (
+                {analysisResult.serviceCandidate && shouldShowHeavyAnalysis && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                     <p className="text-xs text-indigo-600 font-medium mb-1">Sugerowana usługa</p>
                     <p className="font-semibold text-indigo-900">{serviceLabel(analysisResult.serviceCandidate.name)}</p>
@@ -1125,7 +1133,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
 
-                {!isDiagnosticActive && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
+                {shouldShowHeavyAnalysis && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
                   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
@@ -1189,7 +1197,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* DIY Steps - z agenta DIY */}
-                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && !isDiagnosticActive && (
+                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && shouldShowHeavyAnalysis && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" data-diy-section>
                     <div className="font-semibold text-foreground mb-3 flex items-center gap-2">
                       🔧 Kroki do wykonania
@@ -1231,7 +1239,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Pricing - Widełki cenowe z agenta */}
-                {analysisResult.pricing?.ranges && !isDiagnosticActive && (
+                {analysisResult.pricing?.ranges && shouldShowHeavyAnalysis && (
                   <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
                     <div className="font-semibold text-gray-800 mb-3">💰 Widełki cenowe</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1265,7 +1273,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Matching - Wykonawcy z agenta */}
-                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && !isDiagnosticActive && (
+                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && shouldShowHeavyAnalysis && (
                   <div className="bg-white border border-indigo-200 rounded-xl p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
@@ -1390,7 +1398,7 @@ setMsgs((m) => [...m, {
                 )}
 
                 {/* Reklamy / Polecane sklepy i usługi */}
-                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && !isDiagnosticActive && (
+                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && shouldShowHeavyAnalysis && (
                   <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
                       <span>🏪</span> Polecane dla Ciebie
@@ -1421,7 +1429,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Diagnostic - Ocena ryzyka */}
-                {analysisResult.diagnostic && !isDiagnosticActive && (
+                {analysisResult.diagnostic && shouldShowHeavyAnalysis && (
                   <div className={`border rounded-xl p-4 ${
                     analysisResult.diagnostic.risk === 'high' 
                       ? 'bg-red-50 border-red-200' 
@@ -1453,7 +1461,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Parts */}
-                {analysisResult.parts && analysisResult.parts.length > 0 && !isDiagnosticActive && (
+                {analysisResult.parts && analysisResult.parts.length > 0 && shouldShowHeavyAnalysis && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-foreground mb-2">🛒 Części przydatne do naprawy</div>
                     <ul className="text-sm space-y-1 text-muted-foreground">
@@ -1521,7 +1529,7 @@ setMsgs((m) => [...m, {
                 )}
                 
                 {/* Utwórz zlecenie w 1 kliknięciu (gdy Helpfli poleca fachowca i mamy draft) */}
-                {!isDiagnosticActive && analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
+                {shouldShowHeavyAnalysis && analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
                   <div className="mt-3">
                     <button
                       onClick={async () => {
@@ -1564,7 +1572,7 @@ setMsgs((m) => [...m, {
                   </div>
                 )}
                 {/* Przycisk Utwórz zlecenie (gdy brak draftId lub inna ścieżka) */}
-                {!isDiagnosticActive && analysisResult.serviceCandidate && (
+                {shouldShowHeavyAnalysis && analysisResult.serviceCandidate && (
                   <div className="mt-3">
                     <button
                       onClick={() => {
@@ -1727,29 +1735,32 @@ setMsgs((m) => [...m, {
         open={showLiveCamera}
         onClose={() => setShowLiveCamera(false)}
         onAnalyzeComplete={(result) => {
-          setAnalysisResult(result);
+          const cameraResult = {
+            ...result,
+            nextStep: result.nextStep || 'clarify_camera'
+          };
+          setAnalysisResult(cameraResult);
           setShowLiveCamera(false);
           
           // Dodaj wiadomość z wynikami analizy
           let aiMessage = '';
           if (result.serviceCandidate) {
             aiMessage = `Widzę problem związany z ${result.serviceCandidate.name}. `;
-            if (result.diySteps && result.diySteps.length > 0) {
-              aiMessage += `Mogę zaproponować ${result.diySteps.length} kroków do wykonania samodzielnie. `;
-            }
-            if (result.parts && result.parts.length > 0) {
-              aiMessage += `Będziesz potrzebować ${result.parts.length} części. `;
-            }
-            aiMessage += 'Poniżej znajdziesz szczegóły i możliwość utworzenia zlecenia.';
+            aiMessage += 'Zanim pokażę wykonawców albo utworzę zlecenie, doprecyzuj proszę co dokładnie się dzieje i gdzie potrzebujesz pomocy.';
           } else if (result.diySteps && result.diySteps.length > 0) {
-            aiMessage = `Znalazłem ${result.diySteps.length} kroków do wykonania. Poniżej znajdziesz szczegóły.`;
+            aiMessage = 'Mam wstępną analizę z kamery. Napisz proszę, czy chcesz najpierw bezpieczne kroki diagnostyczne, czy od razu szukać wykonawcy.';
           } else {
-            aiMessage = 'Analizuję problem. Za chwilę otrzymasz szczegółowe informacje.';
+            aiMessage = 'Nie mam jeszcze pewnej analizy z kamery. Opisz krótko problem słownie, a poprowadzę Cię krok po kroku.';
           }
           
           setMsgs(prev => [...prev, { 
             role: 'assistant', 
             text: aiMessage,
+            nextStep: 'clarify_camera',
+            questions: [
+              'Co dokładnie nie działa albo co widać na zdjęciu?',
+              'W jakiej lokalizacji potrzebujesz pomocy?'
+            ],
             createdAt: Date.now()
           }]);
           
