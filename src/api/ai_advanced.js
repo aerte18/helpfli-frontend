@@ -53,6 +53,27 @@ export async function sendOfferChatMessage(orderId, message, conversationHistory
 }
 
 /**
+ * POST /api/ai/advanced/offer-message-preflight
+ * AI ocena wiadomosci providera przed wyslaniem
+ */
+export async function getOfferMessagePreflight(orderId, message, options = {}) {
+  const res = await fetch(`${API_URL}/api/ai/advanced/offer-message-preflight`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      orderId,
+      message,
+      assistantMode: options.assistantMode
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Błąd preflight wiadomości');
+  }
+  return res.json();
+}
+
+/**
  * GET /api/ai/advanced/order-tags/:orderId
  * Pobierz automatyczne tagi zlecenia
  */

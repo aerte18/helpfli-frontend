@@ -60,6 +60,8 @@ export default function OfferForm({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
+  const [loadingPreflight, setLoadingPreflight] = useState(false);
+  const [aiPreflightQuality, setAiPreflightQuality] = useState(null);
   const [showAiSuggestions, setShowAiSuggestions] = useState(() => {
     try { return localStorage.getItem(OFFER_FORM_AI_KEY) !== "false"; } catch { return true; }
   });
@@ -324,6 +326,54 @@ export default function OfferForm({
       missing: missing.slice(0, 3)
     };
   }, [amount, completionDate, message, priceHint, priceIncludes, contactMethod, isFinalPrice, aiSuggestions]);
+  const displayedOfferQuality = aiPreflightQuality || offerQuality;
+
+  useEffect(() => {
+    if (!orderId || !token || user?.role !== 'provider') return;
+    const amountNum = Number(amount);
+    if (!amountNum && !message.trim() && !completionDate) {
+      setAiPreflightQuality(null);
+      return;
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPreflight(true);
+        const res = await fetch(apiUrl('/api/offers/preflight-quality'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            orderId,
+            amount: amountNum || 0,
+            message,
+            completionDate,
+            priceIncludes,
+            isFinalPrice,
+            contactMethod
+          }),
+          signal: controller.signal
+        });
+        if (!res.ok) throw new Error(`preflight ${res.status}`);
+        const data = await res.json();
+        setAiPreflightQuality(data?.quality || null);
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          console.warn('AI preflight quality failed, using local fallback:', error);
+          setAiPreflightQuality(null);
+        }
+      } finally {
+        setLoadingPreflight(false);
+      }
+    }, 500);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [orderId, token, user?.role, amount, message, completionDate, priceIncludes, isFinalPrice, contactMethod]);
 
   // Walidacja formularza
   const validateForm = () => {
@@ -407,12 +457,12 @@ export default function OfferForm({
           priceInfo, // Informacje o cenie
           contactMethod, // Sposób kontaktu
           aiQuality: {
-            percent: offerQuality.percent,
-            label: offerQuality.label,
-            tone: offerQuality.tone,
-            missing: offerQuality.missing,
-            warnings: offerQuality.warnings,
-            strengths: offerQuality.strengths
+            percent: displayedOfferQuality.percent,
+            label: displayedOfferQuality.label,
+            tone: displayedOfferQuality.tone,
+            missing: displayedOfferQuality.missing,
+            warnings: displayedOfferQuality.warnings,
+            strengths: displayedOfferQuality.strengths
           },
           // paymentMethod nie jest już potrzebne - klient już wybrał przy tworzeniu zlecenia
           boost 
@@ -1018,11 +1068,11 @@ export default function OfferForm({
 
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Krok 3/3 — Opis i wyślij</div>
         <div className={`rounded-xl border p-4 ${
-          offerQuality.tone === 'emerald'
+          displayedOfferQuality.tone === 'emerald'
             ? 'border-emerald-200 bg-emerald-50'
-            : offerQuality.tone === 'blue'
+            : displayedOfferQuality.tone === 'blue'
               ? 'border-blue-200 bg-blue-50'
-              : offerQuality.tone === 'amber'
+              : displayedOfferQuality.tone === 'amber'
                 ? 'border-amber-200 bg-amber-50'
                 : 'border-rose-200 bg-rose-50'
         }`}>
@@ -1035,30 +1085,33 @@ export default function OfferForm({
               <p className="mt-1 text-xs text-slate-600">
                 Sprawdza, czy oferta jest konkretna, zrozumiała i zmniejsza ryzyko pytań od klienta.
               </p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                {loadingPreflight ? 'AI aktualizuje ocenę...' : (aiPreflightQuality ? 'Ocena oparta o analizę AI (LLM).' : 'Tryb awaryjny: lokalna ocena heurystyczna.')}
+              </p>
             </div>
             <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
-              <div className="text-xl font-bold text-slate-900">{offerQuality.percent}%</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{offerQuality.label}</div>
+              <div className="text-xl font-bold text-slate-900">{displayedOfferQuality.percent}%</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{displayedOfferQuality.label}</div>
             </div>
           </div>
 
-          {(offerQuality.missing.length > 0 || offerQuality.warnings.length > 0 || offerQuality.strengths.length > 0) && (
+          {(displayedOfferQuality.missing.length > 0 || displayedOfferQuality.warnings.length > 0 || displayedOfferQuality.strengths.length > 0) && (
             <div className="mt-3 grid gap-2 md:grid-cols-2">
-              {(offerQuality.missing.length > 0 || offerQuality.warnings.length > 0) && (
+              {(displayedOfferQuality.missing.length > 0 || displayedOfferQuality.warnings.length > 0) && (
                 <div className="rounded-lg border border-white/70 bg-white/70 p-3">
                   <div className="mb-1 text-xs font-semibold text-amber-900">Do poprawy przed wysłaniem</div>
                   <ul className="space-y-1 text-xs text-slate-700">
-                    {[...offerQuality.missing, ...offerQuality.warnings].slice(0, 4).map((item, idx) => (
+                    {[...displayedOfferQuality.missing, ...displayedOfferQuality.warnings].slice(0, 4).map((item, idx) => (
                       <li key={`${item}-${idx}`}>• {item}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {offerQuality.strengths.length > 0 && (
+              {displayedOfferQuality.strengths.length > 0 && (
                 <div className="rounded-lg border border-white/70 bg-white/70 p-3">
                   <div className="mb-1 text-xs font-semibold text-emerald-900">Mocne strony</div>
                   <ul className="space-y-1 text-xs text-slate-700">
-                    {offerQuality.strengths.slice(0, 4).map((item, idx) => (
+                    {displayedOfferQuality.strengths.slice(0, 4).map((item, idx) => (
                       <li key={`${item}-${idx}`}>• {item}</li>
                     ))}
                   </ul>

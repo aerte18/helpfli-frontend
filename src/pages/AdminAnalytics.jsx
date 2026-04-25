@@ -168,6 +168,11 @@ export default function AdminAnalytics() {
     [aiProcess]
   );
   const aiOfferQuality = aiProcess?.offerQuality || {};
+  const aiMessagePreflight = aiProcess?.messagePreflight || {};
+  const aiMessagePreflightByMode = useMemo(
+    () => (Array.isArray(aiMessagePreflight?.byMode) ? aiMessagePreflight.byMode : []),
+    [aiMessagePreflight]
+  );
   const aiOfferQualityBuckets = useMemo(
     () => (Array.isArray(aiOfferQuality?.buckets) ? aiOfferQuality.buckets : []),
     [aiOfferQuality]
@@ -275,6 +280,27 @@ export default function AdminAnalytics() {
             asText(num(row?.accepted)),
             fmtRate(row?.acceptanceRate),
             row?.avgAmount != null ? `${asText(row.avgAmount)} zł` : "—",
+          ])}
+        />
+      </Panel>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">AI pre-send wiadomości providera</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Soft-blocki (<55%)" value={asText(num(aiMessagePreflight.blocked))} />
+        <Card title="Wyślij mimo to" value={asText(num(aiMessagePreflight.override))} />
+        <Card title="Override rate" value={fmtRate(aiMessagePreflight.overrideRate)} />
+        <Card title="Współczynnik poprawy" value={aiMessagePreflight.overrideRate != null ? `${asText((100 - (Number(aiMessagePreflight.overrideRate) * 100)).toFixed(2))}%` : "—"} />
+      </div>
+      <Panel title="AI pre-send: rozbicie po trybach">
+        <SimpleTable
+          headers={["Tryb", "Wysłane", "Soft-blocki", "Wyślij mimo to", "Override rate", "Block / sent"]}
+          rows={aiMessagePreflightByMode.map((row) => [
+            asText(row?.mode),
+            asText(num(row?.sent)),
+            asText(num(row?.blocked)),
+            asText(num(row?.override)),
+            fmtRate(row?.overrideRate),
+            fmtRate(row?.blockRatePerSent),
           ])}
         />
       </Panel>

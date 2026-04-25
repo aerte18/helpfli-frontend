@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
-import { sendOfferChatMessage } from '../api/ai_advanced';
+import { getOfferMessagePreflight, sendOfferChatMessage } from '../api/ai_advanced';
+import { EVENT_TYPES, useTelemetry } from '../hooks/useTelemetry';
 
 const PROVIDER_AI_MODES = {
   offer: {
@@ -63,7 +64,12 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [activeMode, setActiveMode] = useState(contextMode === 'followup' ? 'followup' : 'offer');
+  const [preflight, setPreflight] = useState(null);
+  const [loadingPreflight, setLoadingPreflight] = useState(false);
+  const [overrideLowScore, setOverrideLowScore] = useState(false);
+  const [blockedByPreflight, setBlockedByPreflight] = useState(false);
   const messagesEndRef = useRef(null);
+  const { track } = useTelemetry();
 
   // Zapamiętaj stan rozwinięcia per orderId (żeby nie klikać za każdym razem)
   useEffect(() => {
@@ -104,14 +110,76 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (!expanded || !orderId) return;
+    const text = input.trim();
+    if (!text) {
+      setPreflight(null);
+      setLoadingPreflight(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLoadingPreflight(true);
+        const response = await getOfferMessagePreflight(orderId, text, { assistantMode: activeMode });
+        if (!controller.signal.aborted) {
+          setPreflight(response?.quality || null);
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError' && !controller.signal.aborted) {
+          setPreflight(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingPreflight(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [expanded, orderId, input, activeMode]);
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
+    const score = Number(preflight?.percent || 0);
+    const shouldSoftBlock = preflight && score > 0 && score < 55;
+    if (shouldSoftBlock && !overrideLowScore) {
+      setBlockedByPreflight(true);
+      track(EVENT_TYPES.PROVIDER_AI_MESSAGE_PREFLIGHT_BLOCKED, {
+        orderId,
+        mode: activeMode,
+        score,
+        label: preflight?.label || '',
+      });
+      return;
+    }
 
     const userMessage = input.trim();
+    const sentWithOverride = shouldSoftBlock && overrideLowScore;
     setInput('');
+    setOverrideLowScore(false);
+    setBlockedByPreflight(false);
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setLoading(true);
+    track(EVENT_TYPES.PROVIDER_AI_MESSAGE_SENT, {
+      orderId,
+      mode: activeMode,
+      score: score || null,
+      sentWithOverride: !!sentWithOverride
+    });
+    if (sentWithOverride) {
+      track(EVENT_TYPES.PROVIDER_AI_MESSAGE_PREFLIGHT_OVERRIDE, {
+        orderId,
+        mode: activeMode,
+        score
+      });
+    }
 
     try {
       const conversationHistory = messages.map(m => ({
@@ -140,6 +208,13 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
 
   const quickQuestions = PROVIDER_AI_MODES[activeMode]?.questions || PROVIDER_AI_MODES.offer.questions;
   const activeModeConfig = PROVIDER_AI_MODES[activeMode] || PROVIDER_AI_MODES.offer;
+  const preflightToneClass = preflight?.tone === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50'
+    : preflight?.tone === 'blue'
+      ? 'border-blue-200 bg-blue-50'
+      : preflight?.tone === 'amber'
+        ? 'border-amber-200 bg-amber-50'
+        : 'border-rose-200 bg-rose-50';
 
   const applyOfferDraft = (offer) => {
     if (!offer) return;
@@ -365,6 +440,69 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
 
         {/* Input - podobny styl do inputów w CreateOrder */}
         <form onSubmit={handleSend} className="p-4 border-t border-slate-200 bg-white/80">
+          {!!input.trim() && (
+            <div className={`mb-3 rounded-lg border px-3 py-2 ${preflight ? preflightToneClass : 'border-slate-200 bg-slate-50'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold text-slate-800">Pre-send AI check</div>
+                <div className="text-xs text-slate-600">
+                  {loadingPreflight ? 'AI analizuje...' : (preflight ? `${preflight.percent}% · ${preflight.label}` : 'Brak oceny')}
+                </div>
+              </div>
+              {blockedByPreflight && (
+                <div className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1.5 text-[11px] text-rose-800">
+                  Niska ocena wiadomości. Popraw tekst lub wyślij mimo to.
+                </div>
+              )}
+              {preflight && (
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  {(preflight.missing?.length > 0 || preflight.warnings?.length > 0) && (
+                    <div className="rounded bg-white/70 p-2">
+                      <div className="text-[11px] font-semibold text-amber-900">Do poprawy</div>
+                      <ul className="mt-1 space-y-1 text-[11px] text-slate-700">
+                        {[...(preflight.missing || []), ...(preflight.warnings || [])].slice(0, 3).map((item, idx) => (
+                          <li key={`${item}-${idx}`}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {preflight.strengths?.length > 0 && (
+                    <div className="rounded bg-white/70 p-2">
+                      <div className="text-[11px] font-semibold text-emerald-900">Mocne strony</div>
+                      <ul className="mt-1 space-y-1 text-[11px] text-slate-700">
+                        {preflight.strengths.slice(0, 3).map((item, idx) => (
+                          <li key={`${item}-${idx}`}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {preflight && Number(preflight.percent || 0) < 55 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOverrideLowScore(true);
+                      setBlockedByPreflight(false);
+                    }}
+                    className="rounded-md border border-rose-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-rose-700 hover:bg-rose-50"
+                  >
+                    Wyślij mimo to
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOverrideLowScore(false);
+                      setBlockedByPreflight(false);
+                    }}
+                    className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Popraw wiadomość
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex gap-2">
             <input
               type="text"
