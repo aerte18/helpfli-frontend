@@ -175,3 +175,78 @@ export const getCompanyHelpfliInvoices = async (companyId, params = {}) => {
 export const getCompanySubscription = async (companyId) => {
   return api(`/api/companies/${companyId}/subscription`);
 };
+
+/**
+ * Pobiera politykę zakupową firmy (PRO)
+ * @param {string} companyId
+ * @returns {Promise<{success:boolean, policy:Object, companyPro:{eligible:boolean, source:string}}>}
+ */
+export const getCompanyProcurementPolicy = async (companyId) => {
+  return api(`/api/companies/${companyId}/procurement-policy`);
+};
+
+/**
+ * Aktualizuje politykę zakupową firmy (PRO)
+ * @param {string} companyId
+ * @param {Object} policy
+ * @returns {Promise<{success:boolean, policy:Object}>}
+ */
+export const updateCompanyProcurementPolicy = async (companyId, policy) => {
+  return api(`/api/companies/${companyId}/procurement-policy`, {
+    method: 'PATCH',
+    body: policy || {}
+  });
+};
+
+/**
+ * Pobiera shortlistę ofert dla zlecenia firmy (PRO)
+ * @param {string} companyId
+ * @param {string} orderId
+ * @param {number} topN
+ * @returns {Promise<{success:boolean, shortlist:Array, policy:Object}>}
+ */
+export const getCompanyOrderShortlist = async (companyId, orderId, topN = 5) => {
+  const qs = new URLSearchParams({ topN: String(topN) }).toString();
+  return api(`/api/companies/${companyId}/orders/${orderId}/shortlist?${qs}`);
+};
+
+/**
+ * Pobiera status SLA dla zlecenia firmy
+ * @param {string} companyId
+ * @param {string} orderId
+ * @param {number} thresholdHours
+ */
+export const getCompanyOrderSlaStatus = async (companyId, orderId, thresholdHours = 24) => {
+  const params = new URLSearchParams();
+  if (Number.isFinite(Number(thresholdHours))) {
+    params.set('thresholdHours', String(thresholdHours));
+  }
+  const qs = params.toString();
+  return api(`/api/companies/${companyId}/orders/${orderId}/sla-status?${qs}`);
+};
+
+/**
+ * Wysyła follow-up do wykonawców ofert dla zlecenia firmy
+ * @param {string} companyId
+ * @param {string} orderId
+ * @param {string} message
+ */
+export const sendCompanyOrderFollowup = async (companyId, orderId, message = '') => {
+  return api(`/api/companies/${companyId}/orders/${orderId}/followup`, {
+    method: 'POST',
+    body: { message }
+  });
+};
+
+/**
+ * Warunkowy auto follow-up (SLA + polityka firmy)
+ * @param {string} companyId
+ * @param {string} orderId
+ * @param {string} message
+ */
+export const runCompanyOrderAutoFollowup = async (companyId, orderId, message = '') => {
+  return api(`/api/companies/${companyId}/orders/${orderId}/followup/auto-check`, {
+    method: 'POST',
+    body: { message }
+  });
+};

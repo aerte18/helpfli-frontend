@@ -8,7 +8,16 @@ import WorkflowManagement from '../../components/company/WorkflowManagement';
 import RolesManagement from '../../components/company/RolesManagement';
 import AuditLog from '../../components/company/AuditLog';
 import TeamPerformance from '../../components/company/TeamPerformance';
-import { getCompanyRoles, assignCustomRole, getCompanySubscription, companyAiChat } from '../../api/companies';
+import {
+  getCompanyRoles,
+  assignCustomRole,
+  getCompanySubscription,
+  companyAiChat,
+  getCompanyOrderShortlist,
+  getCompanyOrderSlaStatus,
+  sendCompanyOrderFollowup,
+  runCompanyOrderAutoFollowup
+} from '../../api/companies';
 import { Sparkles, ChevronDown, ChevronUp, Send } from 'lucide-react';
 
 const CompanyDashboard = () => {
@@ -27,7 +36,37 @@ const CompanyDashboard = () => {
   const [companyAiMessages, setCompanyAiMessages] = useState([]);
   const [companyAiInput, setCompanyAiInput] = useState('');
   const [companyAiLoading, setCompanyAiLoading] = useState(false);
+  const [shortlistOrderId, setShortlistOrderId] = useState('');
+  const [shortlistLoading, setShortlistLoading] = useState(false);
+  const [shortlistError, setShortlistError] = useState('');
+  const [shortlistData, setShortlistData] = useState(null);
+  const [shortlistExpandedOfferId, setShortlistExpandedOfferId] = useState(null);
+  const [shortlistRecommendationFilter, setShortlistRecommendationFilter] = useState('all');
+  const [slaStatus, setSlaStatus] = useState(null);
+  const [followupLoading, setFollowupLoading] = useState(false);
+  const [autoFollowupLoading, setAutoFollowupLoading] = useState(false);
   const navigate = useNavigate();
+  const recommendationPriority = { strong_match: 3, good_match: 2, review_required: 1 };
+  const shortlistRecommendationStats = (shortlistData?.shortlist || []).reduce((acc, row) => {
+    const key = row?.recommendation || 'review_required';
+    acc.total += 1;
+    if (key === 'strong_match') acc.strong += 1;
+    else if (key === 'good_match') acc.good += 1;
+    else acc.review += 1;
+    return acc;
+  }, { total: 0, strong: 0, good: 0, review: 0 });
+  const recommendationRate = (value) => {
+    if (!shortlistRecommendationStats.total) return '0%';
+    return `${Math.round((Number(value || 0) / shortlistRecommendationStats.total) * 100)}%`;
+  };
+  const shortlistRows = (shortlistData?.shortlist || [])
+    .filter((row) => shortlistRecommendationFilter === 'all' || row?.recommendation === shortlistRecommendationFilter)
+    .slice()
+    .sort((a, b) => {
+      const prioDiff = (recommendationPriority[b?.recommendation] || 0) - (recommendationPriority[a?.recommendation] || 0);
+      if (prioDiff !== 0) return prioDiff;
+      return Number(b?.score || 0) - Number(a?.score || 0);
+    });
 
   useEffect(() => {
     // Pobierz ID użytkownika z localStorage lub z API
@@ -511,6 +550,254 @@ const CompanyDashboard = () => {
                   <Send className="w-4 h-4" />
                 </button>
               </form>
+            </div>
+          )}
+        </div>
+
+        {/* Resource Pool Management */}
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">AI Shortlista ofert (Firma PRO)</h2>
+            <span className={`text-xs px-2 py-1 rounded-full ${subscription?.planKey === 'BUSINESS_PRO' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              {subscription?.planKey === 'BUSINESS_PRO' ? 'BUSINESS PRO aktywny' : 'Wymaga BUSINESS PRO'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Wklej ID zlecenia, a AI przygotuje shortlistę najlepszych ofert (score + ryzyka) według polityki zakupowej firmy.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!company?._id || !shortlistOrderId.trim()) return;
+              setShortlistLoading(true);
+              setShortlistError('');
+              try {
+                const result = await getCompanyOrderShortlist(company._id, shortlistOrderId.trim(), 5);
+                setShortlistData(result);
+                setShortlistExpandedOfferId(null);
+              } catch (err) {
+                setShortlistData(null);
+                setShortlistExpandedOfferId(null);
+                setShortlistError(err.message || 'Nie udało się pobrać shortlisty');
+              } finally {
+                setShortlistLoading(false);
+              }
+            }}
+            className="flex flex-col sm:flex-row gap-2 mb-4"
+          >
+            <input
+              type="text"
+              value={shortlistOrderId}
+              onChange={(e) => setShortlistOrderId(e.target.value)}
+              placeholder="ID zlecenia (orderId)"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <button
+              type="submit"
+              disabled={shortlistLoading || !shortlistOrderId.trim()}
+              className="rounded-lg bg-indigo-600 text-white px-4 py-2 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {shortlistLoading ? 'Analizuję...' : 'Generuj shortlistę'}
+            </button>
+          </form>
+          {shortlistError && (
+            <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {shortlistError}
+            </div>
+          )}
+          {shortlistData?.shortlist?.length > 0 && (
+            <div className="overflow-x-auto">
+              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500">Razem</div>
+                  <div className="text-sm font-semibold text-slate-900">{shortlistRecommendationStats.total}</div>
+                </div>
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-wide text-indigo-600">Strong match</div>
+                  <div className="text-sm font-semibold text-indigo-800">
+                    {shortlistRecommendationStats.strong} <span className="text-xs font-medium text-indigo-600">({recommendationRate(shortlistRecommendationStats.strong)})</span>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-wide text-blue-600">Good match</div>
+                  <div className="text-sm font-semibold text-blue-800">
+                    {shortlistRecommendationStats.good} <span className="text-xs font-medium text-blue-600">({recommendationRate(shortlistRecommendationStats.good)})</span>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-wide text-rose-600">Review required</div>
+                  <div className="text-sm font-semibold text-rose-800">
+                    {shortlistRecommendationStats.review} <span className="text-xs font-medium text-rose-600">({recommendationRate(shortlistRecommendationStats.review)})</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <select
+                  value={shortlistRecommendationFilter}
+                  onChange={(e) => setShortlistRecommendationFilter(e.target.value)}
+                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700"
+                >
+                  <option value="all">Wszystkie rekomendacje</option>
+                  <option value="strong_match">Strong match</option>
+                  <option value="good_match">Good match</option>
+                  <option value="review_required">Review required</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!company?._id || !shortlistOrderId.trim()) return;
+                    try {
+                      const data = await getCompanyOrderSlaStatus(company._id, shortlistOrderId.trim());
+                      setSlaStatus(data?.sla || null);
+                    } catch (err) {
+                      setShortlistError(err.message || 'Nie udało się pobrać statusu SLA');
+                    }
+                  }}
+                  className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                >
+                  Sprawdź SLA
+                </button>
+                <button
+                  type="button"
+                  disabled={followupLoading}
+                  onClick={async () => {
+                    if (!company?._id || !shortlistOrderId.trim()) return;
+                    setFollowupLoading(true);
+                    try {
+                      const data = await sendCompanyOrderFollowup(company._id, shortlistOrderId.trim());
+                      const sent = data?.followup?.notificationsSent ?? 0;
+                      const considered = data?.followup?.offersConsidered ?? 0;
+                      setShortlistError('');
+                      alert(`Follow-up wysłany: ${sent}/${considered} ofert.`);
+                    } catch (err) {
+                      setShortlistError(err.message || 'Nie udało się wysłać follow-up');
+                    } finally {
+                      setFollowupLoading(false);
+                    }
+                  }}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {followupLoading ? 'Wysyłam follow-up...' : 'Wyślij follow-up'}
+                </button>
+                <button
+                  type="button"
+                  disabled={autoFollowupLoading}
+                  onClick={async () => {
+                    if (!company?._id || !shortlistOrderId.trim()) return;
+                    setAutoFollowupLoading(true);
+                    try {
+                      const data = await runCompanyOrderAutoFollowup(company._id, shortlistOrderId.trim());
+                      const triggered = Boolean(data?.autoFollowup?.triggered);
+                      if (!triggered) {
+                        const reason = data?.autoFollowup?.reason || 'brak warunków';
+                        alert(`Auto follow-up nie został uruchomiony (${reason}).`);
+                      } else {
+                        alert(`Auto follow-up uruchomiony: ${data?.autoFollowup?.notificationsSent || 0} powiadomień.`);
+                      }
+                      setShortlistError('');
+                    } catch (err) {
+                      setShortlistError(err.message || 'Nie udało się uruchomić auto follow-up');
+                    } finally {
+                      setAutoFollowupLoading(false);
+                    }
+                  }}
+                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {autoFollowupLoading ? 'Uruchamiam auto follow-up...' : 'Auto-check + follow-up'}
+                </button>
+                {slaStatus && (
+                  <div className={`rounded-lg px-2 py-1 text-xs font-medium ${slaStatus.breached ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    SLA {slaStatus.breached ? 'przekroczone' : 'OK'}
+                    {slaStatus.breachType ? ` (${slaStatus.breachType === 'first_offer' ? 'brak pierwszej oferty' : 'brak oferty kwalifikowanej'})` : ''}
+                    {' · '}elapsed: {slaStatus.elapsedHours}h
+                    {' · '}1. oferta: {slaStatus.timeToFirstOfferHours ?? '—'}h / {slaStatus.firstOfferThresholdHours}h
+                    {' · '}1. kwalifikowana: {slaStatus.timeToFirstQualifiedHours ?? '—'}h / {slaStatus.thresholdHours}h
+                    {' · '}kwalifikowane: {slaStatus.qualifiedOffers}
+                  </div>
+                )}
+              </div>
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600 border-b">
+                    <th className="py-2 pr-3">#</th>
+                    <th className="py-2 pr-3">Wykonawca</th>
+                    <th className="py-2 pr-3">Score</th>
+                    <th className="py-2 pr-3">Cena</th>
+                    <th className="py-2 pr-3">AI quality</th>
+                    <th className="py-2 pr-3">Dlaczego ten ranking</th>
+                    <th className="py-2 pr-3">Ryzyka</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shortlistRows.map((row, index) => (
+                    <tr key={row.offerId} className="border-b border-gray-100 align-top">
+                      <td className="py-2 pr-3 font-semibold text-gray-800">{index + 1}</td>
+                      <td className="py-2 pr-3">
+                        <div className="font-medium text-gray-900">{row.providerName}</div>
+                        <div className="text-xs text-gray-500">{row.providerEmail || '—'}</div>
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span className="inline-flex rounded-full bg-indigo-100 text-indigo-700 px-2 py-0.5 text-xs font-semibold">
+                          {row.score}%
+                        </span>
+                      </td>
+                      <td className="py-2 pr-3">{row.amount ? `${row.amount} PLN` : '—'}</td>
+                      <td className="py-2 pr-3">{row.quality ? `${row.quality}%` : '—'}</td>
+                      <td className="py-2 pr-3 text-xs text-slate-700">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <div className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${row.policyQualified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {row.policyQualified ? 'Policy fit' : 'Do weryfikacji'}
+                            </div>
+                            <div className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${
+                              row.recommendation === 'strong_match'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : row.recommendation === 'good_match'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-rose-100 text-rose-700'
+                            }`}>
+                              {row.recommendation === 'strong_match'
+                                ? 'Strong match'
+                                : row.recommendation === 'good_match'
+                                  ? 'Good match'
+                                  : 'Review required'}
+                            </div>
+                          </div>
+                          <div>
+                            {Array.isArray(row.fitReasons) && row.fitReasons.length > 0 ? row.fitReasons.slice(0, 2).join(' • ') : 'Brak dodatkowych uzasadnień'}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const id = String(row.offerId || '');
+                              setShortlistExpandedOfferId((prev) => (prev === id ? null : id));
+                            }}
+                            className="text-[11px] font-semibold text-indigo-700 hover:text-indigo-900"
+                          >
+                            {shortlistExpandedOfferId === String(row.offerId || '') ? 'Ukryj score breakdown' : 'Pokaż score breakdown'}
+                          </button>
+                          {shortlistExpandedOfferId === String(row.offerId || '') && (
+                            <div className="rounded-md border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-700">
+                              <div>Quality: +{row?.scoreBreakdown?.qualityScore ?? 0}</div>
+                              <div>Rating: +{row?.scoreBreakdown?.ratingScore ?? 0}</div>
+                              <div>Price fit: +{row?.scoreBreakdown?.priceFitScore ?? 0}</div>
+                              <div>Policy fit: {row?.scoreBreakdown?.policyFitScore ?? 0}</div>
+                              <div>Risk penalty: -{row?.scoreBreakdown?.riskPenalty ?? 0}</div>
+                              <div className="mt-1 font-semibold">Rekomendacja: {row?.recommendation || 'review_required'}</div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-amber-700">
+                        {Array.isArray(row.risks) && row.risks.length > 0 ? row.risks.join(' • ') : 'Brak krytycznych ryzyk'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {shortlistRows.length === 0 && (
+                <div className="py-4 text-center text-xs text-slate-500">Brak ofert dla wybranego filtra rekomendacji.</div>
+              )}
             </div>
           )}
         </div>

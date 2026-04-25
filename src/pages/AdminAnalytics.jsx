@@ -170,6 +170,7 @@ export default function AdminAnalytics() {
   const aiOfferQuality = aiProcess?.offerQuality || {};
   const aiMessagePreflight = aiProcess?.messagePreflight || {};
   const aiOfferFormPreflight = aiProcess?.offerFormPreflight || {};
+  const aiCompanyPro = aiProcess?.companyPro || {};
   const aiOfferFormPreflightDaily = useMemo(
     () => (Array.isArray(aiOfferFormPreflight?.daily) ? aiOfferFormPreflight.daily : []),
     [aiOfferFormPreflight]
@@ -332,6 +333,33 @@ export default function AdminAnalytics() {
           ])}
         />
       </Panel>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">Firma PRO: shortlist, follow-up i SLA</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Shortlist wygenerowane" value={asText(num(aiCompanyPro.shortlistGenerated))} />
+        <Card title="Follow-up wysłane" value={asText(num(aiCompanyPro.followupSent))} />
+        <Card title="Auto follow-up wysłane" value={asText(num(aiCompanyPro.autoFollowupSent))} />
+        <Card title="Auto follow-up cron runs" value={asText(num(aiCompanyPro.autoFollowupCronRuns))} />
+        <Card title="SLA breach (wykryte)" value={asText(num(aiCompanyPro.slaBreaches))} />
+        <Card title="Follow-up / shortlist" value={fmtRate(aiCompanyPro.followupPerShortlistRate)} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Auto follow-up / shortlist" value={fmtRate(aiCompanyPro.autoFollowupPerShortlistRate)} />
+        <Card title="SLA breach / shortlist" value={fmtRate(aiCompanyPro.slaBreachRateVsShortlist)} />
+        <Card title="SLA breach: brak 1. oferty" value={asText(num(aiCompanyPro.slaBreachesFirstOffer))} />
+        <Card title="SLA breach: brak 1. kwalifikowanej" value={asText(num(aiCompanyPro.slaBreachesQualifiedOffer))} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Auto FU: śledzone ordery" value={asText(num(aiCompanyPro.autoFollowupTrackedOrders))} />
+        <Card title="Auto FU: sukces <=12h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin12h))} />
+        <Card title="Auto FU: success rate <=12h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin12hRate)} />
+        <Card title="Auto FU: sukces <=24h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin24h))} />
+        <Card title="Auto FU: success rate <=24h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin24hRate)} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Auto FU: sukces <=48h" value={asText(num(aiCompanyPro.autoFollowupSuccessWithin48h))} />
+        <Card title="Auto FU: success rate <=48h" value={fmtRate(aiCompanyPro.autoFollowupSuccessWithin48hRate)} />
+      </div>
 
       <h3 className="text-base font-semibold text-slate-800 pt-1">AI pre-send wiadomości providera</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

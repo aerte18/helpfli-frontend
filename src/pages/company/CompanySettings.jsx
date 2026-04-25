@@ -1,6 +1,10 @@
 import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import {
+  getCompanyProcurementPolicy,
+  updateCompanyProcurementPolicy
+} from '../../api/companies';
 // Proste ikony zastępujące Heroicons
 
 const CompanySettings = ({ companyId: propCompanyId }) => {
@@ -11,6 +15,7 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [activeTab, setActiveTab] = useState('general');
+  const [companyProEligible, setCompanyProEligible] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -26,6 +31,17 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
       defaultProviderLevel: 'basic',
       maxProviders: 50
     }
+  });
+  const [procurementPolicy, setProcurementPolicy] = useState({
+    minRating: '',
+    maxBudget: '',
+    requiresWarranty: false,
+    requiresInvoice: false,
+    formalTone: true,
+    slaFirstOfferHours: 8,
+    slaThresholdHours: 24,
+    autoFollowupEnabled: false,
+    maxAutoFollowupsPerDay: 3
   });
 
   useEffect(() => {
@@ -66,6 +82,27 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
           }
         });
       }
+
+      try {
+        const policyResponse = await getCompanyProcurementPolicy(companyId);
+        if (policyResponse?.success) {
+          setCompanyProEligible(Boolean(policyResponse.companyPro?.eligible));
+          const policy = policyResponse.policy || {};
+          setProcurementPolicy({
+            minRating: policy.minRating ?? '',
+            maxBudget: policy.maxBudget ?? '',
+            requiresWarranty: Boolean(policy.requiresWarranty),
+            requiresInvoice: Boolean(policy.requiresInvoice),
+            formalTone: policy.formalTone !== false,
+            slaFirstOfferHours: Number(policy.slaFirstOfferHours || 8),
+            slaThresholdHours: Number(policy.slaThresholdHours || 24),
+            autoFollowupEnabled: Boolean(policy.autoFollowupEnabled),
+            maxAutoFollowupsPerDay: Number(policy.maxAutoFollowupsPerDay || 3)
+          });
+        }
+      } catch (_) {
+        setCompanyProEligible(false);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -93,6 +130,14 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
     }
   };
 
+  const handleProcurementChange = (e) => {
+    const { name, type, checked, value } = e.target;
+    setProcurementPolicy((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -117,6 +162,19 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
       }
 
       if (data.success) {
+        if (companyProEligible) {
+          await updateCompanyProcurementPolicy(companyId, {
+            minRating: procurementPolicy.minRating === '' ? null : Number(procurementPolicy.minRating),
+            maxBudget: procurementPolicy.maxBudget === '' ? null : Number(procurementPolicy.maxBudget),
+            requiresWarranty: Boolean(procurementPolicy.requiresWarranty),
+            requiresInvoice: Boolean(procurementPolicy.requiresInvoice),
+            formalTone: Boolean(procurementPolicy.formalTone),
+            slaFirstOfferHours: Number(procurementPolicy.slaFirstOfferHours || 8),
+            slaThresholdHours: Number(procurementPolicy.slaThresholdHours || 24),
+            autoFollowupEnabled: Boolean(procurementPolicy.autoFollowupEnabled),
+            maxAutoFollowupsPerDay: Number(procurementPolicy.maxAutoFollowupsPerDay || 3)
+          });
+        }
         setSuccess('Ustawienia zostały zaktualizowane');
         fetchCompanyData(); // Odśwież dane
       }
@@ -159,7 +217,8 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
   const tabs = [
     { id: 'general', name: 'Ogólne', icon: '🏢' },
     { id: 'team', name: 'Zespół', icon: '👥' },
-    { id: 'advanced', name: 'Zaawansowane', icon: '⚙️' }
+    { id: 'advanced', name: 'Zaawansowane', icon: '⚙️' },
+    { id: 'procurement', name: 'Polityka zakupowa PRO', icon: '📋' }
   ];
 
   return (
@@ -429,6 +488,149 @@ const CompanySettings = ({ companyId: propCompanyId }) => {
                   <div className="text-center py-8">
                     <p className="text-gray-500">Brak dostępnych ustawień zaawansowanych</p>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'procurement' && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium text-gray-900">Polityka zakupowa firmy (PRO)</h3>
+                  {!companyProEligible ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      Ta sekcja wymaga planu firmowego PRO. Po aktywacji planu będzie można ustawiać wymagania ofertowe (VAT, gwarancja, limity).
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Te ustawienia wpływają na tryb `Firma PRO` w asystencie AI i pomagają przygotować oferty zgodne z procesem zakupowym firmy.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Minimalna ocena wykonawcy (0-5)
+                          </label>
+                          <input
+                            type="number"
+                            name="minRating"
+                            step="0.1"
+                            min="0"
+                            max="5"
+                            value={procurementPolicy.minRating}
+                            onChange={handleProcurementChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Maksymalny budżet (PLN)
+                          </label>
+                          <input
+                            type="number"
+                            name="maxBudget"
+                            min="0"
+                            value={procurementPolicy.maxBudget}
+                            onChange={handleProcurementChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SLA na pierwszą ofertę (godziny)
+                          </label>
+                          <input
+                            type="number"
+                            name="slaFirstOfferHours"
+                            min="1"
+                            max="168"
+                            value={procurementPolicy.slaFirstOfferHours}
+                            onChange={handleProcurementChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            SLA na pierwszą kwalifikowaną ofertę (godziny)
+                          </label>
+                          <input
+                            type="number"
+                            name="slaThresholdHours"
+                            min="1"
+                            max="168"
+                            value={procurementPolicy.slaThresholdHours}
+                            onChange={handleProcurementChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Max auto follow-up / dzień
+                          </label>
+                          <input
+                            type="number"
+                            name="maxAutoFollowupsPerDay"
+                            min="1"
+                            max="20"
+                            value={procurementPolicy.maxAutoFollowupsPerDay}
+                            onChange={handleProcurementChange}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <label className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">Wymagana gwarancja</div>
+                            <div className="text-xs text-gray-500">AI będzie sugerować jawne warunki gwarancyjne w ofercie.</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            name="requiresWarranty"
+                            checked={procurementPolicy.requiresWarranty}
+                            onChange={handleProcurementChange}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">Wymagana faktura VAT</div>
+                            <div className="text-xs text-gray-500">AI będzie dodawać informację o możliwości fakturowania.</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            name="requiresInvoice"
+                            checked={procurementPolicy.requiresInvoice}
+                            onChange={handleProcurementChange}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">Formalny ton komunikacji</div>
+                            <div className="text-xs text-gray-500">Tryb Firma PRO będzie używać bardziej formalnych sformułowań.</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            name="formalTone"
+                            checked={procurementPolicy.formalTone}
+                            onChange={handleProcurementChange}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">Automatyczny follow-up po SLA breach</div>
+                            <div className="text-xs text-gray-500">Po przekroczeniu SLA i braku kwalifikowanych ofert system może wysłać przypomnienie.</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            name="autoFollowupEnabled"
+                            checked={procurementPolicy.autoFollowupEnabled}
+                            onChange={handleProcurementChange}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </label>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

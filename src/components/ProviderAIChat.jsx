@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { getOfferMessagePreflight, sendOfferChatMessage } from '../api/ai_advanced';
 import { EVENT_TYPES, useTelemetry } from '../hooks/useTelemetry';
+import { useAuth } from '../context/AuthContext';
 
 const PROVIDER_AI_MODES = {
   offer: {
@@ -55,10 +56,21 @@ const PROVIDER_AI_MODES = {
       'Napisz wiadomość z propozycją terminu',
       'Napisz prośbę o odbiór i opinię'
     ]
+  },
+  company_pro: {
+    label: 'Firma PRO',
+    subtitle: 'SLA, formalny ton, polityka firmy',
+    welcome: 'Tryb firmowy PRO: pomogę przygotować ofertę zgodną z polityką zakupową firmy (VAT, gwarancja, formalny ton).',
+    questions: [
+      'Przygotuj formalną ofertę zgodną z polityką firmy',
+      'Uwzględnij SLA i warunki gwarancji',
+      'Jak opisać ofertę pod proces zakupowy firmy?'
+    ]
   }
 };
 
 export default function ProviderAIChat({ orderId, orderDescription = '', contextMode = 'offer' }) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,6 +82,16 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
   const [blockedByPreflight, setBlockedByPreflight] = useState(false);
   const messagesEndRef = useRef(null);
   const { track } = useTelemetry();
+  const canUseCompanyProMode = Boolean(
+    user?.company &&
+    (
+      ['company_owner', 'company_manager'].includes(user?.role) ||
+      ['owner', 'manager'].includes(user?.roleInCompany)
+    )
+  );
+  const availableModes = canUseCompanyProMode
+    ? PROVIDER_AI_MODES
+    : Object.fromEntries(Object.entries(PROVIDER_AI_MODES).filter(([key]) => key !== 'company_pro'));
 
   // Zapamiętaj stan rozwinięcia per orderId (żeby nie klikać za każdym razem)
   useEffect(() => {
@@ -100,10 +122,16 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        text: `${PROVIDER_AI_MODES[activeMode]?.welcome || PROVIDER_AI_MODES.offer.welcome} Wybierz tryb albo napisz, czego potrzebujesz.`
+        text: `${availableModes[activeMode]?.welcome || PROVIDER_AI_MODES.offer.welcome} Wybierz tryb albo napisz, czego potrzebujesz.`
       }]);
     }
-  }, [activeMode, messages.length]);
+  }, [activeMode, messages.length, availableModes]);
+
+  useEffect(() => {
+    if (activeMode === 'company_pro' && !canUseCompanyProMode) {
+      setActiveMode('offer');
+    }
+  }, [activeMode, canUseCompanyProMode]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -206,8 +234,8 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
     }
   };
 
-  const quickQuestions = PROVIDER_AI_MODES[activeMode]?.questions || PROVIDER_AI_MODES.offer.questions;
-  const activeModeConfig = PROVIDER_AI_MODES[activeMode] || PROVIDER_AI_MODES.offer;
+  const quickQuestions = availableModes[activeMode]?.questions || PROVIDER_AI_MODES.offer.questions;
+  const activeModeConfig = availableModes[activeMode] || PROVIDER_AI_MODES.offer;
   const preflightToneClass = preflight?.tone === 'emerald'
     ? 'border-emerald-200 bg-emerald-50'
     : preflight?.tone === 'blue'
@@ -276,7 +304,7 @@ export default function ProviderAIChat({ orderId, orderDescription = '', context
             Tryb pracy AI
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {Object.entries(PROVIDER_AI_MODES).map(([mode, config]) => (
+            {Object.entries(availableModes).map(([mode, config]) => (
               <button
                 key={mode}
                 type="button"
