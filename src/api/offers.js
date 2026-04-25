@@ -26,7 +26,10 @@ export async function postOffer({ token, payload }) {
     if (data.upsell) {
       throw new Error(JSON.stringify(data));
     }
-    throw new Error(data.message || "Błąd wysyłania oferty");
+    const err = new Error(data.message || "Błąd wysyłania oferty");
+    if (data.code) err.code = data.code;
+    if (data.quality) err.quality = data.quality;
+    throw err;
   }
   return data;
 }

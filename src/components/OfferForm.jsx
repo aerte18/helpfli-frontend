@@ -8,6 +8,8 @@ import { Send, Sparkles, X, Info, ChevronDown, ChevronUp, ClipboardList, Wallet,
 import { getErrorMessage } from "../utils/errorMessages";
 
 const OFFER_FORM_AI_KEY = "offerForm_showAi";
+/** Twarda blokada: poniżej wymagane potwierdzenie „Wyślij mimo to” (zgodne z backendem). */
+const OFFER_QUALITY_HARD_THRESHOLD = 45;
 
 function useAuthToken() {
   try { return localStorage.getItem("token") || ""; } catch { return ""; }
@@ -66,8 +68,18 @@ export default function OfferForm({
     try { return localStorage.getItem(OFFER_FORM_AI_KEY) !== "false"; } catch { return true; }
   });
   const [aiSuggestionsCollapsed, setAiSuggestionsCollapsed] = useState(false);
+  /** Użytkownik potwierdził wysyłkę poniżej progu. */
+  const [offerLowQualityOverrideAck, setOfferLowQualityOverrideAck] = useState(false);
+  /** Po co najmniej jednej zablokowanej (lub wymagającej mimo) próbie wysyłki — pokaż panel z CTA. */
+  const [offerLowQualityBlockShown, setOfferLowQualityBlockShown] = useState(false);
   const { push: toast } = useToast();
-  const { trackOfferFormStart, trackOfferStepView, trackOfferFormSubmit } = useTelemetry();
+  const {
+    trackOfferFormStart,
+    trackOfferStepView,
+    trackOfferFormSubmit,
+    trackOfferFormPreflightBlocked,
+    trackOfferFormPreflightOverride,
+  } = useTelemetry();
   const offerStepTracked = useRef({ 1: false, 2: false, 3: false });
   const autoAppliedAiDraftRef = useRef(false);
 
@@ -375,6 +387,19 @@ export default function OfferForm({
     };
   }, [orderId, token, user?.role, amount, message, completionDate, priceIncludes, isFinalPrice, contactMethod]);
 
+  // Zmiana oferty = ponowna potrzeba oceny; nie trzymaj „mimo to” do starej wersji.
+  useEffect(() => {
+    setOfferLowQualityOverrideAck(false);
+  }, [amount, message, completionDate, priceIncludes, isFinalPrice, contactMethod]);
+
+  // Powyżej progu: nie pokazuj stanu po blokadzie.
+  const displayedQualityPct = Number(displayedOfferQuality?.percent) || 0;
+  useEffect(() => {
+    if (displayedQualityPct >= OFFER_QUALITY_HARD_THRESHOLD) {
+      setOfferLowQualityBlockShown(false);
+    }
+  }, [displayedQualityPct]);
+
   // Walidacja formularza
   const validateForm = () => {
     const errors = {};
@@ -432,6 +457,20 @@ export default function OfferForm({
       }
       return;
     }
+
+    const q = Number(displayedOfferQuality?.percent) || 0;
+    const belowHard =
+      q > 0 && q < OFFER_QUALITY_HARD_THRESHOLD;
+    if (belowHard && !offerLowQualityOverrideAck) {
+      setOfferLowQualityBlockShown(true);
+      setFormError("Ocena oferty jest poniżej wymaganego progu. Ulepsz ofertę albo użyj „Wyślij mimo to”.");
+      trackOfferFormPreflightBlocked(
+        orderId,
+        q,
+        Boolean(aiPreflightQuality)
+      );
+      return;
+    }
     
     setSending(true);
     setFormError("");
@@ -447,6 +486,7 @@ export default function OfferForm({
         isFinal: isFinalPrice
       };
       
+      const needOverrideFlag = belowHard && offerLowQualityOverrideAck;
       const offer = await postOffer({
         token,
         payload: { 
@@ -462,13 +502,21 @@ export default function OfferForm({
             tone: displayedOfferQuality.tone,
             missing: displayedOfferQuality.missing,
             warnings: displayedOfferQuality.warnings,
-            strengths: displayedOfferQuality.strengths
+            strengths: displayedOfferQuality.strengths,
+            ...(needOverrideFlag
+              ? { lowQualityOverride: true, qualityGateThreshold: OFFER_QUALITY_HARD_THRESHOLD }
+              : {}),
           },
           // paymentMethod nie jest już potrzebne - klient już wybrał przy tworzeniu zlecenia
           boost 
         }
       });
-      trackOfferFormSubmit(orderId, Number(amount));
+      trackOfferFormSubmit(
+        orderId,
+        Number(amount),
+        needOverrideFlag,
+        Number(displayedOfferQuality?.percent) || null
+      );
       onSent?.(offer.offer);
       if (offer.pricingAdvice) {
         setPricingAdvice(offer.pricingAdvice);
@@ -476,7 +524,18 @@ export default function OfferForm({
       setMessage("");
       setCompletionDate("");
       setBoost(false);
+      setOfferLowQualityOverrideAck(false);
+      setOfferLowQualityBlockShown(false);
     } catch (e) {
+      if (e?.code === "offer_quality_too_low") {
+        setOfferLowQualityBlockShown(true);
+        setOfferLowQualityOverrideAck(false);
+        setFormError(
+          e?.message
+            || "Jakość oferty jest poniżej wymaganego progu. Ulepsz ofertę albo użyj „Wyślij mimo to”."
+        );
+        return;
+      }
       // Błędy limitu są obsługiwane przez backend i wysyłane jako powiadomienia
       setFormError(getErrorMessage(e));
     } finally {
@@ -1120,6 +1179,56 @@ export default function OfferForm({
             </div>
           )}
         </div>
+
+        {offerLowQualityBlockShown &&
+          displayedQualityPct > 0 &&
+          displayedQualityPct < OFFER_QUALITY_HARD_THRESHOLD &&
+          !offerLowQualityOverrideAck && (
+            <div
+              className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900"
+              role="status"
+            >
+              <p className="font-semibold">Oferta wymaga poprawy lub ręcznego potwierdzenia</p>
+              <p className="mt-1 text-rose-800/90">
+                Obecna ocena ({displayedQualityPct}%) jest poniżej {OFFER_QUALITY_HARD_THRESHOLD}%. Możesz
+                dopracować cenę, termin albo opis, albo świadomie wysłać słabszą wersję oferty.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOfferLowQualityBlockShown(false);
+                    setFormError("");
+                  }}
+                  className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-900 shadow-sm hover:bg-rose-100/80"
+                >
+                  Dopasuj ofertę
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOfferLowQualityOverrideAck(true);
+                    setOfferLowQualityBlockShown(false);
+                    setFormError("");
+                    trackOfferFormPreflightOverride(
+                      orderId,
+                      displayedQualityPct,
+                      Boolean(aiPreflightQuality)
+                    );
+                    toast({
+                      title: "Potwierdzono wysyłkę poniżej progu",
+                      description: "Możesz nacisnąć „Wyślij ofertę do klienta” ponownie.",
+                      variant: "default",
+                    });
+                  }}
+                  className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-rose-800"
+                >
+                  Wyślij mimo to
+                </button>
+              </div>
+            </div>
+          )}
+
         <div className="space-y-2">
           <label htmlFor="offer-description" className="text-sm font-medium text-slate-900">
             Opis oferty <span className="text-slate-500 text-xs font-normal">(opcjonalne)</span>

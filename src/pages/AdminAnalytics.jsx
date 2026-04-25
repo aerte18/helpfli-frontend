@@ -169,6 +169,11 @@ export default function AdminAnalytics() {
   );
   const aiOfferQuality = aiProcess?.offerQuality || {};
   const aiMessagePreflight = aiProcess?.messagePreflight || {};
+  const aiOfferFormPreflight = aiProcess?.offerFormPreflight || {};
+  const aiOfferFormPreflightDaily = useMemo(
+    () => (Array.isArray(aiOfferFormPreflight?.daily) ? aiOfferFormPreflight.daily : []),
+    [aiOfferFormPreflight]
+  );
   const aiMessagePreflightByMode = useMemo(
     () => (Array.isArray(aiMessagePreflight?.byMode) ? aiMessagePreflight.byMode : []),
     [aiMessagePreflight]
@@ -270,6 +275,12 @@ export default function AdminAnalytics() {
         <Card title="Oferty 80%+" value={fmtRate(aiOfferQuality.highQualityRate)} />
         <Card title="Wysłane mimo ostrzeżeń" value={fmtRate(aiOfferQuality.warningSendRate)} />
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card
+          title="Oferty: mimo to poniżej 45% (zapis w DB)"
+          value={asText(num(aiOfferQuality.lowQualityOverrideSends))}
+        />
+      </div>
 
       <Panel title="AI: jakość ofert a akceptacja">
         <SimpleTable
@@ -280,6 +291,44 @@ export default function AdminAnalytics() {
             asText(num(row?.accepted)),
             fmtRate(row?.acceptanceRate),
             row?.avgAmount != null ? `${asText(row.avgAmount)} zł` : "—",
+          ])}
+        />
+      </Panel>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">Formularz oferty — twarda blokada (preflight poniżej 45%)</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Zablokowane próby" value={asText(num(aiOfferFormPreflight.blocked))} />
+        <Card title="Potwierdzenie mimo to" value={asText(num(aiOfferFormPreflight.override))} />
+        <Card title="Override rate" value={fmtRate(aiOfferFormPreflight.overrideRate)} />
+        <Card
+          title="Override / blocked"
+          value={fmtRate(
+            num(aiOfferFormPreflight.blocked) > 0
+              ? num(aiOfferFormPreflight.override) / num(aiOfferFormPreflight.blocked)
+              : null
+          )}
+        />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Wysłane oferty (submit)" value={asText(num(aiOfferFormPreflight.sent))} />
+        <Card title="Submit z override" value={asText(num(aiOfferFormPreflight.sentWithOverride))} />
+        <Card title="Submit override rate" value={fmtRate(aiOfferFormPreflight.submitOverrideRate)} />
+        <Card title="Śr. score przy submit" value={aiOfferFormPreflight.avgSubmitScore != null ? `${asText(aiOfferFormPreflight.avgSubmitScore)}%` : "—"} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card
+          title="Śr. score przy submit z override"
+          value={aiOfferFormPreflight.avgSubmitScoreWithOverride != null ? `${asText(aiOfferFormPreflight.avgSubmitScoreWithOverride)}%` : "—"}
+        />
+      </div>
+      <Panel title="Trend dzienny: submit vs submit z override">
+        <SimpleTable
+          headers={["Data", "Submit", "Submit z override", "Override rate"]}
+          rows={aiOfferFormPreflightDaily.map((row) => [
+            asText(row?.date),
+            asText(num(row?.sent)),
+            asText(num(row?.sentWithOverride)),
+            fmtRate(row?.overrideRate),
           ])}
         />
       </Panel>

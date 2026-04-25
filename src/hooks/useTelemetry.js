@@ -25,6 +25,8 @@ export const EVENT_TYPES = {
   OFFER_FORM_START: 'offer_form_start',
   OFFER_STEP_VIEW: 'offer_step_view',
   OFFER_FORM_SUBMIT: 'offer_form_submit',
+  OFFER_FORM_PREFLIGHT_BLOCKED: 'offer_form_preflight_blocked',
+  OFFER_FORM_PREFLIGHT_OVERRIDE: 'offer_form_preflight_override',
   PROVIDER_AI_MESSAGE_PREFLIGHT_BLOCKED: 'provider_ai_message_preflight_blocked',
   PROVIDER_AI_MESSAGE_PREFLIGHT_OVERRIDE: 'provider_ai_message_preflight_override',
   PROVIDER_AI_MESSAGE_SENT: 'provider_ai_message_sent',
@@ -246,8 +248,21 @@ export function useTelemetry() {
     track(EVENT_TYPES.OFFER_STEP_VIEW, { step, orderId });
   }, [track]);
 
-  const trackOfferFormSubmit = useCallback((orderId, amount) => {
-    track(EVENT_TYPES.OFFER_FORM_SUBMIT, { orderId, amount });
+  const trackOfferFormSubmit = useCallback((orderId, amount, sentWithOverride = false, score = null) => {
+    track(EVENT_TYPES.OFFER_FORM_SUBMIT, {
+      orderId,
+      amount,
+      sentWithOverride: Boolean(sentWithOverride),
+      score: score != null && Number.isFinite(Number(score)) ? Number(score) : null
+    });
+  }, [track]);
+
+  const trackOfferFormPreflightBlocked = useCallback((orderId, score, usedAiPreflight) => {
+    track(EVENT_TYPES.OFFER_FORM_PREFLIGHT_BLOCKED, { orderId, score, usedAiPreflight });
+  }, [track]);
+
+  const trackOfferFormPreflightOverride = useCallback((orderId, score, usedAiPreflight) => {
+    track(EVENT_TYPES.OFFER_FORM_PREFLIGHT_OVERRIDE, { orderId, score, usedAiPreflight });
   }, [track]);
 
   const trackOrderAccepted = useCallback((orderId, providerId) => {
@@ -294,6 +309,8 @@ export function useTelemetry() {
     trackOfferFormStart,
     trackOfferStepView,
     trackOfferFormSubmit,
+    trackOfferFormPreflightBlocked,
+    trackOfferFormPreflightOverride,
     trackOrderAccepted,
     trackPayment,
     sessionId: sessionId.current
