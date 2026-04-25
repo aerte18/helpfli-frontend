@@ -187,6 +187,13 @@ export default function UnifiedAIConcierge({
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.text || '' }))
         .slice(-10);
+      const requestMessages = [
+        ...conversationHistory,
+        {
+          role: 'user',
+          content: q || (attachedFiles.length > 0 ? `Przesłano ${attachedFiles.length} plik(ów) do analizy` : '')
+        }
+      ];
 
       // Tryb firmy: użyj Asystenta AI dla firmy (ten sam co w Panelu firmy)
       if (companyId) {
@@ -223,7 +230,7 @@ export default function UnifiedAIConcierge({
       if (USE_V2) {
         endpoint = `${API_URL}/api/ai/concierge/v2`;
         requestBody = {
-          messages: conversationHistory,
+          messages: requestMessages,
           sessionId,
           userContext: { location: null },
           imageUrls: imageUrls
