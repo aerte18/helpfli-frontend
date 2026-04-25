@@ -71,15 +71,6 @@ const PROVIDER_START_PROMPTS = [
   }
 ];
 
-const PROVIDER_DISCOVERY_PROMPTS = [
-  "Hydraulik",
-  "Elektryk",
-  "Naprawa AGD",
-  "Malarz",
-  "Złota rączka",
-  "Sprzątanie"
-];
-
 function providerPlanMeta(provider = {}) {
   const raw = String(provider.level || provider.providerTier || provider.plan || provider.package || '').toLowerCase();
   const isPro = Boolean(provider.isPro || provider.pro || raw.includes('pro') || raw.includes('premium') || raw.includes('business'));
@@ -133,7 +124,7 @@ export default function UnifiedAIConcierge({
   const [companyResolved, setCompanyResolved] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { trackSearch, trackCategorySelected, trackProviderView, trackProviderContact, trackOrderFormStart } = useTelemetry();
+  const { trackSearch, trackProviderView, trackProviderContact, trackOrderFormStart } = useTelemetry();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -523,11 +514,6 @@ setMsgs((m) => [...m, {
     ask(value);
   };
 
-  const handleProviderDiscovery = (service) => {
-    trackCategorySelected(`ai-${service}`, service);
-    handleStartPrompt(`Pokaż najlepszych wykonawców dla usługi: ${service}. Uwzględnij PRO, opinie, odległość i dopasowanie.`);
-  };
-
   const openProviderProfile = (provider) => {
     const providerId = provider.providerId || provider.id || provider._id;
     if (!providerId) return;
@@ -585,6 +571,9 @@ setMsgs((m) => [...m, {
     ? "Pomogę wybrać najlepsze zlecenia, wycenić ofertę i napisać wiadomość do klienta."
     : "Najlepiej sprawdzam się, gdy szukasz fachowca, ceny albo nie wiesz, jak opisać problem.";
   const showStartSuggestions = !companyId && msgs.length <= 1 && !msgs.some((m) => m.role === 'user') && !analysisResult;
+  const visibleMessages = showStartSuggestions
+    ? msgs.filter((m, idx) => !(idx === 0 && m.role === 'assistant'))
+    : msgs;
 
   const content = (
     <div className={cardClass} style={{ pointerEvents: 'auto' }}>
@@ -674,33 +663,9 @@ setMsgs((m) => [...m, {
                     </button>
                   ))}
                 </div>
-                {!isProviderUser && (
-                <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3">
-                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-700">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Polecani providerzy AI
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {PROVIDER_DISCOVERY_PROMPTS.map((service) => (
-                      <button
-                        key={service}
-                        type="button"
-                        onClick={() => handleProviderDiscovery(service)}
-                        disabled={busy}
-                        className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
-                      >
-                        {service}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-[11px] text-indigo-700">
-                    AI uwzględni dopasowanie, opinie, odległość, dostępność i wyróżnienie PRO.
-                  </p>
-                </div>
-                )}
               </div>
             )}
-            {msgs.map((m, i) => (
+            {visibleMessages.map((m, i) => (
               <div key={i} className="w-full">
                 {m.role === "user" ? (
                   <>
