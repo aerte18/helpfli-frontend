@@ -9,6 +9,99 @@ import ChatBubble, { TypingBubble } from "../ChatBubble";
 import { Sparkles, X, Paperclip, Send, Video, Loader2, AlertTriangle } from "lucide-react";
 import { onAI, closeAI } from "../../ai/chat/bus";
 import { companyAiChat } from "../../api/companies";
+import { useTelemetry } from "../../hooks/useTelemetry";
+
+const CLIENT_START_PROMPTS = [
+  {
+    label: "Potrzebuję fachowca do naprawy pralki",
+    value: "Potrzebuję fachowca do naprawy pralki. Pomóż dobrać usługę, oszacować cenę i znaleźć najlepszych wykonawców.",
+    tone: "provider"
+  },
+  {
+    label: "Pokaż najlepszych hydraulików w okolicy",
+    value: "Pokaż najlepszych hydraulików w mojej okolicy, najlepiej zweryfikowanych i z dobrymi opiniami.",
+    tone: "provider"
+  },
+  {
+    label: "Szukam wykonawcy PRO do naprawy AGD",
+    value: "Szukam wykonawcy PRO do naprawy AGD. Pomóż znaleźć najlepiej dopasowanych providerów.",
+    tone: "pro"
+  },
+  {
+    label: "Ile kosztuje malowanie pokoju?",
+    value: "Ile może kosztować malowanie pokoju i jak dobrze opisać zlecenie?",
+    tone: "price"
+  },
+  {
+    label: "Mam pilną awarię, co robić?",
+    value: "Mam pilną awarię w domu. Pomóż ocenić ryzyko i znaleźć fachowca.",
+    tone: "urgent"
+  },
+  {
+    label: "Opisz problem za mnie i utwórz zlecenie",
+    value: "Pomóż mi opisać problem, zadaj najważniejsze pytania i przygotuj zlecenie dla wykonawcy.",
+    tone: "draft"
+  }
+];
+
+const PROVIDER_START_PROMPTS = [
+  {
+    label: "Pokaż najlepsze zlecenia dla mnie",
+    value: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej.",
+    tone: "provider",
+    action: "provider_orders"
+  },
+  {
+    label: "Pomóż wycenić ofertę",
+    value: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję.",
+    tone: "price",
+    action: "provider_ai"
+  },
+  {
+    label: "Napisz odpowiedź do klienta",
+    value: "Napisz profesjonalną odpowiedź do klienta z pytaniami o zakres, termin i budżet.",
+    tone: "draft",
+    action: "provider_ai"
+  },
+  {
+    label: "Które zlecenie ma największą szansę?",
+    value: "Które zlecenie ma największą szansę wygranej i dlaczego?",
+    tone: "pro",
+    action: "provider_orders"
+  }
+];
+
+const PROVIDER_DISCOVERY_PROMPTS = [
+  "Hydraulik",
+  "Elektryk",
+  "Naprawa AGD",
+  "Malarz",
+  "Złota rączka",
+  "Sprzątanie"
+];
+
+function providerPlanMeta(provider = {}) {
+  const raw = String(provider.level || provider.providerTier || provider.plan || provider.package || '').toLowerCase();
+  const isPro = Boolean(provider.isPro || provider.pro || raw.includes('pro') || raw.includes('premium') || raw.includes('business'));
+  if (isPro) {
+    return { label: 'PRO', className: 'bg-purple-100 text-purple-700 border-purple-200' };
+  }
+  if (provider.verified) {
+    return { label: 'Zweryfikowany', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+  }
+  return null;
+}
+
+function providerTrustReasons(provider = {}) {
+  const reasons = [];
+  const plan = providerPlanMeta(provider);
+  if (plan?.label === 'PRO') reasons.push('Pakiet PRO zwiększa widoczność, ale ranking nadal opiera się na dopasowaniu i jakości.');
+  if (provider.verified) reasons.push('Zweryfikowany profil');
+  if (provider.isAvailable) reasons.push('Szybka dostępność');
+  if (provider.rating >= 4.5) reasons.push(`Dobre opinie: ${provider.rating.toFixed(1)}/5`);
+  if (provider.completedOrders > 0) reasons.push(`${provider.completedOrders} realizacji`);
+  return reasons;
+}
 
 /**
  * Ujednolicony komponent Asystenta AI - używany wszędzie w aplikacji
@@ -40,6 +133,7 @@ export default function UnifiedAIConcierge({
   const [companyResolved, setCompanyResolved] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackSearch, trackCategorySelected, trackProviderView, trackProviderContact, trackOrderFormStart } = useTelemetry();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -194,8 +288,9 @@ export default function UnifiedAIConcierge({
     };
   };
 
-  const ask = async () => {
-    if (!input.trim() && attachedFiles.length === 0) return;
+  const ask = async (overrideText = null) => {
+    const q = typeof overrideText === 'string' ? overrideText.trim() : input.trim();
+    if (!q && attachedFiles.length === 0) return;
     
     const token = localStorage.getItem('token');
     if (!token) {
@@ -206,7 +301,6 @@ export default function UnifiedAIConcierge({
       return;
     }
     
-    const q = input.trim();
     const imageUrls = attachedFiles.map(f => f.url);
     
     setMsgs((m) => [...m, { 
@@ -375,6 +469,99 @@ setMsgs((m) => [...m, {
     }
   };
 
+  const runServiceSearchPreview = async (query) => {
+    const token = localStorage.getItem('token');
+    if (!token || !query?.trim()) return;
+    try {
+      const res = await fetch(apiUrl('/api/ai/concierge/service-search'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ query, limit: 3 })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) return;
+      setAnalysisResult((prev) => ({
+        ...(prev || {}),
+        serviceSearch: data,
+        serviceCandidate: data.serviceCandidate
+          ? {
+              code: data.serviceCandidate.code,
+              name: serviceLabel(data.serviceCandidate.code || data.serviceCandidate.name),
+              description: data.serviceCandidate.description
+            }
+          : prev?.serviceCandidate || null,
+        urgency: data.urgency || prev?.urgency,
+        pricing: data.pricing || prev?.pricing || null,
+        matching: data.matching || prev?.matching || null
+      }));
+    } catch (error) {
+      console.warn('AI service search preview failed:', error?.message || error);
+    }
+  };
+
+  const handleStartPrompt = (promptOrValue) => {
+    const prompt = typeof promptOrValue === 'string' ? { value: promptOrValue } : promptOrValue;
+    const value = prompt?.value || '';
+    if (prompt?.action === 'provider_orders') {
+      trackSearch(value, { source: 'provider_ai_start_prompt' }, 0);
+      navigate('/provider-home');
+      if (mode === 'modal' && onClose) onClose();
+      return;
+    }
+    if (prompt?.action === 'provider_ai') {
+      trackSearch(value, { source: 'provider_ai_start_prompt' }, 0);
+      window.dispatchEvent(new CustomEvent('openProviderAi', { detail: { prefill: value } }));
+      if (mode === 'modal' && onClose) onClose();
+      return;
+    }
+    trackSearch(value, { source: 'concierge_start_prompt' }, 0);
+    setInput(value);
+    runServiceSearchPreview(value);
+    ask(value);
+  };
+
+  const handleProviderDiscovery = (service) => {
+    trackCategorySelected(`ai-${service}`, service);
+    handleStartPrompt(`Pokaż najlepszych wykonawców dla usługi: ${service}. Uwzględnij PRO, opinie, odległość i dopasowanie.`);
+  };
+
+  const openProviderProfile = (provider) => {
+    const providerId = provider.providerId || provider.id || provider._id;
+    if (!providerId) return;
+    trackProviderView(String(providerId), 'ai_recommendation');
+    navigate(`/provider/${providerId}`);
+    if (mode === 'modal' && onClose) onClose();
+  };
+
+  const createOrderForProvider = (provider) => {
+    const providerId = provider.providerId || provider.id || provider._id;
+    trackOrderFormStart();
+    if (providerId) trackProviderContact(String(providerId), 'ai_create_order_cta');
+    navigate('/create-order', {
+      state: {
+        ...buildCreateOrderState(analysisResult?.orderDraft),
+        recommendedProviderId: providerId,
+        matchMode: 'ai_provider_recommendation'
+      }
+    });
+    if (mode === 'modal' && onClose) onClose();
+  };
+
+  const openProviderSearch = () => {
+    const service = analysisResult?.matching?.service || analysisResult?.serviceCandidate?.code || '';
+    navigate('/search?service=' + encodeURIComponent(service));
+    if (mode === 'modal' && onClose) onClose();
+  };
+
+  const askPriceForProvider = (provider) => {
+    const service = serviceLabel(analysisResult?.matching?.service || analysisResult?.serviceCandidate?.code || 'tej usługi', 'tej usługi');
+    const providerName = provider?.name ? ` u wykonawcy ${provider.name}` : '';
+    handleStartPrompt(`Ile może kosztować ${service}${providerName}? Uwzględnij wariant basic, standard i PRO oraz co wpływa na cenę.`);
+  };
+
   // Style w zależności od trybu
   const containerClass = mode === 'modal' 
     ? "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
@@ -391,6 +578,13 @@ setMsgs((m) => [...m, {
   const wrapperClass = mode === 'page'
     ? "container mx-auto py-8 max-w-4xl"
     : "";
+  const isProviderUser = user?.role === 'provider';
+  const activeStartPrompts = isProviderUser ? PROVIDER_START_PROMPTS : CLIENT_START_PROMPTS;
+  const startTitle = isProviderUser ? "Cześć, wykonawco!" : "Cześć!";
+  const startSubtitle = isProviderUser
+    ? "Pomogę wybrać najlepsze zlecenia, wycenić ofertę i napisać wiadomość do klienta."
+    : "Najlepiej sprawdzam się, gdy szukasz fachowca, ceny albo nie wiesz, jak opisać problem.";
+  const showStartSuggestions = !companyId && msgs.length <= 1 && !msgs.some((m) => m.role === 'user') && !analysisResult;
 
   const content = (
     <div className={cardClass} style={{ pointerEvents: 'auto' }}>
@@ -449,6 +643,63 @@ setMsgs((m) => [...m, {
           </div>
         ) : (
           <>
+            {showStartSuggestions && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-4">
+                  <div className="text-2xl font-semibold leading-tight text-slate-900">
+                    <span className="text-orange-600">{startTitle}</span>
+                    <br />
+                    jak mogę Ci pomóc?
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-slate-800">
+                    {startSubtitle}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {activeStartPrompts.map((prompt) => (
+                    <button
+                      key={prompt.label}
+                      type="button"
+                      onClick={() => handleStartPrompt(prompt)}
+                      disabled={busy}
+                      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                        prompt.tone === 'pro'
+                          ? 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
+                          : prompt.tone === 'urgent'
+                            ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                            : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
+                      }`}
+                    >
+                      {prompt.label}
+                    </button>
+                  ))}
+                </div>
+                {!isProviderUser && (
+                <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Polecani providerzy AI
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {PROVIDER_DISCOVERY_PROMPTS.map((service) => (
+                      <button
+                        key={service}
+                        type="button"
+                        onClick={() => handleProviderDiscovery(service)}
+                        disabled={busy}
+                        className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                      >
+                        {service}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-indigo-700">
+                    AI uwzględni dopasowanie, opinie, odległość, dostępność i wyróżnienie PRO.
+                  </p>
+                </div>
+                )}
+              </div>
+            )}
             {msgs.map((m, i) => (
               <div key={i} className="w-full">
                 {m.role === "user" ? (
@@ -833,6 +1084,69 @@ setMsgs((m) => [...m, {
                     )}
                   </div>
                 )}
+
+                {(analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">AI wyszukiwarka usług</div>
+                        <div className="text-base font-semibold text-slate-900">
+                          {serviceLabel(analysisResult.matching?.service || analysisResult.serviceCandidate?.code || analysisResult.serviceCandidate?.name, 'Dopasowana usługa')}
+                        </div>
+                      </div>
+                      {analysisResult.matching?.topProviders?.length > 0 && (
+                        <div className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                          TOP {Math.min(3, analysisResult.matching.topProviders.length)} providerów
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
+                      <div className="rounded-lg bg-slate-50 p-2">
+                        <div className="font-semibold text-slate-900">Kategoria</div>
+                        <div>{serviceLabel(analysisResult.matching?.service || analysisResult.serviceCandidate?.code || analysisResult.serviceCandidate?.name, 'Do ustalenia')}</div>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2">
+                        <div className="font-semibold text-slate-900">Budżet</div>
+                        <div>
+                          {analysisResult.pricing?.ranges?.standard
+                            ? `${analysisResult.pricing.ranges.standard.min}-${analysisResult.pricing.ranges.standard.max} PLN`
+                            : analysisResult.orderDraft?.summary?.budget || 'Do oszacowania'}
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 p-2">
+                        <div className="font-semibold text-slate-900">Rekomendacje</div>
+                        <div>
+                          {analysisResult.matching?.topProviders?.length
+                            ? `${analysisResult.matching.topProviders.length} dopasowanych`
+                            : 'AI może znaleźć wykonawców'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={openProviderSearch}
+                        className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                      >
+                        Pokaż wykonawców
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/create-order', { state: buildCreateOrderState(analysisResult.orderDraft) })}
+                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+                      >
+                        Utwórz zlecenie
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStartPrompt(`Zapytaj o cenę dla usługi ${serviceLabel(analysisResult.matching?.service || analysisResult.serviceCandidate?.code || 'wybranej usługi')}. Pokaż widełki basic, standard i PRO.`)}
+                        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                      >
+                        Zapytaj o cenę
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 {/* DIY Steps - z agenta DIY */}
                 {analysisResult.diySteps && analysisResult.diySteps.length > 0 && (
@@ -913,57 +1227,119 @@ setMsgs((m) => [...m, {
                 {/* Matching - Wykonawcy z agenta */}
                 {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && (
                   <div className="bg-white border border-indigo-200 rounded-xl p-4">
-                    <div className="font-semibold text-indigo-900 mb-3">👥 Polecani wykonawcy</div>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-indigo-900">Polecani wykonawcy AI</div>
+                        <div className="text-xs text-indigo-700">Ranking: dopasowanie, opinie, odległość, dostępność i PRO</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/search?service=' + encodeURIComponent(analysisResult.matching.service || analysisResult.serviceCandidate?.code || ''))}
+                        className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                      >
+                        Pokaż więcej
+                      </button>
+                    </div>
                     <div className="space-y-3">
-                      {analysisResult.matching.topProviders.slice(0, 3).map((provider, idx) => (
-                        <div key={idx} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{provider.name}</div>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {provider.rating > 0 && `⭐ ${provider.rating.toFixed(1)} • `}
-                                {provider.distanceKm > 0 && `${provider.distanceKm.toFixed(1)} km • `}
-                                Poziom: {provider.level}
+                      {analysisResult.matching.topProviders.slice(0, 3).map((provider, idx) => {
+                        const plan = providerPlanMeta(provider);
+                        const trustReasons = providerTrustReasons(provider);
+                        return (
+                          <div key={idx} className={`border rounded-lg p-3 transition-colors ${
+                            plan?.label === 'PRO'
+                              ? 'border-purple-200 bg-purple-50/40 hover:bg-purple-50'
+                              : 'border-gray-200 hover:bg-gray-50'
+                          }`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="font-medium text-gray-900">{provider.name}</div>
+                                  {plan && (
+                                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${plan.className}`}>
+                                      {plan.label}
+                                    </span>
+                                  )}
+                                  {provider.isAvailable && (
+                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-100">
+                                      Dostępny
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {provider.rating > 0 && `Ocena ${provider.rating.toFixed(1)} • `}
+                                  {provider.distanceKm > 0 && `${provider.distanceKm.toFixed(1)} km • `}
+                                  {provider.completedOrders > 0 && `${provider.completedOrders} realizacji • `}
+                                  Poziom: {provider.level || 'standard'}
+                                </div>
                               </div>
+                              {provider.matchScore != null && (
+                                <div className={`ml-3 rounded-xl px-2.5 py-1 text-center text-xs font-bold ${
+                                  provider.matchScore >= 90
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : provider.matchScore >= 80
+                                      ? 'bg-indigo-100 text-indigo-700'
+                                      : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  <div className="text-sm">{provider.matchScore}%</div>
+                                  <div className="text-[10px] font-semibold uppercase">match</div>
+                                </div>
+                              )}
                             </div>
-                            {provider.matchScore != null && (
-                              <div className={`ml-3 rounded-full px-2.5 py-1 text-xs font-bold ${
-                                provider.matchScore >= 90
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : provider.matchScore >= 80
-                                    ? 'bg-indigo-100 text-indigo-700'
-                                    : 'bg-slate-100 text-slate-700'
-                              }`}>
-                                {provider.matchScore}%
+                            {provider.matchLabel && (
+                              <div className="text-xs font-semibold text-indigo-800">
+                                {provider.matchLabel}
                               </div>
                             )}
+                            {provider.matchReasons?.length > 0 && (
+                              <ul className="mt-2 space-y-1 text-xs text-slate-700">
+                                {provider.matchReasons.slice(0, 3).map((reason, reasonIdx) => (
+                                  <li key={reasonIdx} className="flex gap-2">
+                                    <span className="text-indigo-500">•</span>
+                                    <span>{reason}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {trustReasons.length > 0 && (
+                              <div className="mt-2 rounded-lg border border-slate-200 bg-white/80 px-2.5 py-2 text-[11px] text-slate-700">
+                                <span className="font-semibold text-slate-900">Dlaczego AI poleca:</span> {trustReasons.slice(0, 3).join(' • ')}
+                              </div>
+                            )}
+                            {provider.matchHighlights?.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {provider.matchHighlights.slice(0, 3).map((item, hIdx) => (
+                                  <span key={`${item.type}-${hIdx}`} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                                    {item.label}: {item.detail}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openProviderProfile(provider)}
+                                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                Zobacz profil
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => createOrderForProvider(provider)}
+                                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+                              >
+                                Utwórz zlecenie dla niego
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => askPriceForProvider(provider)}
+                                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+                              >
+                                Zapytaj o cenę
+                              </button>
+                            </div>
                           </div>
-                          {provider.matchLabel && (
-                            <div className="text-xs font-semibold text-indigo-800">
-                              {provider.matchLabel}
-                            </div>
-                          )}
-                          {provider.matchReasons?.length > 0 && (
-                            <ul className="mt-2 space-y-1 text-xs text-slate-700">
-                              {provider.matchReasons.slice(0, 3).map((reason, reasonIdx) => (
-                                <li key={reasonIdx} className="flex gap-2">
-                                  <span className="text-indigo-500">•</span>
-                                  <span>{reason}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          {provider.matchHighlights?.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {provider.matchHighlights.slice(0, 3).map((item, hIdx) => (
-                                <span key={`${item.type}-${hIdx}`} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
-                                  {item.label}: {item.detail}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {analysisResult.matching.topProviders.length > 3 && (
                       <div className="mt-3 text-xs text-gray-500 text-center">

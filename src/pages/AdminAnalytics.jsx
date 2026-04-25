@@ -157,6 +157,15 @@ export default function AdminAnalytics() {
     () => (Array.isArray(aiInsights?.topErrors) ? aiInsights.topErrors : []),
     [aiInsights]
   );
+  const aiPromptStats = aiInsights?.promptAnalytics || {};
+  const aiStartPrompts = useMemo(
+    () => (Array.isArray(aiPromptStats?.startPrompts) ? aiPromptStats.startPrompts : []),
+    [aiPromptStats]
+  );
+  const aiProviderDiscovery = useMemo(
+    () => (Array.isArray(aiPromptStats?.providerDiscovery) ? aiPromptStats.providerDiscovery : []),
+    [aiPromptStats]
+  );
   const statusCodesHealth = useMemo(
     () => (Array.isArray(searchApiHealth?.statusCodes) ? searchApiHealth.statusCodes : []),
     [searchApiHealth]
@@ -252,6 +261,32 @@ export default function AdminAnalytics() {
           />
         </Panel>
       )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="AI prompty startowe" value={asText(num(aiStartPrompts.reduce((sum, row) => sum + num(row?.count), 0)))} />
+        <Card title="AI wybór usługi" value={asText(num(aiProviderDiscovery.reduce((sum, row) => sum + num(row?.count), 0)))} />
+        <Card title="AI → profil providera" value={asText(num(aiPromptStats.aiProviderViews))} />
+        <Card title="AI → zlecenie do providera" value={asText(num(aiPromptStats.aiProviderOrderCtas))} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="AI: skuteczność promptów startowych">
+          <SimpleTable
+            headers={["Źródło", "Prompt", "Kliknięcia"]}
+            rows={aiStartPrompts.map((p) => [
+              asText(p?.source),
+              asText(p?.query).slice(0, 120),
+              asText(num(p?.count)),
+            ])}
+          />
+        </Panel>
+        <Panel title="AI: najczęściej wybierane usługi">
+          <SimpleTable
+            headers={["Usługa", "Kliknięcia"]}
+            rows={aiProviderDiscovery.map((p) => [asText(p?.service), asText(num(p?.count))])}
+          />
+        </Panel>
+      </div>
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">Ruch i wyszukiwania (produkt)</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
