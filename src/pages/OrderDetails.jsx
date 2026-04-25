@@ -31,6 +31,8 @@ import { useTelemetry } from "../hooks/useTelemetry";
 import { Helmet } from "react-helmet-async";
 import { getVideoSessionByOrder } from "../api/video";
 import AIStepHint from "../components/AIStepHint";
+import { serviceLabel } from "../utils/serviceLabels";
+import { openAI } from "../ai/chat/bus";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -68,6 +70,39 @@ const apiPatch = async (path, body) => {
   if (!res.ok) throw new Error(data?.message || `PATCH ${path} failed`);
   return data;
 };
+
+function providerOrderMatch(order, user) {
+  const aiMatch = order?.providerMatch || order?.aiFollowup?.providerMatch;
+  if (aiMatch) return aiMatch;
+  if (!order || (user?.role !== 'provider' && user?.role !== 'company_owner')) return null;
+  let score = 45;
+  const reasons = [];
+  if (order.aiBrief?.title) {
+    score += 15;
+    reasons.push('AI brief ułatwia szybką wycenę');
+  }
+  if (order.attachments?.length > 0) {
+    score += 10;
+    reasons.push('Klient dodał załączniki');
+  }
+  if (order.budget || order.budgetRange?.max) {
+    score += 8;
+    reasons.push('Budżet jest podany');
+  }
+  if (['now', 'today'].includes(order.urgency)) {
+    score += 7;
+    reasons.push('Pilne zlecenie może szybciej konwertować');
+  }
+  if (order.location?.address || order.city) {
+    score += 5;
+    reasons.push('Lokalizacja jest określona');
+  }
+  return {
+    score: Math.min(100, score),
+    label: score >= 80 ? 'Bardzo dobre zlecenie dla Ciebie' : score >= 65 ? 'Dobre dopasowanie' : 'Warto sprawdzić',
+    reasons: reasons.length ? reasons : ['Pasuje do aktywnego rynku zleceń']
+  };
+}
 
 /** Względne URL-e z backendu (/uploads/orders/...) muszą iść przez apiUrl — inaczej img ładuje się z domeny frontendu i „znika”. */
 function attachmentPublicUrl(url) {
@@ -534,7 +569,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
               <div className="text-sm font-medium text-gray-700">Usługa</div>
               <div className="mt-1 flex items-center gap-2 text-slate-900">
                 <Briefcase className="h-4 w-4 text-slate-500" />
-                <span>{order.service || 'Nie podano'}</span>
+                <span>{serviceLabel(order.service)}</span>
               </div>
               {order.serviceDetails && (
                 <div className="mt-1 text-indigo-700 font-medium text-sm">{order.serviceDetails}</div>
@@ -1112,13 +1147,14 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
         </div>
       )}
 
-      {/* Użyj istniejącego komponentu OffersList */}
-      <OffersList
-        orderId={orderId}
-        recommendedOfferId={aiRecommendation?.recommendedOfferId}
-        topOfferIds={aiRecommendation?.topOfferIds}
-        aiReasoning={aiRecommendation?.reasoning}
-      />
+      <div id="order-offers-section">
+        <OffersList
+          orderId={orderId}
+          recommendedOfferId={aiRecommendation?.recommendedOfferId}
+          topOfferIds={aiRecommendation?.topOfferIds}
+          aiReasoning={aiRecommendation?.reasoning}
+        />
+      </div>
     </div>
   );
 }
@@ -1401,7 +1437,7 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Usługa:</span>
-              <span className="font-medium text-slate-900">{order.service}</span>
+              <span className="font-medium text-slate-900">{serviceLabel(order.service)}</span>
             </div>
             {order.serviceDetails && (
               <div className="flex justify-between">
@@ -2534,7 +2570,7 @@ export default function OrderDetails() {
         setOrder(orderRes);
         try {
           const followupData = await apiGet(`/api/orders/${orderId}/ai-followup`);
-          setAiFollowup(followupData.followup || null);
+          setAiFollowup(followupData.providerMatch ? { ...(followupData.followup || {}), providerMatch: followupData.providerMatch } : (followupData.followup || null));
         } catch {
           setAiFollowup(null);
         }
@@ -2673,7 +2709,7 @@ export default function OrderDetails() {
         setOrder(fresh);
         try {
           const followupData = await apiGet(`/api/orders/${orderId}/ai-followup`);
-          if (!cancelled) setAiFollowup(followupData.followup || null);
+          if (!cancelled) setAiFollowup(followupData.providerMatch ? { ...(followupData.followup || {}), providerMatch: followupData.providerMatch } : (followupData.followup || null));
         } catch {
           if (!cancelled) setAiFollowup(null);
         }
@@ -3358,6 +3394,42 @@ export default function OrderDetails() {
       currentUserId &&
       orderClientId &&
       String(currentUserId) === String(orderClientId));
+  const providerMatch = aiFollowup?.providerMatch || providerOrderMatch(order, currentUser || me);
+
+  const openEditOrder = useCallback(() => {
+    setEditForm({
+      description: order.description || '',
+      location: (order.location && typeof order.location === 'object' ? order.location.address : order.location) || '',
+      budget: order.budget ?? '',
+      urgency: order.urgency || 'flexible',
+      serviceDetails: order.serviceDetails || ''
+    });
+    setShowEditOrderModal(true);
+  }, [order]);
+
+  const handleAiFollowupAction = useCallback(({ seedQuery } = {}) => {
+    const actionType = aiFollowup?.actionType;
+    if (isClient && ['add_attachments', 'improve_order', 'complete_brief'].includes(actionType)) {
+      openEditOrder();
+      return;
+    }
+    if (isClient && ['compare_offers', 'review_offers', 'choose_offer'].includes(actionType)) {
+      goTab('details');
+      setTimeout(() => document.getElementById('order-offers-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      return;
+    }
+    if (isProvider && ['make_offer', 'send_offer', 'price_offer', 'provider_offer'].includes(actionType)) {
+      goTab(myOffer ? 'my_offer' : 'offers');
+      return;
+    }
+    if (['chat', 'schedule', 'contact_provider', 'payment', 'payment_or_schedule', 'schedule_work', 'provider_schedule'].includes(actionType)) {
+      goTab('chat');
+      return;
+    }
+    if (seedQuery) {
+      openAI("modal", seedQuery);
+    }
+  }, [aiFollowup?.actionType, isClient, isProvider, myOffer, openEditOrder]);
   
   // Sprawdź czy provider jest przypisany do zlecenia LUB złożył ofertę (dla innych logik, np. uprawnień)
   const isAssignedProvider = (() => {
@@ -3399,7 +3471,7 @@ export default function OrderDetails() {
 
   // (Debug log usunięty) – nie spamuj konsoli użytkownika
 
-  const orderTitle = order?.service ? `Zlecenie: ${order.service} | Helpfli` : `Zlecenie #${order?._id?.slice(-6) || orderId} | Helpfli`;
+  const orderTitle = order?.service ? `Zlecenie: ${serviceLabel(order.service)} | Helpfli` : `Zlecenie #${order?._id?.slice(-6) || orderId} | Helpfli`;
 
   return (
     <div className="min-h-screen bg-[var(--qs-color-bg-soft)] py-4 md:py-6">
@@ -3537,7 +3609,35 @@ export default function OrderDetails() {
                 seedQuery={aiFollowup.seedQuery}
                 ctaLabel={aiFollowup.cta}
                 priority={aiFollowup.priority}
+                onAction={handleAiFollowupAction}
               />
+            </div>
+          )}
+
+          {tab === "details" && isProvider && providerMatch && (
+            <div className="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-indigo-950">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    AI dopasowanie zlecenia
+                  </div>
+                  <div className="mt-1 text-sm text-indigo-800">{providerMatch.label || 'Dopasowanie do Twojego profilu'}</div>
+                </div>
+                <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+                  <div className="text-2xl font-bold text-indigo-700">{Math.round(providerMatch.score || providerMatch.percent || 0)}%</div>
+                  <div className="text-[11px] uppercase tracking-wide text-indigo-500">match</div>
+                </div>
+              </div>
+              {Array.isArray(providerMatch.reasons) && providerMatch.reasons.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {providerMatch.reasons.slice(0, 3).map((reason, idx) => (
+                    <span key={`${reason}-${idx}`} className="rounded-full bg-white px-2.5 py-1 text-xs text-indigo-800 border border-indigo-100">
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -3575,7 +3675,7 @@ export default function OrderDetails() {
                 </div>
                 <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-slate-500" />
-                  <span>{order.service || 'Nie podano usługi'}</span>
+                  <span>{serviceLabel(order.service, 'Nie podano usługi')}</span>
                 </div>
                 {order.serviceDetails && (
                   <div className="text-xs text-indigo-700">
@@ -4184,7 +4284,7 @@ export default function OrderDetails() {
                           {/* Usługa */}
                           <div>
                             <label className="text-sm font-medium text-gray-700">Usługa</label>
-                            <div className="mt-1 text-slate-900">{order.service || 'Nie podano'}</div>
+                            <div className="mt-1 text-slate-900">{serviceLabel(order.service)}</div>
                             {order.serviceDetails && (
                               <div className="mt-1 text-indigo-700 font-medium">{order.serviceDetails}</div>
                             )}

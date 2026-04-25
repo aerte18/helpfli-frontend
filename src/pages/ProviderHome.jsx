@@ -16,6 +16,7 @@ import Footer from "../components/Footer";
 import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
 import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
+import { serviceLabel } from "../utils/serviceLabels";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -79,6 +80,77 @@ function asDisplayText(value, fallback = "") {
     if (typeof candidate === "string") return candidate;
   }
   return fallback;
+}
+
+function buildProviderListMatch(order = {}) {
+  const explicit = order.providerMatch || order.aiMatch;
+  if (explicit) {
+    const score = Math.round(Number(explicit.score ?? explicit.percent ?? explicit.matchScore ?? 0));
+    return {
+      score: Math.max(0, Math.min(100, score)),
+      label: explicit.label || explicit.matchLabel || matchLabel(score),
+      reasons: Array.isArray(explicit.reasons) ? explicit.reasons : []
+    };
+  }
+
+  let score = 45;
+  const reasons = [];
+  const attachmentsCount = Array.isArray(order.attachments) ? order.attachments.length : 0;
+  const offersCount = Number(order.offersCount ?? order.offers?.length ?? 0);
+  const distance = Number(order.distanceKm);
+
+  if (order.isRecommendedForProvider) {
+    score += 24;
+    reasons.push("Pasuje do Twoich usług");
+  }
+  if (order.aiBrief?.quality?.percent >= 70 || order.aiBrief?.quality?.level === "pro") {
+    score += 10;
+    reasons.push("Opis jest dobrze przygotowany");
+  } else if (order.aiBrief?.title || order.source === "ai") {
+    score += 6;
+    reasons.push("AI zebrało kontekst zlecenia");
+  }
+  if (attachmentsCount > 0) {
+    score += 7;
+    reasons.push("Są zdjęcia lub pliki");
+  }
+  if (order.budget || order.budgetFrom || order.budgetTo || order.budgetRange?.max) {
+    score += 6;
+    reasons.push("Budżet jest podany");
+  }
+  if (Number.isFinite(distance)) {
+    if (distance <= 10) {
+      score += 7;
+      reasons.push("Blisko Ciebie");
+    } else if (distance <= 25) {
+      score += 4;
+      reasons.push("Rozsądny dojazd");
+    }
+  }
+  if (["now", "today"].includes(order.urgency)) {
+    score += 4;
+    reasons.push("Klient chce szybkiej reakcji");
+  }
+  if (offersCount > 5) {
+    score -= 8;
+  } else if (offersCount <= 2) {
+    score += 4;
+    reasons.push("Niska konkurencja");
+  }
+
+  const normalizedScore = Math.max(35, Math.min(98, Math.round(score)));
+  return {
+    score: normalizedScore,
+    label: matchLabel(normalizedScore),
+    reasons: reasons.slice(0, 3)
+  };
+}
+
+function matchLabel(score) {
+  if (score >= 85) return "Bardzo mocny match";
+  if (score >= 72) return "Dobry match";
+  if (score >= 60) return "Warto sprawdzić";
+  return "Niski priorytet";
 }
 
 // Funkcja do tworzenia nowoczesnych pinezek dla zleceń
@@ -903,15 +975,21 @@ export default function ProviderHome() {
 
     const withRecommendation = sorted.map((o) => {
       const id = String(o?._id || o?.id || "").trim();
-      return {
+      const enriched = {
         ...o,
         isRecommendedForProvider: !!(id && recommendedIdSet.has(id)),
         recommendedReason: "",
       };
+      const aiMatch = buildProviderListMatch(enriched);
+      return {
+        ...enriched,
+        aiMatch,
+        isRecommendedForProvider: enriched.isRecommendedForProvider || aiMatch.score >= 82,
+      };
     });
 
     if (recommendedOnly) {
-      return withRecommendation.filter((o) => o.isRecommendedForProvider);
+      return withRecommendation.filter((o) => o.isRecommendedForProvider || o.aiMatch?.score >= 82);
     }
 
     return withRecommendation;
@@ -2104,7 +2182,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   
   // Obsługa różnych formatów danych (mock vs API)
   const title = data.title || data.description || `${data.service} - zlecenie`;
-  const service = asDisplayText(data.service, "Usługa");
+  const service = serviceLabel(data.service, "Usługa");
   const serviceDetails = asDisplayText(data.serviceDetails, ""); // doprecyzowanie usługi
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
@@ -2115,6 +2193,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const isPilne = data.urgency === 'now'; // Tylko "now" jest pilne
   const isBoosted = data.boostedUntil && new Date(data.boostedUntil) > new Date();
   const expiry = getExpiryInfo(data);
+  const aiMatch = data.aiMatch || buildProviderListMatch(data);
   
   return (
     <div 
@@ -2181,6 +2260,13 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-semibold">
                   ✨ Polecane dla Ciebie
                 </span>
+              </div>
+            )}
+            {aiMatch?.score >= 60 && (
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-indigo-700 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI match {aiMatch.score}%</span>
+                <span className="text-indigo-500 font-medium">{aiMatch.label}</span>
               </div>
             )}
             
@@ -2306,6 +2392,15 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
               </span>
             )}
           </div>
+          {aiMatch?.score >= 60 && aiMatch.reasons?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {aiMatch.reasons.map((reason, idx) => (
+                <span key={`${reason}-${idx}`} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] text-indigo-700 border border-indigo-100">
+                  {reason}
+                </span>
+              ))}
+            </div>
+          )}
           {data.isRecommendedForProvider && asDisplayText(data.recommendedReason, "") && (
             <p className="mt-2 text-xs text-indigo-700">
               {asDisplayText(data.recommendedReason, "")}
@@ -2377,7 +2472,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
 function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const u = URGENCY_BADGE[order.urgency] || URGENCY_BADGE.flexible;
   
-  const service = asDisplayText(order.service, "Usługa");
+  const service = serviceLabel(order.service, "Usługa");
   const clientNote = asDisplayText(order.clientNote ?? order.description, "");
   const clientName = asDisplayText(order.client?.name, 'Klient');
   const avatarUrl = order.client?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(clientName)}&backgroundColor=4F46E5`;
@@ -2386,6 +2481,7 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
   const isFastTrack = order.urgency === 'now' || order.isPriority || order.isFastTrack;
   const isBoosted = order.boostedUntil && new Date(order.boostedUntil) > new Date();
   const expiry = getExpiryInfo(order);
+  const aiMatch = order.aiMatch || buildProviderListMatch(order);
   
   return (
     <div className="min-w-[260px] max-w-[300px]">
@@ -2416,6 +2512,14 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
               <div className="mt-1">
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/90 text-indigo-700 px-2 py-0.5 text-[10px] font-semibold">
                   ✨ Polecane
+                </span>
+              </div>
+            )}
+            {aiMatch?.score >= 60 && (
+              <div className="mt-1">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/90 text-indigo-700 px-2 py-0.5 text-[10px] font-semibold">
+                  <Sparkles className="w-3 h-3" />
+                  AI {aiMatch.score}%
                 </span>
               </div>
             )}
@@ -2529,7 +2633,7 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
 function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
   const u = URGENCY_BADGE[data.urgency] || URGENCY_BADGE.flexible;
   
-  const service = asDisplayText(data.service, "Usługa");
+  const service = serviceLabel(data.service, "Usługa");
   const serviceDetails = asDisplayText(data.serviceDetails, "");
   const distance = data.distanceKm;
   const budget = data.budget || `${data.budgetFrom || '?'}–${data.budgetTo || '?'}`;
@@ -2539,6 +2643,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
   
   const isFastTrack = data.urgency === 'now' || data.isPriority || data.isFastTrack;
   const expiry = getExpiryInfo(data);
+  const aiMatch = data.aiMatch || buildProviderListMatch(data);
   
   return (
     <div 
@@ -2581,6 +2686,12 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
             {data.isRecommendedForProvider && (
               <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
                 ✨ Polecane
+              </span>
+            )}
+            {aiMatch?.score >= 60 && (
+              <span className="inline-flex items-center gap-1 mt-0.5 ml-1 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-semibold border border-indigo-100">
+                <Sparkles className="w-3 h-3" />
+                {aiMatch.score}%
               </span>
             )}
             <h3 className="text-sm font-medium text-slate-800 truncate">{service}</h3>

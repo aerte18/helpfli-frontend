@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { serviceLabel } from "../../utils/serviceLabels";
 import { createOrder } from "../../api/orders";
 import LiveCameraAI from "../LiveCameraAI";
 import ChatBubble, { TypingBubble } from "../ChatBubble";
@@ -316,7 +317,7 @@ export default function UnifiedAIConcierge({
           ...data,
           serviceCandidate: result.detectedService ? {
             code: result.detectedService,
-            name: result.detectedService
+            name: serviceLabel(result.detectedService)
           } : null,
           urgency: result.urgency,
           diySteps: agents.diy?.steps || [],
@@ -597,7 +598,7 @@ setMsgs((m) => [...m, {
                           </div>
                         </div>
                         <div className="space-y-1 text-xs text-slate-700">
-                          <div><span className="font-medium">Usługa:</span> {m.orderDraft.summary?.service || m.orderDraft.orderPayload?.service || 'Nie wybrano'}</div>
+                          <div><span className="font-medium">Usługa:</span> {serviceLabel(m.orderDraft.summary?.service || m.orderDraft.orderPayload?.service, 'Nie wybrano')}</div>
                           <div><span className="font-medium">Opis:</span> {m.orderDraft.summary?.description || m.orderDraft.orderPayload?.description || 'Brak'}</div>
                           <div><span className="font-medium">Lokalizacja:</span> {m.orderDraft.summary?.location || 'Brak'}</div>
                           <div><span className="font-medium">Termin:</span> {m.orderDraft.summary?.preferredTime || 'Do ustalenia'}</div>
@@ -826,7 +827,7 @@ setMsgs((m) => [...m, {
                 {analysisResult.serviceCandidate && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                     <p className="text-xs text-indigo-600 font-medium mb-1">Sugerowana usługa</p>
-                    <p className="font-semibold text-indigo-900">{analysisResult.serviceCandidate.name}</p>
+                    <p className="font-semibold text-indigo-900">{serviceLabel(analysisResult.serviceCandidate.name)}</p>
                     {analysisResult.serviceCandidate.description && (
                       <p className="text-sm text-indigo-700 mt-1">{analysisResult.serviceCandidate.description}</p>
                     )}

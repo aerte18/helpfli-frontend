@@ -28,7 +28,7 @@ const STAGE_TIPS = {
   }
 };
 
-export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOverride, title, ctaLabel, priority = 'low' }) {
+export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOverride, title, ctaLabel, priority = 'low', onAction }) {
   const config = STAGE_TIPS[stage] || {};
   const tip = tipOverride || config.tip;
   const seedQuery = seedOverride || config.seedQuery || "";
@@ -36,6 +36,10 @@ export default function AIStepHint({ stage, tip: tipOverride, seedQuery: seedOve
   if (!tip) return null;
 
   const handleAskAI = () => {
+    if (onAction) {
+      onAction({ seedQuery, stage });
+      return;
+    }
     openAI("modal", seedQuery);
   };
 
