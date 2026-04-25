@@ -97,8 +97,9 @@ export default function UnifiedAIConcierge({
   }, [seedQuery, open]);
 
   useEffect(() => {
-    if (!open) return;
-    // Reset rozpoznania kontekstu przy ponownym otwarciu.
+    if (open) return;
+    // Przy kolejnym otwarciu ponownie rozpoznaj kontekst firmy.
+    setCompanyId(null);
     setCompanyResolved(false);
   }, [open]);
 
