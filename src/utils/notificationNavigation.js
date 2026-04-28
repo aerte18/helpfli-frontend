@@ -33,6 +33,22 @@ export function getNotificationNavigateTarget(notification) {
 
   let target = parseLink(notification.link);
 
+  // Legacy URL format: /orders/:id/tab-offers (and similar)
+  if (target?.pathname) {
+    const legacy = target.pathname.match(/^\/orders\/([^/]+)\/(tab-offers|tab-my-offer|tab-chat|tab-details)$/i);
+    if (legacy) {
+      const [, orderId, rawTab] = legacy;
+      const tabMap = {
+        "tab-offers": "offers",
+        "tab-my-offer": "my_offer",
+        "tab-chat": "chat",
+        "tab-details": "details",
+      };
+      const normalizedTab = tabMap[String(rawTab || "").toLowerCase()] || "details";
+      target = { pathname: `/orders/${orderId}`, search: `?tab=${normalizedTab}` };
+    }
+  }
+
   const upsertSearchParam = (search, key, value) => {
     const params = new URLSearchParams(search || "");
     if (value == null || value === "") params.delete(key);

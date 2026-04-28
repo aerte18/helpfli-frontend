@@ -10,6 +10,27 @@ import { initSentry } from './sentry'
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 import { hasAnalyticsConsent } from './utils/consent';
 
+function normalizeLegacyOrderTabUrl() {
+  const { pathname, search } = window.location;
+  const match = pathname.match(/^\/orders\/([^/]+)\/(tab-offers|tab-my-offer|tab-chat|tab-details)$/i);
+  if (!match) return;
+  const [, orderId, rawTab] = match;
+  const map = {
+    "tab-offers": "offers",
+    "tab-my-offer": "my_offer",
+    "tab-chat": "chat",
+    "tab-details": "details",
+  };
+  const normalized = map[String(rawTab || "").toLowerCase()] || "details";
+  const params = new URLSearchParams(search || "");
+  params.set("tab", normalized);
+  const nextSearch = params.toString();
+  const nextUrl = `/orders/${orderId}${nextSearch ? `?${nextSearch}` : ""}`;
+  window.history.replaceState({}, "", nextUrl);
+}
+
+normalizeLegacyOrderTabUrl();
+
 // Init Sentry (if DSN provided)
 initSentry();
 window.addEventListener("qs-consent-changed", () => initSentry());
