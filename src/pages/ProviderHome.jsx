@@ -875,8 +875,39 @@ export default function ProviderHome() {
     }
   }, [user, demand]);
 
+  // Status ostatniej oferty wykonawcy per zlecenie (do CTA i ukrywania zleceń już zamkniętych)
+  const myOfferStateByOrderId = useMemo(() => {
+    const map = new Map();
+    (offers || []).forEach((off) => {
+      const id = off.orderId?._id || off.orderId;
+      if (!id) return;
+      const key = String(id);
+      const createdAt = new Date(off.createdAt || off.updatedAt || 0).getTime() || 0;
+      const prev = map.get(key);
+      if (!prev || createdAt >= prev.createdAt) {
+        map.set(key, {
+          status: String(off.status || "submitted").toLowerCase(),
+          createdAt,
+        });
+      }
+    });
+    return map;
+  }, [offers]);
+
   const list = useMemo(() => {
     const filtered = demand.filter((o) => {
+      const orderId = String(o?._id || o?.id || "");
+      const myOfferMeta = orderId ? myOfferStateByOrderId.get(orderId) : null;
+
+      // Jeśli klient zaakceptował moją ofertę lub zlecenie już jest po etapie ofert,
+      // usuń je z listy otwartych zleceń providera.
+      const orderStatus = String(o?.status || "").toLowerCase();
+      if (myOfferMeta?.status === "accepted") return false;
+      if (o?.acceptedOfferId) return false;
+      if (["accepted", "funded", "paid", "in_progress", "completed", "cancelled"].includes(orderStatus)) {
+        return false;
+      }
+
       // "Tylko moje usługi" filtrujemy po stronie backendu (/api/orders/open?services=...).
       // Lokalny filtr profilu bywał zbyt restrykcyjny dla historycznych formatów service i powodował puste listy.
       
@@ -993,17 +1024,18 @@ export default function ProviderHome() {
     }
 
     return withRecommendation;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedIdSet, recommendedOnly]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedIdSet, recommendedOnly, myOfferStateByOrderId]);
 
-  // Zlecenia, do których wykonawca już złożył ofertę (do zielonego przycisku "Twoja oferta")
+  // Zlecenia, do których wykonawca ma aktywną ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
     const set = new Set();
-    (offers || []).forEach((off) => {
-      const id = off.orderId?._id || off.orderId;
-      if (id) set.add(String(id));
-    });
+    for (const [orderId, meta] of myOfferStateByOrderId.entries()) {
+      if (["submitted", "sent", "pending", "accepted"].includes(meta.status)) {
+        set.add(orderId);
+      }
+    }
     return set;
-  }, [offers]);
+  }, [myOfferStateByOrderId]);
 
   const providerAiInbox = useMemo(() => {
     const scoreOrderPriority = (order) => {
@@ -1316,9 +1348,9 @@ export default function ProviderHome() {
 
       {viewMode !== "map" && (providerAiInbox.priorityOrders.length > 0 || providerAiInbox.followUps.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div>
+          <details className="group rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm" open={!isMobileViewport}>
+            <summary className="list-none cursor-pointer">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white">
                     <Sparkles className="h-4 w-4" aria-hidden />
@@ -1326,13 +1358,19 @@ export default function ProviderHome() {
                   <div>
                     <h2 className="text-sm font-semibold text-slate-950">AI Inbox wykonawcy</h2>
                     <p className="text-xs text-slate-600">
-                      Priorytety na teraz: {providerAiInbox.priorityOrders.length} zleceń do odpowiedzi
-                      {providerAiInbox.followUps.length > 0 ? `, ${providerAiInbox.followUps.length} follow-up` : ''}.
+                      {providerAiInbox.priorityOrders.length} zleceń do odpowiedzi
+                      {providerAiInbox.followUps.length > 0 ? ` • ${providerAiInbox.followUps.length} follow-up` : ""}
                     </p>
                   </div>
                 </div>
+                <span className="text-xs font-semibold text-indigo-700 group-open:hidden">Rozwiń</span>
+              </div>
+            </summary>
+
+            <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
                 {providerAiInbox.quickWins > 0 && (
-                  <div className="mt-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                  <div className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
                     {providerAiInbox.quickWins} szybkie szanse z małą konkurencją
                   </div>
                 )}
@@ -1398,27 +1436,29 @@ export default function ProviderHome() {
                 )}
               </div>
             </div>
-          </div>
+          </details>
         </div>
       )}
 
       {viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-purple-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-                    <Sparkles className="h-4 w-4 text-purple-600" aria-hidden />
-                    AI Coach skuteczności
-                  </h2>
-                  <p className="text-xs text-slate-600">Podpowiedzi, które pomagają zdobywać więcej zleceń.</p>
+            <details className="group rounded-2xl border border-purple-200 bg-white p-4 shadow-sm" open={!isMobileViewport}>
+              <summary className="list-none cursor-pointer">
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+                      <Sparkles className="h-4 w-4 text-purple-600" aria-hidden />
+                      AI Coach skuteczności
+                    </h2>
+                    <p className="text-xs text-slate-600">Podpowiedzi, które pomagają zdobywać więcej zleceń.</p>
+                  </div>
+                  <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-700">
+                    Akceptacja {stats.acceptanceRate}%
+                  </span>
                 </div>
-                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[11px] font-semibold text-purple-700">
-                  Akceptacja {stats.acceptanceRate}%
-                </span>
-              </div>
-              <div className="grid gap-2 md:grid-cols-3">
+              </summary>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {providerAiCoach.map((tip, idx) => (
                   <div key={`${tip.title}-${idx}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                     <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
@@ -1433,20 +1473,22 @@ export default function ProviderHome() {
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
 
-            <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-slate-950">Audyt profilu AI</h2>
-                  <p className="text-xs text-slate-600">Co poprawić, żeby klient chętniej wybrał Twoją ofertę.</p>
+            <details className="group rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm" open={!isMobileViewport}>
+              <summary className="list-none cursor-pointer">
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-950">Audyt profilu AI</h2>
+                    <p className="text-xs text-slate-600">Co poprawić, żeby klient chętniej wybrał Twoją ofertę.</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                    {providerProfileAudit.score}%
+                  </span>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  {providerProfileAudit.score}%
-                </span>
-              </div>
+              </summary>
               {providerProfileAudit.issues.length > 0 ? (
-                <div className="space-y-2">
+                <div className="mt-3 space-y-2">
                   {providerProfileAudit.issues.map((issue, idx) => (
                     <div key={`${issue}-${idx}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                       {issue}
@@ -1460,11 +1502,11 @@ export default function ProviderHome() {
                   </Link>
                 </div>
               ) : (
-                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                   Profil wygląda dobrze. Teraz najwięcej da szybka reakcja i konkretna oferta.
                 </div>
               )}
-            </div>
+            </details>
           </div>
         </div>
       )}
