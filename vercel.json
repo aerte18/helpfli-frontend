@@ -10,6 +10,7 @@
     { "source": "/orders/:orderId/tab-details", "destination": "/orders/:orderId?tab=details", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://api.helpfli.pl/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
