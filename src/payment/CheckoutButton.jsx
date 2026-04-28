@@ -2,7 +2,14 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
 import { CreditCard, Smartphone, Banknote, FileText } from 'lucide-react';
 
-export default function CheckoutButton({ orderId, methodHint = 'card', requestInvoiceDefault = false }) {
+export default function CheckoutButton({
+  orderId,
+  methodHint = 'card',
+  requestInvoiceDefault = false,
+  createIntentPath = '/api/payments/create-intent',
+  buttonLabel = 'Przejdź do płatności online',
+  showInvoiceOption = true
+}) {
   const [loading, setLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(methodHint);
   const [requestInvoice, setRequestInvoice] = useState(!!requestInvoiceDefault);
@@ -10,10 +17,10 @@ export default function CheckoutButton({ orderId, methodHint = 'card', requestIn
   const start = async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl(`/api/payments/create-intent`), {
+      const res = await fetch(apiUrl(createIntentPath), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ orderId, methodHint: selectedMethod, requestInvoice }),
+        body: JSON.stringify({ orderId, methodHint: selectedMethod, ...(showInvoiceOption ? { requestInvoice } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd');
@@ -30,16 +37,18 @@ export default function CheckoutButton({ orderId, methodHint = 'card', requestIn
   return (
     <div className="space-y-3">
       {/* Chcę fakturę VAT – przy płatności */}
-      <label className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={requestInvoice}
-          onChange={(e) => setRequestInvoice(e.target.checked)}
-          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-        />
-        <FileText className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">Chcę fakturę VAT</span>
-      </label>
+      {showInvoiceOption && (
+        <label className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={requestInvoice}
+            onChange={(e) => setRequestInvoice(e.target.checked)}
+            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <FileText className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Chcę fakturę VAT</span>
+        </label>
+      )}
 
       {/* Wybór metody płatności */}
       <div className="flex gap-2">
@@ -89,7 +98,7 @@ export default function CheckoutButton({ orderId, methodHint = 'card', requestIn
         disabled={loading} 
         className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
       >
-        {loading ? 'Przetwarzanie…' : 'Przejdź do płatności online'}
+        {loading ? 'Przetwarzanie…' : buttonLabel}
       </button>
     </div>
   );

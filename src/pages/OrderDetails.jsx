@@ -1291,6 +1291,9 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
   
   // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
   const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
+  const externalCommissionStatus = order.externalCommissionStatus || 'unpaid';
+  const externalCommissionPaid = externalCommissionStatus === 'succeeded';
+  const platformFee = Number(order.pricing?.platformFee || 0);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -1356,8 +1359,36 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <h3 className="font-semibold text-amber-900 mb-2">Rozliczenie poza Helpfli</h3>
                 <p className="text-sm text-amber-800 mb-3">
-                  Płatność odbywa się bezpośrednio między Tobą a wykonawcą. Możesz rozpocząć realizację zlecenia.
+                  Płatność za usługę odbywa się bezpośrednio między Tobą a wykonawcą. Opłać prowizję platformy, aby domknąć rozliczenie zlecenia.
                 </p>
+                {platformFee > 0 && (
+                  <div className="mb-3 rounded-lg bg-white border border-amber-200 p-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-700">Prowizja platformy:</span>
+                      <span className="font-semibold text-slate-900">{platformFee.toFixed(2)} PLN</span>
+                    </div>
+                    <div className="mt-2 text-xs">
+                      {externalCommissionPaid ? (
+                        <span className="text-emerald-700">✓ Prowizja opłacona</span>
+                      ) : externalCommissionStatus === 'processing' ? (
+                        <span className="text-amber-700">⏳ Płatność prowizji w trakcie</span>
+                      ) : (
+                        <span className="text-amber-800">⚠️ Prowizja oczekuje na opłacenie</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!externalCommissionPaid && platformFee > 0 && (
+                  <div className="mb-3">
+                    <CheckoutButton
+                      orderId={orderId}
+                      methodHint="card"
+                      createIntentPath="/api/payments/create-commission-intent"
+                      showInvoiceOption={false}
+                      buttonLabel="Opłać prowizję online"
+                    />
+                  </div>
+                )}
                 {onStartWork && (
                   <button
                     onClick={onStartWork}
