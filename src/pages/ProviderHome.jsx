@@ -883,10 +883,17 @@ export default function ProviderHome() {
       if (!id) return;
       const key = String(id);
       const createdAt = new Date(off.createdAt || off.updatedAt || 0).getTime() || 0;
+      const offerId = String(off?._id || off?.id || "");
+      const orderAcceptedOfferId = String(off?.orderId?.acceptedOfferId?._id || off?.orderId?.acceptedOfferId || "");
+      const acceptedByOrderLink = Boolean(offerId && orderAcceptedOfferId && offerId === orderAcceptedOfferId);
+      const rawStatus = String(off.status || "sent").toLowerCase();
+      const normalizedStatus = rawStatus === "submitted" || rawStatus === "pending" ? "sent" : rawStatus;
+      const effectiveStatus = acceptedByOrderLink ? "accepted" : normalizedStatus;
       const prev = map.get(key);
       if (!prev || createdAt >= prev.createdAt) {
         map.set(key, {
-          status: String(off.status || "submitted").toLowerCase(),
+          status: effectiveStatus,
+          acceptedByClient: acceptedByOrderLink || effectiveStatus === "accepted",
           createdAt,
         });
       }
@@ -902,6 +909,7 @@ export default function ProviderHome() {
       // Jeśli klient zaakceptował moją ofertę lub zlecenie już jest po etapie ofert,
       // usuń je z listy otwartych zleceń providera.
       const orderStatus = String(o?.status || "").toLowerCase();
+      if (myOfferMeta?.acceptedByClient) return false;
       if (myOfferMeta?.status === "accepted") return false;
       if (o?.acceptedOfferId) return false;
       if (["accepted", "funded", "paid", "in_progress", "completed", "cancelled"].includes(orderStatus)) {
@@ -1063,11 +1071,11 @@ export default function ProviderHome() {
     const now = Date.now();
     const followUps = (offers || [])
       .filter((offer) => {
-        const status = String(offer.status || 'submitted');
+        const status = String(offer.status || 'sent').toLowerCase();
         const created = new Date(offer.createdAt || offer.updatedAt || 0).getTime();
         const ageHours = created ? (now - created) / 36e5 : 0;
         const orderStatus = offer.orderId?.status || '';
-        return ['submitted', 'pending'].includes(status) && ageHours >= 4 && !['accepted', 'completed', 'cancelled'].includes(orderStatus);
+        return ['sent', 'submitted', 'pending'].includes(status) && ageHours >= 4 && !['accepted', 'completed', 'cancelled'].includes(orderStatus);
       })
       .slice(0, 3);
 
@@ -2755,7 +2763,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
                 : 'btn-helpfli-primary'
             }`}
           >
-            {hasMyOffer ? 'Twoja oferta' : 'Złóż ofertę'}
+            {hasMyOffer ? 'Zobacz ofertę' : 'Złóż ofertę'}
           </button>
           {!hasMyOffer && (
             <button
@@ -2901,7 +2909,7 @@ function MapOrderPopup({ order, hasMyOffer = false, onQuote, onChat, onDetails }
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
             >
-              {hasMyOffer ? 'Twoja oferta' : 'Złóż ofertę'}
+              {hasMyOffer ? 'Zobacz ofertę' : 'Złóż ofertę'}
             </button>
             {!hasMyOffer && (
               <button
@@ -3048,7 +3056,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}
           >
-            {hasMyOffer ? 'Twoja oferta' : 'Złóż ofertę'}
+            {hasMyOffer ? 'Zobacz ofertę' : 'Złóż ofertę'}
           </button>
           {!hasMyOffer && (
             <button
