@@ -3517,7 +3517,7 @@ export default function OrderDetails() {
   const hasAiPilot = Boolean(aiFollowup?.tip || aiFollowup?.title || aiFollowup?.seedQuery);
   const showStageAiHint = !hasAiPilot;
 
-  const openEditOrder = useCallback(() => {
+  const openEditOrder = () => {
     setEditForm({
       description: order.description || '',
       location: (order.location && typeof order.location === 'object' ? order.location.address : order.location) || '',
@@ -3526,9 +3526,9 @@ export default function OrderDetails() {
       serviceDetails: order.serviceDetails || ''
     });
     setShowEditOrderModal(true);
-  }, [order]);
+  };
 
-  const handleAiFollowupAction = useCallback(({ seedQuery } = {}) => {
+  const handleAiFollowupAction = ({ seedQuery } = {}) => {
     const actionType = aiFollowup?.actionType;
     if (isClient && ['add_attachments', 'improve_order', 'complete_brief'].includes(actionType)) {
       openEditOrder();
@@ -3550,7 +3550,7 @@ export default function OrderDetails() {
     if (seedQuery) {
       openAI("modal", seedQuery);
     }
-  }, [aiFollowup?.actionType, isClient, isProvider, myOffer, openEditOrder]);
+  };
   
   // Sprawdź czy provider jest przypisany do zlecenia LUB złożył ofertę (dla innych logik, np. uprawnień)
   const isAssignedProvider = (() => {
