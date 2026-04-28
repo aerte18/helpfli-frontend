@@ -17,8 +17,12 @@ export function getApiBase() {
   if (typeof raw === "string" && raw.trim() !== "") {
     return raw.trim().replace(/\/$/, "");
   }
-  // Jawne VITE_API_URL= (puste) = zostaw względne /api (np. reverse proxy na tym samym hoście)
-  if (raw === "") return "";
+  // W produkcji puste VITE_API_URL często oznacza błędną konfigurację env.
+  // Zamiast wymuszać względne /api (które może wskazywać na frontend),
+  // spróbuj automatycznie użyć subdomeny api.<host>.
+  if (raw === "") {
+    return import.meta.env.PROD ? inferApiBaseFromWindow() : "";
+  }
   return inferApiBaseFromWindow();
 }
 
