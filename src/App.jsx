@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { useEffect, Suspense, lazy } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import 'leaflet/dist/leaflet.css';
@@ -121,6 +121,19 @@ const LoadingSpinner = () => (
   </div>
 );
 
+function LegacyOrderTabRedirect() {
+  const { orderId, tabSlug } = useParams();
+  const normalizedTab = String(tabSlug || "").toLowerCase();
+  const tabMap = {
+    "tab-offers": "offers",
+    "tab-my-offer": "my_offer",
+    "tab-chat": "chat",
+    "tab-details": "details",
+  };
+  const tab = tabMap[normalizedTab] || "details";
+  return <Navigate to={`/orders/${orderId}?tab=${tab}`} replace />;
+}
+
 function App() {
   const { user } = useAuth();
   const location = useLocation();
@@ -201,6 +214,7 @@ function App() {
           <Route path="/my-orders" element={<MyOrders />} />
           <Route path="/orders/my" element={<MyOrders />} />
           <Route path="/orders/:orderId" element={<OrderDetails />} />
+          <Route path="/orders/:orderId/:tabSlug" element={<LegacyOrderTabRedirect />} />
           <Route path="/orders/:orderId/chat" element={<OrderChat />} />
           <Route path="/rate-user/:userId" element={<RateUser />} />
           <Route path="/user-ratings/:userId" element={<UserRatings />} />

@@ -10,7 +10,7 @@ import CheckoutButton from "../payment/CheckoutButton";
 import RatingModal from "../components/RatingModal";
 import { getOrderTags, getOrderPrediction } from "../api/ai_advanced";
 import ProviderAIChat from "../components/ProviderAIChat";
-import { getMyOffer, cancelOffer, updateOffer, getOffersOfOrder } from "../api/offers";
+import { getMyOffer, cancelOffer, updateOffer, getOffersOfOrder, postOffer, acceptOffer as acceptOfferApi } from "../api/offers";
 import { Link } from "react-router-dom";
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import OrderProgressBar from "../components/OrderProgressBar";
@@ -3026,17 +3026,16 @@ export default function OrderDetails() {
     setOfferError("");
     setOfferSubmitting(true);
     try {
-      try {
-        await apiPost(`/api/orders/${orderId}/offer`, {
+      const token = localStorage.getItem("token");
+      await postOffer({
+        token,
+        payload: {
+          orderId,
           price: Number(offerPrice),
-          message: offerMsg,
-        });
-      } catch {
-        await apiPost(`/api/orders/${orderId}/offers/add`, {
-          price: Number(offerPrice),
-          message: offerMsg,
-        });
-      }
+          notes: offerMsg,
+          etaMinutes: 60,
+        },
+      });
       setOfferPrice("");
       setOfferMsg("");
       const fresh = await apiGet(`/api/orders/${orderId}`);
@@ -3080,16 +3079,11 @@ export default function OrderDetails() {
     setOrder(optimisticOrder);
     
     try {
-      try {
-        await apiPost(`/api/orders/${orderId}/offers/${offerId}/accept`, {
-          paymentMethod: acceptData.paymentMethod || 'system',
-          includeGuarantee: acceptData.includeGuarantee !== false,
-          totalAmount: acceptData.totalAmount,
-          breakdown: acceptData.breakdown
-        });
-      } catch {
-        await apiPost(`/api/orders/${orderId}/status`, { status: "accepted" });
-      }
+      const token = localStorage.getItem("token");
+      await acceptOfferApi({
+        token,
+        offerId,
+      });
       
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
