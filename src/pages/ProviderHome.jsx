@@ -1151,6 +1151,13 @@ export default function ProviderHome() {
     );
   }, [filters, recommendedOnly]);
 
+  // Defensive guards: backend/UX experiments can temporarily return non-array payloads.
+  const listSafe = Array.isArray(list) ? list : [];
+  const inboxPriorityOrders = Array.isArray(providerAiInbox?.priorityOrders) ? providerAiInbox.priorityOrders : [];
+  const inboxFollowUps = Array.isArray(providerAiInbox?.followUps) ? providerAiInbox.followUps : [];
+  const coachTips = Array.isArray(providerAiCoach) ? providerAiCoach : [];
+  const profileIssues = Array.isArray(providerProfileAudit?.issues) ? providerProfileAudit.issues : [];
+
   const center = useMemo(
     () =>
       userLocation?.lat != null && userLocation?.lng != null
@@ -1346,7 +1353,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (providerAiInbox.priorityOrders.length > 0 || providerAiInbox.followUps.length > 0) && (
+      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <details className="group rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm" open={!isMobileViewport}>
             <summary className="list-none cursor-pointer">
@@ -1358,8 +1365,8 @@ export default function ProviderHome() {
                   <div>
                     <h2 className="text-sm font-semibold text-slate-950">AI Inbox wykonawcy</h2>
                     <p className="text-xs text-slate-600">
-                      {providerAiInbox.priorityOrders.length} zleceń do odpowiedzi
-                      {providerAiInbox.followUps.length > 0 ? ` • ${providerAiInbox.followUps.length} follow-up` : ""}
+                      {inboxPriorityOrders.length} zleceń do odpowiedzi
+                      {inboxFollowUps.length > 0 ? ` • ${inboxFollowUps.length} follow-up` : ""}
                     </p>
                   </div>
                 </div>
@@ -1377,11 +1384,11 @@ export default function ProviderHome() {
               </div>
 
               <div className="grid flex-1 gap-3 lg:grid-cols-2">
-                {providerAiInbox.priorityOrders.length > 0 && (
+                {inboxPriorityOrders.length > 0 && (
                   <div className="rounded-xl border border-indigo-100 bg-white p-3">
                     <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-700">Najpierw odpowiedz</div>
                     <div className="space-y-2">
-                      {providerAiInbox.priorityOrders.map((order) => {
+                      {inboxPriorityOrders.map((order) => {
                         const orderId = order._id || order.id;
                         const offersCount = Number(order.offersCount ?? order.offers?.length ?? 0);
                         return (
@@ -1407,11 +1414,11 @@ export default function ProviderHome() {
                   </div>
                 )}
 
-                {providerAiInbox.followUps.length > 0 && (
+                {inboxFollowUps.length > 0 && (
                   <div className="rounded-xl border border-amber-100 bg-white p-3">
                     <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Follow-up po ofertach</div>
                     <div className="space-y-2">
-                      {providerAiInbox.followUps.map((offer) => {
+                      {inboxFollowUps.map((offer) => {
                         const order = offer.orderId || {};
                         const orderId = order._id || order.id || offer.orderId;
                         return (
@@ -1459,7 +1466,7 @@ export default function ProviderHome() {
                 </div>
               </summary>
               <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {providerAiCoach.map((tip, idx) => (
+                {coachTips.map((tip, idx) => (
                   <div key={`${tip.title}-${idx}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                     <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
                     <p className="mt-1 text-xs text-slate-600">{tip.text}</p>
@@ -1487,9 +1494,9 @@ export default function ProviderHome() {
                   </span>
                 </div>
               </summary>
-              {providerProfileAudit.issues.length > 0 ? (
+              {profileIssues.length > 0 ? (
                 <div className="mt-3 space-y-2">
-                  {providerProfileAudit.issues.map((issue, idx) => (
+                  {profileIssues.map((issue, idx) => (
                     <div key={`${issue}-${idx}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                       {issue}
                     </div>
@@ -2023,7 +2030,7 @@ export default function ProviderHome() {
               </div>
             ) : (
               <>
-                {list.map((o) => (
+                {listSafe.map((o) => (
                   <DemandCard
                     key={o._id || o.id}
                     data={o}
@@ -2086,7 +2093,7 @@ export default function ProviderHome() {
                 userLocation={userLocation}
                 onRequestLocation={getUserLocation}
               />
-              {list.map((o, idx) => {
+              {listSafe.map((o, idx) => {
                 // Sprawdź czy zlecenie ma prawidłowe współrzędne
                 let lat = o.lat || o.locationLat;
                 let lng = o.lng || o.locationLng;
@@ -2149,7 +2156,7 @@ export default function ProviderHome() {
                     userLocation={userLocation}
                     onRequestLocation={getUserLocation}
                   />
-                  {list.map((o, idx) => {
+                  {listSafe.map((o, idx) => {
                     let lat = o.lat || o.locationLat;
                     let lng = o.lng || o.locationLng;
 
@@ -2347,7 +2354,7 @@ export default function ProviderHome() {
                   <p className="text-slate-600 text-sm">Ładowanie zleceń...</p>
                 </div>
               ) : list.length > 0 ? (
-                list.map((o) => (
+                listSafe.map((o) => (
                   <DemandCardCompact
                     key={o._id || o.id}
                     data={o}
@@ -2688,7 +2695,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
               </span>
             )}
           </div>
-          {aiMatch?.score >= 60 && aiMatch.reasons?.length > 0 && (
+          {aiMatch?.score >= 60 && Array.isArray(aiMatch?.reasons) && aiMatch.reasons.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {aiMatch.reasons.map((reason, idx) => (
                 <span key={`${reason}-${idx}`} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] text-indigo-700 border border-indigo-100">
