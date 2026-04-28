@@ -877,7 +877,7 @@ export default function ProviderHome() {
 
   // Status ostatniej oferty wykonawcy per zlecenie (do CTA i ukrywania zleceń już zamkniętych)
   const myOfferStateByOrderId = useMemo(() => {
-    const map = new Map();
+    const map = new globalThis.Map();
     (offers || []).forEach((off) => {
       const id = off.orderId?._id || off.orderId;
       if (!id) return;
