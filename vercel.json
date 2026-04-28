@@ -3,6 +3,12 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/orders/:orderId/tab-offers", "destination": "/orders/:orderId?tab=offers", "permanent": false },
+    { "source": "/orders/:orderId/tab-my-offer", "destination": "/orders/:orderId?tab=my_offer", "permanent": false },
+    { "source": "/orders/:orderId/tab-chat", "destination": "/orders/:orderId?tab=chat", "permanent": false },
+    { "source": "/orders/:orderId/tab-details", "destination": "/orders/:orderId?tab=details", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
