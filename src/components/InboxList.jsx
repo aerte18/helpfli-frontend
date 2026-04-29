@@ -1,16 +1,31 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
+function safeText(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+}
+
 export default function InboxList({ conversations, activeId, onSelect, typingMap = {}, currentUser }) {
   const [q, setQ] = useState("");
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
-    if (!query) return conversations;
-    return conversations.filter((c) => {
-      const title = c.title || (c.participants || []).map(p => p.name).join(", ");
+    if (!query) return safeConversations;
+    return safeConversations.filter((c) => {
+      const title =
+        safeText(c?.title) ||
+        safeText((c?.participants || []).map((p) => p?.name).filter(Boolean).join(", "));
       return title.toLowerCase().includes(query);
     });
-  }, [q, conversations]);
+  }, [q, safeConversations]);
 
   const formatTime = (date) => {
     if (!date) return '';
@@ -62,7 +77,10 @@ export default function InboxList({ conversations, activeId, onSelect, typingMap
             
             const avatarUrl = otherParticipant?.avatar || 
               `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(otherParticipant?.name || 'User')}&backgroundColor=4F46E5`;
-            const title = c.title || otherParticipant?.name || participants.map((p) => p.name).join(", ");
+            const title =
+              safeText(c?.title) ||
+              safeText(otherParticipant?.name) ||
+              safeText(participants.map((p) => p?.name).filter(Boolean).join(", "), "Rozmowa");
             const isActive = activeId === c._id;
 
             return (
@@ -100,7 +118,7 @@ export default function InboxList({ conversations, activeId, onSelect, typingMap
                         ) : null}
                         {c.unreadCount > 0 ? (
                           <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium min-w-[20px] text-center">
-                            {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                            {Number(c.unreadCount) > 99 ? '99+' : Number(c.unreadCount)}
                           </span>
                         ) : null}
                         <span className="text-xs text-gray-400 whitespace-nowrap">
@@ -115,7 +133,10 @@ export default function InboxList({ conversations, activeId, onSelect, typingMap
                           {names.length === 2 && `${names[0]} i ${names[1]} piszą…`}
                         </span>
                       ) : (
-                        c.lastMessage?.text || (c.lastMessage?.attachments?.length ? "📎 Załącznik" : "Brak wiadomości")
+                        safeText(c.lastMessage?.text) ||
+                        (Array.isArray(c.lastMessage?.attachments) && c.lastMessage.attachments.length
+                          ? "📎 Załącznik"
+                          : "Brak wiadomości")
                       )}
                     </p>
                   </div>
