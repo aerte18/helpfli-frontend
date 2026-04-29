@@ -32,6 +32,7 @@ import { Helmet } from "react-helmet-async";
 import { getVideoSessionByOrder } from "../api/video";
 import AIStepHint from "../components/AIStepHint";
 import { serviceLabel } from "../utils/serviceLabels";
+import { getClientOrderPresentation, getProviderOrderPresentation } from "../utils/orderFlowLabels";
 import { openAI } from "../ai/chat/bus";
 
 const authHeaders = () => {
@@ -533,6 +534,71 @@ function PaymentStatusBadge({ paymentStatus, paidInSystem }) {
       {status.text}
       {paidInSystem && paymentStatus === "succeeded" && <span className="ml-1">✓</span>}
     </span>
+  );
+}
+
+function NextStepBanner({ order, isClient, isProvider, isAssignedProvider = false, onGoToOffers, onGoToPayment }) {
+  const status = order?.status;
+
+  let title = '';
+  let description = '';
+  let cta = '';
+  let tone = 'indigo';
+
+  if (isClient) {
+    const presentation = getClientOrderPresentation(order);
+    if (!presentation) {
+      return null;
+    }
+    title = `Następny krok: ${presentation.nextStepLabel}`;
+    description = presentation.nextStepHint;
+    cta =
+      presentation.nextStepCta === 'Przejdź do ofert' || presentation.nextStepCta === 'Przejdź do płatności'
+        ? presentation.nextStepCta
+        : '';
+    tone = presentation.tone || 'indigo';
+  } else if (isProvider && isAssignedProvider) {
+    const providerPresentation = getProviderOrderPresentation({
+      order,
+      offer: order?.acceptedOfferId ? { _id: order.acceptedOfferId } : null,
+    });
+    if (!providerPresentation) {
+      return null;
+    }
+    title = `Następny krok: ${providerPresentation.nextStepLabel}`;
+    description = providerPresentation.nextStepHint;
+    tone = providerPresentation.tone || "indigo";
+  } else {
+    return null;
+  }
+
+  const palette = {
+    blue: 'bg-blue-50 border-blue-200 text-blue-900',
+    amber: 'bg-amber-50 border-amber-200 text-amber-900',
+    emerald: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    purple: 'bg-purple-50 border-purple-200 text-purple-900',
+    green: 'bg-green-50 border-green-200 text-green-900',
+    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+  };
+
+  return (
+    <div className={`mb-5 rounded-xl border p-4 ${palette[tone] || palette.indigo}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="font-semibold">{title}</div>
+          <div className="text-sm opacity-90 mt-1">{description}</div>
+        </div>
+        {cta && (
+          <button
+            type="button"
+            onClick={cta === 'Przejdź do ofert' ? onGoToOffers : onGoToPayment}
+            className="rounded-lg bg-white/90 px-3 py-2 text-sm font-medium border border-current/20 hover:bg-white"
+          >
+            {cta}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1294,6 +1360,8 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
   const externalCommissionStatus = order.externalCommissionStatus || 'unpaid';
   const externalCommissionPaid = externalCommissionStatus === 'succeeded';
   const platformFee = Number(order.pricing?.platformFee || 0);
+  const externalCommissionRequired = isExternalPayment && platformFee > 0;
+  const externalReadyForStart = !externalCommissionRequired || externalCommissionPaid;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -1356,12 +1424,12 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
 
             {/* Płatność */}
             {isExternalPayment ? (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div id="accepted-payment-section" className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <h3 className="font-semibold text-amber-900 mb-2">Rozliczenie poza Helpfli</h3>
                 <p className="text-sm text-amber-800 mb-3">
-                  Płatność za usługę odbywa się bezpośrednio między Tobą a wykonawcą. Opłać prowizję platformy, aby domknąć rozliczenie zlecenia.
+                  Płatność za usługę odbywa się bezpośrednio między Tobą a wykonawcą. Aby przejść dalej, opłać prowizję platformy (jeśli wymagana).
                 </p>
-                {platformFee > 0 && (
+                {platformFee > 0 ? (
                   <div className="mb-3 rounded-lg bg-white border border-amber-200 p-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-700">Prowizja platformy:</span>
@@ -1377,6 +1445,10 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                       )}
                     </div>
                   </div>
+                ) : (
+                  <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+                    ✓ Pakiet PRO: prowizja platformy za to zlecenie wynosi 0 PLN.
+                  </div>
                 )}
                 {!externalCommissionPaid && platformFee > 0 && (
                   <div className="mb-3">
@@ -1385,23 +1457,16 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                       methodHint="card"
                       createIntentPath="/api/payments/create-commission-intent"
                       showInvoiceOption={false}
-                      buttonLabel="Opłać prowizję online"
+                      buttonLabel="Opłać prowizję teraz"
                     />
                   </div>
                 )}
-                {onStartWork && (
-                  <button
-                    onClick={onStartWork}
-                    disabled={isLoadingStartWork}
-                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    {isLoadingStartWork && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isLoadingStartWork ? 'Rozpoczynanie...' : 'Przejdź do realizacji'}
-                  </button>
-                )}
+                <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-700">
+                  Status: {externalReadyForStart ? 'oczekuje na realizację przez providera.' : 'oczekuje na płatność prowizji.'}
+                </div>
               </div>
             ) : (
-              <div className="p-4 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-200 rounded-2xl shadow-sm">
+              <div id="accepted-payment-section" className="p-4 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-50 border border-blue-200 rounded-2xl shadow-sm">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-9 h-9 rounded-2xl bg-white shadow-sm flex items-center justify-center">
                     <CreditCard className="h-4 w-4 text-blue-600" />
@@ -1472,9 +1537,11 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <h3 className="font-semibold text-emerald-900 mb-2">Rozpocznij realizację</h3>
                 <p className="text-sm text-emerald-800 mb-3">
-                  Rozliczenie odbywa się poza systemem Helpfli. Możesz rozpocząć pracę nad zleceniem.
+                  {externalReadyForStart
+                    ? 'Rozliczenie odbywa się poza systemem Helpfli. Możesz rozpocząć pracę nad zleceniem.'
+                    : 'Klient musi najpierw opłacić prowizję platformy. Rozpoczęcie realizacji będzie dostępne po płatności.'}
                 </p>
-                {onStartWork && (
+                {onStartWork && externalReadyForStart && (
                   <button
                     onClick={onStartWork}
                     disabled={isLoadingStartWork}
@@ -1483,6 +1550,9 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                     {isLoadingStartWork && <Loader2 className="w-4 h-4 animate-spin" />}
                     {isLoadingStartWork ? 'Rozpoczynanie...' : 'Przejdź do realizacji'}
                   </button>
+                )}
+                {!externalReadyForStart && (
+                  <div className="text-amber-700 text-sm font-medium">⏳ Oczekuje na opłatę prowizji przez klienta</div>
                 )}
               </div>
             ) : (
@@ -3114,6 +3184,7 @@ export default function OrderDetails() {
       await acceptOfferApi({
         token,
         offerId,
+        payload: acceptData,
       });
       
       const fresh = await apiGet(`/api/orders/${orderId}`);
@@ -3146,12 +3217,21 @@ export default function OrderDetails() {
         });
         navigate(`/checkout/${orderId}`);
       } else {
-        toast({
-          title: "Oferta zaakceptowana",
-          description:
-            "Płatność poza systemem — dogadajcie szczegóły na czacie lub w szczegółach zlecenia.",
-          variant: "success",
-        });
+        const externalPlatformFee = Number(fresh?.pricing?.platformFee || 0);
+        const externalCommissionPaid = fresh?.externalCommissionStatus === "succeeded";
+        if (externalPlatformFee > 0 && !externalCommissionPaid) {
+          toast({
+            title: "Oferta zaakceptowana",
+            description: "Opłać teraz prowizję platformy, aby odblokować realizację.",
+            variant: "success",
+          });
+        } else {
+          toast({
+            title: "Oferta zaakceptowana",
+            description: "Zlecenie oczekuje na rozpoczęcie realizacji przez wykonawcę.",
+            variant: "success",
+          });
+        }
         goTab("details");
       }
     } catch (e) {
@@ -3751,6 +3831,28 @@ export default function OrderDetails() {
               </div>
             </div>
           )}
+
+          {tab === "details" && (
+            <NextStepBanner
+              order={order}
+              isClient={isClient}
+              isProvider={isProvider}
+              isAssignedProvider={isAssignedProvider}
+              onGoToOffers={() => {
+                goTab('details');
+                setTimeout(() => document.getElementById('order-offers-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
+              onGoToPayment={() => {
+                if (order?.status === 'accepted' && (order?.paymentMethod !== 'external' && order?.paymentPreference !== 'external')) {
+                  navigate(`/checkout/${orderId}`);
+                  return;
+                }
+                goTab('details');
+                setTimeout(() => document.getElementById('accepted-payment-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
+            />
+          )}
+
           {/* Dynamiczna podpowiedź AI dla klienta/providera */}
           {tab === "details" && hasAiPilot && (
             <div className="mb-5">
@@ -4261,6 +4363,9 @@ export default function OrderDetails() {
                     const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
                     const orderStatus = order.status;
                     const acceptedOfferId = order.acceptedOfferId?._id || order.acceptedOfferId;
+                    const platformFee = Number(order.pricing?.platformFee || 0);
+                    const externalCommissionPaid = order.externalCommissionStatus === 'succeeded';
+                    const externalReadyForStart = !isExternalPayment || platformFee <= 0 || externalCommissionPaid;
                     
                     if (myOffer) {
                       const myOfferId = myOffer._id || myOffer.id;
@@ -4274,6 +4379,9 @@ export default function OrderDetails() {
                       }
                       if (!isExternalPayment && (orderStatus === 'funded' || order.paymentStatus === 'succeeded' || order.paidInSystem)) {
                         if (!isMyOfferAccepted) return 'rejected';
+                        return 'funded';
+                      }
+                      if (isExternalPayment && isMyOfferAccepted && orderStatus === 'accepted' && externalReadyForStart) {
                         return 'funded';
                       }
                       if (orderStatus === 'accepted' || isMyOfferAccepted) {
@@ -4425,6 +4533,9 @@ export default function OrderDetails() {
                   const getCurrentStage = () => {
                     // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
                     const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
+                    const platformFee = Number(order.pricing?.platformFee || 0);
+                    const externalCommissionPaid = order.externalCommissionStatus === 'succeeded';
+                    const externalReadyForStart = platformFee <= 0 || externalCommissionPaid;
                     
                     // Sprawdź statusy w kolejności priorytetowej
                     if (order.status === 'completed' || order.status === 'released' || order.status === 'rated') return 'completed';
@@ -4433,6 +4544,7 @@ export default function OrderDetails() {
                     // Jeśli płatność jest zewnętrzna, pomiń etap "funded" - przejdź bezpośrednio do "in_progress" po akceptacji
                     if (isExternalPayment) {
                       // Dla płatności zewnętrznej: po akceptacji oferty można od razu rozpocząć pracę
+                      if (order.status === 'accepted' && externalReadyForStart) return 'funded';
                       if (order.status === 'accepted') return 'accepted';
                       if (order.status === 'collecting_offers' || (order.offers?.length > 0 && order.status !== 'accepted')) return 'offers';
                       if (order.status === 'open' || order.status === 'draft') return 'created';

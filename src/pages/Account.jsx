@@ -18,6 +18,11 @@ import NotificationSettings from "../components/NotificationSettings";
 import TwoFactorAuth from "../components/TwoFactorAuth";
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import OrderStatsDashboard from "../components/OrderStatsDashboard";
+import {
+  getClientOrderPresentation,
+  getProviderOrderPresentation,
+  getProviderStageKey,
+} from "../utils/orderFlowLabels";
 
 function useAuthToken() {
   try {
@@ -885,25 +890,7 @@ function OrdersTab({ user }) {
     return arr;
   })();
 
-  const getProviderStage = ({ order, offer }) => {
-    // "Złożone" = mam ofertę, ale zlecenie nie jest jeszcze zaakceptowane na mnie
-    const status = order?.status;
-    const acceptedOfferId = order?.acceptedOfferId?._id || order?.acceptedOfferId;
-    const myOfferId = offer?._id || offer?.id;
-    const isAccepted = acceptedOfferId && myOfferId && String(acceptedOfferId) === String(myOfferId);
-
-    if (isAccepted) {
-      if (status === 'in_progress') return 'in_progress';
-      if (status === 'completed' || status === 'rated' || status === 'released' || status === 'done') return 'completed';
-      return 'accepted';
-    }
-
-    // jeśli order jest już w statusie accepted/in_progress/completed, a moja oferta nie jest accepted → klient wybrał innego
-    if (['accepted', 'funded', 'in_progress', 'completed', 'rated', 'released', 'done'].includes(status)) return 'lost';
-
-    // open/collecting_offers
-    return 'offered';
-  };
+  const getProviderStage = ({ order, offer }) => getProviderStageKey({ order, offer });
 
   const providerFilteredItems = (() => {
     if (user?.role !== 'provider') return [];
@@ -962,59 +949,17 @@ function OrdersTab({ user }) {
   }, [showDemo, user?.role, filter]);
 
   const getStatusBadge = (order) => {
-    const status = order.status;
-    const paymentStatus = order.paymentStatus;
-    
-    const colors = {
-      open: 'bg-blue-100 text-blue-800',
-      collecting_offers: 'bg-indigo-100 text-indigo-800',
-      accepted: 'bg-orange-100 text-orange-800',
-      funded: 'bg-green-100 text-green-800',
-      in_progress: 'bg-purple-100 text-purple-800',
-      completed: 'bg-emerald-100 text-emerald-800',
-      rated: 'bg-gray-100 text-gray-800',
-      released: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-      disputed: 'bg-red-100 text-red-800'
-    };
-    
-    const labels = {
-      open: 'Otwarte',
-      collecting_offers: 'Oferty złożone',
-      accepted: 'Oferta zaakceptowana',
-      funded: 'Opłacone',
-      in_progress: 'W realizacji',
-      completed: 'Zakończone',
-      rated: 'Ocenione',
-      released: 'Wypłacone',
-      cancelled: 'Anulowane',
-      disputed: 'Spór'
-    };
-    
-    // Jeśli status to accepted ale nie jest opłacone, pokaż dodatkową informację
-    let label = labels[status] || status;
-    if (status === 'accepted' && paymentStatus !== 'succeeded' && !order.paidInSystem) {
-      label = 'Oczekuje na płatność';
-    }
-    
+    const p = getClientOrderPresentation(order);
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
-        {label}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.badgeClass}`}>
+        {p.label}
       </span>
     );
   };
 
   const getProviderBadge = ({ order, offer }) => {
-    const stage = getProviderStage({ order, offer });
-    const map = {
-      offered: { text: 'Oferta złożona', cls: 'bg-indigo-100 text-indigo-800' },
-      accepted: { text: 'Zaakceptowane', cls: 'bg-green-100 text-green-800' },
-      in_progress: { text: 'W realizacji', cls: 'bg-purple-100 text-purple-800' },
-      completed: { text: 'Zakończone', cls: 'bg-emerald-100 text-emerald-800' },
-      lost: { text: 'Klient wybrał innego', cls: 'bg-red-100 text-red-800' },
-    };
-    const x = map[stage] || { text: '—', cls: 'bg-gray-100 text-gray-800' };
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${x.cls}`}>{x.text}</span>;
+    const p = getProviderOrderPresentation({ order, offer });
+    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.badgeClass}`}>{p.label}</span>;
   };
 
   const formatDate = (date) => {
@@ -1279,6 +1224,7 @@ function OrdersTab({ user }) {
                 {filteredDemoProviderOrders.map(({ order, offer }) => {
                   const price = offer?.amount || offer?.price || order?.amountTotal || order?.budget;
                   const detailsTab = offer ? 'my_offer' : 'details';
+                  const providerPresentation = getProviderOrderPresentation({ order, offer });
                   return (
                     <div
                       key={order._id}
@@ -1303,6 +1249,10 @@ function OrdersTab({ user }) {
                               Twoja oferta: {price} zł
                             </div>
                           )}
+                          <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+                            <div className="text-xs font-semibold text-indigo-900">Następny krok: {providerPresentation.nextStepLabel}</div>
+                            <div className="text-xs text-indigo-700 mt-0.5">{providerPresentation.nextStepHint}</div>
+                          </div>
                         </div>
                         <div className="text-right ml-4">
                           <div className="font-semibold text-slate-900">
@@ -1314,6 +1264,16 @@ function OrdersTab({ user }) {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = providerPresentation.nextStepHref;
+                          }}
+                          className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                        >
+                          {providerPresentation.nextStepCta}
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1345,6 +1305,7 @@ function OrdersTab({ user }) {
               ? providerFilteredItems.map(({ order, offer }) => {
                   const price = offer?.amount || offer?.price || order?.amountTotal || order?.budget;
                   const detailsTab = offer ? 'my_offer' : 'details';
+                  const providerPresentation = getProviderOrderPresentation({ order, offer });
                   return (
                     <div
                       key={order._id}
@@ -1360,6 +1321,10 @@ function OrdersTab({ user }) {
                           <div className="text-sm text-gray-500">
                             {getOrderLocation(order)} • {formatDate(order.createdAt)}
                           </div>
+                          <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+                            <div className="text-xs font-semibold text-indigo-900">Następny krok: {providerPresentation.nextStepLabel}</div>
+                            <div className="text-xs text-indigo-700 mt-0.5">{providerPresentation.nextStepHint}</div>
+                          </div>
                         </div>
                         <div className="text-right ml-4">
                           <div className="font-semibold text-slate-900">
@@ -1372,6 +1337,16 @@ function OrdersTab({ user }) {
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = providerPresentation.nextStepHref;
+                          }}
+                          className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                        >
+                          {providerPresentation.nextStepCta}
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1397,35 +1372,7 @@ function OrdersTab({ user }) {
                   );
                 })
               : clientFilteredOrders.map((order) => {
-                  // Określ aktualny etap i jego opis (spójny z OrderProgressBar)
-                  const getStageDescription = () => {
-                    if (order.status === 'open' || order.status === 'draft') {
-                      return 'Otwarte - zlecenie oczekuje na oferty od wykonawców';
-                    }
-                    if (order.status === 'collecting_offers') {
-                      const count = order.offers?.length || 0;
-                      return `Oferty złożone - otrzymano ${count} ${count === 1 ? 'oferta' : count < 5 ? 'oferty' : 'ofert'}, wybierz najlepszą`;
-                    }
-                    if (order.status === 'accepted') {
-                      if (order.paymentStatus === 'succeeded' || order.paidInSystem) {
-                        return 'Oferta zaakceptowana i opłacona - wykonawca może rozpocząć pracę';
-                      }
-                      return 'Oferta zaakceptowana - oczekuje na płatność';
-                    }
-                    if (order.status === 'funded') {
-                      return 'Opłacone - środki zabezpieczone w systemie';
-                    }
-                    if (order.status === 'in_progress') {
-                      return 'W realizacji - wykonawca pracuje nad zleceniem';
-                    }
-                    if (order.status === 'completed') {
-                      return 'Zakończone - potwierdź odbiór i oceń wykonawcę';
-                    }
-                    if (order.status === 'released' || order.status === 'rated') {
-                      return 'Zakończone - wszystko gotowe';
-                    }
-                    return 'Zlecenie w trakcie realizacji';
-                  };
+                  const presentation = getClientOrderPresentation(order);
 
                   return (
                     <div 
@@ -1453,7 +1400,11 @@ function OrdersTab({ user }) {
                           </div>
                           {/* Opis etapu */}
                           <div className="mt-2 text-xs text-indigo-600 font-medium">
-                            {getStageDescription()}
+                            {presentation.stageDescription}
+                          </div>
+                          <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+                            <div className="text-xs font-semibold text-indigo-900">Następny krok: {presentation.nextStepLabel}</div>
+                            <div className="text-xs text-indigo-700 mt-0.5">{presentation.nextStepHint}</div>
                           </div>
                         </div>
                         <div className="text-right ml-4">
@@ -1483,6 +1434,16 @@ function OrdersTab({ user }) {
 
                       {/* Szybkie akcje */}
                       <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = presentation.nextStepHref;
+                          }}
+                          className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                        >
+                          {presentation.nextStepCta}
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
