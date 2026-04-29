@@ -44,6 +44,9 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
         body: JSON.stringify({
           providerId,
           ...(serviceId ? { serviceId } : {}),
+          ...(description?.trim() ? { description: description.trim() } : {}),
+          ...(budget ? { budget: Number(budget) } : {}),
+          ...(preferredTime?.trim() ? { preferredTime: preferredTime.trim() } : {}),
         }),
       });
       const data = await res.json();
