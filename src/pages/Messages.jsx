@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Messages() {
   const { user: currentUser } = useAuth();
   const { loading, conversations, typingMap, markConversationRead } = useInbox();
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
   const [active, setActive] = useState(null);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function Messages() {
           </div>
         ) : (
           <InboxList
-            conversations={conversations}
+            conversations={safeConversations}
             activeId={active?._id}
             onSelect={setActive}
             typingMap={typingMap}

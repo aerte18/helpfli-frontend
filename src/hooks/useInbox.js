@@ -20,7 +20,10 @@ export default function useInbox() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setConversations(data || []);
+      const normalized = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.conversations) ? data.conversations : []);
+      setConversations(normalized);
     } catch (e) {
       // noop
     } finally {
@@ -122,7 +125,10 @@ export default function useInbox() {
 
   const sorted = useMemo(() => {
     if (!user) return [];
-    return [...conversations].sort((a, b) => new Date(b.lastMessageAt || b.updatedAt || 0) - new Date(a.lastMessageAt || a.updatedAt || 0));
+    const safeConversations = Array.isArray(conversations) ? conversations : [];
+    return [...safeConversations].sort(
+      (a, b) => new Date(b.lastMessageAt || b.updatedAt || 0) - new Date(a.lastMessageAt || a.updatedAt || 0)
+    );
   }, [conversations, user]);
 
   return { 
