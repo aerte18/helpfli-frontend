@@ -20,7 +20,7 @@ import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal
 import CompleteOrderModal from "../components/CompleteOrderModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { createChangeRequest, acceptChangeRequest, rejectChangeRequest, getChangeRequests } from "../api/changeRequests";
-import { Clock, Banknote, FileText, MapPin, Loader2, Package, Briefcase, ShieldAlert, CheckCircle2, CreditCard, Settings, CheckSquare, Inbox, MessageSquare, AlertCircle, Copy, Check, Sparkles } from "lucide-react";
+import { Clock, Banknote, FileText, MapPin, Loader2, Package, Briefcase, ShieldAlert, CheckCircle2, CreditCard, Settings, CheckSquare, Inbox, MessageSquare, AlertCircle, Copy, Check, Sparkles, ChevronDown } from "lucide-react";
 import { getErrorMessage } from "../utils/errorMessages";
 import { getSocket } from "../lib/socket";
 import { OrderDetailsSkeleton } from "../components/SkeletonLoader";
@@ -1514,42 +1514,20 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
         ) : (
           // WIDOK DLA PROVIDERA
           <>
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-orange-600 text-xl">✓</span>
-                <span className="font-semibold text-orange-900">Twoja oferta została zaakceptowana!</span>
-              </div>
-              <p className="text-sm text-orange-800">
-                {isExternalPayment 
-                  ? (externalReadyForStart
-                      ? 'Klient zaakceptował Twoją ofertę. Możesz rozpocząć realizację zlecenia.'
-                      : 'Klient zaakceptował Twoją ofertę. Oczekuj na działanie klienta, aby rozpocząć realizację.')
-                  : 'Klient zaakceptował Twoją ofertę. Oczekuj na płatność, aby rozpocząć realizację zlecenia.'}
-              </p>
-            </div>
-
-            {/* Info o zaakceptowanej ofercie */}
-            {acceptedOffer && (
-              <div className="p-4 bg-indigo-50 rounded-lg">
-                <h3 className="font-semibold text-indigo-900 mb-2">Twoja zaakceptowana oferta</h3>
-                <div className="text-2xl font-bold text-indigo-900 mb-1">
-                  {acceptedOffer.amount || acceptedOffer.price} zł
-                </div>
-                {acceptedOffer.message && (
-                  <div className="text-sm text-indigo-800 mt-2">{acceptedOffer.message}</div>
-                )}
-              </div>
-            )}
-
             {/* Status płatności / Przycisk rozpoczęcia */}
             {isExternalPayment ? (
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <h3 className="font-semibold text-emerald-900 mb-2">Rozpocznij realizację</h3>
-                <p className="text-sm text-emerald-800 mb-3">
+                <p className="text-sm text-emerald-800 mb-2">
                   {externalReadyForStart
-                    ? 'Rozliczenie odbywa się poza systemem Helpfli. Możesz rozpocząć pracę nad zleceniem.'
-                    : 'Oczekuj na działanie klienta. Rozpoczęcie realizacji będzie dostępne po zakończeniu formalności.'}
+                    ? 'Możesz rozpocząć pracę nad zleceniem.'
+                    : 'Oczekuj na działanie klienta.'}
                 </p>
+                {acceptedOffer?.completionDate && (
+                  <div className="mb-3 text-xs text-emerald-700">
+                    Najbliższy termin: {formatSmartTime(acceptedOffer.completionDate, { maxRelativeDays: 14 })}
+                  </div>
+                )}
                 {onStartWork && externalReadyForStart && (
                   <button
                     onClick={onStartWork}
@@ -2301,6 +2279,7 @@ export default function OrderDetails() {
   const [editOfferForm, setEditOfferForm] = useState({ amount: '', message: '', completionDate: '', paymentMethod: '' });
   const [videoSession, setVideoSession] = useState(null);
   const [aiFollowup, setAiFollowup] = useState(null);
+  const [aiInsightsOpen, setAiInsightsOpen] = useState(false);
 
   // Chat state (multi-conversation per order)
   const [orderOffers, setOrderOffers] = useState([]);
@@ -3862,7 +3841,50 @@ export default function OrderDetails() {
             </div>
           )}
 
-          {tab === "details" && !isClientCollectingOffers && (
+          {tab === "details" && isProvider && isAssignedProvider && order?.status === "accepted" && (() => {
+            const isExternalPayment =
+              order?.paymentMethod === "external" || order?.paymentPreference === "external";
+            const platformFee = Number(order?.pricing?.platformFee || 0);
+            const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
+            const externalReadyForStart = !isExternalPayment || platformFee <= 0 || externalCommissionPaid;
+            const systemPaid = order?.paymentStatus === "succeeded" || order?.paidInSystem;
+            const readyForStart = isExternalPayment ? externalReadyForStart : systemPaid;
+            const etaCandidate = myOffer?.completionDate || order?.acceptedOffer?.completionDate || null;
+
+            return (
+              <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-semibold text-emerald-900">Rozpocznij realizację</div>
+                    <div className="mt-1 text-sm text-emerald-800">
+                      {readyForStart
+                        ? "Możesz rozpocząć realizację."
+                        : "Oczekuje na działanie klienta."}
+                    </div>
+                    {etaCandidate && (
+                      <div className="mt-1 text-xs text-emerald-700">
+                        Najbliższy termin: {formatSmartTime(etaCandidate, { maxRelativeDays: 14 })}
+                      </div>
+                    )}
+                  </div>
+                  {readyForStart && (
+                    <button
+                      onClick={startWork}
+                      disabled={startingWork}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {startingWork && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {startingWork ? "Rozpoczynanie..." : "Przejdź do realizacji"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {tab === "details" &&
+            !isClientCollectingOffers &&
+            !(isProvider && isAssignedProvider && order?.status === "accepted") && (
             <NextStepBanner
               order={order}
               isClient={isClient}
@@ -3883,91 +3905,56 @@ export default function OrderDetails() {
             />
           )}
 
-          {tab === "details" && isProvider && isAssignedProvider && order?.status === "accepted" && (() => {
-            const isExternalPayment =
-              order?.paymentMethod === "external" || order?.paymentPreference === "external";
-            const platformFee = Number(order?.pricing?.platformFee || 0);
-            const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
-            const externalReadyForStart = !isExternalPayment || platformFee <= 0 || externalCommissionPaid;
-            const systemPaid = order?.paymentStatus === "succeeded" || order?.paidInSystem;
-            const readyForStart = isExternalPayment ? externalReadyForStart : systemPaid;
-
-            return (
-              <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-emerald-900">Rozpocznij realizację</div>
-                    <div className="mt-1 text-sm text-emerald-800">
-                      {readyForStart
-                        ? "Możesz rozpocząć realizację tego zlecenia."
-                        : "Oczekuje na działanie klienta."}
-                    </div>
-                  </div>
-                  {readyForStart && (
-                    <button
-                      onClick={startWork}
-                      disabled={startingWork}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {startingWork && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {startingWork ? "Rozpoczynanie..." : "Przejdź do realizacji"}
-                    </button>
+          {tab === "details" && isProvider && myOffer && (hasAiPilot || providerMatch) && (
+            <div className="mb-5 rounded-2xl border border-indigo-200 bg-white">
+              <button
+                type="button"
+                onClick={() => setAiInsightsOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-indigo-950">
+                  <Sparkles className="h-4 w-4 text-indigo-600" />
+                  Sugestie AI
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-indigo-600 transition-transform ${aiInsightsOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {aiInsightsOpen && (
+                <div className="border-t border-indigo-100 p-4 space-y-4">
+                  {hasAiPilot && (
+                    <AIStepHint
+                      stage={order.status === 'completed' ? 'completed' : order.status === 'in_progress' ? 'in_progress' : 'open'}
+                      title={aiFollowup.title}
+                      tip={aiFollowup.tip}
+                      seedQuery={aiFollowup.seedQuery}
+                      ctaLabel={aiFollowup.cta}
+                      priority={aiFollowup.priority}
+                      phaseLabel={aiFollowup.phaseLabel}
+                      stepLabel={aiFollowup.stepLabel}
+                      oneActionReason={aiFollowup.oneActionReason}
+                      onAction={handleAiFollowupAction}
+                    />
                   )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Dynamiczna podpowiedź AI dla klienta/providera */}
-          {tab === "details" && hasAiPilot && !isClientCollectingOffers && (
-            <div className="mb-5">
-              <AIStepHint
-                stage={order.status === 'completed' ? 'completed' : order.status === 'in_progress' ? 'in_progress' : 'open'}
-                title={aiFollowup.title}
-                tip={aiFollowup.tip}
-                seedQuery={aiFollowup.seedQuery}
-                ctaLabel={aiFollowup.cta}
-                priority={aiFollowup.priority}
-                phaseLabel={aiFollowup.phaseLabel}
-                stepLabel={aiFollowup.stepLabel}
-                oneActionReason={aiFollowup.oneActionReason}
-                onAction={handleAiFollowupAction}
-              />
-            </div>
-          )}
-
-          {tab === "details" && isProvider && providerMatch && (
-            <div className="mb-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-indigo-950">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                    AI dopasowanie zlecenia
-                  </div>
-                  <div className="mt-1 text-sm text-indigo-800">{providerMatch.label || 'Dopasowanie do Twojego profilu'}</div>
-                </div>
-                <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
-                  <div className="text-2xl font-bold text-indigo-700">{Math.round(providerMatch.score || providerMatch.percent || 0)}%</div>
-                  <div className="text-[11px] uppercase tracking-wide text-indigo-500">match</div>
-                </div>
-              </div>
-              {Array.isArray(providerMatch.reasons) && providerMatch.reasons.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {providerMatch.reasons.slice(0, 3).map((reason, idx) => (
-                    <span key={`${reason}-${idx}`} className="rounded-full bg-white px-2.5 py-1 text-xs text-indigo-800 border border-indigo-100">
-                      {reason}
-                    </span>
-                  ))}
+                  {providerMatch && (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-medium text-indigo-900">
+                          {providerMatch.label || 'Dopasowanie do Twojego profilu'}
+                        </div>
+                        <div className="text-sm font-semibold text-indigo-700">
+                          {Math.round(providerMatch.score || providerMatch.percent || 0)}% match
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <ProviderJobAssistant
+                    order={order}
+                    onGoChat={() => goTab('chat')}
+                  />
                 </div>
               )}
             </div>
-          )}
-
-          {tab === "details" && isProvider && myOffer && (
-            <ProviderJobAssistant
-              order={order}
-              onGoChat={() => goTab('chat')}
-            />
           )}
 
           {/* Info dla providera: ważność zlecenia (open/collecting_offers) - tylko informacja */}
