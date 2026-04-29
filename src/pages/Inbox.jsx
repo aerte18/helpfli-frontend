@@ -10,6 +10,23 @@ import {
 } from '../services/chatApi';
 import useSocket from '../hooks/useSocket';
 
+function safeText(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (typeof value === "object") {
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.message === "string") return value.message;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 function ConversationItem({ conv, active, onClick, meId }) {
   const other = (conv.participants || []).find(p => p._id !== meId) || {};
   const unread = (conv.unreadCount && (conv.unreadCount[meId] ?? conv.unreadCount.get?.(meId))) || 0;
@@ -20,10 +37,12 @@ function ConversationItem({ conv, active, onClick, meId }) {
       className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${active ? 'bg-gray-100' : ''}`}
     >
       <div className="flex items-center justify-between">
-        <div className="font-medium">{other.name || 'Użytkownik'}</div>
+        <div className="font-medium">{safeText(other.name, 'Użytkownik')}</div>
         {unread > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">{unread}</span>}
       </div>
-      <div className="text-sm text-gray-500 truncate">{conv.lastMessage || '—'}</div>
+      <div className="text-sm text-gray-500 truncate">
+        {safeText(conv.lastMessage?.text, safeText(conv.lastMessage, '—'))}
+      </div>
     </button>
   );
 }

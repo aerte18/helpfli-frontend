@@ -7,6 +7,18 @@ import { Helmet } from 'react-helmet-async';
 
 const API = import.meta.env.VITE_API_URL || '';
 
+function safeText(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "object") {
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.message === "string") return value.message;
+    if (typeof value.title === "string") return value.title;
+    try { return JSON.stringify(value); } catch { return fallback; }
+  }
+  return fallback;
+}
+
 export default function NotificationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -227,7 +239,7 @@ export default function NotificationsPage() {
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-base font-semibold ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
-                            {notification.title}
+                            {safeText(notification.title, "Powiadomienie")}
                           </h3>
                           {!notification.read && (
                             <span className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></span>
@@ -238,7 +250,7 @@ export default function NotificationsPage() {
                             {getNotificationLabel(notification.type)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                        <p className="text-sm text-gray-600 mb-2">{safeText(notification.message, "")}</p>
                         <p className="text-xs text-gray-400">
                           {new Date(notification.createdAt).toLocaleString('pl-PL', {
                             day: 'numeric',
