@@ -4124,7 +4124,7 @@ export default function OrderDetails() {
 
               {/* Formularz oferty i Asystent AI - zawsze pokazuj jeśli orderId istnieje */}
               {orderId ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[1fr_400px]">
+                <div className="max-w-2xl">
                   {/* Formularz oferty */}
                   <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h2 className="text-xl font-semibold text-slate-900 mb-4">Złóż ofertę</h2>
@@ -4176,21 +4176,6 @@ export default function OrderDetails() {
                       isPriority={order?.priority === "priority"}
                       priorityDateTime={order?.priorityDateTime}
                       orderPaymentPreference={order?.paymentPreference}
-                    />
-                  </div>
-
-                  {/* Asystent AI */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-indigo-600" />
-                      Asystent AI
-                    </h2>
-                    <p className="text-sm text-slate-600 mb-4">
-                      Porozmawiaj z AI, aby uzgodnić najlepszą ofertę. AI pomoże Ci określić odpowiednią cenę, zakres i komunikację.
-                    </p>
-                    <ProviderAIChat 
-                      orderId={orderId} 
-                      orderDescription={order?.description || ""} 
                     />
                   </div>
                 </div>
