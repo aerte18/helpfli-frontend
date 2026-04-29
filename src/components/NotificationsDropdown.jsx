@@ -3,6 +3,24 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getNotificationNavigateTarget } from "../utils/notificationNavigation";
 
+function safeText(value, fallback = "") {
+  if (value == null) return fallback;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (typeof value === "object") {
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.message === "string") return value.message;
+    if (typeof value.title === "string") return value.title;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 export default function NotificationsDropdown({ userId, onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,14 +188,14 @@ export default function NotificationsDropdown({ userId, onClose }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className={`text-sm font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
-                        {notification.title}
+                        {safeText(notification.title, "Powiadomienie")}
                       </h4>
                       {!notification.read && (
                         <span className="w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></span>
                       )}
                     </div>
                     <p className="text-xs text-gray-600 line-clamp-2">
-                      {notification.message}
+                      {safeText(notification.message, "")}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(notification.createdAt).toLocaleString('pl-PL', {
