@@ -1228,7 +1228,7 @@ export default function ProviderHome() {
       console.warn("Brak orderId dla czatu", order);
       return;
     }
-    navigate(`/orders/${orderId}/chat`);
+    navigate(`/orders/${orderId}?tab=chat`);
   };
 
   const handleOpenDetails = (order, tab) => {

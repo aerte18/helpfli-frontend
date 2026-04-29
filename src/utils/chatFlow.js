@@ -32,7 +32,7 @@ export async function startQuoteFlow({ provider, token, navigate }) {
   const { orderId, created } = await res.json();
 
   if (isMobile()) {
-    navigate(`/orders/${orderId}/chat?mode=quote${created ? "&prefill=1" : ""}`);
+    navigate(`/orders/${orderId}?tab=chat&mode=quote${created ? "&prefill=1" : ""}`);
   } else {
     // desktop → drawer
     useChatStore.getState().open({

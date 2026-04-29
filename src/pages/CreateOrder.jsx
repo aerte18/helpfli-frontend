@@ -445,7 +445,7 @@ export default function CreateOrder() {
             </div>
             <button
               type="button"
-              onClick={() => navigate(createdOrderDirect ? `/orders/${createdOrderId}/chat` : `/orders/${createdOrderId}`)}
+              onClick={() => navigate(createdOrderDirect ? `/orders/${createdOrderId}?tab=chat` : `/orders/${createdOrderId}`)}
               className="w-full py-3 px-6 rounded-lg font-medium text-white transition-colors"
               style={{ backgroundColor: 'var(--primary)' }}
             >

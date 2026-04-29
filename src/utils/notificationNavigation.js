@@ -60,7 +60,7 @@ export function getNotificationNavigateTarget(notification) {
   if (!target && oid) {
     const type = notification.type;
     if (type === "chat_message") {
-      target = { pathname: `/orders/${oid}/chat`, search: "" };
+      target = { pathname: `/orders/${oid}`, search: "?tab=chat" };
     } else if (type === "new_offer" || type === "new_quote") {
       target = { pathname: `/orders/${oid}`, search: "?tab=offers" };
     } else {
