@@ -4363,9 +4363,9 @@ export default function OrderDetails() {
 
           {/* TAB: SZCZEGÓŁY */}
           {tab === "details" && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[1fr_1fr_300px]">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_300px]">
               {/* Główna zawartość - widok etapowy dla klienta i providera */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-6 lg:min-w-0">
                 {/* Widok etapowy dla providera */}
                 {isProvider && (() => {
                   // Określ aktualny etap (używając tej samej logiki co OrderProgressBar)
@@ -4849,7 +4849,7 @@ export default function OrderDetails() {
                 })()}
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 lg:row-start-2 lg:col-start-2">
                 <h2 className="text-lg font-semibold text-slate-900">
                   Uczestnicy
                 </h2>
@@ -4971,12 +4971,12 @@ export default function OrderDetails() {
               </div>
 
               {/* Historia zmian statusu */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-start-1">
                 <OrderStatusTimeline orderId={orderId} />
               </div>
               
               {/* Sidebar z reklamami */}
-              <aside className="hidden lg:block">
+              <aside className="hidden lg:block lg:row-start-1 lg:col-start-2">
                 <div className="sticky top-6 space-y-4">
                   <SponsorAdBanner 
                     position="sidebar"
