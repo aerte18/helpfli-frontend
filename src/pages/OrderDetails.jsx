@@ -4363,7 +4363,7 @@ export default function OrderDetails() {
 
           {/* TAB: SZCZEGÓŁY */}
           {tab === "details" && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-stretch">
               {/* Główna zawartość - widok etapowy dla klienta i providera */}
               <div className="space-y-6 lg:min-w-0">
                 {/* Widok etapowy dla providera */}
@@ -4849,7 +4849,7 @@ export default function OrderDetails() {
                 })()}
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 lg:row-start-2 lg:col-start-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 lg:row-start-2 lg:col-start-2 h-full">
                 <h2 className="text-lg font-semibold text-slate-900">
                   Uczestnicy
                 </h2>
@@ -4971,8 +4971,8 @@ export default function OrderDetails() {
               </div>
 
               {/* Historia zmian statusu */}
-              <div className="lg:col-start-1">
-                <OrderStatusTimeline orderId={orderId} />
+              <div className="lg:col-start-1 h-full">
+                <OrderStatusTimeline orderId={orderId} className="h-full" />
               </div>
               
               {/* Sidebar z reklamami */}

@@ -2,7 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, CreditCard, Package, AlertCircle, XCircle } from 'lucide-react';
 
-export default function OrderStatusTimeline({ orderId }) {
+export default function OrderStatusTimeline({ orderId, className = '' }) {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +117,7 @@ export default function OrderStatusTimeline({ orderId }) {
   };
 
   if (loading) {
-    return <div className="p-4 text-gray-500">Ładowanie historii...</div>;
+    return <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-gray-500 ${className}`.trim()}>Ładowanie historii...</div>;
   }
 
   if (timeline.length === 0) {
@@ -125,7 +125,7 @@ export default function OrderStatusTimeline({ orderId }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 ${className}`.trim()}>
       <h3 className="text-lg font-semibold mb-4">Historia zmian statusu</h3>
       <div className="space-y-4">
         {timeline.map((event, index) => {
