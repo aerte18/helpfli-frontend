@@ -7,12 +7,15 @@ export default function useChat({ conversationId, currentUser }) {
   const [socketReady, setSocketReady] = useState(false);
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
+  const [policyNotice, setPolicyNotice] = useState("");
+  const [chatError, setChatError] = useState("");
   const socketRef = useRef(null);
 
   // init socket once
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
+    setSocketReady(Boolean(socket?.connected));
 
     socket.on("connect", () => setSocketReady(true));
     socket.on("disconnect", () => setSocketReady(false));
@@ -56,6 +59,14 @@ export default function useChat({ conversationId, currentUser }) {
         if (isTyping) next[userId] = Date.now(); else delete next[userId];
         return next;
       });
+    });
+
+    socket.on("message:policy", ({ message }) => {
+      setPolicyNotice(String(message || ""));
+    });
+
+    socket.on("message:error", ({ message }) => {
+      setChatError(String(message || "Nie udało się wysłać wiadomości."));
     });
 
     return () => {
@@ -194,6 +205,7 @@ export default function useChat({ conversationId, currentUser }) {
   }, [conversationId]);
 
   const sendMessage = useCallback(async ({ text, files }) => {
+    setChatError("");
     // Dev: rozmowa demo-* bez backendu
     if (conversationId?.startsWith("demo-") && import.meta.env.DEV) {
       const senderId = currentUser?._id || currentUser?.id || "demo-client";
@@ -225,7 +237,12 @@ export default function useChat({ conversationId, currentUser }) {
       attachments = data.files || [];
     }
 
-    socketRef.current?.emit("message:send", { conversationId, text, attachments });
+    if (!socketRef.current?.connected) {
+      setChatError("Czat chwilowo niedostępny. Sprawdź połączenie i spróbuj ponownie.");
+      return;
+    }
+
+    socketRef.current.emit("message:send", { conversationId, text, attachments });
   }, [conversationId]);
 
   const sendTyping = useCallback((isTyping) => {
@@ -262,6 +279,8 @@ export default function useChat({ conversationId, currentUser }) {
     socketReady,
     messages,
     typingList,
+    policyNotice,
+    chatError,
     sendMessage,
     sendTyping,
     markRead,
