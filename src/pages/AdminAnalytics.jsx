@@ -206,6 +206,8 @@ export default function AdminAnalytics() {
   const aiOfferQuality = aiProcess?.offerQuality || {};
   const aiMessagePreflight = aiProcess?.messagePreflight || {};
   const aiOfferFormPreflight = aiProcess?.offerFormPreflight || {};
+  const aiChatModeration = aiProcess?.chatModeration || {};
+  const aiChatModerationReasons = aiChatModeration?.reasons || {};
   const aiCompanyPro = aiProcess?.companyPro || {};
   const cronHealth = companyProCronHealth?.health || {};
   const aiOfferFormPreflightDaily = useMemo(
@@ -440,6 +442,26 @@ export default function AdminAnalytics() {
             fmtRate(row?.overrideRate),
             fmtRate(row?.blockRatePerSent),
           ])}
+        />
+      </Panel>
+
+      <h3 className="text-base font-semibold text-slate-800 pt-1">Czat przed ofertą — anty-omijanie</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Maskowanie kontaktu" value={asText(num(aiChatModeration.preofferContactMasked))} />
+        <Card title="Blokady limitu pytań" value={asText(num(aiChatModeration.preofferLimitBlocked))} />
+        <Card title="Blokady załączników" value={asText(num(aiChatModeration.preofferAttachmentsBlocked))} />
+        <Card title="Skrócone wiadomości" value={asText(num(aiChatModeration.preofferTextTruncated))} />
+      </div>
+      <Panel title="Anty-omijanie: powody maskowania">
+        <SimpleTable
+          headers={["Powód", "Wystąpienia"]}
+          rows={[
+            ["Telefon", num(aiChatModerationReasons.phone)],
+            ["E-mail", num(aiChatModerationReasons.email)],
+            ["Link", num(aiChatModerationReasons.link)],
+            ["Social/komunikator", num(aiChatModerationReasons.social)],
+            ["Obfuskacja kontaktu", num(aiChatModerationReasons.obfuscated)],
+          ]}
         />
       </Panel>
 
