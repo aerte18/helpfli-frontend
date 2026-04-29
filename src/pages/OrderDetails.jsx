@@ -3841,47 +3841,6 @@ export default function OrderDetails() {
             </div>
           )}
 
-          {tab === "details" && isProvider && isAssignedProvider && order?.status === "accepted" && (() => {
-            const isExternalPayment =
-              order?.paymentMethod === "external" || order?.paymentPreference === "external";
-            const platformFee = Number(order?.pricing?.platformFee || 0);
-            const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
-            const externalReadyForStart = !isExternalPayment || platformFee <= 0 || externalCommissionPaid;
-            const systemPaid = order?.paymentStatus === "succeeded" || order?.paidInSystem;
-            const readyForStart = isExternalPayment ? externalReadyForStart : systemPaid;
-            const etaCandidate = myOffer?.completionDate || order?.acceptedOffer?.completionDate || null;
-
-            return (
-              <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-emerald-900">Rozpocznij realizację</div>
-                    <div className="mt-1 text-sm text-emerald-800">
-                      {readyForStart
-                        ? "Możesz rozpocząć realizację."
-                        : "Oczekuje na działanie klienta."}
-                    </div>
-                    {etaCandidate && (
-                      <div className="mt-1 text-xs text-emerald-700">
-                        Najbliższy termin: {formatSmartTime(etaCandidate, { maxRelativeDays: 14 })}
-                      </div>
-                    )}
-                  </div>
-                  {readyForStart && (
-                    <button
-                      onClick={startWork}
-                      disabled={startingWork}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {startingWork && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {startingWork ? "Rozpoczynanie..." : "Przejdź do realizacji"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
           {tab === "details" &&
             !isClientCollectingOffers &&
             !(isProvider && isAssignedProvider && order?.status === "accepted") && (
