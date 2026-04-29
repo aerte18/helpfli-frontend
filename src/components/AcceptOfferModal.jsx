@@ -412,7 +412,7 @@ export default function AcceptOfferModal({
               disabled={isAccepting}
               className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
-              {isAccepting ? 'Akceptuję...' : `Akceptuj za ${totalAmount} zł`}
+              {isAccepting ? 'Akceptuję...' : `Akceptuj i zapłać teraz (${totalAmount} zł)`}
             </button>
           </div>
         </div>

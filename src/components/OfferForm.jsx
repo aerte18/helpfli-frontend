@@ -72,6 +72,7 @@ export default function OfferForm({
   const [offerLowQualityOverrideAck, setOfferLowQualityOverrideAck] = useState(false);
   /** Po co najmniej jednej zablokowanej (lub wymagającej mimo) próbie wysyłki — pokaż panel z CTA. */
   const [offerLowQualityBlockShown, setOfferLowQualityBlockShown] = useState(false);
+  const [questionDraft, setQuestionDraft] = useState("");
   const { push: toast } = useToast();
   const {
     trackOfferFormStart,
@@ -339,6 +340,26 @@ export default function OfferForm({
     };
   }, [amount, completionDate, message, priceHint, priceIncludes, contactMethod, isFinalPrice, aiSuggestions]);
   const displayedOfferQuality = aiPreflightQuality || offerQuality;
+  const suggestedQuestions = useMemo(
+    () => (Array.isArray(aiSuggestions?.suggestions?.questions) ? aiSuggestions.suggestions.questions.slice(0, 4) : []),
+    [aiSuggestions]
+  );
+
+  const appendQuestionToMessage = (question) => {
+    const q = String(question || "").trim();
+    if (!q) return;
+    const normalized = q.endsWith("?") ? q : `${q}?`;
+    setMessage((prev) => {
+      const base = String(prev || "").trim();
+      return base ? `${base}\n- ${normalized}` : `Pytania do doprecyzowania:\n- ${normalized}`;
+    });
+    setQuestionDraft("");
+    toast({
+      title: "Pytanie dodane do oferty",
+      description: "Klient zobaczy je razem z ofertą, zanim ją zaakceptuje.",
+      variant: "success",
+    });
+  };
 
   useEffect(() => {
     if (!orderId || !token || user?.role !== 'provider') return;
@@ -1228,6 +1249,49 @@ export default function OfferForm({
               </div>
             </div>
           )}
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Pytania do klienta (przed ofertą)</div>
+            <p className="text-xs text-slate-600 mt-1">
+              Zadawaj krótkie pytania techniczne. Nie podawaj telefonu, maila ani linków - system je ukryje.
+            </p>
+          </div>
+
+          {suggestedQuestions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {suggestedQuestions.map((q, idx) => (
+                <button
+                  key={`${q}-${idx}`}
+                  type="button"
+                  onClick={() => appendQuestionToMessage(q)}
+                  className="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                >
+                  + {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={questionDraft}
+              onChange={(e) => setQuestionDraft(e.target.value)}
+              placeholder="Np. Czy masz dostęp do skrzynki bezpieczników?"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              maxLength={220}
+            />
+            <button
+              type="button"
+              onClick={() => appendQuestionToMessage(questionDraft)}
+              disabled={!questionDraft.trim()}
+              className="h-10 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Dodaj pytanie
+            </button>
+          </div>
+        </div>
 
         <div className="space-y-2">
           <label htmlFor="offer-description" className="text-sm font-medium text-slate-900">

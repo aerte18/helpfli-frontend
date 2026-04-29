@@ -13,6 +13,8 @@ export default function ChatBox({ conversationId, currentUser, participants = []
   const {
     messages,
     typingList,
+    policyNotice,
+    chatError,
     sendMessage,
     sendTyping,
     markRead,
@@ -217,6 +219,13 @@ export default function ChatBox({ conversationId, currentUser, participants = []
           >
             <X className="w-4 h-4 text-gray-600" />
           </button>
+        </div>
+      )}
+
+      {(policyNotice || chatError) && (
+        <div className="px-4 py-2 bg-amber-50 border-t border-amber-200">
+          {policyNotice && <div className="text-xs text-amber-800">ℹ️ {policyNotice}</div>}
+          {chatError && <div className="text-xs text-red-700 mt-1">⚠️ {chatError}</div>}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import SponsorAdBanner from "../components/SponsorAdBanner";
 import { Clock, AlertCircle, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getClientOrderPresentation, getClientStatusLabel } from "../utils/orderFlowLabels";
 
 function clientIdOf(order) {
   const c = order?.client;
@@ -160,11 +161,28 @@ const MyOrders = () => {
                   )}
                   <p className="text-gray-700 mt-2">Opis: {order.description}</p>
                   <p className="text-sm text-gray-600 mt-2">
-                    Status: <span className="font-medium">{order.status}</span>
+                    Status: <span className="font-medium">{getClientStatusLabel(order)}</span>
                   </p>
                   <p className="text-sm text-gray-600">
                     Wykonawca: {order.provider?.name || "jeszcze nie wybrano"}
                   </p>
+                  {(() => {
+                    const next = getClientOrderPresentation(order);
+                    if (!next) return null;
+                    const tones = {
+                      blue: "bg-blue-50 border-blue-200 text-blue-900",
+                      amber: "bg-amber-50 border-amber-200 text-amber-900",
+                      emerald: "bg-emerald-50 border-emerald-200 text-emerald-900",
+                      purple: "bg-purple-50 border-purple-200 text-purple-900",
+                      green: "bg-green-50 border-green-200 text-green-900",
+                    };
+                    return (
+                      <div className={`mt-3 rounded-lg border px-3 py-2 ${tones[next.tone] || tones.blue}`}>
+                        <div className="text-sm font-semibold">Następny krok: {next.nextStepLabel}</div>
+                        <div className="text-xs opacity-90 mt-0.5">{next.nextStepHint}</div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 {/* Status wygaśnięcia */}
@@ -194,6 +212,19 @@ const MyOrders = () => {
               
               {/* Nawigacja do szczegółów / ofert / czatu */}
               <div className="mt-3 pt-3 border-t border-gray-200 flex flex-wrap gap-2">
+                {(() => {
+                  const next = getClientOrderPresentation(order);
+                  if (!next) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => navigate(next.nextStepHref)}
+                      className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                    >
+                      {next.nextStepCta}
+                    </button>
+                  );
+                })()}
                 <button
                   type="button"
                   onClick={() => navigate(`/orders/${order._id}?tab=details`)}

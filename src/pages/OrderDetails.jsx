@@ -4185,7 +4185,7 @@ export default function OrderDetails() {
 
           {/* TAB: TWOJA OFERTA (tylko gdy wykonawca ma złożoną ofertę) */}
           {tab === "my_offer" && isProvider && myOffer && (
-            <div className="max-w-2xl space-y-4">
+            <div className="w-full space-y-4">
               <OrderOffersStageView
                 order={order}
                 orderId={orderId}

@@ -804,7 +804,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                         disabled={acceptingId === o._id}
                         onClick={()=>onAccept(o._id)}
                       >
-                        {acceptingId === o._id ? "Akceptuję…" : "Akceptuj"}
+                        {acceptingId === o._id ? "Akceptuję…" : "Akceptuj i zapłać"}
                       </button>
                     )}
                   </div>
@@ -868,7 +868,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                       disabled={acceptingId === o._id}
                       onClick={() => { onAccept(o._id); setShowTopModal(false); }}
                     >
-                      {acceptingId === o._id ? '…' : 'Akceptuj'}
+                      {acceptingId === o._id ? '…' : 'Akceptuj i zapłać'}
                     </button>
                   )}
                 </div>

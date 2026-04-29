@@ -37,7 +37,6 @@ import NearbyProvidersPage from "./pages/NearbyProvidersPage";
 import ProviderProfile from './pages/ProviderProfile';
 import ProvidersPage from "./pages/ProvidersPage";
 import OrderChat from "./pages/OrderChat";
-import Inbox from "./pages/Inbox";
 import Messages from "./pages/Messages";
 import NotificationsPage from "./pages/NotificationsPage";
 
@@ -219,7 +218,7 @@ function App() {
           <Route path="/rate-user/:userId" element={<RateUser />} />
           <Route path="/user-ratings/:userId" element={<UserRatings />} />
           <Route path="/nearby-providers" element={<NearbyProvidersPage />} />
-          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/inbox" element={<Messages />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           {/* Przekierowanie z onboarding */}

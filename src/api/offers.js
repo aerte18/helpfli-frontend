@@ -60,13 +60,14 @@ export async function getOffersOfOrder({ token, orderId }) {
   return data.offers || [];
 }
 
-export async function acceptOffer({ token, offerId }) {
+export async function acceptOffer({ token, offerId, payload = {} }) {
   const res = await fetch(apiUrl(`/api/offers/${offerId}/accept`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    body: JSON.stringify(payload || {}),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Nie udało się zaakceptować oferty");
