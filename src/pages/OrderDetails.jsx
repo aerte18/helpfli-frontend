@@ -4363,7 +4363,7 @@ export default function OrderDetails() {
 
           {/* TAB: SZCZEGÓŁY */}
           {tab === "details" && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-stretch">
+            <div className="space-y-6">
               {/* Główna zawartość - widok etapowy dla klienta i providera */}
               <div className="space-y-6 lg:min-w-0">
                 {/* Widok etapowy dla providera */}
@@ -4849,7 +4849,11 @@ export default function OrderDetails() {
                 })()}
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 lg:row-start-2 lg:col-start-2 h-full">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_260px] items-stretch">
+                <div className="lg:col-start-1 h-full">
+                  <OrderStatusTimeline orderId={orderId} className="h-full" />
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 h-full">
                 <h2 className="text-lg font-semibold text-slate-900">
                   Uczestnicy
                 </h2>
@@ -4969,32 +4973,7 @@ export default function OrderDetails() {
                   </div>
                 )}
               </div>
-
-              {/* Historia zmian statusu */}
-              <div className="lg:col-start-1 h-full">
-                <OrderStatusTimeline orderId={orderId} className="h-full" />
               </div>
-              
-              {/* Sidebar z reklamami */}
-              <aside className="hidden lg:block lg:row-start-1 lg:col-start-2">
-                <div className="sticky top-6 space-y-4">
-                  <SponsorAdBanner 
-                    position="sidebar"
-                    page="order_details"
-                    context={{
-                      keywords: order.description ? order.description.toLowerCase().split(/\s+/) : [],
-                      serviceCategory: order.service,
-                      orderType: order.status,
-                      location: order.location ? { 
-                        city: order.location.city || order.location.address, 
-                        lat: order.location.lat, 
-                        lon: order.location.lon 
-                      } : null
-                    }}
-                    limit={2}
-                  />
-                </div>
-              </aside>
             </div>
           )}
 
