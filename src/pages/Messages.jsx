@@ -15,6 +15,15 @@ export default function Messages() {
     try { return JSON.stringify(v); } catch { return fallback; }
   };
 
+  const getOrderLabel = (conv) => {
+    const rawOrderId =
+      (typeof conv?.order === "string" ? conv.order : conv?.order?._id) ||
+      (typeof conv?.metadata?.orderId === "string" ? conv.metadata.orderId : null);
+    if (!rawOrderId) return null;
+    const id = String(rawOrderId);
+    return `Zlecenie #${id.slice(-6)}`;
+  };
+
   useEffect(() => {
     if (active) markConversationRead(active._id);
   }, [active, markConversationRead]);
@@ -42,6 +51,7 @@ export default function Messages() {
                 const preview =
                   toText(c?.lastMessage?.text) ||
                   (Array.isArray(c?.lastMessage?.attachments) && c.lastMessage.attachments.length ? "📎 Załącznik" : "Brak wiadomości");
+                const orderLabel = getOrderLabel(c);
                 const unread = Number(c?.unreadCount || 0);
                 const isActive = String(active?._id) === String(c?._id);
                 return (
@@ -57,6 +67,9 @@ export default function Messages() {
                       ) : null}
                     </div>
                     <div className="text-xs text-gray-500 truncate mt-1">{preview}</div>
+                    {orderLabel && (
+                      <div className="mt-1 text-[11px] text-indigo-600 font-medium">{orderLabel}</div>
+                    )}
                   </button>
                 );
               })
