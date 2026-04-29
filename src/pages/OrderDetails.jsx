@@ -3627,6 +3627,7 @@ export default function OrderDetails() {
   const providerMatch = aiFollowup?.providerMatch || providerOrderMatch(order, currentUser || me);
   const hasAiPilot = Boolean(aiFollowup?.tip || aiFollowup?.title || aiFollowup?.seedQuery);
   const showStageAiHint = !hasAiPilot;
+  const isClientCollectingOffers = isClient && tab === "details" && order.status === "collecting_offers";
 
   const openEditOrder = () => {
     setEditForm({
@@ -3815,24 +3816,50 @@ export default function OrderDetails() {
       <div className="mx-auto max-w-6xl px-4 md:px-6">
         <div className="rounded-3xl bg-transparent p-5 md:p-7 lg:p-8">
 
-          {/* MVP: Status "Czekam na oferty" - tylko dla klienta i zakładki details */}
-          {tab === "details" && order.status === 'collecting_offers' && !isProvider && (
+          {/* Główny status (1 primary box) dla klienta na etapie collecting_offers */}
+          {isClientCollectingOffers && (
             <div className="mb-5 rounded-xl bg-blue-50 border border-blue-200 p-4">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">⏳</div>
-                <div className="flex-1">
-                  <div className="font-semibold text-blue-900">
-                    Czekam na oferty ({order.offers?.length || 0}/3)
-                  </div>
-                  <div className="text-sm text-blue-700 mt-1">
-                    Wykonawcy mogą teraz składać oferty. Otrzymasz powiadomienie gdy pojawi się nowa oferta.
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">⏳</div>
+                  <div>
+                    <div className="font-semibold text-blue-900">
+                      Czekasz na oferty ({order.offers?.length || 0}/3)
+                    </div>
+                    <div className="text-sm text-blue-700 mt-1">
+                      Wykonawcy mogą teraz składać oferty. Otrzymasz powiadomienie gdy pojawi się nowa oferta.
+                    </div>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    goTab("details");
+                    setTimeout(
+                      () => document.getElementById("order-offers-section")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                      50
+                    );
+                  }}
+                  disabled={!order?.offers?.length}
+                  className="rounded-lg px-3 py-2 text-sm font-medium border border-blue-200 bg-white text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Zobacz oferty
+                </button>
+              </div>
+              <div className="mt-3 rounded-lg border border-blue-100 bg-white/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm text-slate-700">💡 Chcesz przyspieszyć? Dodaj zdjęcie lub termin</div>
+                <button
+                  type="button"
+                  onClick={() => handleAiFollowupAction({ seedQuery: aiFollowup?.seedQuery || "Jak poprawić zlecenie, żeby szybciej dostać oferty?" })}
+                  className="text-sm font-medium text-indigo-700 hover:text-indigo-900"
+                >
+                  ✨ Podpowiedzi AI
+                </button>
               </div>
             </div>
           )}
 
-          {tab === "details" && (
+          {tab === "details" && !isClientCollectingOffers && (
             <NextStepBanner
               order={order}
               isClient={isClient}
@@ -3854,7 +3881,7 @@ export default function OrderDetails() {
           )}
 
           {/* Dynamiczna podpowiedź AI dla klienta/providera */}
-          {tab === "details" && hasAiPilot && (
+          {tab === "details" && hasAiPilot && !isClientCollectingOffers && (
             <div className="mb-5">
               <AIStepHint
                 stage={order.status === 'completed' ? 'completed' : order.status === 'in_progress' ? 'in_progress' : 'open'}
@@ -4448,7 +4475,7 @@ export default function OrderDetails() {
                         isLoadingStartWork={startingWork}
                         isLoadingFundEscrow={fundingEscrow}
                         videoSession={videoSession}
-                        showAiHint={showStageAiHint}
+                        showAiHint={!isClientCollectingOffers && showStageAiHint}
                       />
                     );
                   }
