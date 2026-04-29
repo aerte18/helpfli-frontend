@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, MessageSquare, DollarSign, Clock } from "lucide-react";
 
 const authHeaders = () => {
@@ -11,6 +12,7 @@ const authHeaders = () => {
 };
 
 export default function AskQuoteModal({ open, onClose, provider, service }) {
+  const navigate = useNavigate();
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
@@ -24,25 +26,36 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
     setError("");
     setSubmitting(true);
     try {
-      const payload = {
-        provider: provider?._id,
-        service: service || provider?.topService || "usługa",
-        description,
-        location: provider?.location || "lokalizacja klienta",
-        budget: budget ? Number(budget) : undefined,
-        preferredTime,
-        type: "direct",
-        status: "quote_requested",
-      };
-      const res = await fetch(apiUrl("/api/orders"), {
+      const providerId = provider?._id || provider?.id;
+      const serviceId =
+        service ||
+        provider?.topServiceId ||
+        provider?.serviceId ||
+        (provider?.services?.[0]?._id ? String(provider.services[0]._id) : null) ||
+        (provider?.services?.[0] ? String(provider.services[0]) : null);
+
+      if (!providerId) {
+        throw new Error("Brak danych wykonawcy.");
+      }
+
+      const res = await fetch(apiUrl("/api/orders/quote-draft"), {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          providerId,
+          ...(serviceId ? { serviceId } : {}),
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Błąd wysyłania zapytania.");
-      // przekierowanie do szczegółów zlecenia (wątek czatu/ofert)
-      window.location.href = `/orders/${data.orderId || data._id}`;
+      if (!res.ok) throw new Error(data?.error || data?.message || "Błąd wysyłania zapytania.");
+
+      const orderId = data?.orderId || data?._id;
+      if (!orderId) {
+        throw new Error("Nie udało się utworzyć konwersacji.");
+      }
+
+      onClose?.();
+      navigate(`/orders/${orderId}?tab=chat&mode=quote`);
     } catch (err) {
       setError(err.message || "Błąd wysyłania zapytania.");
     } finally {

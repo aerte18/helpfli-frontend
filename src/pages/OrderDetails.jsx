@@ -4239,11 +4239,23 @@ export default function OrderDetails() {
                       name: o.providerMeta?.name || "Wykonawca",
                       price: o.amount || o.price,
                     }))
-                  : (orderOffers || []).map((o) => ({
-                      providerId: o.providerId,
-                      name: o.providerMeta?.name || "Wykonawca",
-                      price: o.amount || o.price,
-                    }));
+                  : [
+                      ...((orderOffers || []).map((o) => ({
+                        providerId: o.providerId,
+                        name: o.providerMeta?.name || "Wykonawca",
+                        price: o.amount || o.price,
+                      })) || []),
+                      ...((orderConversations || []).map((c) => {
+                        const other = (c.participants || []).find(
+                          (p) => String(p?._id || p) !== String(me?.id || me?._id)
+                        );
+                        return {
+                          providerId: other?._id || other || null,
+                          name: other?.name || "Wykonawca",
+                          price: null,
+                        };
+                      }) || []),
+                    ];
 
                 const uniq = [];
                 const seen = new Set();
@@ -4261,7 +4273,7 @@ export default function OrderDetails() {
                       <aside className="rounded-xl border border-slate-200 bg-white">
                         <div className="px-3 py-2 border-b border-slate-100">
                           <div className="text-sm font-semibold text-slate-900">Rozmowy</div>
-                          <div className="text-xs text-slate-500">Wybierz wykonawcę z ofertą</div>
+                          <div className="text-xs text-slate-500">Wybierz wykonawcę, aby otworzyć rozmowę</div>
                         </div>
 
                         {uniq.length ? (
@@ -4290,7 +4302,7 @@ export default function OrderDetails() {
                                     <div className="min-w-0 flex-1">
                                       <div className="text-sm font-medium text-slate-900 truncate">{p.name}</div>
                                       <div className="text-xs text-slate-500">
-                                        {p.price ? `Oferta: ${p.price} zł` : "Oferta złożona"}
+                                        {p.price ? `Oferta: ${p.price} zł` : "Rozmowa"}
                                       </div>
                                     </div>
                                   </div>
@@ -4303,11 +4315,9 @@ export default function OrderDetails() {
                             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                               <Inbox className="w-8 h-8 text-slate-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                              Brak ofert
-                            </h3>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">Brak rozmów</h3>
                             <p className="text-sm text-slate-600 text-center max-w-md">
-                              To zlecenie nie otrzymało jeszcze żadnych ofert. Poczekaj chwilę lub skontaktuj się z wykonawcami bezpośrednio.
+                              Nie ma jeszcze aktywnych konwersacji dla tego zlecenia.
                             </p>
                           </div>
                         )}
