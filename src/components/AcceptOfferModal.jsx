@@ -60,6 +60,7 @@ export default function AcceptOfferModal({
 
   const platformFee = Math.max(0, basePlatformFee - tierDiscountAmount);
   const totalAmount = baseAmount + guaranteeFee + platformFee;
+  const payableNow = paymentMethod === 'external' ? platformFee : totalAmount;
 
   const handleAccept = () => {
     // Walidacja dla teleporad
@@ -75,11 +76,12 @@ export default function AcceptOfferModal({
       paymentMethod,
       includeGuarantee: effectiveIncludeGuarantee,
       requestInvoice,
-      totalAmount,
+      totalAmount: payableNow,
       breakdown: {
         baseAmount,
         guaranteeFee,
         platformFee,
+        payableNow,
         tierDiscountPercent,
         tierDiscountAmount
       }
@@ -247,6 +249,12 @@ export default function AcceptOfferModal({
                 <span>Cena wykonawcy:</span>
                 <span>{baseAmount} zł</span>
               </div>
+              {paymentMethod === 'external' && (
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Rozliczenie z wykonawcą:</span>
+                  <span>bezpośrednio poza Helpfli</span>
+                </div>
+              )}
               {basePlatformFee > 0 && (
                 <div className="flex justify-between">
                   <span>Prowizja platformy (5%):</span>
@@ -266,8 +274,8 @@ export default function AcceptOfferModal({
                 </div>
               )}
               <div className="border-t pt-2 flex justify-between font-semibold">
-                <span>Do zapłaty:</span>
-                <span>{totalAmount} zł</span>
+                <span>{paymentMethod === 'external' ? 'Do zapłaty teraz (prowizja):' : 'Do zapłaty:'}</span>
+                <span>{payableNow} zł</span>
               </div>
             </div>
           </div>
@@ -412,7 +420,11 @@ export default function AcceptOfferModal({
               disabled={isAccepting}
               className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
-              {isAccepting ? 'Akceptuję...' : `Akceptuj i zapłać teraz (${totalAmount} zł)`}
+              {isAccepting
+                ? 'Akceptuję...'
+                : paymentMethod === 'external'
+                  ? `Akceptuj i opłać prowizję (${payableNow} zł)`
+                  : `Akceptuj i zapłać teraz (${payableNow} zł)`}
             </button>
           </div>
         </div>
