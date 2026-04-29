@@ -503,6 +503,13 @@ export default function ProviderHome() {
 
   // Panel z listą zleceń w trybie mapy (rozwijany)
   const [isOrderListExpanded, setIsOrderListExpanded] = useState(false);
+  const [aiInsightsExpanded, setAiInsightsExpanded] = useState(() => {
+    try {
+      return localStorage.getItem("providerHome_aiInsightsExpanded") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   // Toolbar przezroczysty po przewinięciu (tylko w widoku lista/podział)
   const [toolbarScrolled, setToolbarScrolled] = useState(false);
@@ -1310,6 +1317,12 @@ export default function ProviderHome() {
     };
   }, [viewMode]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("providerHome_aiInsightsExpanded", aiInsightsExpanded ? "1" : "0");
+    } catch (_) {}
+  }, [aiInsightsExpanded]);
+
   return (
     <div className={`${viewMode === "map" ? "h-screen overflow-hidden fixed inset-0 bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
       {/* Onboarding – pierwszy raz (3 kroki) */}
@@ -1361,9 +1374,38 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0) && (
+      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
-          <details className="group rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm" open={!isMobileViewport}>
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white">
+                    <Sparkles className="h-4 w-4" aria-hidden />
+                  </div>
+                  <h2 className="text-sm font-semibold text-slate-950">AI podpowiedzi</h2>
+                </div>
+                <p className="mt-1 text-xs text-slate-600">
+                  {inboxPriorityOrders.length} szans do szybkiej odpowiedzi
+                  {inboxFollowUps.length > 0 ? ` • ${inboxFollowUps.length} follow-up` : ""}
+                  {` • Akceptacja ${stats.acceptanceRate}%`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiInsightsExpanded((v) => !v)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {aiInsightsExpanded ? "Zwiń podpowiedzi AI" : "Pokaż podpowiedzi AI"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode !== "map" && aiInsightsExpanded && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0) && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <details className="group rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm" open>
             <summary className="list-none cursor-pointer">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1455,10 +1497,10 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (
+      {viewMode !== "map" && aiInsightsExpanded && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-            <details className="group rounded-2xl border border-purple-200 bg-white p-4 shadow-sm" open={!isMobileViewport}>
+            <details className="group rounded-2xl border border-purple-200 bg-white p-4 shadow-sm" open>
               <summary className="list-none cursor-pointer">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div>
@@ -1490,7 +1532,7 @@ export default function ProviderHome() {
               </div>
             </details>
 
-            <details className="group rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm" open={!isMobileViewport}>
+            <details className="group rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm" open>
               <summary className="list-none cursor-pointer">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div>
