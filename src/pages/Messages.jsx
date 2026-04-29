@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import useInbox from "../hooks/useInbox";
-import InboxList from "../components/InboxList";
 import ChatBox from "../components/ChatBox";
 import { useAuth } from "../context/AuthContext";
 
@@ -9,6 +8,12 @@ export default function Messages() {
   const { loading, conversations, typingMap, markConversationRead } = useInbox();
   const safeConversations = Array.isArray(conversations) ? conversations : [];
   const [active, setActive] = useState(null);
+
+  const toText = (v, fallback = "") => {
+    if (v == null) return fallback;
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+    try { return JSON.stringify(v); } catch { return fallback; }
+  };
 
   useEffect(() => {
     if (active) markConversationRead(active._id);
@@ -26,13 +31,37 @@ export default function Messages() {
             </div>
           </div>
         ) : (
-          <InboxList
-            conversations={safeConversations}
-            activeId={active?._id}
-            onSelect={setActive}
-            typingMap={typingMap}
-            currentUser={currentUser}
-          />
+          <div className="h-full overflow-y-auto">
+            {safeConversations.length === 0 ? (
+              <div className="p-4 text-sm text-gray-500">Brak rozmów.</div>
+            ) : (
+              safeConversations.map((c) => {
+                const participants = Array.isArray(c?.participants) ? c.participants : [];
+                const other = participants.find((p) => String(p?._id || p) !== String(currentUser?._id || currentUser?.id)) || participants[0] || {};
+                const title = toText(c?.title) || toText(other?.name) || "Rozmowa";
+                const preview =
+                  toText(c?.lastMessage?.text) ||
+                  (Array.isArray(c?.lastMessage?.attachments) && c.lastMessage.attachments.length ? "📎 Załącznik" : "Brak wiadomości");
+                const unread = Number(c?.unreadCount || 0);
+                const isActive = String(active?._id) === String(c?._id);
+                return (
+                  <button
+                    key={String(c?._id)}
+                    className={`w-full text-left p-3 border-b hover:bg-gray-50 ${isActive ? "bg-blue-50" : ""}`}
+                    onClick={() => setActive(c)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium truncate">{title}</div>
+                      {unread > 0 ? (
+                        <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">{unread > 99 ? "99+" : unread}</span>
+                      ) : null}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate mt-1">{preview}</div>
+                  </button>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
 
