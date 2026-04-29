@@ -4124,7 +4124,7 @@ export default function OrderDetails() {
 
               {/* Formularz oferty i Asystent AI - zawsze pokazuj jeśli orderId istnieje */}
               {orderId ? (
-                <div className="max-w-2xl">
+                <div>
                   {/* Formularz oferty */}
                   <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h2 className="text-xl font-semibold text-slate-900 mb-4">Złóż ofertę</h2>
