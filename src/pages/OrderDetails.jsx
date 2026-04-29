@@ -3032,12 +3032,6 @@ export default function OrderDetails() {
         const clientId = typeof order.client === "string" ? order.client : order.client?._id;
         const providerAssignedId = typeof order.provider === "string" ? order.provider : order.provider?._id;
 
-        // Provider: czat odblokowany dopiero po złożeniu oferty przy zbieraniu ofert (UX)
-        if ((me?.role === "provider") && ["open", "collecting_offers"].includes(order.status) && !myOffer) {
-          setActiveConversation(null);
-          return;
-        }
-
         // A) Jeśli provider już przypisany (zaakceptowane/w realizacji) → jeden czat z przypisanym wykonawcą
         if (providerAssignedId && clientId) {
           const otherId = String(meId) === String(clientId) ? providerAssignedId : clientId;
@@ -4260,20 +4254,6 @@ export default function OrderDetails() {
                   uniq.push(x);
                 }
 
-                // Provider przy zbieraniu ofert: wymagaj oferty, żeby pisać (UX)
-                if (
-                  !order.__demo &&
-                  me?.role === "provider" &&
-                  ["open", "collecting_offers"].includes(order.status) &&
-                  !myOffer
-                ) {
-                  return (
-                    <div className="text-sm text-slate-600 p-2">
-                      Najpierw złóż ofertę, aby odblokować czat do tego zlecenia.
-                    </div>
-                  );
-                }
-
                 // Layout: lista po lewej (na desktop), czat po prawej
                 return (
                   <div className={`${isClientCollecting ? "grid gap-3 lg:grid-cols-[280px_1fr]" : ""}`}>
@@ -4335,6 +4315,14 @@ export default function OrderDetails() {
                     )}
 
                     <div className="rounded-xl border border-slate-200 bg-white p-2 md:p-3">
+                      {!order.__demo &&
+                        me?.role === "provider" &&
+                        ["open", "collecting_offers"].includes(order.status) &&
+                        !myOffer && (
+                          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            Możesz zadawać pytania przed ofertą. Dane kontaktowe i linki są ukrywane do momentu akceptacji oferty.
+                          </div>
+                        )}
                       {activeConversation?._id ? (
                         <ChatBox
                           conversationId={activeConversation._id}
