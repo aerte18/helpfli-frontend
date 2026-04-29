@@ -999,7 +999,14 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
             {order.acceptedOfferId && myOffer && (() => {
               const acceptedOfferId = order.acceptedOfferId?._id || order.acceptedOfferId;
               const myOfferId = myOffer._id || myOffer.id;
-              const isMyOfferAccepted = acceptedOfferId && myOfferId && String(acceptedOfferId) === String(myOfferId);
+              const acceptedProviderId =
+                order?.provider?._id || order?.provider || order?.acceptedOffer?.providerId;
+              const myProviderId = myOffer?.providerId?._id || myOffer?.providerId;
+              const isMyOfferAcceptedById =
+                acceptedOfferId && myOfferId && String(acceptedOfferId) === String(myOfferId);
+              const isMyOfferAcceptedByProvider =
+                acceptedProviderId && myProviderId && String(acceptedProviderId) === String(myProviderId);
+              const isMyOfferAccepted = isMyOfferAcceptedById || isMyOfferAcceptedByProvider;
               
               if (!isMyOfferAccepted) {
                 return (
@@ -1427,27 +1434,27 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
               <div id="accepted-payment-section" className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <h3 className="font-semibold text-amber-900 mb-2">Rozliczenie poza Helpfli</h3>
                 <p className="text-sm text-amber-800 mb-3">
-                  Płatność za usługę odbywa się bezpośrednio między Tobą a wykonawcą. Aby przejść dalej, opłać prowizję platformy (jeśli wymagana).
+                  Płatność za usługę odbywa się bezpośrednio między Tobą a wykonawcą. Aby przejść dalej, dokończ wymagane formalności (jeśli dotyczy).
                 </p>
                 {platformFee > 0 ? (
                   <div className="mb-3 rounded-lg bg-white border border-amber-200 p-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-700">Prowizja platformy:</span>
+                      <span className="text-slate-700">Opłata serwisowa:</span>
                       <span className="font-semibold text-slate-900">{platformFee.toFixed(2)} PLN</span>
                     </div>
                     <div className="mt-2 text-xs">
                       {externalCommissionPaid ? (
-                        <span className="text-emerald-700">✓ Prowizja opłacona</span>
+                        <span className="text-emerald-700">✓ Formalności opłacone</span>
                       ) : externalCommissionStatus === 'processing' ? (
-                        <span className="text-amber-700">⏳ Płatność prowizji w trakcie</span>
+                        <span className="text-amber-700">⏳ Płatność w trakcie</span>
                       ) : (
-                        <span className="text-amber-800">⚠️ Prowizja oczekuje na opłacenie</span>
+                        <span className="text-amber-800">⚠️ Oczekuje na dokończenie formalności</span>
                       )}
                     </div>
                   </div>
                 ) : (
                   <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
-                    ✓ Pakiet PRO: prowizja platformy za to zlecenie wynosi 0 PLN.
+                    ✓ Dla tego zlecenia nie ma dodatkowej opłaty serwisowej.
                   </div>
                 )}
                 {!externalCommissionPaid && platformFee > 0 && (
@@ -1457,12 +1464,12 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                       methodHint="card"
                       createIntentPath="/api/payments/create-commission-intent"
                       showInvoiceOption={false}
-                      buttonLabel="Opłać prowizję teraz"
+                      buttonLabel="Dokończ formalności"
                     />
                   </div>
                 )}
                 <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-700">
-                  Status: {externalReadyForStart ? 'oczekuje na realizację przez providera.' : 'oczekuje na płatność prowizji.'}
+                  Status: {externalReadyForStart ? 'oczekuje na realizację przez wykonawcę.' : 'oczekuje na działanie klienta.'}
                 </div>
               </div>
             ) : (
@@ -1514,7 +1521,9 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
               </div>
               <p className="text-sm text-orange-800">
                 {isExternalPayment 
-                  ? 'Klient zaakceptował Twoją ofertę. Możesz rozpocząć realizację zlecenia.'
+                  ? (externalReadyForStart
+                      ? 'Klient zaakceptował Twoją ofertę. Możesz rozpocząć realizację zlecenia.'
+                      : 'Klient zaakceptował Twoją ofertę. Oczekuj na działanie klienta, aby rozpocząć realizację.')
                   : 'Klient zaakceptował Twoją ofertę. Oczekuj na płatność, aby rozpocząć realizację zlecenia.'}
               </p>
             </div>
@@ -1539,7 +1548,7 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                 <p className="text-sm text-emerald-800 mb-3">
                   {externalReadyForStart
                     ? 'Rozliczenie odbywa się poza systemem Helpfli. Możesz rozpocząć pracę nad zleceniem.'
-                    : 'Klient musi najpierw opłacić prowizję platformy. Rozpoczęcie realizacji będzie dostępne po płatności.'}
+                    : 'Oczekuj na działanie klienta. Rozpoczęcie realizacji będzie dostępne po zakończeniu formalności.'}
                 </p>
                 {onStartWork && externalReadyForStart && (
                   <button
@@ -1552,7 +1561,7 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                   </button>
                 )}
                 {!externalReadyForStart && (
-                  <div className="text-amber-700 text-sm font-medium">⏳ Oczekuje na opłatę prowizji przez klienta</div>
+                  <div className="text-amber-700 text-sm font-medium">⏳ Oczekuje na działanie klienta</div>
                 )}
               </div>
             ) : (

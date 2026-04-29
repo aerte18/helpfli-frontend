@@ -49,12 +49,11 @@ export function getClientOrderPresentation(order) {
     }
     if (needsExternalCommission) {
       return {
-        label: "Oczekuje na opłacenie prowizji",
+        label: "Oczekuje na działanie klienta",
         badgeClass: "bg-amber-100 text-amber-800",
-        stageDescription:
-          "Oferta zaakceptowana - opłać prowizję platformy, aby odblokować realizację",
-        nextStepLabel: "Opłać prowizję",
-        nextStepHint: "Rozpoczęcie realizacji odblokuje się po płatności prowizji.",
+        stageDescription: "Oferta zaakceptowana - wymagane działanie klienta przed rozpoczęciem realizacji",
+        nextStepLabel: "Dokończ formalności",
+        nextStepHint: "Po wykonaniu działania przez klienta realizacja zostanie odblokowana.",
         nextStepCta: "Przejdź do płatności",
         nextStepHref: `/orders/${orderId}?tab=details`,
         tone: "amber",
@@ -151,8 +150,14 @@ export function getProviderStageKey({ order, offer }) {
   const status = order?.status;
   const acceptedOfferId = order?.acceptedOfferId?._id || order?.acceptedOfferId;
   const myOfferId = offer?._id || offer?.id;
-  const isAccepted =
+  const acceptedProviderId =
+    order?.provider?._id || order?.provider || order?.acceptedOffer?.providerId;
+  const myProviderId = offer?.providerId?._id || offer?.providerId;
+  const isAcceptedByOfferId =
     acceptedOfferId && myOfferId && String(acceptedOfferId) === String(myOfferId);
+  const isAcceptedByProviderId =
+    acceptedProviderId && myProviderId && String(acceptedProviderId) === String(myProviderId);
+  const isAccepted = isAcceptedByOfferId || isAcceptedByProviderId;
 
   if (isAccepted) {
     if (status === "in_progress") return "in_progress";
@@ -201,7 +206,7 @@ export function getProviderOrderPresentation({ order, offer }) {
       label: "Klient wybrał innego",
       badgeClass: "bg-red-100 text-red-800",
       nextStepLabel: "Brak dalszych działań",
-      nextStepHint: "To zlecenie zostało przypisane innemu wykonawcy.",
+      nextStepHint: "Klient zaakceptował inną ofertę dla tego zlecenia.",
       nextStepCta: "Szczegóły",
       nextStepHref: `/orders/${order?._id}?tab=details`,
       tone: "red",
