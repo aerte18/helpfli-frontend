@@ -1931,32 +1931,50 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                 <div className="space-y-2">
                   {order.completionType === 'with_payment' && !isExternalPayment ? (
                     <>
+                      {order.additionalPaymentStatus === 'succeeded' && (
+                        <div className="w-full px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg text-sm font-medium text-center border border-emerald-200">
+                          Dopłata została opłacona. Możesz teraz potwierdzić odbiór.
+                        </div>
+                      )}
                       <button
                         onClick={async () => {
-                          // Zaakceptuj dopłatę i przejdź do płatności
                           try {
                             const token = localStorage.getItem("token");
-                            const API = import.meta.env.VITE_API_URL || '';
-                            // Najpierw zaakceptuj zakończenie z dopłatą
-                            await fetch(apiUrl(`/api/orders/${orderId}/accept-completion`), {
+                            const res = await fetch(apiUrl('/api/payments/create-additional-intent'), {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
                                 Authorization: `Bearer ${token}`
                               },
-                              body: JSON.stringify({ acceptAdditionalPayment: true })
+                              body: JSON.stringify({ orderId, methodHint: 'card' })
                             });
-                            // Przekieruj do checkout dla dopłaty
-                            window.location.href = `/checkout/${orderId}?additionalPayment=${order.additionalAmount}`;
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok) throw new Error(data?.message || 'Nie udało się utworzyć płatności dopłaty');
+                            window.location.href = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&orderId=${encodeURIComponent(orderId)}`;
                           } catch (error) {
                             console.error('Błąd akceptacji dopłaty:', error);
                             toast({ title: 'Błąd akceptacji dopłaty', description: getErrorMessage(error), variant: 'error' });
                           }
                         }}
+                        disabled={order.additionalPaymentStatus === 'succeeded' || order.additionalPaymentStatus === 'processing'}
                         className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
                       >
-                        Zaakceptuj dopłatę i zapłać
+                        {order.additionalPaymentStatus === 'succeeded'
+                          ? 'Dopłata opłacona'
+                          : order.additionalPaymentStatus === 'processing'
+                            ? 'Dopłata w trakcie płatności'
+                            : 'Zaakceptuj dopłatę i zapłać'}
                       </button>
+                      {order.additionalPaymentStatus === 'succeeded' && (
+                        <button
+                          onClick={onConfirmReceipt}
+                          disabled={isLoadingConfirmReceipt}
+                          className="w-full px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+                        >
+                          {isLoadingConfirmReceipt && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {isLoadingConfirmReceipt ? 'Potwierdzanie...' : 'Potwierdź odbiór i wypłać środki'}
+                        </button>
+                      )}
                       <button
                         onClick={onReportDispute}
                         disabled={isLoadingReportDispute}
