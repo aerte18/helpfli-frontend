@@ -1198,7 +1198,7 @@ export default function ProviderHome() {
         : 190;
 
   // Layout helpers - używamy viewMode zamiast mapSize
-  const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
+  const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-[100dvh]";
   const gridClass =
     viewMode === "map"
       ? "grid-cols-1"
@@ -1324,7 +1324,7 @@ export default function ProviderHome() {
   }, [aiInsightsExpanded]);
 
   return (
-    <div className={`${viewMode === "map" ? "h-screen overflow-hidden fixed inset-0 bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
+    <div className={`${viewMode === "map" ? "h-[100dvh] overflow-hidden fixed inset-0 bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
       {/* Onboarding – pierwszy raz (3 kroki) */}
       {!onboardingDismissed && viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -1375,7 +1375,7 @@ export default function ProviderHome() {
       )}
 
       {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
-        <div className="max-w-7xl mx-auto px-4 pt-4">
+        <div id="provider-ai-hints-section" className="max-w-7xl mx-auto px-4 pt-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
@@ -1399,6 +1399,35 @@ export default function ProviderHome() {
                 {aiInsightsExpanded ? "Zwiń podpowiedzi AI" : "Pokaż podpowiedzi AI"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
+        <div className="md:hidden max-w-7xl mx-auto px-4 pt-3">
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2.5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">AI skrót</div>
+              <p className="text-xs text-slate-700 truncate">
+                {inboxPriorityOrders.length > 0
+                  ? `${inboxPriorityOrders.length} zleceń do szybkiej odpowiedzi`
+                  : inboxFollowUps.length > 0
+                    ? `${inboxFollowUps.length} follow-up do wysłania`
+                    : "Masz nowe podpowiedzi AI do poprawy skuteczności"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAiInsightsExpanded(true);
+                setTimeout(() => {
+                  document.getElementById("provider-ai-hints-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+              }}
+              className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white qs-tap-target qs-transition-soft hover:bg-indigo-700"
+            >
+              Otwórz AI
+            </button>
           </div>
         </div>
       )}
@@ -2192,7 +2221,7 @@ export default function ProviderHome() {
           style={{
             top: `${mapFullBleedTopPx}px`,
             zIndex: 1,
-            height: `calc(100vh - ${mapFullBleedTopPx}px)`,
+            height: `calc(100dvh - ${mapFullBleedTopPx}px)`,
           }}
         >
           <div className="w-full h-full">
@@ -2384,7 +2413,7 @@ export default function ProviderHome() {
               style={
                 isMobileViewport
                   ? { maxHeight: "58vh" }
-                  : { height: "calc(100vh - 240px)" }
+                  : { height: "calc(100dvh - 240px)" }
               }
             >
               {isMobileViewport && (

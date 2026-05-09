@@ -3628,6 +3628,37 @@ export default function OrderDetails() {
   const hasAiPilot = Boolean(aiFollowup?.tip || aiFollowup?.title || aiFollowup?.seedQuery);
   const showStageAiHint = !hasAiPilot;
   const isClientCollectingOffers = isClient && tab === "details" && order.status === "collecting_offers";
+  const userIsProvider = me?.role === "provider";
+  const canOffer = !myOffer && (!order || order.status === "open" || order.status === "collecting_offers");
+  const mobileTabs = ["chat", "details"];
+  if (userIsProvider && canOffer) mobileTabs.push("offers");
+  if (userIsProvider && myOffer) mobileTabs.push("my_offer");
+  const stageForAi = order?.status === "completed"
+    ? "completed"
+    : order?.status === "in_progress"
+      ? "in_progress"
+      : order?.status === "funded"
+        ? "funded"
+        : order?.status === "accepted"
+          ? "accepted"
+          : "offers";
+  const fallbackAiSeedByStage = {
+    offers: "Którą ofertę wybrać i co poprawić, żeby szybciej domknąć zlecenie?",
+    accepted: "Co zrobić po akceptacji oferty, żeby bezpiecznie przejść do płatności?",
+    funded: "Jak najlepiej ustalić harmonogram realizacji po opłaceniu?",
+    in_progress: "Jak sprawnie poprowadzić realizację zlecenia krok po kroku?",
+    completed: "Jak zamknąć zlecenie i co jeszcze warto zrobić po zakończeniu?",
+  };
+  const fallbackAiTipByStage = {
+    offers: "Masz oferty — AI pomoże wskazać najbezpieczniejszą i najbardziej opłacalną.",
+    accepted: "Oferta zaakceptowana — AI podpowie kolejne kroki przed płatnością.",
+    funded: "Płatność jest zabezpieczona — AI podpowie jak najlepiej ustalić termin i zakres.",
+    in_progress: "Trwa realizacja — AI podpowie co doprecyzować, aby uniknąć nieporozumień.",
+    completed: "Zlecenie zakończone — AI podpowie ostatnie ważne kroki i podsumowanie.",
+  };
+  const mobileAiSeedQuery = aiFollowup?.seedQuery || fallbackAiSeedByStage[stageForAi] || fallbackAiSeedByStage.offers;
+  const mobileAiTip = aiFollowup?.tip || fallbackAiTipByStage[stageForAi] || fallbackAiTipByStage.offers;
+  const showMobileAiStrip = tab === "details" && (isClient || isProvider) && Boolean(mobileAiSeedQuery);
 
   const openEditOrder = () => {
     setEditForm({
@@ -3770,31 +3801,20 @@ export default function OrderDetails() {
               )}
             </div>
 
-            <div className="flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
-              {(() => {
-                const tabs = ["chat", "details"];
-                const userIsProvider = me?.role === 'provider';
-                const canOffer = !myOffer && (!order || order.status === "open" || order.status === "collecting_offers");
-                if (userIsProvider && canOffer) {
-                  tabs.push("offers");
-                }
-                if (userIsProvider && myOffer) {
-                  tabs.push("my_offer");
-                }
-                return tabs.map((t) => (
+            <div className="flex rounded-2xl border border-slate-200 bg-slate-50 p-1 overflow-x-auto scrollbar-hide">
+              {mobileTabs.map((t) => (
                   <button
                     key={t}
                     onClick={() => goTab(t)}
-                    className={`rounded-xl px-4 py-2 text-xs md:text-sm transition-colors ${
+                    className={`rounded-xl px-3 md:px-4 py-2 text-xs md:text-sm whitespace-nowrap transition-colors ${
                       tab === t
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-slate-500 hover:bg-slate-100"
                     }`}
                   >
-                    {t === "chat" ? "Czat" : t === "offers" ? "Złóż ofertę" : t === "my_offer" ? "Twoja oferta" : "Szczegóły"}
+                    {t === "chat" ? "Czat" : t === "offers" ? "Oferta" : t === "my_offer" ? "Moja oferta" : "Szczegóły"}
                   </button>
-                ));
-              })()}
+                ))}
             </div>
           </div>
         </div>
@@ -3809,6 +3829,26 @@ export default function OrderDetails() {
               offersCount={order.offers?.length || 0}
               myOffer={myOffer}
             />
+          </div>
+        </div>
+      )}
+
+      {showMobileAiStrip && (
+        <div className="md:hidden w-full border-b border-indigo-100 bg-indigo-50/70">
+          <div className="mx-auto max-w-6xl px-4 py-2.5">
+            <div className="rounded-xl border border-indigo-200 bg-white/90 px-3 py-2 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">AI podpowiedź</div>
+                <p className="text-xs text-slate-700 truncate">{mobileAiTip}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAiFollowupAction({ seedQuery: mobileAiSeedQuery })}
+                className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white qs-tap-target qs-transition-soft hover:bg-indigo-700"
+              >
+                Otwórz AI
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -4276,7 +4316,7 @@ export default function OrderDetails() {
 
                 // Layout: lista po lewej (na desktop), czat po prawej
                 return (
-                  <div className={`${isClientCollecting ? "grid gap-3 lg:grid-cols-[280px_1fr]" : ""}`}>
+                  <div className={`${isClientCollecting ? "grid gap-3 lg:grid-cols-[minmax(14rem,280px)_minmax(0,1fr)]" : ""}`}>
                     {isClientCollecting && (
                       <aside className="rounded-xl border border-slate-200 bg-white">
                         <div className="px-3 py-2 border-b border-slate-100">
@@ -4857,7 +4897,7 @@ export default function OrderDetails() {
                 })()}
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_260px] items-stretch">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,260px)] items-stretch">
                 <div className="lg:col-start-1 h-full">
                   <OrderStatusTimeline orderId={orderId} className="h-full" />
                 </div>
@@ -5024,8 +5064,8 @@ export default function OrderDetails() {
 
       {/* Modal edycji oferty (provider) */}
       {showEditOfferModal && myOffer?._id && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !savingEditOffer && setShowEditOfferModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={() => !savingEditOffer && setShowEditOfferModal(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl qs-surface-sheet max-w-md w-full p-5 sm:p-6 max-h-[92dvh] overflow-y-auto animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Edytuj ofertę</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -5122,8 +5162,8 @@ export default function OrderDetails() {
 
       {/* Modal edycji zlecenia (klient) */}
       {showEditOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => !savingEdit && setShowEditOrderModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={() => !savingEdit && setShowEditOrderModal(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl qs-surface-sheet max-w-lg w-full max-h-[92dvh] overflow-y-auto p-5 sm:p-6 animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Edytuj zlecenie</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -5221,6 +5261,25 @@ export default function OrderDetails() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {mobileTabs.length > 1 && (
+        <div className="md:hidden fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 px-3">
+          <div className="rounded-2xl border border-slate-200 bg-white/95 qs-surface-sheet p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+            {mobileTabs.map((t) => (
+              <button
+                key={`mobile-dock-${t}`}
+                type="button"
+                onClick={() => goTab(t)}
+                className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium qs-transition-soft qs-tap-target ${
+                  tab === t ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {t === "chat" ? "Czat" : t === "offers" ? "Oferta" : t === "my_offer" ? "Moja oferta" : "Szczegóły"}
+              </button>
+            ))}
           </div>
         </div>
       )}
