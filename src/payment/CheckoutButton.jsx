@@ -1,17 +1,15 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState } from 'react';
-import { CreditCard, Smartphone, Banknote, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export default function CheckoutButton({
   orderId,
-  methodHint = 'card',
   requestInvoiceDefault = false,
   createIntentPath = '/api/payments/create-intent',
   buttonLabel = 'Przejdź do płatności online',
   showInvoiceOption = true
 }) {
   const [loading, setLoading] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(methodHint);
   const [requestInvoice, setRequestInvoice] = useState(!!requestInvoiceDefault);
 
   const start = async () => {
@@ -20,7 +18,7 @@ export default function CheckoutButton({
       const res = await fetch(apiUrl(createIntentPath), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ orderId, methodHint: selectedMethod, ...(showInvoiceOption ? { requestInvoice } : {}) }),
+        body: JSON.stringify({ orderId, ...(showInvoiceOption ? { requestInvoice } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd');
@@ -50,49 +48,6 @@ export default function CheckoutButton({
         </label>
       )}
 
-      {/* Wybór metody płatności */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setSelectedMethod('card')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-            selectedMethod === 'card'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2 justify-center">
-            <CreditCard className="w-4 h-4" />
-            <span>Karta</span>
-          </span>
-        </button>
-        <button
-          onClick={() => setSelectedMethod('blik')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-            selectedMethod === 'blik'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2 justify-center">
-            <Smartphone className="w-4 h-4" />
-            <span>BLIK</span>
-          </span>
-        </button>
-        <button
-          onClick={() => setSelectedMethod('p24')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-            selectedMethod === 'p24'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <span className="inline-flex items-center gap-2 justify-center">
-            <Banknote className="w-4 h-4" />
-            <span>Przelewy24</span>
-          </span>
-        </button>
-      </div>
-      
       <button 
         onClick={start} 
         disabled={loading} 
@@ -100,6 +55,9 @@ export default function CheckoutButton({
       >
         {loading ? 'Przetwarzanie…' : buttonLabel}
       </button>
+      <p className="text-xs text-gray-500 text-center">
+        Metodę płatności wybierzesz w kolejnym kroku Stripe.
+      </p>
     </div>
   );
 }

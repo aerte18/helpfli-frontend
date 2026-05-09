@@ -1461,7 +1461,6 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                   <div className="mb-3">
                     <CheckoutButton
                       orderId={orderId}
-                      methodHint="card"
                       createIntentPath="/api/payments/create-commission-intent"
                       showInvoiceOption={false}
                       buttonLabel="Dokończ formalności"
@@ -1500,7 +1499,7 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                       </p>
                     </div>
                     <div className="mb-3">
-                      <CheckoutButton orderId={orderId} methodHint="card" requestInvoiceDefault={order.requestInvoice} />
+                      <CheckoutButton orderId={orderId} requestInvoiceDefault={order.requestInvoice} />
                     </div>
                     <ul className="text-xs text-slate-600 space-y-1">
                       <li>• Obsługiwane: karta, BLIK, Przelewy24</li>
