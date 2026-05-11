@@ -93,11 +93,15 @@
 }
 
 /* Płynne scrollowanie; iOS: tło podczas „gumy” = kolor strony, nie szczelina */
+/* Nie ustawiaj height:100% na html — wtedy kolumna dokumentu nie „rośnie” z treścią i kółko myszy
+   często nie przewija strony. min-height + overflow-y:auto na html daje stabilny scroll widoku. */
 html {
   scroll-behavior: smooth;
-  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   background-color: var(--background);
   overflow-x: hidden;
+  overflow-y: auto;
   /* Ogranicza gumowanie na końcu dokumentu (biała pustka pod fixed tab barem) */
   overscroll-behavior-y: none;
 }
@@ -115,11 +119,12 @@ body {
 }
 
 /* React root — spójna wysokość z body (unika „pływania” treści przy krótkich stronach) */
+/* overflow-x: clip potrafi w parze z overflow-y:visible zmusić „ucięcie” osi Y i zabić scroll — hidden jest bezpieczniejsze */
 #root {
   min-height: 100%;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 @layer components {
