@@ -9,6 +9,9 @@ export default function CheckoutPage() {
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
+  const paymentElementOptions = useMemo(() => ({ layout: 'tabs' }), []);
+
   useEffect(() => {
     if (clientSecret) setReady(true);
   }, [clientSecret]);
@@ -47,9 +50,6 @@ export default function CheckoutPage() {
   };
 
   if (!ready) return <div>Ładowanie…</div>;
-
-  // Metody wynikają z PaymentIntent (np. sama karta przy prowizji) — nie wymuszaj BLIK/P24
-  const paymentElementOptions = useMemo(() => ({ layout: 'tabs' }), []);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
