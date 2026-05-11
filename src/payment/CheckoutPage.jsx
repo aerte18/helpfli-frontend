@@ -73,12 +73,11 @@ export default function CheckoutPage() {
       </div>
       
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Dostępne metody płatności:</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>💳 Karta kredytowa/debetowa (Visa, Mastercard)</li>
-          <li>📱 BLIK (płatność mobilna)</li>
-          <li>🏦 Przelewy24 (przelew bankowy online)</li>
-        </ul>
+        <h3 className="font-semibold text-blue-900 mb-2">Metody płatności</h3>
+        <p className="text-sm text-blue-800">
+          Wybór jest w formularzu powyżej — Stripe pokazuje tylko metody włączone dla tej konkretnej płatności
+          (najczęściej karta; czasem BLIK lub Przelewy24, jeśli konto platformy ma je aktywne w Stripe).
+        </p>
       </div>
     </div>
   );
