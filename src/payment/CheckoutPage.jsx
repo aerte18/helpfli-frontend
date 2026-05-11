@@ -17,20 +17,27 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!stripe || !elements) return;
 
-    // Przekaż parametry z URL do return_url
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get('type');
-    const providerId = params.get('providerId');
-    const orderId = params.get('orderId');
-    const price = params.get('price');
-    
-    let returnUrl = `${window.location.origin}/payment-result`;
-    if (type) {
-      returnUrl += `?type=${encodeURIComponent(type)}`;
-      if (providerId) returnUrl += `&providerId=${encodeURIComponent(providerId)}`;
-      if (orderId) returnUrl += `&orderId=${encodeURIComponent(orderId)}`;
-      if (price) returnUrl += `&price=${encodeURIComponent(price)}`;
+    // Przekaż parametry z URL do return_url (Stripe dopisze payment_intent* przy redirectcie)
+    const sp = new URLSearchParams(window.location.search);
+    const kind = sp.get('kind');
+    const type = sp.get('type') || (kind === 'commission' ? 'commission' : '');
+    const providerId = sp.get('providerId');
+    const price = sp.get('price');
+    let orderId = sp.get('orderId');
+    if (!orderId) {
+      const m = window.location.pathname.match(/^\/checkout\/([^/?#]+)/);
+      if (m) orderId = decodeURIComponent(m[1]);
     }
+
+    const extra = new URLSearchParams();
+    if (type) extra.set('type', type);
+    if (providerId) extra.set('providerId', providerId);
+    if (orderId) extra.set('orderId', orderId);
+    if (price) extra.set('price', price);
+
+    let returnUrl = `${window.location.origin}/payment-result`;
+    const q = extra.toString();
+    if (q) returnUrl += `?${q}`;
 
     const { error } = await stripe.confirmPayment({
       elements,
@@ -41,10 +48,8 @@ export default function CheckoutPage() {
 
   if (!ready) return <div>Ładowanie…</div>;
 
-  const paymentElementOptions = useMemo(() => ({
-    layout: 'tabs',
-    paymentMethodTypes: ['card', 'blik', 'p24'], // BLIK i Przelewy24
-  }), []);
+  // Metody wynikają z PaymentIntent (np. sama karta przy prowizji) — nie wymuszaj BLIK/P24
+  const paymentElementOptions = useMemo(() => ({ layout: 'tabs' }), []);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

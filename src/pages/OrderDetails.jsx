@@ -1949,7 +1949,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                             });
                             const data = await res.json().catch(() => ({}));
                             if (!res.ok) throw new Error(data?.message || 'Nie udało się utworzyć płatności dopłaty');
-                            window.location.href = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&orderId=${encodeURIComponent(orderId)}`;
+                            window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
                           } catch (error) {
                             console.error('Błąd akceptacji dopłaty:', error);
                             toast({ title: 'Błąd akceptacji dopłaty', description: getErrorMessage(error), variant: 'error' });

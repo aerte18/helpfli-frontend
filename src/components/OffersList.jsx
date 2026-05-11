@@ -389,10 +389,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
 
           const pi = encodeURIComponent(commissionData.paymentIntentId);
           const cs = encodeURIComponent(commissionData.clientSecret);
-          const price = encodeURIComponent(acceptResult.breakdown.platformFee);
-
-          // Przekieruj do wspólnej strony Stripe Checkout dla prowizji
-          window.location.href = `/checkout?pi=${pi}&cs=${cs}&type=commission&orderId=${orderId}&price=${price}`;
+          // Trasa z orderId + clientSecret w Elements — patrz StripeProvider / Checkout.jsx
+          window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${pi}&cs=${cs}&kind=commission`;
         } catch (e) {
           // Jeśli coś pójdzie nie tak, pokaż błąd, ale oferta pozostaje zaakceptowana
           setError(e.message || "Błąd inicjowania płatności prowizji");

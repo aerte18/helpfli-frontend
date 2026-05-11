@@ -22,9 +22,15 @@ export default function CheckoutButton({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd');
-      // redirect do /checkout?pi=<id>&cs=<client_secret>
-      const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
-      window.location.href = url;
+      const qs = new URLSearchParams({
+        pi: data.paymentIntentId,
+        cs: data.clientSecret,
+      });
+      if (String(createIntentPath || '').includes('commission')) {
+        qs.set('kind', 'commission');
+      }
+      // /checkout/:orderId — StripeProvider musi dostać clientSecret; sama /checkout?cs= też działa po poprawce providera
+      window.location.href = `/checkout/${encodeURIComponent(orderId)}?${qs.toString()}`;
     } catch (e) {
       alert(e.message);
     } finally {

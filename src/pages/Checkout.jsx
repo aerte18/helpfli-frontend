@@ -39,6 +39,7 @@ export default function Checkout() {
   // Sprawdź czy mamy PaymentIntent z URL (z CheckoutButton)
   const paymentIntentId = searchParams.get('pi');
   const clientSecret = searchParams.get('cs');
+  const checkoutKind = searchParams.get('kind'); // commission = tylko opłata serwisowa (poza systemem)
   const showMobilePayBar = order?.status === 'accepted' && paymentMethod === 'system' && !paymentIntentId;
 
   const load = async () => {
@@ -99,16 +100,22 @@ export default function Checkout() {
 
   // Jeśli mamy PaymentIntent z URL - pokaż formularz Stripe
   if (paymentIntentId && clientSecret) {
+    const isCommissionOnly = checkoutKind === 'commission';
+    const displayAmount = isCommissionOnly
+      ? (order.pricing?.platformFee != null ? Number(order.pricing.platformFee) : null)
+      : (order.pricing?.total != null ? Number(order.pricing.total) : null);
     return (
-      <StripeProvider>
+      <StripeProvider clientSecret={clientSecret}>
         <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
           <div className="max-w-2xl mx-auto px-4 sm:px-5">
             <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-4">
-              <h1 className="text-2xl font-bold mb-2">Płatność za zlecenie</h1>
+              <h1 className="text-2xl font-bold mb-2">
+                {isCommissionOnly ? 'Opłata serwisowa Helpfli' : 'Płatność za zlecenie'}
+              </h1>
               <p className="text-gray-600 mb-4">{order.service}</p>
-              {order.pricing?.total && (
+              {displayAmount != null && !Number.isNaN(displayAmount) && (
                 <p className="text-lg font-semibold text-indigo-600">
-                  Do zapłaty: {order.pricing.total} {order.pricing.currency || 'PLN'}
+                  Do zapłaty: {displayAmount.toFixed(2)} {order.pricing?.currency || 'PLN'}
                 </p>
               )}
             </div>
