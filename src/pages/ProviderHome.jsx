@@ -1305,17 +1305,8 @@ export default function ProviderHome() {
     fetchCompanyProviders();
   }, [canManageCompany, user?.company]);
 
-  // Blokuj scrollowanie w widoku mapy
-  useEffect(() => {
-    if (viewMode === "map") {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [viewMode]);
+  /* Scroll tła w widoku mapy: tylko wrapper (fixed + h-[100dvh] + overflow-hidden) — bez document.body,
+     żeby nie kolidować z przewijaniem reszty serwisu po nawigacji. */
 
   useEffect(() => {
     try {

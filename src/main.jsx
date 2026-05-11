@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import ToastProvider from "./components/toast/ToastProvider.jsx"
 import './index.css'
-import './styles/ui.css'
+/* ui.css usunięty — zawierał drugi pełny @tailwind base (Preflight 2×), co potrafi zepsuć scroll / layout */
 import { initSentry } from './sentry'
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 import { hasAnalyticsConsent } from './utils/consent';
