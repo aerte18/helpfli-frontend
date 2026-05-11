@@ -10,7 +10,10 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState('');
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
-  const paymentElementOptions = useMemo(() => ({ layout: 'tabs' }), []);
+  const paymentElementOptions = useMemo(
+    () => ({ layout: { type: 'tabs', defaultCollapsed: false } }),
+    []
+  );
 
   useEffect(() => {
     if (clientSecret) setReady(true);
