@@ -1,5 +1,5 @@
 // API helpers dla integracji CRM
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { apiUrl } from '@/lib/apiUrl';
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token');
@@ -10,7 +10,7 @@ function getAuthHeaders() {
 }
 
 export async function createCrmIntegration(data) {
-  const res = await fetch(`${API_URL}/api/crm/integrations`, {
+  const res = await fetch(apiUrl('/api/crm/integrations'), {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -23,10 +23,10 @@ export async function createCrmIntegration(data) {
 }
 
 export async function getCrmIntegrations(companyId = null) {
-  const url = companyId 
-    ? `${API_URL}/api/crm/integrations?companyId=${companyId}`
-    : `${API_URL}/api/crm/integrations`;
-  const res = await fetch(url, {
+  const path = companyId
+    ? `/api/crm/integrations?companyId=${encodeURIComponent(companyId)}`
+    : '/api/crm/integrations';
+  const res = await fetch(apiUrl(path), {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Błąd pobierania integracji');
@@ -34,7 +34,7 @@ export async function getCrmIntegrations(companyId = null) {
 }
 
 export async function getCrmIntegration(integrationId) {
-  const res = await fetch(`${API_URL}/api/crm/integrations/${integrationId}`, {
+  const res = await fetch(apiUrl(`/api/crm/integrations/${integrationId}`), {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Błąd pobierania integracji');
@@ -42,7 +42,7 @@ export async function getCrmIntegration(integrationId) {
 }
 
 export async function updateCrmIntegration(integrationId, data) {
-  const res = await fetch(`${API_URL}/api/crm/integrations/${integrationId}`, {
+  const res = await fetch(apiUrl(`/api/crm/integrations/${integrationId}`), {
     method: 'PATCH',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -52,7 +52,7 @@ export async function updateCrmIntegration(integrationId, data) {
 }
 
 export async function activateCrmIntegration(integrationId) {
-  const res = await fetch(`${API_URL}/api/crm/integrations/${integrationId}/activate`, {
+  const res = await fetch(apiUrl(`/api/crm/integrations/${integrationId}/activate`), {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -61,7 +61,7 @@ export async function activateCrmIntegration(integrationId) {
 }
 
 export async function syncOrderToCrm(integrationId, orderId) {
-  const res = await fetch(`${API_URL}/api/crm/integrations/${integrationId}/sync/${orderId}`, {
+  const res = await fetch(apiUrl(`/api/crm/integrations/${integrationId}/sync/${orderId}`), {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -73,7 +73,7 @@ export async function syncOrderToCrm(integrationId, orderId) {
 }
 
 export async function deleteCrmIntegration(integrationId) {
-  const res = await fetch(`${API_URL}/api/crm/integrations/${integrationId}`, {
+  const res = await fetch(apiUrl(`/api/crm/integrations/${integrationId}`), {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
