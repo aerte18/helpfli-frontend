@@ -6,23 +6,24 @@ export default function CheckoutPage() {
   const elements = useElements();
   const params = new URLSearchParams(window.location.search);
   const clientSecret = params.get('cs');
+  const checkoutType = params.get('type') || '';
+  const isSubscriptionCheckout = checkoutType === 'subscription';
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('');
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
-  // Czytelny wybór jak marketplace: karta domyślnie + „Więcej metod” rozwija resztę
+  // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.
   const paymentElementOptions = useMemo(
     () => ({
-      layout: {
-        type: 'accordion',
-        radios: 'always',
-        spacedAccordionItems: true,
-        // Pokaż 1 metodę (domyślnie kartę), reszta pod „Więcej metod płatności”
-        visibleAccordionItemsCount: 1,
-      },
-      // Domyślnie karta, a BLIK/P24 jako alternatywy po rozwinięciu
+      layout: isSubscriptionCheckout
+        ? { type: 'tabs' }
+        : {
+            type: 'accordion',
+            radios: 'always',
+            spacedAccordionItems: true,
+            visibleAccordionItemsCount: 3,
+          },
       paymentMethodOrder: ['card', 'blik', 'p24'],
-      // Link potrafi mylić użytkowników ("płatność poza usługą") — ukryj w tej aplikacji
       wallets: { link: 'never' },
       appearance: {
         theme: 'stripe',
@@ -31,7 +32,7 @@ export default function CheckoutPage() {
         },
       },
     }),
-    []
+    [isSubscriptionCheckout]
   );
 
   useEffect(() => {
@@ -79,7 +80,17 @@ export default function CheckoutPage() {
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-slate-900">Sposób płatności</h2>
           <p className="text-sm text-slate-600 mt-1">
-            Domyślnie pokazujemy kartę. Aby wybrać inną metodę (np. BLIK), kliknij <strong>„Więcej metod płatności”</strong> w bloku poniżej.
+            {isSubscriptionCheckout ? (
+              <>
+                Metody zależą od <strong>subskrypcji w Stripe</strong> (inny zestaw niż przy pojedynczej płatności za zlecenie).
+                Jeśli nie ma BLIK / P24, w Dashboard włącz je także dla <strong>faktur / Billing</strong> i sprawdź kwalifikację dla PLN.
+              </>
+            ) : (
+              <>
+                Wyświetlane są tylko metody dopuszczone do <strong>tej</strong> płatności. Przy accordionie reszta może być pod{' '}
+                <strong>„Więcej metod płatności”</strong>.
+              </>
+            )}
           </p>
         </div>
         <form onSubmit={submit} className="space-y-4">
@@ -102,10 +113,12 @@ export default function CheckoutPage() {
       </div>
       
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Dlaczego nie widzę przelewu / P24?</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Dlaczego lista metod jest „inna niż gdzie indziej”?</h3>
         <p className="text-sm text-blue-800">
-          Każda metoda musi być włączona i <strong>kwalifikowana</strong> w Stripe dla tej płatności (np. Przelewy24 często dopiero po dokończeniu danych firmy w Stripe).
-          BLIK i karta pokazują się najczęściej.
+          Stripe nie pokazuje „wszystkich włączonych w sklepie”, tylko metody <strong>dopuszczone do konkretnego PaymentIntent</strong>{' '}
+          (np. zlecenie vs subskrypcja = inna konfiguracja). Włączenie w Dashboard to krok pierwszy — drugi to{' '}
+          <strong>kwalifikacja</strong> (waluta PLN, kraj, typ płatności jednorazowej vs faktura subskrypcji). Revolut / Klarna mogą się pojawiać,
+          gdy Stripe uzna je za dostępne dla tej sesji, nawet jeśli BLIK nie przeszedł kwalifikacji.
         </p>
       </div>
     </div>
