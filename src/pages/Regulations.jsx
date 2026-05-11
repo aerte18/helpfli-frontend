@@ -1,8 +1,11 @@
 import React from "react";
 import Footer from "../components/Footer";
 import { Link } from "react-router-dom";
+import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function Regulations() {
+  const c = companyPublicInfo;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
@@ -14,15 +17,42 @@ export default function Regulations() {
         </p>
       </div>
 
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6 text-sm text-emerald-900">
+        <p className="font-semibold mb-2">Model usługi (marketplace)</p>
+        <p className="mb-0">
+          Helpfli jest <strong>internetowym marketplace’em usług lokalnych</strong> (pośrednictwo w zleceniach
+          m.in. remontowych, transportowych, opiekuńczych i pokrewnych). Dostarczamy oprogramowanie i obsługę konta;
+          wykonanie pracy w miejscu klienta lub zdalnie świadczy <strong>Wykonawca</strong> na podstawie umowy z
+          Klientem. Opłaty za funkcje platformy i rozliczenia transakcji opisują m.in. niniejszy Regulamin oraz strona{" "}
+          <Link to="/cennik" className="font-medium text-emerald-800 underline">
+            Cennik i opłaty
+          </Link>
+          .
+        </p>
+      </div>
+
       <p className="mb-4">
-        Niniejszy Regulamin określa zasady korzystania z platformy Helpfli,
-        dostępnej pod adresem helpfli.pl, prowadzonej przez Helpfli Sp. z o.o.
-        z siedzibą w Polsce, wpisaną do rejestru przedsiębiorców KRS pod numerem [KRS],
-        NIP: [NIP], REGON: [REGON].
+        Niniejszy Regulamin określa zasady korzystania z platformy {c.brand}, dostępnej pod adresem{" "}
+        {c.siteUrl.replace(/^https?:\/\//, "")}, prowadzonej przez {c.legalName}, z siedzibą pod adresem:{" "}
+        {c.addressLine1}, {c.addressLine2}, {c.country}, wpisaną do rejestru przedsiębiorców KRS pod numerem{" "}
+        {c.krs}, NIP: {c.nip}, REGON: {c.regon}.
       </p>
 
       <p className="mb-4">
-        <strong>Kontakt:</strong> kontakt@helpfli.pl
+        <strong>Kontakt:</strong>{" "}
+        <a href={`mailto:${c.emailLegal}`} className="text-blue-600 hover:underline">
+          {c.emailLegal}
+        </a>
+        {c.phone && c.phone.startsWith("[") ? null : (
+          <>
+            {" "}
+            · <strong>Tel.:</strong> {c.phone}
+          </>
+        )}
+        {" · "}
+        <Link to="/dane-firmy" className="text-blue-600 hover:underline">
+          Dane podmiotu
+        </Link>
       </p>
 
       <h2 className="text-2xl font-semibold mt-6 mb-3">§1 Definicje</h2>
@@ -100,6 +130,13 @@ export default function Regulations() {
         <p>
           <strong>4.5.</strong> Wszelkie zwroty środków realizowane są zgodnie z przepisami prawa konsumenckiego oraz postanowieniami umowy zawartej między Klientem a Usługodawcą.
         </p>
+        <p>
+          <strong>4.6.</strong> Techniczne rozliczenie płatności elektronicznych może odbywać się za pośrednictwem
+          licencjonowanych operatorów płatności (w tym Stripe oraz — w zależności od konfiguracji konta — Przelewy24).
+          Regulaminy i polityki prywatności tych operatorów mają zastosowanie w zakresie przetwarzania danych płatniczych
+          przez operatora. W sprawach dotyczących działania platformy Helpfli w modelu ochrony transakcji właściwy jest
+          niniejszy Regulamin oraz kontakt z Administratorem.
+        </p>
       </div>
 
       <h2 className="text-2xl font-semibold mt-6 mb-3">§5 Opinie i oceny</h2>
@@ -166,6 +203,12 @@ export default function Regulations() {
           <li>zgłoszenia sprawy do wojewódzkiego inspektora Inspekcji Handlowej,</li>
           <li>skorzystania z platformy ODR (Online Dispute Resolution) dostępnej pod adresem: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://ec.europa.eu/consumers/odr</a>.</li>
         </ul>
+        <p>
+          <strong>7.6.</strong> Reklamacje dotyczące <strong>jakości, terminu lub zakresu wykonanej usługi</strong> przez
+          Usługodawcę należy kierować w pierwszej kolejności do Usługodawcy; Helpfli może ułatwić komunikację lub
+          mediację w ramach Gwarancji Helpfli wyłącznie dla transakcji rozliczonych w systemie płatności Platformy,
+          zgodnie z §4.
+        </p>
       </div>
 
       <h2 className="text-2xl font-semibold mt-6 mb-3">§8 Prawo odstąpienia od umowy</h2>
@@ -177,14 +220,19 @@ export default function Regulations() {
           <strong>8.2.</strong> Prawo odstąpienia nie przysługuje w przypadku, gdy usługa została w pełni wykonana za wyraźną zgodą konsumenta, który został poinformowany, że po spełnieniu świadczenia utraci prawo odstąpienia.
         </p>
         <p>
-          <strong>8.3.</strong> Aby skorzystać z prawa odstąpienia, konsument powinien poinformować o swojej decyzji na adres: kontakt@helpfli.pl.
+          <strong>8.3.</strong> Aby skorzystać z prawa odstąpienia, konsument powinien poinformować o swojej decyzji na
+          adres:{" "}
+          <a href={`mailto:${c.emailLegal}`} className="text-blue-600 hover:underline">
+            {c.emailLegal}
+          </a>
+          .
         </p>
       </div>
 
       <h2 className="text-2xl font-semibold mt-6 mb-3">§9 Ochrona danych osobowych</h2>
       <div className="space-y-3 mb-4">
         <p>
-          <strong>9.1.</strong> Administratorem danych osobowych użytkowników Platformy jest Helpfli Sp. z o.o.
+          <strong>9.1.</strong> Administratorem danych osobowych użytkowników Platformy jest {c.legalName}.
         </p>
         <p>
           <strong>9.2.</strong> Szczegółowe informacje dotyczące przetwarzania danych osobowych znajdują się w <Link to="/prywatnosc" className="text-blue-600 hover:underline">Polityce Prywatności</Link>.
@@ -234,10 +282,18 @@ export default function Regulations() {
 
       <div className="mt-8 p-4 bg-gray-100 rounded-lg">
         <p className="text-sm text-gray-700">
-          <strong>Kontakt w sprawach związanych z Regulaminem:</strong><br />
-          Helpfli Sp. z o.o.<br />
-          E-mail: kontakt@helpfli.pl<br />
-          Telefon: [numer telefonu]
+          <strong>Kontakt w sprawach związanych z Regulaminem:</strong>
+          <br />
+          {c.legalName}
+          <br />
+          {c.addressLine1}, {c.addressLine2}, {c.country}
+          <br />
+          E-mail:{" "}
+          <a href={`mailto:${c.emailLegal}`} className="text-blue-600 hover:underline">
+            {c.emailLegal}
+          </a>
+          <br />
+          Telefon: {c.phone}
         </p>
       </div>
       </div>

@@ -1,7 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function Footer() {
+  const c = companyPublicInfo;
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -18,6 +20,16 @@ export default function Footer() {
               <li>
                 <Link to="/services" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
                   Lista usług
+                </Link>
+              </li>
+              <li>
+                <Link to="/cennik" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
+                  Cennik i opłaty
+                </Link>
+              </li>
+              <li>
+                <Link to="/dane-firmy" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
+                  Dane firmy
                 </Link>
               </li>
               <li>
@@ -64,8 +76,17 @@ export default function Footer() {
           <div className="min-w-[220px] rounded-xl border border-gray-100 p-4 md:min-w-0 md:rounded-none md:border-0 md:p-0">
             <h3 className="text-base font-semibold text-gray-900 mb-3 md:text-lg md:mb-4">Dane firmy</h3>
             <div className="text-sm md:text-base text-gray-600 space-y-2">
-              <p className="font-medium">Helpfli</p>
-              <p>helpfli@outlook.com</p>
+              <p className="font-medium text-gray-900">{c.legalName}</p>
+              <p>
+                <Link to="/dane-firmy" className="text-indigo-600 hover:underline">
+                  Pełne dane rejestrowe
+                </Link>
+              </p>
+              <p>
+                <a href={`mailto:${c.emailLegal}`} className="hover:text-gray-900">
+                  {c.emailLegal}
+                </a>
+              </p>
             </div>
           </div>
         </div>

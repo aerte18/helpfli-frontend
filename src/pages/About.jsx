@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import { Zap, ShieldCheck, Star, Sparkles, Lightbulb, Target } from "lucide-react";
 
@@ -7,6 +8,16 @@ export default function About() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">O nas</h1>
+
+        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+          Helpfli to <strong>marketplace usług lokalnych</strong>: łączymy osoby potrzebujące wykonawcy z
+          profesjonalistami i firmami z branży m.in. remontowej, transportowej i usług domowych. Pełne dane podmiotu
+          prowadzącego serwis:{" "}
+          <Link to="/dane-firmy" className="text-indigo-600 hover:underline">
+            Informacje o firmie
+          </Link>
+          .
+        </p>
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">Kim jesteśmy?</h2>
