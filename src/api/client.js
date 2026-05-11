@@ -11,7 +11,9 @@ export const api = async (path, { method = "GET", body, token } = {}) => {
 	});
 	if (!res.ok) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error(data.message || `API error ${res.status}`);
+		const detail = [data.error, data.stripeCode].filter(Boolean).join(" • ");
+		const msg = data.message || `API error ${res.status}`;
+		throw new Error(detail ? `${msg} (${detail})` : msg);
 	}
 	return res.json();
 };
