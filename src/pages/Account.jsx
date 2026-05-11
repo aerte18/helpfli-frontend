@@ -23,6 +23,7 @@ import {
   getProviderOrderPresentation,
   getProviderStageKey,
 } from "../utils/orderFlowLabels";
+import { getStripeConnectStatus } from "../api/payments";
 
 function useAuthToken() {
   try {
@@ -63,6 +64,31 @@ export default function Account() {
     };
     fetchStats();
   }, [token, user]);
+
+  // Po powrocie ze Stripe Connect: odśwież status konta w DB i w sesji użytkownika
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("stripe_connected") !== "1") return;
+    if (!user || user.role !== "provider" || !user.stripeAccountId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await getStripeConnectStatus();
+        if (!cancelled) await fetchMe?.();
+      } catch (e) {
+        console.error("stripe_connected: sync Connect status failed", e);
+      } finally {
+        if (cancelled) return;
+        params.delete("stripe_connected");
+        const search = params.toString();
+        navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.search, user?.role, user?.stripeAccountId, fetchMe, navigate, location.pathname]);
 
   // Sync tab with URL (?tab=x)
   useEffect(() => {
@@ -2267,15 +2293,38 @@ function PaymentsTab({ user, fetchMe }) {
   const [paymentPreference, setPaymentPreference] = useState(user?.providerPaymentPreference || 'system');
   const [savingPaymentPref, setSavingPaymentPref] = useState(false);
 
+  // Zawsze pobierz aktualny status z Stripe (backend zapisuje też do User) — inaczej po onboardingu widać stare „Nie”
   useEffect(() => {
-    if (user?.stripeAccountId) {
-      setStripeStatus({
-        accountId: user.stripeAccountId,
-        chargesEnabled: user.stripeConnectStatus?.chargesEnabled || false,
-        payoutsEnabled: user.stripeConnectStatus?.payoutsEnabled || false
-      });
+    if (!user?.stripeAccountId) {
+      setStripeStatus(null);
+      return;
     }
-  }, [user]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getStripeConnectStatus();
+        if (cancelled || !data?.status) return;
+        setStripeStatus({
+          accountId: data.stripeAccountId || user.stripeAccountId,
+          chargesEnabled: !!data.status.chargesEnabled,
+          payoutsEnabled: !!data.status.payoutsEnabled,
+        });
+        await fetchMe?.();
+      } catch (e) {
+        console.error("PaymentsTab: connect/status", e);
+        if (!cancelled) {
+          setStripeStatus({
+            accountId: user.stripeAccountId,
+            chargesEnabled: !!user.stripeConnectStatus?.chargesEnabled,
+            payoutsEnabled: !!user.stripeConnectStatus?.payoutsEnabled,
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.stripeAccountId, fetchMe]);
 
   useEffect(() => {
     if (user?.providerPaymentPreference) {
