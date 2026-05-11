@@ -60,7 +60,7 @@ export default function StickyFilters({ filters: externalFilters, onChange, veri
         </div>
 
         <div className="flex items-center gap-3 overflow-x-auto">
-          <div className="relative min-w-[280px]">
+          <div className="relative min-w-[220px] sm:min-w-[280px]">
             <input
               value={filters.query}
               onChange={(e) => {

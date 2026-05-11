@@ -566,7 +566,7 @@ export default function Home() {
   const center = [52.2297, 21.0122];
 
   // map layout helpers
-  const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-screen";
+  const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-[100dvh]";
   const mapTopOffsetPx = isMobileLandscape
     ? (activeFilters.length > 0 ? 96 : 84)
     : (activeFilters.length > 0 ? 128 : 112);
@@ -638,7 +638,7 @@ export default function Home() {
               onViewModeChange={setViewMode}
               categorySelector={
                 <ServiceCategoryDropdown
-                  className="w-64"
+                  className="w-full sm:w-64"
                   placeholder="Kategoria"
                   clearTrigger={clearCategoryTrigger}
                   onCategorySelect={(sel) => {
@@ -702,7 +702,7 @@ export default function Home() {
             hideViewSwitcher
             categorySelector={
               <ServiceCategoryDropdown
-                className="w-64"
+                className="w-full sm:w-64"
                 placeholder="Kategoria"
                 clearTrigger={clearCategoryTrigger}
                 onCategorySelect={(sel) => {
@@ -845,7 +845,7 @@ export default function Home() {
           className="fixed inset-0 z-0 isolate w-full relative" 
           style={{ 
             top: `${mapTopOffsetPx}px`,
-            height: `calc(100vh - ${mapTopOffsetPx}px)`
+            height: `calc(100dvh - ${mapTopOffsetPx}px)`
           }}
         >
           <div className="w-full h-full">
@@ -1055,7 +1055,7 @@ export default function Home() {
               style={
                 isMobileViewport
                   ? { maxHeight: "58vh" }
-                  : { maxHeight: `calc(100vh - ${mapProviderDockTopPx + 24}px)` }
+                  : { maxHeight: `calc(100dvh - ${mapProviderDockTopPx + 24}px)` }
               }
             >
             {isMobileViewport && (
@@ -1230,7 +1230,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setIsMobileViewMenuOpen((v) => !v)}
-            className={`w-11 h-11 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center transition-transform duration-150 ${
+            className={`w-11 h-11 rounded-full bg-white border border-slate-200 qs-floating-dock qs-transition-soft flex items-center justify-center ${
               isMobileViewMenuOpen ? "scale-105" : "scale-100"
             }`}
             title="Zmień widok"
@@ -1238,13 +1238,23 @@ export default function Home() {
             <Layers className="w-5 h-5 text-slate-700" />
           </button>
           {isMobileViewMenuOpen && (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 flex flex-col gap-1 origin-top-right transition-all duration-150 opacity-100 translate-y-0 scale-100">
+            <div className="mt-2 rounded-xl border border-slate-200 bg-white qs-surface-sheet p-1.5 flex flex-col gap-1 origin-top-right qs-transition-soft opacity-100 translate-y-0 scale-100">
+              <button
+                onClick={() => {
+                  setShowAdvancedFilters(true);
+                  setIsMobileViewMenuOpen(false);
+                }}
+                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
+                title="Filtry"
+              >
+                <Zap className="w-4 h-4" aria-hidden /> Filtry
+              </button>
               <button
                 onClick={() => {
                   setViewMode("list");
                   setIsMobileViewMenuOpen(false);
                 }}
-                className="px-2 py-2 text-xs rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
                 title="Lista"
               >
                 <List className="w-4 h-4" aria-hidden /> Lista
@@ -1254,7 +1264,7 @@ export default function Home() {
                   setViewMode("map");
                   setIsMobileViewMenuOpen(false);
                 }}
-                className="px-2 py-2 text-xs rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100"
+                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
                 title="Mapa"
               >
                 <Map className="w-4 h-4" aria-hidden /> Mapa

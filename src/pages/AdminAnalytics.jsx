@@ -236,24 +236,24 @@ export default function AdminAnalytics() {
   );
 
   if (loading) {
-    return <div className="max-w-6xl mx-auto p-6">Ładowanie…</div>;
+    return <div className="max-w-6xl mx-auto p-3 sm:p-6">Ładowanie…</div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-6">
       <h1 className="text-2xl font-bold">Admin Analytics</h1>
       <p className="text-sm text-gray-600 max-w-3xl">
         Metryki biznesowe poniżej. Sekcja „Ruch i wyszukiwania” korzysta z telemetrii (zdarzenia po zgodzie na cookies;
         wyszukiwania na /home zapisują liczbę wyników — widać zapytania bez dopasowania).
       </p>
 
-      <div className="flex gap-3 items-end">
+      <div className="flex flex-wrap gap-3 items-end">
         <label className="text-sm">Od <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border rounded p-1" /></label>
         <label className="text-sm">Do <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border rounded p-1" /></label>
         <button onClick={load} className="px-3 py-2 rounded bg-indigo-600 text-white">Odśwież</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Zlecenia" value={asText(num(kpi.orders))} />
         <Card title="Opłacone" value={asText(num(kpi.ordersPaid))} />
         <Card title="Obrót (PLN)" value={asText(fmt2(num(kpi.revenue) / 100))} />
@@ -261,14 +261,14 @@ export default function AdminAnalytics() {
       </div>
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">AI Concierge i automatyzacja</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Zapytania AI" value={asText(num(aiKpi.requests))} />
         <Card title="Sesje AI" value={asText(num(aiKpi.uniqueSessions))} />
         <Card title="Zlecenia z AI" value={asText(num(aiKpi.ordersFromAi))} />
         <Card title="Safety alerty" value={asText(num(aiKpi.safetyAlerts))} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="AI success rate" value={fmtRate(aiKpi.successRate)} />
         <Card title="AI failure rate" value={fmtRate(aiKpi.failureRate)} />
         <Card title="Śr. czas AI (ms)" value={asText(aiKpi.avgResponseTime ?? "—")} />
@@ -276,13 +276,13 @@ export default function AdminAnalytics() {
       </div>
 
       <h3 className="text-base font-semibold text-slate-800 pt-1">AI proces: od rozmowy do realizacji</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="AI sesja → zlecenie" value={fmtRate(aiProcess.aiSessionToOrderRate)} />
         <Card title="AI zlecenia z ofertami" value={fmtRate(aiProcess.aiOrderOfferRate)} />
         <Card title="AI zlecenia zaakceptowane" value={fmtRate(aiProcess.aiOrderAcceptedRate)} />
         <Card title="AI zlecenia ukończone" value={fmtRate(aiProcess.aiOrderCompletedRate)} />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="AI brief coverage" value={fmtRate(aiProcess.aiBriefCoverageRate)} />
         <Card title="AI context handoff" value={fmtRate(aiProcess.aiContextCoverageRate)} />
         <Card title="Śr. ofert / AI zlecenie" value={asText(aiProcess.avgOffersPerAiOrder ?? "—")} />
@@ -309,7 +309,7 @@ export default function AdminAnalytics() {
       </div>
 
       <h3 className="text-base font-semibold text-slate-800 pt-1">AI jakość ofert providerów</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Oferty z oceną AI" value={asText(num(aiOfferQuality.measuredOffers))} />
         <Card title="Śr. jakość oferty" value={aiOfferQuality.avgQuality != null ? `${asText(aiOfferQuality.avgQuality)}%` : "—"} />
         <Card title="Oferty 80%+" value={fmtRate(aiOfferQuality.highQualityRate)} />
@@ -425,7 +425,7 @@ export default function AdminAnalytics() {
       </div>
 
       <h3 className="text-base font-semibold text-slate-800 pt-1">AI pre-send wiadomości providera</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Soft-blocki (<55%)" value={asText(num(aiMessagePreflight.blocked))} />
         <Card title="Wyślij mimo to" value={asText(num(aiMessagePreflight.override))} />
         <Card title="Override rate" value={fmtRate(aiMessagePreflight.overrideRate)} />
@@ -543,7 +543,7 @@ export default function AdminAnalytics() {
       </div>
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">Ruch i wyszukiwania (produkt)</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Card title="Odsłony (page_view)" value={asText(num(traffic.pageViews))} />
         <Card title="Sesje (szac.)" value={asText(num(traffic.distinctSessionsApprox))} />
         <Card title="Zdarzenia wyszukiwania" value={asText(num(traffic.searchEvents))} />
@@ -715,16 +715,16 @@ export default function AdminAnalytics() {
 
 function Card({ title, value, hint = "" }) {
   return (
-    <div className="border rounded-2xl p-4 bg-white" title={hint || undefined}>
-      <div className="text-sm text-gray-600">{title}</div>
-      <div className="text-2xl font-semibold">{value}</div>
+    <div className="border rounded-2xl p-3 sm:p-4 bg-white min-w-0" title={hint || undefined}>
+      <div className="text-sm text-gray-600 break-words">{title}</div>
+      <div className="text-xl sm:text-2xl font-semibold break-words">{value}</div>
     </div>
   );
 }
 
 function Panel({ title, children }) {
   return (
-    <div className="border rounded-2xl p-4 bg-white">
+    <div className="border rounded-2xl p-3 sm:p-4 bg-white">
       <div className="font-semibold mb-2">{title}</div>
       {children}
     </div>
@@ -733,8 +733,8 @@ function Panel({ title, children }) {
 
 function SimpleTable({ headers, rows }) {
   return (
-    <div className="overflow-auto">
-      <table className="min-w-full text-sm">
+    <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+      <table className="min-w-[640px] sm:min-w-full text-xs sm:text-sm">
         <thead>
           <tr className="text-left border-b">
             {headers.map((h) => <th key={h} className="p-2">{h}</th>)}

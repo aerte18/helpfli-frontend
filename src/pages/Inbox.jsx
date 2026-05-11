@@ -346,8 +346,8 @@ export default function Inbox() {
   );
 
   return (
-    <div className="h-[calc(100dvh-150px)] md:h-[calc(100vh-80px)] flex border rounded-2xl overflow-hidden bg-white">
-      <aside className={`${activeId && isMobile ? "hidden" : "block"} w-full md:w-[340px] border-r overflow-y-auto`}>
+    <div className="h-[calc(100dvh-150px)] md:h-[calc(100dvh-80px)] flex border rounded-2xl overflow-hidden bg-white">
+      <aside className={`${activeId && isMobile ? "hidden" : "block"} w-full md:w-[320px] lg:w-[340px] border-r overflow-y-auto`}>
         <div className="px-4 py-3 font-semibold border-b">Rozmowy</div>
         {conversations.map(c => (
           <ConversationItem

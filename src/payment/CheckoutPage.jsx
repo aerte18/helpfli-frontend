@@ -10,8 +10,24 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState('');
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
+  // Układ „accordion” + radios + odstępy — zbliżony do wyboru metody jak na marketplace (np. Allegro)
   const paymentElementOptions = useMemo(
-    () => ({ layout: { type: 'tabs', defaultCollapsed: false } }),
+    () => ({
+      layout: {
+        type: 'accordion',
+        radios: 'always',
+        spacedAccordionItems: true,
+        // 0 = pokaż wszystkie metody bez „Więcej” (jak lista na marketplace)
+        visibleAccordionItemsCount: 0,
+      },
+      paymentMethodOrder: ['blik', 'p24', 'card', 'link'],
+      appearance: {
+        theme: 'stripe',
+        variables: {
+          borderRadius: '12px',
+        },
+      },
+    }),
     []
   );
 
@@ -57,9 +73,14 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Wybierz metodę płatności</h2>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-slate-900">Sposób płatności</h2>
+          <p className="text-sm text-slate-600 mt-1">Wybierz metodę — poniżej widać tylko opcje dostępne dla tej kwoty i konta Stripe.</p>
+        </div>
         <form onSubmit={submit} className="space-y-4">
-          <PaymentElement options={paymentElementOptions} />
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4 shadow-inner">
+            <PaymentElement options={paymentElementOptions} />
+          </div>
           {message && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {message}
@@ -76,10 +97,10 @@ export default function CheckoutPage() {
       </div>
       
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Metody płatności</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Dlaczego nie widzę przelewu / P24?</h3>
         <p className="text-sm text-blue-800">
-          Wybór jest w formularzu powyżej — Stripe pokazuje tylko metody włączone dla tej konkretnej płatności
-          (najczęściej karta; czasem BLIK lub Przelewy24, jeśli konto platformy ma je aktywne w Stripe).
+          Każda metoda musi być włączona i <strong>kwalifikowana</strong> w Stripe dla tej płatności (np. Przelewy24 często dopiero po dokończeniu danych firmy w Stripe).
+          BLIK i karta pokazują się najczęściej.
         </p>
       </div>
     </div>

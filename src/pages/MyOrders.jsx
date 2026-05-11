@@ -145,7 +145,7 @@ const MyOrders = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 bg-white shadow rounded">
+    <div className="max-w-3xl mx-auto p-3 sm:p-4 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4">Moje zlecenia</h2>
       <ul className="space-y-3">
         {orders.map((order, index) => (
@@ -153,7 +153,7 @@ const MyOrders = () => {
             <div className={`border p-4 rounded-lg ${
               order.isExpired ? 'bg-red-50 border-red-200' : 'bg-white'
             }`}>
-              <div className="flex justify-between items-start mb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
                 <div className="flex-1">
                   <p className="font-semibold text-lg">Usługa: {order.service}</p>
                   {order.serviceDetails && (
@@ -187,7 +187,7 @@ const MyOrders = () => {
                 
                 {/* Status wygaśnięcia */}
                 {order.expiresAt && (order.status === 'open' || order.status === 'collecting_offers') && (
-                  <div className={`ml-4 px-3 py-2 rounded-lg flex items-center gap-2 ${
+                  <div className={`self-start sm:ml-4 px-3 py-2 rounded-lg flex items-center gap-2 ${
                     order.isExpired 
                       ? 'bg-red-100 text-red-700' 
                       : (() => {
@@ -263,7 +263,7 @@ const MyOrders = () => {
               {/* Przycisk wydłużenia dla aktywnych zleceń */}
               {order.expiresAt && (order.status === 'open' || order.status === 'collecting_offers') && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="text-sm text-gray-600">
                       {order.isExpired ? "Zlecenie wygasło" : "Wydłuż czas zlecenia"}
                     </span>

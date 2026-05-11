@@ -229,7 +229,7 @@ export default function MapViewEnhanced({
           return (
           <Marker key={p.id} position={[p.lat, p.lng]} icon={providerIcon(p)}>
               <Popup className="custom-popup">
-                <div className="min-w-[260px] max-w-[300px]">
+                <div className="w-[min(300px,calc(100vw-2rem))] min-w-0">
                   <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white">
                     {/* Header z gradientem */}
                     <div className={`p-3 flex items-center gap-2 ${

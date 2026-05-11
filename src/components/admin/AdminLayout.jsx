@@ -19,7 +19,7 @@ export default function AdminLayout() {
   const adminUser = user || safeReadUserFromStorage();
   
   return (
-    <div className="max-w-[1200px] mx-auto p-4">
+    <div className="max-w-[1200px] mx-auto p-3 sm:p-4">
       <div className="grid grid-cols-1 lg:grid-cols-[240px,1fr] gap-4">
         {/* Left nav */}
         <aside className="bg-white rounded-2xl shadow">

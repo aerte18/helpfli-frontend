@@ -417,7 +417,7 @@ export default function CreateOrder() {
   if (showSuccess && createdOrderId) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-2xl">
           <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-emerald-600" />
@@ -463,9 +463,9 @@ export default function CreateOrder() {
         <title>Utwórz zlecenie | Helpfli</title>
         <meta name="description" content="Opisz, w czym potrzebujesz pomocy. Wykonawcy z Twojej okolicy złożą oferty. Szybko i bezpiecznie przez Helpfli." />
       </Helmet>
-      <div className="container mx-auto px-4 pt-8 pb-32 md:pb-8 max-w-3xl">
+      <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-32 md:pb-8 max-w-3xl">
         {/* Główny formularz w jednej karcie */}
-        <div className="rounded-lg border p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="rounded-lg border p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           {/* Title Section */}
           <div className="mb-8">
             <h1 className="text-3xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
@@ -664,7 +664,7 @@ export default function CreateOrder() {
           <label className="block text-sm font-medium" style={{ color: 'var(--foreground)' }}>
             Typ zlecenia
           </label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => {
@@ -966,7 +966,7 @@ export default function CreateOrder() {
                 e.target.style.borderColor = 'var(--ring)';
               }}
               placeholder="np. 200"
-              className="flex-1 min-w-[120px] rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
+              className="flex-1 min-w-0 rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
               style={{ 
                 backgroundColor: 'var(--background)',
                 borderColor: 'var(--border)',
@@ -1122,7 +1122,7 @@ export default function CreateOrder() {
             <MapPin className="h-4 w-4" />
             Lokalizacja
           </label>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}

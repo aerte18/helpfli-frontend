@@ -215,10 +215,10 @@ export default function ServiceCategorySelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-[600px] max-w-[90vw] max-h-96 overflow-hidden">
-          <div className="flex">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-full max-w-[min(100vw-1rem,600px)] max-h-[min(75dvh,30rem)] overflow-hidden">
+          <div className="flex flex-col sm:flex-row">
             {/* Kolumna z kategoriami */}
-            <div className="w-1/3 border-r border-gray-200 overflow-y-auto max-h-96">
+            <div className="w-full sm:w-1/3 sm:border-r border-gray-200 overflow-y-auto max-h-[40dvh] sm:max-h-96">
               <div className="p-2">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sticky top-0 bg-white">
                   Kategorie
@@ -265,7 +265,7 @@ export default function ServiceCategorySelector({
             </div>
 
             {/* Kolumna z podusługami */}
-            <div className="w-2/3 overflow-y-auto max-h-96">
+            <div className="w-full sm:w-2/3 overflow-y-auto max-h-[40dvh] sm:max-h-96 border-t sm:border-t-0 border-gray-200">
               <div className="p-2">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sticky top-0 bg-white">
                   {hoveredCategory ? hoveredCategory.name : 'Wybierz kategorię'}

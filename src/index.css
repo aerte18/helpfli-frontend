@@ -97,6 +97,7 @@ html {
   scroll-behavior: smooth;
   height: 100%;
   background-color: var(--background);
+  overflow-x: hidden;
   /* Ogranicza gumowanie na końcu dokumentu (biała pustka pod fixed tab barem) */
   overscroll-behavior-y: none;
 }
@@ -109,6 +110,7 @@ body {
   /* Dynamic viewport — lepiej niż samo 100vh na mobile (pasek adresu Safari) */
   min-height: 100dvh;
   min-height: -webkit-fill-available;
+  overflow-x: hidden;
   overscroll-behavior-y: none;
 }
 
@@ -117,6 +119,7 @@ body {
   min-height: 100%;
   min-height: 100dvh;
   min-height: -webkit-fill-available;
+  overflow-x: clip;
 }
 
 @layer components {
@@ -272,4 +275,43 @@ body.has-mobile-tab {
   --app-nav-sticky-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem);
   /* /search: Navbar + dodatkowy Header ze strony */
   --search-page-sticky-bar-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 3rem);
+  --qs-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --qs-duration-fast: 160ms;
+  --qs-duration-normal: 220ms;
+  --qs-radius-sheet: 1rem;
+  --qs-radius-dock: 0.875rem;
+  --qs-shadow-floating: 0 10px 28px rgba(15, 23, 42, 0.14);
+}
+
+@keyframes qs-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.qs-skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 37%, #e5e7eb 63%);
+  background-size: 400% 100%;
+  animation: qs-shimmer 1.35s ease infinite;
+}
+
+.qs-transition-soft {
+  transition-property: transform, opacity, background-color, border-color, color, box-shadow;
+  transition-duration: var(--qs-duration-normal);
+  transition-timing-function: var(--qs-ease-standard);
+}
+
+.qs-surface-sheet {
+  border-radius: var(--qs-radius-sheet);
+  box-shadow: var(--qs-shadow-floating);
+  backdrop-filter: blur(10px);
+}
+
+.qs-floating-dock {
+  border-radius: var(--qs-radius-dock);
+  box-shadow: var(--qs-shadow-floating);
+}
+
+.qs-tap-target {
+  min-height: 44px;
+  min-width: 44px;
 }
