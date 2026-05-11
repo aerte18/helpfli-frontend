@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 
 export default function CheckoutPage() {
@@ -108,6 +109,17 @@ export default function CheckoutPage() {
           >
             {!stripe || !elements ? 'Ładowanie...' : 'Zapłać'}
           </button>
+          <p className="text-center text-xs text-slate-500 pt-2">
+            Płatność obsługuje operator płatności (np. Stripe / P24). Kontynuując, akceptujesz{' '}
+            <Link to="/regulamin" className="text-indigo-600 hover:underline">
+              Regulamin
+            </Link>{' '}
+            i{' '}
+            <Link to="/cennik" className="text-indigo-600 hover:underline">
+              informacje o opłatach
+            </Link>
+            .
+          </p>
         </form>
       </div>
       
