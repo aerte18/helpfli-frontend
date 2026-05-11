@@ -12,11 +12,20 @@ function inferApiBaseFromWindow() {
   return `${proto}//api.${host}`.replace(/\/$/, "");
 }
 
+/** Częsty błąd: VITE_API_URL ustawione na .../api/me zamiast samego hosta API → żądania typu /api/me/usage/me. */
+function stripTrailingAuthMePath(base) {
+  if (!base || typeof base !== "string") return base;
+  const b = base.trim().replace(/\/$/, "");
+  if (/\/api\/auth\/me$/i.test(b)) return b.replace(/\/api\/auth\/me$/i, "");
+  if (/\/api\/me$/i.test(b)) return b.replace(/\/api\/me$/i, "");
+  return b;
+}
+
 export function getApiBase() {
   const raw = import.meta.env.VITE_API_URL;
   const inferred = inferApiBaseFromWindow();
   if (typeof raw === "string" && raw.trim() !== "") {
-    const normalized = raw.trim().replace(/\/$/, "");
+    const normalized = stripTrailingAuthMePath(raw.trim().replace(/\/$/, ""));
     // Guardrail for misconfigured production env:
     // when VITE_API_URL points to frontend origin (non-api host),
     // fallback to inferred api.<host> to avoid /api 404 on frontend app.
@@ -37,9 +46,9 @@ export function getApiBase() {
   // Zamiast wymuszać względne /api (które może wskazywać na frontend),
   // spróbuj automatycznie użyć subdomeny api.<host>.
   if (raw === "") {
-    return import.meta.env.PROD ? inferred : "";
+    return stripTrailingAuthMePath(import.meta.env.PROD ? inferred : "");
   }
-  return inferred;
+  return stripTrailingAuthMePath(inferred);
 }
 
 /**

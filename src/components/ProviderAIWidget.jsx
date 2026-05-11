@@ -5,6 +5,7 @@ import { Sparkles, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getMySubscription } from "../api/subscriptions";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
+import { apiUrl } from "../lib/apiUrl";
 
 export default function ProviderAIWidget() {
   const { user } = useAuth();
@@ -45,12 +46,11 @@ export default function ProviderAIWidget() {
         
         // Pobierz statystyki użycia
         const token = localStorage.getItem('token');
-        const API_URL = import.meta.env.VITE_API_URL || '';
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         
         try {
-          const usageRes = await fetch(`${API_URL}/api/usage/me?month=${monthKey}`, {
+          const usageRes = await fetch(apiUrl(`/api/usage/me?month=${encodeURIComponent(monthKey)}`), {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (usageRes.ok) {
