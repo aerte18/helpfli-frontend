@@ -79,6 +79,8 @@ import ServicesList from "./pages/ServicesList";
 import Cooperation from "./pages/Cooperation";
 import Reviews from "./pages/Reviews";
 import HelpCenter from "./pages/HelpCenter";
+import Cennik from "./pages/Cennik";
+import DaneFirmy from "./pages/DaneFirmy";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRankingConfig from "./pages/AdminRankingConfig";
@@ -154,6 +156,20 @@ function App() {
     }
   }, []);
 
+  // Po zmianie trasy zdejmij ewentualne „zawieszone” style z blokady scrolla (HMR / stary useBodyScrollLock).
+  // ProviderHome w widoku mapy ustawi overflow ponownie w swoim useEffect — kolejność mountów to uwzględnia.
+  useEffect(() => {
+    const b = document.body;
+    const h = document.documentElement;
+    if (b.style.position === "fixed") {
+      b.style.position = "";
+      b.style.top = "";
+      b.style.width = "";
+    }
+    b.style.removeProperty("overflow");
+    h.style.removeProperty("overflow");
+  }, [location.pathname]);
+
   return (
     <HelmetProvider>
       <ErrorBoundary>
@@ -200,6 +216,8 @@ function App() {
           <Route path="/service/:slug" element={<ServiceDetailPage />} />
           <Route path="/regulamin" element={<Regulations />} />
           <Route path="/prywatnosc" element={<Privacy />} />
+          <Route path="/cennik" element={<Cennik />} />
+          <Route path="/dane-firmy" element={<DaneFirmy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<ServicesList />} />
