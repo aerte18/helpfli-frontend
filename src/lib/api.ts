@@ -26,17 +26,31 @@ async function parseJsonSafe(res: Response) {
   }
 }
 
+function mergeRecordHeaders(
+  initHeaders: HeadersInit | undefined,
+  base: Record<string, string>
+): Record<string, string> {
+  if (!initHeaders || initHeaders instanceof Headers) return { ...base };
+  if (Array.isArray(initHeaders)) {
+    const out = { ...base };
+    for (const [k, v] of initHeaders) out[k] = v;
+    return out;
+  }
+  return { ...base, ...(initHeaders as Record<string, string>) };
+}
+
 export async function apiGet<T = any>(path: string, init?: RequestInit): Promise<T> {
   const url = absolute(path);
   const token = localStorage.getItem("token");
-  const res = await fetch(url, { 
-    method: "GET", 
+  // Nie rozłączaj nagłówków przez ...(init) na końcu — { headers: undefined } nadpisuje Authorization → 401
+  const { headers: initHeaders, ...restInit } = init || {};
+  const res = await fetch(url, {
+    method: "GET",
     credentials: "omit",
-    headers: {
+    ...restInit,
+    headers: mergeRecordHeaders(initHeaders, {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {})
-    },
-    ...(init || {}) 
+    }),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await parseJsonSafe(res)) as T;
@@ -50,16 +64,16 @@ export async function apiPost<T = any>(path: string, body?: any, init?: RequestI
     path.startsWith("/api/auth/register") ||
     path.startsWith("/api/auth/forgot-password") ||
     path.startsWith("/api/auth/reset-password");
+  const { headers: initHeaders, body: _initBody, ...restInit } = init || {};
   const res = await fetch(url, {
     method: "POST",
     credentials: "omit",
-    headers: { 
+    ...restInit,
+    headers: mergeRecordHeaders(initHeaders, {
       "Content-Type": "application/json",
       ...(!isAuthEndpoint && token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {}) 
-    },
+    }),
     body: body !== undefined ? JSON.stringify(body) : undefined,
-    ...(init || {})
   });
   
   // Jeśli status 200 ale response zawiera requires2FA, zwróć dane bez rzucania błędu
@@ -82,16 +96,16 @@ export async function apiPost<T = any>(path: string, body?: any, init?: RequestI
 export async function apiPut<T = any>(path: string, body?: any, init?: RequestInit): Promise<T> {
   const url = absolute(path);
   const token = localStorage.getItem("token");
+  const { headers: initHeaders, body: _initBody, ...restInit } = init || {};
   const res = await fetch(url, {
     method: "PUT",
     credentials: "omit",
-    headers: { 
+    ...restInit,
+    headers: mergeRecordHeaders(initHeaders, {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {})
-    },
+    }),
     body: body !== undefined ? JSON.stringify(body) : undefined,
-    ...(init || {})
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await parseJsonSafe(res)) as T;
