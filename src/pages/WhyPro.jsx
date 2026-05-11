@@ -118,7 +118,7 @@ export default function WhyPro() {
                           
                           // Jeśli backend zwrócił clientSecret/paymentIntentId – przekieruj do wspólnej strony checkout
                           if (data?.clientSecret && data?.paymentIntentId) {
-                            const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
+                            const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=subscription`;
                             window.location.href = url;
                             return;
                           }
@@ -143,7 +143,7 @@ export default function WhyPro() {
                                 const data = await subscribePlan(planKey);
                                 
                                 if (data?.clientSecret && data?.paymentIntentId) {
-                                  const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
+                                  const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=subscription`;
                                   window.location.href = url;
                                   return;
                                 }
@@ -321,7 +321,7 @@ export default function WhyPro() {
               
               // Jeśli backend zwrócił clientSecret/paymentIntentId – przekieruj do wspólnej strony checkout
               if (data?.clientSecret && data?.paymentIntentId) {
-                const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
+                const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=subscription`;
                 window.location.href = url;
                 return;
               }
@@ -351,7 +351,7 @@ export default function WhyPro() {
                       const data = await subscribePlan(planKey);
                       
                       if (data?.clientSecret && data?.paymentIntentId) {
-                        const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
+                        const url = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=subscription`;
                         window.location.href = url;
                         return;
                       }

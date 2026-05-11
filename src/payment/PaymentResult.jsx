@@ -61,6 +61,11 @@ export default function PaymentResult() {
 
   const handleContinue = () => {
     const orderId = searchParams.get('orderId');
+    const payType = searchParams.get('type');
+    if (payType === 'subscription') {
+      navigate('/account/subscriptions');
+      return;
+    }
     if (orderId) {
       navigate(`/orders/${orderId}`);
     } else {

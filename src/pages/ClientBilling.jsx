@@ -23,14 +23,26 @@ export default function ClientBilling() {
   useEffect(() => { fetchAll(); }, []);
 
   const subscribe = async (planKey) => {
-    const res = await fetch(apiUrl("/api/subscriptions/subscribe"), {
-      method: "POST",
-      headers: { "Content-Type":"application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ planKey })
-    });
-    const data = await res.json();
-    setMsg(data.message || "Zaktualizowano subskrypcję");
-    fetchAll();
+    try {
+      const res = await fetch(apiUrl("/api/subscriptions/subscribe"), {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ planKey })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.message || data.error || "Błąd subskrypcji");
+        return;
+      }
+      if (data?.clientSecret && data?.paymentIntentId) {
+        window.location.href = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=subscription`;
+        return;
+      }
+      setMsg(data.message || "Zaktualizowano subskrypcję");
+      fetchAll();
+    } catch (e) {
+      setMsg(e?.message || "Błąd połączenia");
+    }
   };
 
   const cancel = async () => {
