@@ -10,17 +10,20 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState('');
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
-  // Układ „accordion” + radios + odstępy — zbliżony do wyboru metody jak na marketplace (np. Allegro)
+  // Czytelny wybór jak marketplace: karta domyślnie + „Więcej metod” rozwija resztę
   const paymentElementOptions = useMemo(
     () => ({
       layout: {
         type: 'accordion',
         radios: 'always',
         spacedAccordionItems: true,
-        // 0 = pokaż wszystkie metody bez „Więcej” (jak lista na marketplace)
-        visibleAccordionItemsCount: 0,
+        // Pokaż 1 metodę (domyślnie kartę), reszta pod „Więcej metod płatności”
+        visibleAccordionItemsCount: 1,
       },
-      paymentMethodOrder: ['blik', 'p24', 'card', 'link'],
+      // Domyślnie karta, a BLIK/P24 jako alternatywy po rozwinięciu
+      paymentMethodOrder: ['card', 'blik', 'p24'],
+      // Link potrafi mylić użytkowników ("płatność poza usługą") — ukryj w tej aplikacji
+      wallets: { link: 'never' },
       appearance: {
         theme: 'stripe',
         variables: {
@@ -75,7 +78,9 @@ export default function CheckoutPage() {
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-slate-900">Sposób płatności</h2>
-          <p className="text-sm text-slate-600 mt-1">Wybierz metodę — poniżej widać tylko opcje dostępne dla tej kwoty i konta Stripe.</p>
+          <p className="text-sm text-slate-600 mt-1">
+            Domyślnie pokazujemy kartę. Aby wybrać inną metodę (np. BLIK), kliknij <strong>„Więcej metod płatności”</strong> w bloku poniżej.
+          </p>
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4 shadow-inner">
