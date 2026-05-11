@@ -13,16 +13,15 @@ export default function CheckoutPage() {
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
   // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.
+  // Ten sam układ co przy zleceniach: accordion (jedna forma + „Więcej metod”), nie tabs (kafelki u góry).
   const paymentElementOptions = useMemo(
     () => ({
-      layout: isSubscriptionCheckout
-        ? { type: 'tabs' }
-        : {
-            type: 'accordion',
-            radios: 'always',
-            spacedAccordionItems: true,
-            visibleAccordionItemsCount: 3,
-          },
+      layout: {
+        type: 'accordion',
+        radios: 'always',
+        spacedAccordionItems: true,
+        visibleAccordionItemsCount: 3,
+      },
       paymentMethodOrder: ['card', 'blik', 'p24'],
       wallets: { link: 'never' },
       appearance: {
@@ -32,7 +31,7 @@ export default function CheckoutPage() {
         },
       },
     }),
-    [isSubscriptionCheckout]
+    []
   );
 
   useEffect(() => {
