@@ -12,23 +12,38 @@ export default function PaymentResult() {
   useEffect(() => {
     if (!stripe) return;
 
-    const clientSecret = searchParams.get('payment_intent_client_secret');
+    // Stripe dopisuje payment_intent + payment_intent_client_secret + redirect_status.
+    // retrievePaymentIntent() wymaga wyłącznie pełnego client secret (pi_…_secret_…), NIE samego id pi_….
+    const clientSecretRaw = searchParams.get('payment_intent_client_secret');
     const paymentIntentId = searchParams.get('payment_intent');
     const redirectStatus = searchParams.get('redirect_status');
+    const clientSecret =
+      clientSecretRaw && clientSecretRaw.includes('_secret_') ? clientSecretRaw.trim() : null;
 
-    if (!clientSecret && !paymentIntentId) {
-      // Brak parametrów płatności - może to być bezpośrednie wejście na stronę
+    if (!clientSecret && !paymentIntentId && !redirectStatus) {
       setStatus('error');
       setMessage('Brak informacji o płatności');
       return;
     }
 
-    // Sprawdź status płatności
+    const applyRedirectStatus = () => {
+      if (redirectStatus === 'succeeded') {
+        setStatus('success');
+        setMessage('Płatność zakończona pomyślnie!');
+      } else if (redirectStatus === 'processing') {
+        setStatus('processing');
+        setMessage('Płatność jest przetwarzana...');
+      } else if (redirectStatus) {
+        setStatus('error');
+        setMessage('Płatność nie powiodła się');
+      }
+    };
+
     const checkPaymentStatus = async () => {
       try {
-        if (paymentIntentId) {
-          const { paymentIntent } = await stripe.retrievePaymentIntent(paymentIntentId);
-          
+        if (clientSecret) {
+          const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+
           if (paymentIntent.status === 'succeeded') {
             setStatus('success');
             setMessage('Płatność zakończona pomyślnie!');
@@ -40,17 +55,19 @@ export default function PaymentResult() {
             setMessage(paymentIntent.last_payment_error?.message || 'Płatność nie powiodła się');
           }
         } else if (redirectStatus) {
-          // Użyj redirect_status z URL
-          if (redirectStatus === 'succeeded') {
-            setStatus('success');
-            setMessage('Płatność zakończona pomyślnie!');
-          } else {
-            setStatus('error');
-            setMessage('Płatność nie powiodła się');
-          }
+          applyRedirectStatus();
+        } else if (paymentIntentId) {
+          setStatus('error');
+          setMessage(
+            'Brak pełnego klucza płatności w adresie (client secret). Otwórz zlecenie z konta — status płatności zaktualizuje się po chwili.'
+          );
         }
       } catch (error) {
         console.error('Błąd sprawdzania statusu płatności:', error);
+        if (redirectStatus === 'succeeded' || redirectStatus === 'processing') {
+          applyRedirectStatus();
+          return;
+        }
         setStatus('error');
         setMessage('Wystąpił błąd podczas sprawdzania statusu płatności');
       }
