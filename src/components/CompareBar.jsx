@@ -3,7 +3,7 @@ import AvailabilityBadge from "./AvailabilityBadge";
 export default function CompareBar({ items = [], onClear, onCompare, onRemove }) {
   if (!items.length) return null;
   return (
-    <div className="sticky bottom-0 z-50 mb-20">
+    <div data-qs-compare-bar className="sticky bottom-0 z-50 mb-20">
       <div className="mx-auto max-w-7xl px-4 pb-4 pr-24">
         <div className="qs-card-soft backdrop-blur-xl border border-white/60 shadow-2xl p-4 max-w-full">
           <div className="flex items-center gap-4 flex-wrap">

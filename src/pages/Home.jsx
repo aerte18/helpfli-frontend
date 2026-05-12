@@ -25,7 +25,7 @@ import ProviderPreview from "../components/ProviderPreview";
 import { useAuth } from "../context/AuthContext";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -277,6 +277,8 @@ export default function Home() {
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   /** Mobile /map: domyślnie zwinięte — więcej mapy; panel „szkło” pod sticky breadcrumbs */
   const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(true);
+  /** Mobile /map: pełny ekran mapy (ukrywa nav, okruszki, filtry, tab bar) */
+  const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
   const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
@@ -337,8 +339,42 @@ export default function Home() {
       setIsMobileViewMenuOpen(false);
       setIsProviderListExpanded(false);
       setMapFiltersCollapsed(true);
+      setMapMobileImmersive(false);
     }
   }, [viewMode, showAdvancedFilters]);
+
+  useEffect(() => {
+    if (!isMobileViewport) setMapMobileImmersive(false);
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    const active =
+      isMobileViewport &&
+      viewMode === "map" &&
+      !showAdvancedFilters &&
+      mapMobileImmersive;
+    if (active) {
+      document.body.classList.add("qs-map-immersive");
+    } else {
+      document.body.classList.remove("qs-map-immersive");
+    }
+    return () => {
+      document.body.classList.remove("qs-map-immersive");
+    };
+  }, [isMobileViewport, viewMode, showAdvancedFilters, mapMobileImmersive]);
+
+  useEffect(() => {
+    if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
+  }, [mapMobileImmersive]);
+
+  useEffect(() => {
+    if (!mapMobileImmersive) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMapMobileImmersive(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapMobileImmersive]);
 
   useEffect(() => {
     if (!isMobileViewMenuOpen) return;
@@ -954,6 +990,32 @@ export default function Home() {
                 }}
               />
             </div>
+            {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMapMobileImmersive((v) => {
+                    const next = !v;
+                    if (next) setMapFiltersCollapsed(true);
+                    return next;
+                  });
+                }}
+                className="sm:hidden pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
+                style={{
+                  top: "max(0.5rem, env(safe-area-inset-top, 0px))",
+                  right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+                }}
+                aria-pressed={mapMobileImmersive}
+                aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
+                title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
+              >
+                {mapMobileImmersive ? (
+                  <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
+                ) : (
+                  <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
+                )}
+              </button>
+            )}
           </div>
         </div>
         <div
@@ -1303,6 +1365,7 @@ export default function Home() {
       {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
+          data-qs-home-mobile-dock
           className={`sm:hidden fixed z-[35] left-3 ${
             viewMode === "list"
               ? (user

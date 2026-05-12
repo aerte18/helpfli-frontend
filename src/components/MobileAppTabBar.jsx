@@ -111,6 +111,7 @@ export default function MobileAppTabBar() {
 
   return (
     <nav
+      data-qs-mobile-app-tab-bar
       className="md:hidden fixed bottom-0 left-0 right-0 z-[45] border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)] [transform:translateZ(0)]"
       style={{
         backgroundColor: "var(--card)",

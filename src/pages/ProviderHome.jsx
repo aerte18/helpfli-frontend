@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, ChevronUp, ChevronDown } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -497,6 +497,7 @@ export default function ProviderHome() {
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
   const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(false);
+  const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
 
   const [mapSize, setMapSize] = useState(() => {
     return localStorage.getItem('mapSize') || 'lg';
@@ -585,8 +586,42 @@ export default function ProviderHome() {
       setMapFiltersCollapsed(false);
       setIsMobileViewMenuOpen(false);
       setIsOrderListExpanded(false);
+      setMapMobileImmersive(false);
     }
   }, [viewMode, showAdvancedFilters]);
+
+  useEffect(() => {
+    if (!isMobileViewport) setMapMobileImmersive(false);
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    const active =
+      isMobileViewport &&
+      viewMode === "map" &&
+      !showAdvancedFilters &&
+      mapMobileImmersive;
+    if (active) {
+      document.body.classList.add("qs-map-immersive");
+    } else {
+      document.body.classList.remove("qs-map-immersive");
+    }
+    return () => {
+      document.body.classList.remove("qs-map-immersive");
+    };
+  }, [isMobileViewport, viewMode, showAdvancedFilters, mapMobileImmersive]);
+
+  useEffect(() => {
+    if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
+  }, [mapMobileImmersive]);
+
+  useEffect(() => {
+    if (!mapMobileImmersive) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMapMobileImmersive(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapMobileImmersive]);
 
   // Nasłuchuj zmian rozmiaru mapy z App.jsx
   useEffect(() => {
@@ -1863,7 +1898,7 @@ export default function ProviderHome() {
               </div>
             </div>
           )}
-          <div className="qs-home-map-shell-interactive relative min-h-0 flex-1 bg-slate-100">
+          <div className="qs-home-map-shell-interactive relative isolate min-h-0 flex-1 bg-slate-100">
             <div className="absolute inset-0 border border-slate-200 bg-white overflow-hidden">
               {center && center.length === 2 && center[0] && center[1] ? (
                 <MapContainer center={[...center]} zoom={13} className="w-full h-full">
@@ -1902,6 +1937,32 @@ export default function ProviderHome() {
                 <div className="flex h-full items-center justify-center text-slate-500">Brak danych mapy</div>
               )}
             </div>
+            {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMapMobileImmersive((v) => {
+                    const next = !v;
+                    if (next) setMapFiltersCollapsed(true);
+                    return next;
+                  });
+                }}
+                className="sm:hidden pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
+                style={{
+                  top: "max(0.5rem, env(safe-area-inset-top, 0px))",
+                  right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+                }}
+                aria-pressed={mapMobileImmersive}
+                aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
+                title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
+              >
+                {mapMobileImmersive ? (
+                  <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
+                ) : (
+                  <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
+                )}
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -2300,6 +2361,7 @@ export default function ProviderHome() {
       {isMobileViewport && !showAdvancedFilters && (viewMode === "map" || viewMode === "list") && (
         <div
           ref={mobileViewMenuRef}
+          data-qs-provider-mobile-dock
           className={`fixed z-[35] left-3 ${
             viewMode === "list"
               ? "qs-fixed-above-mobile-tab"

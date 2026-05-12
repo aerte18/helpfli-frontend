@@ -313,6 +313,34 @@ body.has-mobile-tab {
   }
 }
 
+/* Mapa mobile — tryb immersyjny: pełny ekran (max-lg ≈ ProviderHome isMobileViewport; Home ma przycisk tylko <sm) */
+@media (max-width: 1023px) {
+  body.qs-map-immersive header.qs-app-navbar,
+  body.qs-map-immersive nav.qs-app-breadcrumb-tray,
+  body.qs-map-immersive nav[data-qs-mobile-app-tab-bar],
+  body.qs-map-immersive [data-qs-home-mobile-dock],
+  body.qs-map-immersive [data-qs-provider-mobile-dock],
+  body.qs-map-immersive [data-qs-compare-bar],
+  body.qs-map-immersive button[data-testid="ai-fab"],
+  body.qs-map-immersive button[data-testid="provider-ai-fab"] {
+    display: none !important;
+  }
+  body.qs-map-immersive .qs-home-map-shell,
+  body.qs-map-immersive .qs-provider-map-stack {
+    top: 0 !important;
+    bottom: 0 !important;
+    z-index: 95 !important;
+  }
+  body.has-mobile-tab.qs-map-immersive .qs-home-map-shell,
+  body.has-mobile-tab.qs-map-immersive .qs-provider-map-stack {
+    bottom: 0 !important;
+  }
+  body.qs-map-immersive .qs-home-map-shell > .qs-home-map-shell-interactive:not(:last-child),
+  body.qs-map-immersive .qs-provider-map-stack > .qs-home-map-shell-interactive:not(:last-child) {
+    display: none !important;
+  }
+}
+
 /* Home — tryb mapy: jeden kontener fixed top→bottom (bez 100dvh), toolbar nad mapą, dół nad tab barem */
 .qs-home-map-shell {
   position: fixed;
