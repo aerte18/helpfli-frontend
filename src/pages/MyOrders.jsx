@@ -215,30 +215,41 @@ const MyOrders = () => {
                 {(() => {
                   const next = getClientOrderPresentation(order);
                   if (!next) return null;
+                  const chatHref = `/orders/${order._id}?tab=chat`;
+                  const detailsHref = `/orders/${order._id}?tab=details`;
+                  const primaryHref = next.nextStepHref;
+                  const showSecondaryDetails = primaryHref !== detailsHref;
+                  const showSecondaryChat = primaryHref !== chatHref;
                   return (
-                    <button
-                      type="button"
-                      onClick={() => navigate(next.nextStepHref)}
-                      className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                    >
-                      {next.nextStepCta}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => navigate(next.nextStepHref)}
+                        className="px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                      >
+                        {next.nextStepCta}
+                      </button>
+                      {showSecondaryDetails && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(detailsHref)}
+                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                        >
+                          Szczegóły
+                        </button>
+                      )}
+                      {showSecondaryChat && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(chatHref)}
+                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                        >
+                          Czat
+                        </button>
+                      )}
+                    </>
                   );
                 })()}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/orders/${order._id}?tab=details`)}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                >
-                  Szczegóły
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/orders/${order._id}?tab=chat`)}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                >
-                  Czat
-                </button>
                 <button
                   type="button"
                   onClick={() => navigate(`/orders/${order._id}?tab=offers`)}

@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import useInbox from "../hooks/useInbox";
 import ChatBox from "../components/ChatBox";
 import { useAuth } from "../context/AuthContext";
+import { useBreakpointMd } from "../hooks/useBreakpointMd";
 
 export default function Messages() {
   const { user: currentUser } = useAuth();
+  const isMdUp = useBreakpointMd();
   const { loading, conversations, typingMap, markConversationRead } = useInbox();
   const safeConversations = Array.isArray(conversations) ? conversations : [];
   const [active, setActive] = useState(null);
@@ -29,18 +31,32 @@ export default function Messages() {
   }, [active, markConversationRead]);
 
   return (
-    <div className="h-[80vh] grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50">
+    <div
+      className={
+        isMdUp
+          ? "h-[80vh] grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50"
+          : "qs-mobile-inbox-stack bg-slate-50"
+      }
+    >
       {/* Lista konwersacji */}
-      <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white md:col-span-1">
+      <div
+        className={
+          isMdUp
+            ? "border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white md:col-span-1 h-full flex flex-col min-h-0"
+            : active
+              ? "hidden"
+              : "flex flex-1 flex-col min-h-0 min-w-0 bg-white overflow-hidden border-b border-slate-200/90"
+        }
+      >
         {loading ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center flex-1 min-h-[40vh]">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2"></div>
               <p className="text-sm text-gray-500">Ładowanie…</p>
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {safeConversations.length === 0 ? (
               <div className="p-4 text-sm text-gray-500">Brak rozmów.</div>
             ) : (
@@ -79,13 +95,22 @@ export default function Messages() {
       </div>
 
       {/* Okno czatu */}
-      <div className="md:col-span-2 border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
+      <div
+        className={
+          isMdUp
+            ? "md:col-span-2 border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white min-h-0 flex flex-col"
+            : active
+              ? "flex flex-1 flex-col min-h-0 min-w-0 bg-white overflow-hidden"
+              : "hidden"
+        }
+      >
         {active ? (
           <ChatBox 
             conversationId={active._id} 
             currentUser={currentUser} 
             participants={active.participants || []}
             order={active.order}
+            onMobileBack={isMdUp ? undefined : () => setActive(null)}
           />
         ) : (
           <div className="h-full flex items-center justify-center bg-gray-50">

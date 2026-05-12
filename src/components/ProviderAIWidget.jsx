@@ -237,7 +237,7 @@ export default function ProviderAIWidget() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className="fixed z-[50] rounded-full shadow-2xl
-                   bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3
+                   qs-fixed-above-mobile-tab right-3
                    md:bottom-6 md:right-6
                    bg-gradient-to-br from-purple-600 via-pink-600 to-purple-700
                    border-2 border-purple-400/30 backdrop-blur-sm

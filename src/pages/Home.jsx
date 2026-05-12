@@ -25,7 +25,7 @@ import ProviderPreview from "../components/ProviderPreview";
 import { useAuth } from "../context/AuthContext";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users } from "lucide-react";
+import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users, ChevronUp, ChevronDown } from "lucide-react";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -275,6 +275,8 @@ export default function Home() {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
+  /** Mobile /map: zwinięty pasek filtrów — więcej miejsca na mapę, stabilna pozycja nad mapą */
+  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(false);
   const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
@@ -334,6 +336,7 @@ export default function Home() {
     if (viewMode !== "map" || showAdvancedFilters) {
       setIsMobileViewMenuOpen(false);
       setIsProviderListExpanded(false);
+      setMapFiltersCollapsed(false);
     }
   }, [viewMode, showAdvancedFilters]);
 
@@ -615,72 +618,8 @@ export default function Home() {
         <title>Szukaj wykonawców | Quicksy</title>
         <meta name="description" content="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą." />
       </Helmet>
-      {/* Pasek: dropdown kategorii (dwukolumnowy) + toolbar wyników */}
-      {viewMode === "map" ? (
-        // Tryb mapy - fixed toolbar na górze
-        <div className="fixed left-0 right-0 top-16 z-50 max-w-[100vw] border-b border-gray-200/20 shadow-sm">
-          <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
-            <ResultsToolbar
-              searchQuery={filters.search}
-              resultsCount={list.length}
-              location="Warszawa"
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              verifiedOnly={verifiedOnly}
-              onVerifiedOnlyChange={setVerifiedOnly}
-              b2bOnly={b2bOnly}
-              onB2bOnlyChange={setB2bOnly}
-              proOnly={proOnly}
-              availableNow={availableNow}
-              onAvailableNowChange={setAvailableNow}
-              onProOnlyChange={setProOnly}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              categorySelector={
-                <ServiceCategoryDropdown
-                  className="w-full sm:w-64"
-                  placeholder="Kategoria"
-                  clearTrigger={clearCategoryTrigger}
-                  onCategorySelect={(sel) => {
-                    setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-                    const slug = sel.subcategorySlug || sel.categorySlug;
-                    if (slug) {
-                      setSelectedServiceSlugs((prev) =>
-                        Array.from(new Set([...(prev || []), String(slug)]))
-                      );
-                    }
-                  }}
-                />
-              }
-              showLeftInfo={false}
-              hasActiveFilters={activeFilters.length > 0}
-              onClearFilters={() => {
-                setVerifiedOnly(false);
-                setB2bOnly(false);
-                setProOnly(false);
-                setAvailableNow(false);
-                setSelectedServices([]);
-                setSelectedServiceSlugs([]);
-                updateFilters({});
-                setActiveFilters([]);
-                setClearCategoryTrigger((prev) => prev + 1);
-              }}
-              rightExtra={
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedFilters(true)}
-                  className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 sm:px-3 sm:py-2 sm:text-sm"
-                >
-                  <span className="sm:hidden">Filtry</span>
-                  <span className="hidden sm:inline">Wszystkie filtry</span>
-                </button>
-              }
-              hideViewSwitcher
-            />
-          </div>
-        </div>
-      ) : (
-        // Tryb listy/split - normalny layout
+      {/* Pasek: dropdown kategorii (dwukolumnowy) + toolbar wyników — w /map toolbar jest w skorupie mapy */}
+      {viewMode !== "map" && (
         <>
           {/* Toolbar - poza flex container, aby sticky działało poprawnie */}
           <ResultsToolbar
@@ -804,7 +743,7 @@ export default function Home() {
           onClick={() => setIsProviderListExpanded(!isProviderListExpanded)}
           className={`fixed z-40 flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
-              ? `left-3 rounded-full ${isProviderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} ${user ? "bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]" : "bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]"}`
+              ? `left-3 rounded-full ${isProviderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} ${user ? "qs-fixed-above-mobile-tab-lg" : "qs-fixed-guest-near-bottom"}`
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
           style={!isMobileViewport ? { top: `${mapProviderDockTopPx}px` } : undefined}
@@ -840,35 +779,118 @@ export default function Home() {
       {/* Lista + Mapa */}
       {viewMode === "map" ? (
         <>
-        {/* Tryb mapy — warstwa mapy zostaje pod UI; przełącznik widoku osobno (fixed + wysoki z-index), żeby Leaflet nie przejmował kliknięć */}
-        <div 
-          className="fixed inset-0 z-0 isolate w-full relative" 
-          style={{ 
-            top: `${mapTopOffsetPx}px`,
-            height: `calc(100dvh - ${mapTopOffsetPx}px)`
-          }}
-        >
-          <div className="w-full h-full">
-            <MapViewEnhanced
-              providers={list.map(p => ({ 
-                ...p, 
-                lat: p.lat || p.location?.lat, 
-                lng: p.lng || p.location?.lng 
-              }))}
-              center={center}
-              height="h-full"
-              onFullscreenToggle={setMapSize}
-              onSelect={(p) => {
-                trackProviderView(p.id);
-                handleSelect(p);
-              }}
-              onQuickView={handleQuickView}
-              onCompare={(p) => {
-                compare.toggle(p);
-              }}
-            />
+        {/* Tryb mapy: jedna skorupa (navbar → dół / tab bar) — toolbar nad mapą, bez skakania i bez szczelin 100dvh */}
+        <div className="qs-home-map-shell">
+          {isMobileViewport && (
+            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:hidden">
+              <span className="truncate text-xs font-semibold text-slate-800">
+                {mapFiltersCollapsed ? "Mapa — stuknij, aby rozwinąć filtry" : "Filtry nad mapą"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMapFiltersCollapsed((v) => !v)}
+                className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                aria-expanded={!mapFiltersCollapsed}
+              >
+                {mapFiltersCollapsed ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                    Rozwiń
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="h-4 w-4" aria-hidden />
+                    Zwiń
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          {(!isMobileViewport || !mapFiltersCollapsed) && (
+            <div className="qs-home-map-shell-interactive max-h-[min(42vh,22rem)] shrink-0 overflow-y-auto border-b border-gray-200/30 bg-white/95 shadow-sm backdrop-blur-md sm:max-h-none sm:overflow-visible">
+              <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
+                <ResultsToolbar
+                  searchQuery={filters.search}
+                  resultsCount={list.length}
+                  location="Warszawa"
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  verifiedOnly={verifiedOnly}
+                  onVerifiedOnlyChange={setVerifiedOnly}
+                  b2bOnly={b2bOnly}
+                  onB2bOnlyChange={setB2bOnly}
+                  proOnly={proOnly}
+                  availableNow={availableNow}
+                  onAvailableNowChange={setAvailableNow}
+                  onProOnlyChange={setProOnly}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  categorySelector={
+                    <ServiceCategoryDropdown
+                      className="w-full sm:w-64"
+                      placeholder="Kategoria"
+                      clearTrigger={clearCategoryTrigger}
+                      onCategorySelect={(sel) => {
+                        setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+                        const slug = sel.subcategorySlug || sel.categorySlug;
+                        if (slug) {
+                          setSelectedServiceSlugs((prev) =>
+                            Array.from(new Set([...(prev || []), String(slug)]))
+                          );
+                        }
+                      }}
+                    />
+                  }
+                  showLeftInfo={false}
+                  hasActiveFilters={activeFilters.length > 0}
+                  onClearFilters={() => {
+                    setVerifiedOnly(false);
+                    setB2bOnly(false);
+                    setProOnly(false);
+                    setAvailableNow(false);
+                    setSelectedServices([]);
+                    setSelectedServiceSlugs([]);
+                    updateFilters({});
+                    setActiveFilters([]);
+                    setClearCategoryTrigger((prev) => prev + 1);
+                  }}
+                  rightExtra={
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedFilters(true)}
+                      className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 sm:px-3 sm:py-2 sm:text-sm"
+                    >
+                      <span className="sm:hidden">Filtry</span>
+                      <span className="hidden sm:inline">Wszystkie filtry</span>
+                    </button>
+                  }
+                  hideViewSwitcher
+                />
+              </div>
+            </div>
+          )}
+          <div className="qs-home-map-shell-interactive relative isolate min-h-0 flex-1 bg-slate-100">
+            <div className="absolute inset-0">
+              <MapViewEnhanced
+                providers={list.map((p) => ({
+                  ...p,
+                  lat: p.lat || p.location?.lat,
+                  lng: p.lng || p.location?.lng,
+                }))}
+                center={center}
+                height="h-full"
+                onFullscreenToggle={setMapSize}
+                onSelect={(p) => {
+                  trackProviderView(p.id);
+                  handleSelect(p);
+                }}
+                onQuickView={handleQuickView}
+                onCompare={(p) => {
+                  compare.toggle(p);
+                }}
+              />
+            </div>
           </div>
-
         </div>
         <div
           className="pointer-events-auto hidden sm:flex fixed right-3 z-[100] items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/80 p-1.5"
@@ -1039,7 +1061,7 @@ export default function Home() {
         <div
           className={`fixed z-40 overflow-hidden border border-slate-200 bg-white shadow-xl transition-all duration-300 ${
             isMobileViewport
-              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isProviderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
+              ? `left-0 right-0 qs-home-map-sheet rounded-t-2xl ${isProviderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
               : `${isProviderListExpanded ? "bottom-4 w-80 rounded-2xl" : "hidden"} right-4`
           }`}
           style={
@@ -1220,11 +1242,11 @@ export default function Home() {
           className={`sm:hidden fixed z-[35] left-3 ${
             viewMode === "list"
               ? (user
-                  ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
-                  : "bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]")
+                  ? "qs-fixed-above-mobile-tab"
+                  : "qs-fixed-soft-bottom")
               : (user
-                  ? "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]"
-                  : "bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))]")
+                  ? "qs-fixed-above-mobile-tab-xl"
+                  : "qs-fixed-above-mobile-tab-md")
           }`}
         >
           <button

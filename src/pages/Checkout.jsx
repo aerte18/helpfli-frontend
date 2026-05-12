@@ -260,7 +260,7 @@ export default function Checkout() {
         </div>
       </div>
       {showMobilePayBar && (
-        <div className="sm:hidden fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 px-4 animate-fade-in">
+        <div className="sm:hidden fixed inset-x-0 qs-fixed-above-mobile-tab z-40 px-4 animate-fade-in">
           <div className="rounded-xl border border-indigo-200 bg-white/95 qs-surface-sheet px-3 py-2.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[11px] text-gray-500">Do zapłaty</div>

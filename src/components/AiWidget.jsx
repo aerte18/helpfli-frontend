@@ -11,8 +11,8 @@ export default function AiWidget() {
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const mobileBottomClass = user
-    ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
-    : "bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))]";
+    ? "qs-fixed-above-mobile-tab"
+    : "qs-fixed-soft-bottom";
 
   // Ukryj widget dla providerów - Asystent AI jest tylko dla klientów
   if (user?.role === 'provider') {

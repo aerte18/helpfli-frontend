@@ -14,7 +14,7 @@ export default function CreateOrderFAB({ onOpenAITriage }) {
         onOpenAITriage();
       }}
       className="fixed z-[50] inline-flex items-center gap-2 rounded-full shadow-2xl
-                 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3 px-3 py-2.5 text-sm
+                 qs-fixed-above-mobile-tab right-3 px-3 py-2.5 text-sm
                  md:bottom-6 md:right-6 md:px-5 md:py-3.5 md:text-base
                  bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-105 transition-transform duration-200"
       aria-label="Utwórz zlecenie"

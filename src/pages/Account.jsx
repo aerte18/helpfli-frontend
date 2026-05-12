@@ -1252,6 +1252,11 @@ function OrdersTab({ user }) {
                   const price = offer?.amount || offer?.price || order?.amountTotal || order?.budget;
                   const detailsTab = offer ? 'my_offer' : 'details';
                   const providerPresentation = getProviderOrderPresentation({ order, offer });
+                  const chatHrefDemo = `/orders/${order._id}?tab=chat`;
+                  const secondaryDetailsHrefDemo = `/orders/${order._id}?tab=${detailsTab}`;
+                  const primaryHrefDemo = providerPresentation.nextStepHref;
+                  const showSecondaryChatDemo = primaryHrefDemo !== chatHrefDemo;
+                  const showSecondaryDetailsDemo = primaryHrefDemo !== secondaryDetailsHrefDemo;
                   return (
                     <div
                       key={order._id}
@@ -1301,26 +1306,30 @@ function OrdersTab({ user }) {
                         >
                           {providerPresentation.nextStepCta}
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=chat`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Czat
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=${detailsTab}`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Szczegóły
-                        </button>
+                        {showSecondaryChatDemo && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = chatHrefDemo;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Czat
+                          </button>
+                        )}
+                        {showSecondaryDetailsDemo && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = secondaryDetailsHrefDemo;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Szczegóły
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -1333,6 +1342,11 @@ function OrdersTab({ user }) {
                   const price = offer?.amount || offer?.price || order?.amountTotal || order?.budget;
                   const detailsTab = offer ? 'my_offer' : 'details';
                   const providerPresentation = getProviderOrderPresentation({ order, offer });
+                  const chatHref = `/orders/${order._id}?tab=chat`;
+                  const secondaryDetailsHref = `/orders/${order._id}?tab=${detailsTab}`;
+                  const primaryHref = providerPresentation.nextStepHref;
+                  const showSecondaryChat = primaryHref !== chatHref;
+                  const showSecondaryDetails = primaryHref !== secondaryDetailsHref;
                   return (
                     <div
                       key={order._id}
@@ -1374,32 +1388,41 @@ function OrdersTab({ user }) {
                         >
                           {providerPresentation.nextStepCta}
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=chat`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Czat
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=${detailsTab}`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Szczegóły
-                        </button>
+                        {showSecondaryChat && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = chatHref;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Czat
+                          </button>
+                        )}
+                        {showSecondaryDetails && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = secondaryDetailsHref;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Szczegóły
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })
               : clientFilteredOrders.map((order) => {
                   const presentation = getClientOrderPresentation(order);
+                  const chatHref = `/orders/${order._id}?tab=chat`;
+                  const detailsHref = `/orders/${order._id}?tab=details`;
+                  const primaryHref = presentation.nextStepHref;
+                  const showSecondaryChat = primaryHref !== chatHref;
+                  const showSecondaryDetails = primaryHref !== detailsHref;
 
                   return (
                     <div 
@@ -1471,26 +1494,30 @@ function OrdersTab({ user }) {
                         >
                           {presentation.nextStepCta}
                         </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=chat`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Czat
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/orders/${order._id}?tab=details`;
-                          }}
-                          className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                        >
-                          Szczegóły
-                        </button>
+                        {showSecondaryChat && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = chatHref;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Czat
+                          </button>
+                        )}
+                        {showSecondaryDetails && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = detailsHref;
+                            }}
+                            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          >
+                            Szczegóły
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

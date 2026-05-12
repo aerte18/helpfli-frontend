@@ -260,7 +260,7 @@ body {
 
 /* Odstęp pod fixed tab bar (mobile, zalogowany użytkownik) */
 body.has-mobile-tab {
-  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
 }
 
 @media (min-width: 768px) {
@@ -269,8 +269,107 @@ body.has-mobile-tab {
   }
 }
 
+/* Dolny pasek nawigacji: dociągnięcie do faktycznego dołu widoku (Visual Viewport) */
+.qs-fixed-bottom-visual {
+  bottom: var(--qs-vv-bottom-offset, 0px);
+}
+
+/* Elementy fixed nad tab barem — ten sam offset co przy pasku */
+.qs-fixed-above-mobile-tab {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+.qs-fixed-above-mobile-tab-xl {
+  bottom: calc(9.2rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+.qs-fixed-above-mobile-tab-lg {
+  bottom: calc(5.8rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+.qs-fixed-above-mobile-tab-md {
+  bottom: calc(4.4rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+.qs-fixed-soft-bottom {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+.qs-fixed-guest-near-bottom {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+
+/* Skrzynka / czat (mobile): pełny obszar między sticky nav a tab barem */
+.qs-mobile-inbox-stack {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--app-nav-sticky-offset);
+  bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+@media (max-width: 767px) {
+  body.has-mobile-tab .qs-mobile-inbox-stack {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  }
+}
+
+/* Home — tryb mapy: jeden kontener fixed top→bottom (bez 100dvh), toolbar nad mapą, dół nad tab barem */
+.qs-home-map-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--app-nav-sticky-offset);
+  bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--background);
+  pointer-events: none;
+}
+@media (max-width: 767px) {
+  body.has-mobile-tab .qs-home-map-shell {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  }
+}
+.qs-home-map-shell-interactive {
+  pointer-events: auto;
+}
+
+/* Panel listy wykonawców (mobile) — ten sam dół co skorupa mapy */
+@media (max-width: 767px) {
+  body.has-mobile-tab .qs-home-map-sheet {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  }
+  body:not(.has-mobile-tab) .qs-home-map-sheet {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Provider /provider-home — mapa: stos pod fixed paskiem statusu (top = inline), dół zsynchronizowany z tab barem */
+.qs-provider-map-stack {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--background);
+  pointer-events: none;
+}
+@media (max-width: 767px) {
+  body.has-mobile-tab .qs-provider-map-stack {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  }
+}
+
 /* Odstęp sticky pod globalnym Navbar (mobile): safe area + ~wysokość paska nawigacji */
 :root {
+  --qs-vv-bottom-offset: 0px;
   --app-nav-sticky-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem);
   /* /search: Navbar + dodatkowy Header ze strony */
   --search-page-sticky-bar-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 3rem);

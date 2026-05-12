@@ -9,7 +9,7 @@ import MessageSearch from "./chat/MessageSearch";
 import { groupMessages, addDateSeparators } from "../utils/groupMessages";
 import { Paperclip, Send, X, MessageSquare } from "lucide-react";
 
-export default function ChatBox({ conversationId, currentUser, participants = [], order, onVideoCall, onPhoneCall }) {
+export default function ChatBox({ conversationId, currentUser, participants = [], order, onVideoCall, onPhoneCall, onMobileBack }) {
   const {
     messages,
     typingList,
@@ -119,7 +119,13 @@ export default function ChatBox({ conversationId, currentUser, participants = []
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-white rounded-2xl overflow-hidden shadow-sm relative">
+    <div
+      className={
+        onMobileBack
+          ? "flex flex-col h-full w-full min-h-0 bg-white rounded-none md:rounded-2xl overflow-hidden shadow-none md:shadow-sm relative"
+          : "flex flex-col h-full w-full bg-white rounded-2xl overflow-hidden shadow-sm relative"
+      }
+    >
       {/* Wyszukiwanie */}
       {showSearch && (
         <MessageSearch
@@ -138,6 +144,7 @@ export default function ChatBox({ conversationId, currentUser, participants = []
           onVideoCall={onVideoCall}
           onPhoneCall={onPhoneCall}
           onSearch={() => setShowSearch(true)}
+          onMobileBack={onMobileBack}
         />
       </div>
 

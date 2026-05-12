@@ -5997,25 +5997,6 @@ export default function OrderDetails() {
         </div>
       )}
 
-      {mobileTabs.length > 1 && (
-        <div className="md:hidden fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-40 px-3">
-          <div className="rounded-2xl border border-slate-200 bg-white/95 qs-surface-sheet p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-            {mobileTabs.map((t) => (
-              <button
-                key={`mobile-dock-${t}`}
-                type="button"
-                onClick={() => goTab(t)}
-                className={`shrink-0 rounded-xl px-3 py-2 text-sm font-medium qs-transition-soft qs-tap-target ${
-                  tab === t ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {t === "chat" ? "Czat" : t === "offers" ? "Oferta" : t === "my_offer" ? "Moja oferta" : "Szczegóły"}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Modal akceptacji/odrzucenia dopłaty (klient) */}
       {isClient && pendingChangeRequest && (
         <ChangeRequestResponseModal

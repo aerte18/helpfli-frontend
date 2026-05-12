@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, ChevronUp, ChevronDown } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -496,6 +496,7 @@ export default function ProviderHome() {
   });
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
+  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(false);
 
   const [mapSize, setMapSize] = useState(() => {
     return localStorage.getItem('mapSize') || 'lg';
@@ -578,6 +579,14 @@ export default function ProviderHome() {
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [isMobileViewMenuOpen]);
+
+  useEffect(() => {
+    if (viewMode !== "map" || showAdvancedFilters) {
+      setMapFiltersCollapsed(false);
+      setIsMobileViewMenuOpen(false);
+      setIsOrderListExpanded(false);
+    }
+  }, [viewMode, showAdvancedFilters]);
 
   // Nasłuchuj zmian rozmiaru mapy z App.jsx
   useEffect(() => {
@@ -1190,12 +1199,6 @@ export default function ProviderHome() {
       : isMobileViewport
         ? 176
         : 128;
-  const mapFullBleedTopPx =
-    isMobileViewport && viewMode === "map"
-      ? mapModeToolbarTopPx + (isMobileLandscape ? 42 : 52)
-      : isMobileViewport
-        ? mapModeToolbarTopPx + 54
-        : 190;
 
   // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-[100dvh]";
@@ -1315,7 +1318,7 @@ export default function ProviderHome() {
   }, [aiInsightsExpanded]);
 
   return (
-    <div className={`${viewMode === "map" ? "h-[100dvh] overflow-hidden fixed inset-0 bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
+    <div className={`${viewMode === "map" ? "min-h-screen overflow-hidden bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
       {/* Onboarding – pierwszy raz (3 kroki) */}
       {!onboardingDismissed && viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -1787,62 +1790,125 @@ export default function ProviderHome() {
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
-        // Tryb mapy - fixed toolbar na górze (pod paskiem statusu)
-        <div
-          className={`fixed left-0 right-0 z-[40] border-b border-gray-200/20 shadow-sm bg-white relative ${
-            isMobileViewport ? "py-2" : "py-3"
-          }`}
-          style={{ top: `${mapModeToolbarTopPx}px` }}
-        >
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={() => {
-                setFilters({
-                  service: "any",
-                  maxDistance: 300,
-                  budgetMin: "",
-                  budgetMax: "",
-                  providerId: "any",
-                  paymentType: "any",
-                  offersStatus: "any",
-                  sortBy: "default",
-                });
-                setRecommendedOnly(false);
-              }}
-              className="absolute top-2 right-3 sm:right-4 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              Wyczyść filtry
-            </button>
-          )}
-          <div className={`max-w-7xl mx-auto px-3 sm:px-4 ${isMobileViewport ? "py-0" : ""}`}>
-            <div
-              className={`flex gap-2 ${
-                isMobileViewport ? "flex-row items-center justify-between" : "items-center justify-between"
-              }`}
-            >
-              <div
-                className={`min-w-0 flex-1 text-gray-600 ${
-                  isMobileViewport ? "text-xs leading-snug pr-2" : "text-sm"
-                }`}
+        <div className="qs-provider-map-stack" style={{ top: `${mapModeToolbarTopPx}px` }}>
+          {isMobileViewport && (
+            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:hidden">
+              <span className="truncate text-xs font-semibold text-slate-800">
+                {mapFiltersCollapsed ? "Mapa — rozwiń filtry" : "Filtry nad mapą"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMapFiltersCollapsed((v) => !v)}
+                className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                aria-expanded={!mapFiltersCollapsed}
               >
-                <span className="block truncate">
-                  {list.length}{" "}
-                  {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}{" "}
-                  w {user?.location || "Twojej okolicy"}
-                </span>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
+                {mapFiltersCollapsed ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                    Rozwiń
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="h-4 w-4" aria-hidden />
+                    Zwiń
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          {(!isMobileViewport || !mapFiltersCollapsed) && (
+            <div className="qs-home-map-shell-interactive relative max-h-[min(38vh,20rem)] shrink-0 overflow-y-auto border-b border-gray-200/20 bg-white shadow-sm sm:max-h-none sm:overflow-visible">
+              {hasActiveFilters && (
                 <button
                   type="button"
-                  onClick={() => setShowAdvancedFilters(true)}
-                  className={`rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors ${
-                    isMobileViewport ? "px-2.5 py-1.5 text-xs whitespace-nowrap" : "px-3 py-2 text-sm"
+                  onClick={() => {
+                    setFilters({
+                      service: "any",
+                      maxDistance: 300,
+                      budgetMin: "",
+                      budgetMax: "",
+                      providerId: "any",
+                      paymentType: "any",
+                      offersStatus: "any",
+                      sortBy: "default",
+                    });
+                    setRecommendedOnly(false);
+                  }}
+                  className="absolute top-2 right-3 z-[1] sm:right-4 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  Wyczyść filtry
+                </button>
+              )}
+              <div className={`max-w-7xl mx-auto px-3 sm:px-4 ${isMobileViewport ? "py-2" : "py-3"}`}>
+                <div
+                  className={`flex gap-2 ${
+                    isMobileViewport ? "flex-row items-center justify-between" : "items-center justify-between"
                   }`}
                 >
-                  Wszystkie filtry
-                </button>
+                  <div
+                    className={`min-w-0 flex-1 text-gray-600 ${
+                      isMobileViewport ? "text-xs leading-snug pr-2" : "text-sm"
+                    }`}
+                  >
+                    <span className="block truncate">
+                      {list.length}{" "}
+                      {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}{" "}
+                      w {user?.location || "Twojej okolicy"}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedFilters(true)}
+                      className={`rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors ${
+                        isMobileViewport ? "px-2.5 py-1.5 text-xs whitespace-nowrap" : "px-3 py-2 text-sm"
+                      }`}
+                    >
+                      Wszystkie filtry
+                    </button>
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
+          <div className="qs-home-map-shell-interactive relative min-h-0 flex-1 bg-slate-100">
+            <div className="absolute inset-0 border border-slate-200 bg-white overflow-hidden">
+              {center && center.length === 2 && center[0] && center[1] ? (
+                <MapContainer center={[...center]} zoom={13} className="w-full h-full">
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapInitialRecenter userLocation={userLocation} />
+                  <UserLocationLayer userLocation={userLocation} />
+                  <MapLocateControl userLocation={userLocation} onRequestLocation={getUserLocation} />
+                  {listSafe.map((o, idx) => {
+                    let lat = o.lat || o.locationLat;
+                    let lng = o.lng || o.locationLng;
+
+                    if (!lat || !lng) {
+                      const baseLat = userLocation?.lat ?? center?.[0] ?? 52.2297;
+                      const baseLng = userLocation?.lng ?? center?.[1] ?? 21.0122;
+                      const jitter = 0.003 + (idx % 5) * 0.001;
+                      lat = baseLat + Math.sin(idx) * jitter;
+                      lng = baseLng + Math.cos(idx) * jitter;
+                    }
+
+                    return (
+                      <Marker key={o._id || o.id || idx} position={[lat, lng]} icon={orderIcon(o)}>
+                        <Popup className="custom-popup">
+                          <MapOrderPopup
+                            order={o}
+                            hasMyOffer={orderIdsWithMyOffer.has(String(o._id || o.id))}
+                            onQuote={() => handleProposeQuote(o)}
+                            onChat={() => handleOpenChat(o)}
+                            onDetails={(tab) => handleOpenDetails(o, tab)}
+                          />
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+                </MapContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-slate-500">Brak danych mapy</div>
+              )}
             </div>
           </div>
         </div>
@@ -2204,60 +2270,8 @@ export default function ProviderHome() {
       </div>
       )}
 
-      {/* Tryb mapy - pełnoekranowy; mapa tuż pod sekcją "18 zleceń... / Wszystkie filtry" */}
-      {viewMode === "map" && (
-        <>
-        <div 
-          className="fixed inset-0 w-full"
-          style={{
-            top: `${mapFullBleedTopPx}px`,
-            zIndex: 1,
-            height: `calc(100dvh - ${mapFullBleedTopPx}px)`,
-          }}
-        >
-          <div className="w-full h-full">
-            <div className="border border-slate-200 bg-white overflow-hidden h-full">
-              {center && center.length === 2 && center[0] && center[1] ? (
-                <MapContainer center={[...center]} zoom={13} className="w-full h-full">
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <MapInitialRecenter userLocation={userLocation} />
-                  <UserLocationLayer userLocation={userLocation} />
-                  <MapLocateControl
-                    userLocation={userLocation}
-                    onRequestLocation={getUserLocation}
-                  />
-                  {listSafe.map((o, idx) => {
-                    let lat = o.lat || o.locationLat;
-                    let lng = o.lng || o.locationLng;
-
-                    if (!lat || !lng) {
-                      const baseLat = (userLocation?.lat ?? center?.[0] ?? 52.2297);
-                      const baseLng = (userLocation?.lng ?? center?.[1] ?? 21.0122);
-                      const jitter = 0.003 + (idx % 5) * 0.001;
-                      lat = baseLat + Math.sin(idx) * jitter;
-                      lng = baseLng + Math.cos(idx) * jitter;
-                    }
-
-                    return (
-                      <Marker key={o._id || o.id || idx} position={[lat, lng]} icon={orderIcon(o)}>
-                        <Popup className="custom-popup">
-                          <MapOrderPopup order={o} hasMyOffer={orderIdsWithMyOffer.has(String(o._id || o.id))} onQuote={() => handleProposeQuote(o)} onChat={() => handleOpenChat(o)} onDetails={(tab) => handleOpenDetails(o, tab)} />
-                        </Popup>
-                      </Marker>
-                    );
-                  })}
-                </MapContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  Brak danych mapy
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Przyciski widoku: osobna warstwa, w prawym górnym rogu na mapie (tuż pod sekcją), z-index nad mapą i przyciskiem zleceń */}
-        {!isMobileViewport && (
-        <div 
+      {viewMode === "map" && !isMobileViewport && (
+        <div
           className="fixed top-[198px] right-4 z-[45] flex items-center gap-1 bg-white/40 backdrop-blur-sm rounded-lg shadow border border-slate-200/60 p-1.5"
           aria-label="Przełącz widok"
         >
@@ -2289,8 +2303,6 @@ export default function ProviderHome() {
             <Map className="w-4 h-4" aria-hidden />
           </button>
         </div>
-        )}
-        </>
       )}
 
       {isMobileViewport && !showAdvancedFilters && (viewMode === "map" || viewMode === "list") && (
@@ -2298,8 +2310,8 @@ export default function ProviderHome() {
           ref={mobileViewMenuRef}
           className={`fixed z-[35] left-3 ${
             viewMode === "list"
-              ? "bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))]"
-              : "bottom-[calc(9.2rem+env(safe-area-inset-bottom,0px))]"
+              ? "qs-fixed-above-mobile-tab"
+              : "qs-fixed-above-mobile-tab-xl"
           }`}
         >
           <button
@@ -2354,7 +2366,7 @@ export default function ProviderHome() {
           onClick={() => setIsOrderListExpanded(!isOrderListExpanded)}
           className={`fixed z-[45] flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
-              ? `left-3 rounded-full ${isOrderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} bottom-[calc(5.8rem+env(safe-area-inset-bottom,0px))]`
+              ? `left-3 rounded-full ${isOrderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} qs-fixed-above-mobile-tab-lg`
               : "right-4 w-80 rounded-lg px-4 py-3"
           }`}
           style={!isMobileViewport ? { top: "250px" } : undefined}
@@ -2393,7 +2405,7 @@ export default function ProviderHome() {
         <div
           className={`fixed z-40 overflow-hidden border border-slate-200 bg-white shadow-xl transition-all duration-300 ${
             isMobileViewport
-              ? `left-0 right-0 bottom-0 rounded-t-2xl ${isOrderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
+              ? `left-0 right-0 qs-home-map-sheet rounded-t-2xl ${isOrderListExpanded ? "max-h-[50vh]" : "max-h-0 border-0"}`
               : `${isOrderListExpanded ? "bottom-4 w-80 rounded-2xl" : "hidden"} right-4`
           }`}
           style={!isMobileViewport && isOrderListExpanded ? { top: "310px" } : undefined}

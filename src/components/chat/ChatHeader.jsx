@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Phone, Video, Info, Search } from "lucide-react";
+import { MoreVertical, Phone, Video, Info, Search, ArrowLeft } from "lucide-react";
 
 export default function ChatHeader({ 
   participant, 
@@ -8,7 +8,8 @@ export default function ChatHeader({
   onVideoCall,
   onPhoneCall,
   onInfo,
-  onSearch
+  onSearch,
+  onMobileBack,
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -33,8 +34,18 @@ export default function ChatHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="flex items-center justify-between px-2 sm:px-4 py-3 border-b border-gray-200 bg-white">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+        {onMobileBack && (
+          <button
+            type="button"
+            onClick={onMobileBack}
+            className="p-2 -ml-1 rounded-full hover:bg-gray-100 transition-colors shrink-0"
+            aria-label="Wróć do listy rozmów"
+          >
+            <ArrowLeft className="w-6 h-6 text-gray-800" />
+          </button>
+        )}
         {/* Avatar z statusem online */}
         <div className="relative flex-shrink-0">
           <img 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, ClipboardList, MessageCircle, UserRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -33,6 +33,56 @@ export default function MobileAppTabBar() {
     return () => document.body.classList.remove("has-mobile-tab");
   }, [visible]);
 
+  /** Safari (iOS): przy zwiniętym chrome dolna krawędź layout viewport ≠ wizualny dół — bez tego zostaje „dziura”. */
+  const vvRaf = useRef(0);
+  useEffect(() => {
+    const root = document.documentElement;
+    const clearOffset = () => {
+      root.style.setProperty("--qs-vv-bottom-offset", "0px");
+    };
+
+    if (!visible) {
+      clearOffset();
+      return undefined;
+    }
+
+    const vv = window.visualViewport;
+    const mq = window.matchMedia("(max-width: 767px)");
+
+    const sync = () => {
+      if (vvRaf.current) cancelAnimationFrame(vvRaf.current);
+      vvRaf.current = requestAnimationFrame(() => {
+        vvRaf.current = 0;
+        if (!mq.matches) {
+          clearOffset();
+          return;
+        }
+        if (!vv) {
+          clearOffset();
+          return;
+        }
+        const gap = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
+        root.style.setProperty("--qs-vv-bottom-offset", `${gap}px`);
+      });
+    };
+
+    sync();
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    mq.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+
+    return () => {
+      if (vvRaf.current) cancelAnimationFrame(vvRaf.current);
+      vvRaf.current = 0;
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      mq.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+      clearOffset();
+    };
+  }, [visible]);
+
   const homePath = useMemo(() => {
     if (!user) return "/";
     if (
@@ -55,7 +105,7 @@ export default function MobileAppTabBar() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-[45] border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="md:hidden fixed left-0 right-0 z-[45] qs-fixed-bottom-visual border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
       style={{
         backgroundColor: "var(--card)",
         borderColor: "var(--border)",
