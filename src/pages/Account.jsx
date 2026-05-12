@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock } from "lucide-react";
+import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock, Trash2 } from "lucide-react";
 import { registerPush } from "../push/registerPush";
 import { api } from "../api/client";
 import KycBadge from "../components/KycBadge";
@@ -352,6 +352,7 @@ export default function Account() {
               showTwoFactorAuth={showTwoFactorAuth}
               setShowTwoFactorAuth={setShowTwoFactorAuth}
               fetchMe={fetchMe}
+              logout={logout}
             />
           )}
           {activeTab === "privacy" && <PrivacySettings />}
@@ -2570,11 +2571,16 @@ const ALL_NOTIFICATION_PREFERENCES = {
   systemAlerts: { email: true, sms: true, push: true },
 };
 
-function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, setShowChangePasswordModal, showTwoFactorAuth, setShowTwoFactorAuth, fetchMe }) {
+function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, setShowChangePasswordModal, showTwoFactorAuth, setShowTwoFactorAuth, fetchMe, logout }) {
   const [accountForm, setAccountForm] = useState({ name: '', phone: '' });
   const [savingAccount, setSavingAccount] = useState(false);
   const [preferencesReloadTrigger, setPreferencesReloadTrigger] = useState(0);
   const [notificationDetailsExpanded, setNotificationDetailsExpanded] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('');
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState('');
+  const [deletionStatus, setDeletionStatus] = useState(null);
   const [billingForm, setBillingForm] = useState({
     companyName: '',
     nip: '',
@@ -2586,6 +2592,97 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
   const [savingBilling, setSavingBilling] = useState(false);
   const [wystawiamFaktury, setWystawiamFaktury] = useState(!!(user?.isB2B || user?.b2b));
   const [savingB2B, setSavingB2B] = useState(false);
+
+  useEffect(() => {
+    if (!showDeleteAccountModal) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(apiUrl('/api/users/me/account-deletion-status'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok) {
+          setDeletionStatus({
+            canDelete: !!data.canDelete,
+            blockers: Array.isArray(data.blockers) ? data.blockers : [],
+          });
+        } else if (!cancelled) {
+          setDeletionStatus({
+            canDelete: false,
+            blockers: [{ code: 'UNKNOWN', message: data.message || 'Nie udało się sprawdzić statusu konta.' }],
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setDeletionStatus({
+            canDelete: false,
+            blockers: [{ code: 'NETWORK', message: 'Błąd sieci. Spróbuj ponownie.' }],
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showDeleteAccountModal]);
+
+  const closeDeleteModal = () => {
+    setShowDeleteAccountModal(false);
+    setDeleteAccountPassword('');
+    setDeleteAccountError('');
+    setDeletionStatus(null);
+  };
+
+  const submitDeleteAccount = async (e) => {
+    e.preventDefault();
+    setDeleteAccountError('');
+    if (!deleteAccountPassword.trim()) {
+      setDeleteAccountError('Podaj hasło.');
+      return;
+    }
+    if (deletionStatus && !deletionStatus.canDelete) {
+      setDeleteAccountError('Nie można zamknąć konta przy obecnym stanie zleceń lub firmy.');
+      return;
+    }
+    try {
+      setDeleteAccountLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(apiUrl('/api/users/me/account-delete'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: deleteAccountPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          data.message ||
+          (Array.isArray(data.blockers) && data.blockers[0]?.message) ||
+          'Nie udało się zamknąć konta.';
+        setDeleteAccountError(msg);
+        if (Array.isArray(data.blockers)) {
+          setDeletionStatus({ canDelete: false, blockers: data.blockers });
+        }
+        return;
+      }
+      closeDeleteModal();
+      if (typeof logout === 'function') {
+        await logout();
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
+    } catch (err) {
+      setDeleteAccountError(err?.message || 'Błąd sieci.');
+    } finally {
+      setDeleteAccountLoading(false);
+    }
+  };
 
   // Inicjalizuj dane konta z user
   useEffect(() => {
@@ -2930,8 +3027,93 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
             <div className="font-medium">Dwuskładnikowa autoryzacja</div>
             <div className="text-sm text-gray-600">Dodaj dodatkową warstwę bezpieczeństwa</div>
           </button>
+
+          {user?.role !== 'admin' && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteAccountError('');
+                setDeleteAccountPassword('');
+                setDeletionStatus(null);
+                setShowDeleteAccountModal(true);
+              }}
+              className="w-full text-left p-3 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <div className="font-medium text-red-800 flex items-center gap-2">
+                <Trash2 className="w-4 h-4 shrink-0" />
+                Usuń konto
+              </div>
+              <div className="text-sm text-red-700/90">
+                Trwałe zamknięcie konta i usunięcie danych osobowych (zlecenia pozostają w systemie w formie zanonimizowanej).
+              </div>
+            </button>
+          )}
         </div>
       </Card>
+
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6"
+          >
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Usuń konto na stałe</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Ta operacja jest natychmiastowa i nieodwracalna. Utracisz dostęp do konta; dane osobowe w profilu zostaną
+              usunięte zgodnie z ustawieniami systemu.
+            </p>
+            {deletionStatus === null && (
+              <p className="text-sm text-gray-500 mb-4">Sprawdzanie warunków…</p>
+            )}
+            {deletionStatus && !deletionStatus.canDelete && deletionStatus.blockers?.length > 0 && (
+              <ul className="mb-4 space-y-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3 list-disc pl-5">
+                {deletionStatus.blockers.map((b) => (
+                  <li key={b.code}>{b.message}</li>
+                ))}
+              </ul>
+            )}
+            {deleteAccountError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {deleteAccountError}
+              </div>
+            )}
+            <form onSubmit={submitDeleteAccount} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Potwierdź hasłem</label>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={deleteAccountPassword}
+                  onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Obecne hasło do konta"
+                  disabled={deleteAccountLoading || (deletionStatus && !deletionStatus.canDelete)}
+                />
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={deleteAccountLoading}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Anuluj
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    deleteAccountLoading || !deletionStatus?.canDelete || !deleteAccountPassword.trim()
+                  }
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteAccountLoading ? 'Zamykanie…' : 'Na zawsze zamknij konto'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ChangePasswordModal 
         isOpen={showChangePasswordModal}
