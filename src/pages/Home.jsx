@@ -275,8 +275,8 @@ export default function Home() {
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
-  /** Mobile /map: zwinięty pasek filtrów — więcej miejsca na mapę, stabilna pozycja nad mapą */
-  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(false);
+  /** Mobile /map: domyślnie zwinięte — więcej mapy; panel „szkło” pod sticky breadcrumbs */
+  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(true);
   const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
@@ -336,7 +336,7 @@ export default function Home() {
     if (viewMode !== "map" || showAdvancedFilters) {
       setIsMobileViewMenuOpen(false);
       setIsProviderListExpanded(false);
-      setMapFiltersCollapsed(false);
+      setMapFiltersCollapsed(true);
     }
   }, [viewMode, showAdvancedFilters]);
 
@@ -781,33 +781,97 @@ export default function Home() {
         <>
         {/* Tryb mapy: jedna skorupa (navbar → dół / tab bar) — toolbar nad mapą, bez skakania i bez szczelin 100dvh */}
         <div className="qs-home-map-shell">
-          {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:hidden">
-              <span className="truncate text-xs font-semibold text-slate-800">
-                {mapFiltersCollapsed ? "Mapa — stuknij, aby rozwinąć filtry" : "Filtry nad mapą"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setMapFiltersCollapsed((v) => !v)}
-                className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                aria-expanded={!mapFiltersCollapsed}
-              >
-                {mapFiltersCollapsed ? (
-                  <>
-                    <ChevronDown className="h-4 w-4" aria-hidden />
-                    Rozwiń
-                  </>
-                ) : (
-                  <>
-                    <ChevronUp className="h-4 w-4" aria-hidden />
-                    Zwiń
-                  </>
-                )}
-              </button>
+          {isMobileViewport ? (
+            <div className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl sm:hidden">
+              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                <span className="truncate text-xs font-medium text-slate-800">
+                  {mapFiltersCollapsed ? "Filtry — stuknij Rozwiń" : "Filtry nad mapą"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMapFiltersCollapsed((v) => !v)}
+                  className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
+                  aria-expanded={!mapFiltersCollapsed}
+                >
+                  {mapFiltersCollapsed ? (
+                    <>
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                      Rozwiń
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="h-4 w-4" aria-hidden />
+                      Zwiń
+                    </>
+                  )}
+                </button>
+              </div>
+              {!mapFiltersCollapsed && (
+                <div className="max-h-[min(24vh,9.75rem)] overflow-y-auto border-t border-white/25 px-2 py-1.5">
+                  <div className="mx-auto min-w-0 max-w-6xl">
+                    <ResultsToolbar
+                      searchQuery={filters.search}
+                      resultsCount={list.length}
+                      location="Warszawa"
+                      sortBy={sortBy}
+                      onSortChange={setSortBy}
+                      verifiedOnly={verifiedOnly}
+                      onVerifiedOnlyChange={setVerifiedOnly}
+                      b2bOnly={b2bOnly}
+                      onB2bOnlyChange={setB2bOnly}
+                      proOnly={proOnly}
+                      availableNow={availableNow}
+                      onAvailableNowChange={setAvailableNow}
+                      onProOnlyChange={setProOnly}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                      categorySelector={
+                        <ServiceCategoryDropdown
+                          className="w-full sm:w-64"
+                          placeholder="Kategoria"
+                          clearTrigger={clearCategoryTrigger}
+                          onCategorySelect={(sel) => {
+                            setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+                            const slug = sel.subcategorySlug || sel.categorySlug;
+                            if (slug) {
+                              setSelectedServiceSlugs((prev) =>
+                                Array.from(new Set([...(prev || []), String(slug)]))
+                              );
+                            }
+                          }}
+                        />
+                      }
+                      showLeftInfo={false}
+                      hasActiveFilters={activeFilters.length > 0}
+                      onClearFilters={() => {
+                        setVerifiedOnly(false);
+                        setB2bOnly(false);
+                        setProOnly(false);
+                        setAvailableNow(false);
+                        setSelectedServices([]);
+                        setSelectedServiceSlugs([]);
+                        updateFilters({});
+                        setActiveFilters([]);
+                        setClearCategoryTrigger((prev) => prev + 1);
+                      }}
+                      rightExtra={
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedFilters(true)}
+                          className="whitespace-nowrap rounded-lg border border-slate-300/80 bg-white/70 px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/90 sm:px-3 sm:py-2 sm:text-sm"
+                        >
+                          <span className="sm:hidden">Filtry</span>
+                          <span className="hidden sm:inline">Wszystkie filtry</span>
+                        </button>
+                      }
+                      hideViewSwitcher
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-          {(!isMobileViewport || !mapFiltersCollapsed) && (
-            <div className="qs-home-map-shell-interactive max-h-[min(42vh,22rem)] shrink-0 overflow-y-auto border-b border-gray-200/30 bg-white/95 shadow-sm backdrop-blur-md sm:max-h-none sm:overflow-visible">
+          ) : (
+            <div className="qs-home-map-shell-interactive shrink-0 overflow-visible border-b border-slate-200/35 bg-white/78 backdrop-blur-md">
               <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
                 <ResultsToolbar
                   searchQuery={filters.search}

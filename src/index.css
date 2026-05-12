@@ -269,7 +269,7 @@ body.has-mobile-tab {
   }
 }
 
-/* Dolny pasek nawigacji: dociągnięcie do faktycznego dołu widoku (Visual Viewport) */
+/* Dolny inset layout↔visual (Safari). Używane m.in. przez padding body — nie nakładaj na sam tab bar (bottom:0). */
 .qs-fixed-bottom-visual {
   bottom: var(--qs-vv-bottom-offset, 0px);
 }
@@ -318,7 +318,8 @@ body.has-mobile-tab {
   position: fixed;
   left: 0;
   right: 0;
-  top: var(--app-nav-sticky-offset);
+  /* Navbar + sticky Breadcrumbs (czarny pasek) — panel filtrów zaczyna się od razu pod okruszkami */
+  top: calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height, 0px));
   bottom: env(safe-area-inset-bottom, 0px);
   z-index: 25;
   display: flex;
@@ -371,6 +372,8 @@ body.has-mobile-tab {
 :root {
   --qs-vv-bottom-offset: 0px;
   --app-nav-sticky-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+  /* Breadcrumbs: py-2 + jeden wiersz text-sm — zsynchronizowane z .qs-app-breadcrumb-tray */
+  --app-breadcrumb-bar-height: 2.75rem;
   /* /search: Navbar + dodatkowy Header ze strony */
   --search-page-sticky-bar-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 3rem);
   --qs-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);

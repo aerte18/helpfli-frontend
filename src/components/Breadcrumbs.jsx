@@ -42,12 +42,12 @@ export default function Breadcrumbs() {
   if (filteredCrumbs.length === 0) return null;
 
   return (
-    <nav 
-      className="px-4 py-2 text-sm text-white" 
+    <nav
+      className="qs-app-breadcrumb-tray sticky top-[var(--app-nav-sticky-offset)] z-[35] flex min-h-[var(--app-breadcrumb-bar-height)] flex-nowrap items-center overflow-x-auto px-4 py-2 text-sm text-white [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       aria-label="Breadcrumb"
-      style={{ backgroundColor: 'var(--foreground)' }}
+      style={{ backgroundColor: "var(--foreground)" }}
     >
-      <ol className="flex flex-wrap items-center gap-1">
+      <ol className="flex min-w-0 flex-nowrap items-center gap-1">
         <li>
           <Link to="/" className="text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white rounded">
             Start

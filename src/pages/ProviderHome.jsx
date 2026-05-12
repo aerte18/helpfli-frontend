@@ -1190,17 +1190,6 @@ export default function ProviderHome() {
     [userLocation]
   );
 
-  /**
-   * Tryb mapy na mobile: jeden rząd (Online/Offline + ikony) — niższy offset niż lista (2 rzędy).
-   */
-  const mapModeToolbarTopPx =
-    isMobileViewport && viewMode === "map"
-      ? (isMobileLandscape ? 102 : 124)
-      : isMobileViewport
-        ? 176
-        : 128;
-
-  // Layout helpers - używamy viewMode zamiast mapSize
   const mapHeightClass = viewMode === "list" ? "h-[320px]" : viewMode === "split" ? "h-[520px]" : "h-[100dvh]";
   const gridClass =
     viewMode === "map"
@@ -1790,7 +1779,10 @@ export default function ProviderHome() {
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
-        <div className="qs-provider-map-stack" style={{ top: `${mapModeToolbarTopPx}px` }}>
+        <div
+          className="qs-provider-map-stack"
+          style={{ top: "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height))" }}
+        >
           {isMobileViewport && (
             <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:hidden">
               <span className="truncate text-xs font-semibold text-slate-800">
