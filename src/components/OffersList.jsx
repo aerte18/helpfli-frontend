@@ -202,6 +202,17 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         try {
           const data = await getOffersOfOrder({ token, orderId });
           setOffers(data);
+          try {
+            const orderRes = await fetch(apiUrl(`/api/orders/${orderId}`), {
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+            if (orderRes.ok) setOrderData(await orderRes.json());
+          } catch {
+            /* ignore */
+          }
           setInfo("Oferta została zaakceptowana (live) ✅");
         } catch (e) {
           console.error("Błąd odświeżania po akceptacji:", e);
@@ -233,6 +244,12 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
       socket.off("provider:badgeUpdate", onBadgeUpdate);
     };
   }, [socket, orderId, token]);
+
+  const orderAlreadyAccepted =
+    orderData &&
+    (orderData.status === "accepted" ||
+      orderData.acceptedOfferId ||
+      ["funded", "paid", "in_progress", "completed", "released"].includes(String(orderData.status || "")));
 
   const view = useMemo(() => {
     let arr = [...offers];
@@ -310,8 +327,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
   }, [offers, sortBy, filterBadge, filterAI, topOfferIds, maxPrice, query, filterByTerm, orderData]);
 
   async function onAccept(offerId) {
-    // Znajdź ofertę i otwórz modal
-    const offer = offers.find(o => o._id === offerId);
+    if (orderAlreadyAccepted) return;
+    const offer = offers.find((o) => String(o._id || o.id) === String(offerId));
     if (offer) {
       setAcceptModal({ isOpen: true, offer, order: orderData });
     }
@@ -356,12 +373,23 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         throw new Error(message);
       }
 
-      setInfo("Oferta zaakceptowana ✅");
+      setInfo(acceptResult.alreadyAccepted ? "To zlecenie ma już zaakceptowaną ofertę — przechodzimy dalej." : "Oferta zaakceptowana ✅");
       setAcceptModal({ isOpen: false, offer: null });
       
       // Odśwież listę
       const updatedOffers = await getOffersOfOrder({ token, orderId });
       setOffers(updatedOffers);
+      try {
+        const orderRes = await fetch(apiUrl(`/api/orders/${orderId}`), {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (orderRes.ok) setOrderData(await orderRes.json());
+      } catch {
+        /* ignore */
+      }
 
       const pm =
         acceptResult.paymentMethod ||
@@ -796,7 +824,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                       Szczegóły
                     </button>
                     
-                    {user?.role === 'client' && (
+                    {user?.role === 'client' && !orderAlreadyAccepted && (
                       <button
                         className="rounded-lg px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
                         disabled={acceptingId === o._id}
@@ -804,6 +832,9 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                       >
                         {acceptingId === o._id ? "Akceptuję…" : "Akceptuj i zapłać"}
                       </button>
+                    )}
+                    {user?.role === 'client' && orderAlreadyAccepted && (
+                      <span className="text-xs text-slate-500 px-2">Oferta już wybrana</span>
                     )}
                   </div>
                 </div>
@@ -860,7 +891,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                     <div className="text-sm text-slate-600 truncate">{o.providerMeta?.name || o.providerId?.name || 'Wykonawca'}</div>
                     {(o.notes || o.message) && <div className="text-xs text-slate-500 mt-1 line-clamp-2">{o.notes || o.message}</div>}
                   </div>
-                  {user?.role === 'client' && (
+                  {user?.role === 'client' && !orderAlreadyAccepted && (
                     <button
                       className="shrink-0 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
                       disabled={acceptingId === o._id}

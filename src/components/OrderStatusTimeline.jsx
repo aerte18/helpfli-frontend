@@ -63,7 +63,7 @@ export default function OrderStatusTimeline({ orderId, className = '' }) {
           events.push({
             type: 'accepted',
             label: 'Oferta zaakceptowana',
-            date: order.updatedAt,
+            date: order.acceptedAt || order.updatedAt || order.createdAt,
             icon: CheckCircle2,
             color: 'orange'
           });
@@ -158,13 +158,19 @@ export default function OrderStatusTimeline({ orderId, className = '' }) {
               <div className="flex-1 pt-2">
                 <div className="font-medium text-gray-900">{event.label}</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  {new Date(event.date).toLocaleString('pl-PL', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  {(() => {
+                    const d = event.date != null ? new Date(event.date) : null;
+                    const ok = d && !Number.isNaN(d.getTime());
+                    return ok
+                      ? d.toLocaleString('pl-PL', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : '—';
+                  })()}
                 </div>
               </div>
             </div>

@@ -59,8 +59,13 @@ export default function AcceptOfferModal({
     : 0;
 
   const platformFee = Math.max(0, basePlatformFee - tierDiscountAmount);
+  const STRIPE_MIN_PLN = 2;
+  const commissionChargedPln =
+    paymentMethod === "external" && platformFee > 0
+      ? Math.max(platformFee, STRIPE_MIN_PLN)
+      : platformFee;
   const totalAmount = baseAmount + guaranteeFee + platformFee;
-  const payableNow = paymentMethod === 'external' ? platformFee : totalAmount;
+  const payableNow = paymentMethod === "external" ? commissionChargedPln : totalAmount;
 
   const handleAccept = () => {
     // Walidacja dla teleporad
@@ -81,6 +86,7 @@ export default function AcceptOfferModal({
         baseAmount,
         guaranteeFee,
         platformFee,
+        commissionChargedPln,
         payableNow,
         tierDiscountPercent,
         tierDiscountAmount
@@ -277,6 +283,11 @@ export default function AcceptOfferModal({
                 <span>{paymentMethod === 'external' ? 'Do zapłaty teraz (prowizja):' : 'Do zapłaty:'}</span>
                 <span>{payableNow} zł</span>
               </div>
+              {paymentMethod === 'external' && platformFee > 0 && commissionChargedPln > platformFee && (
+                <p className="text-xs text-slate-600 mt-2 leading-snug">
+                  Prowizja z oferty to {platformFee} zł, ale płatność online ma minimum 2 zł (wymaganie operatora płatności) — pobierzemy {commissionChargedPln} zł.
+                </p>
+              )}
             </div>
           </div>
 
