@@ -3,7 +3,15 @@ import { useState, useEffect } from 'react';
 import { useToast } from './toast/ToastProvider';
 import { getErrorMessage } from '../utils/errorMessages';
 
-export default function RatingModal({ open, onClose, providerId, orderId, onSubmitted }) {
+export default function RatingModal({
+  open,
+  onClose,
+  providerId,
+  orderId,
+  onSubmitted,
+  /** Tytuł modala, np. „Oceń klienta” gdy ocenia wykonawca */
+  heading = "Oceń wykonawcę",
+}) {
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
@@ -68,7 +76,7 @@ export default function RatingModal({ open, onClose, providerId, orderId, onSubm
         aria-label="Zamknij modal"
       />
       <div className="absolute inset-x-0 top-[15%] mx-auto max-w-md qs-card shadow-2xl p-8">
-        <h3 id="rating-modal-title" className="text-2xl font-bold text-[var(--qs-color-text)] mb-6">Oceń wykonawcę</h3>
+        <h3 id="rating-modal-title" className="text-2xl font-bold text-[var(--qs-color-text)] mb-6">{heading}</h3>
         <div className="flex items-center gap-2 mb-5">
           {[1,2,3,4,5].map(n => (
             <button

@@ -40,6 +40,19 @@ function isHelpfliProtectionToolsEnabled(order) {
   return !!(order && order.eligibleForGuarantee === true);
 }
 
+/** Trwa mediacja / spór (wymaga uwagi). */
+function disputeCaseIsOngoing(order) {
+  if (!order) return false;
+  if (order.disputeStatus === "resolved" || order.disputeStatus === "closed") return false;
+  if (order.status === "disputed") return true;
+  return ["reported", "refund_requested"].includes(order.disputeStatus);
+}
+
+/** Po zamknięciu ugodą — archiwum w centrum sprawy. */
+function disputeCaseHasResolvedArchive(order) {
+  return !!(order && order.disputeStatus === "resolved");
+}
+
 const authHeaders = () => {
   const token = localStorage.getItem("token");
   return {
@@ -77,10 +90,54 @@ const apiPatch = async (path, body) => {
   return data;
 };
 
+/** Oferta przypisanego wykonawcy (zespół firmy widzi pełną listę ofert z GET /api/orders/:id). */
+function pickCompanyTeamOfferAsMyOffer(orderRes) {
+  if (!orderRes?.offers?.length) return null;
+  const pid = orderRes.provider?._id ?? orderRes.provider;
+  const accepted = orderRes.acceptedOfferId?._id ?? orderRes.acceptedOfferId;
+  if (accepted) {
+    const byAccepted = orderRes.offers.find((o) => String(o._id || o.id) === String(accepted));
+    if (byAccepted) return byAccepted;
+  }
+  if (pid) {
+    return (
+      orderRes.offers.find(
+        (o) => String(o.providerId?._id ?? o.providerId) === String(pid)
+      ) || null
+    );
+  }
+  return null;
+}
+
+function isCompanyLeadUser(userLike) {
+  const u = userLike || {};
+  return (
+    u.role === "company_owner" ||
+    u.role === "company_manager" ||
+    u.roleInCompany === "owner" ||
+    u.roleInCompany === "manager"
+  );
+}
+
+async function resolveMyOfferForOrder({ token, orderId, orderRes, mePayload }) {
+  const team = orderRes?.viewerIsCompanyTeamForOrderProvider === true;
+  if (team && isCompanyLeadUser(mePayload)) {
+    return pickCompanyTeamOfferAsMyOffer(orderRes);
+  }
+  if ((mePayload?.role || "") === "provider") {
+    try {
+      return await getMyOffer({ token, orderId });
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function providerOrderMatch(order, user) {
   const aiMatch = order?.providerMatch || order?.aiFollowup?.providerMatch;
   if (aiMatch) return aiMatch;
-  if (!order || (user?.role !== 'provider' && user?.role !== 'company_owner')) return null;
+  if (!order || (user?.role !== 'provider' && user?.role !== 'company_owner' && user?.role !== 'company_manager')) return null;
   let score = 45;
   const reasons = [];
   if (order.aiBrief?.title) {
@@ -1978,9 +2035,8 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
   const { push: toast } = useToast();
   const navigate = useNavigate();
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
-  const hasActiveDisputeCase =
-    order.status === "disputed" ||
-    ["reported", "refund_requested"].includes(order.disputeStatus);
+  const disputeOngoing = disputeCaseIsOngoing(order);
+  const disputeArchive = disputeCaseHasResolvedArchive(order);
 
   const handleAddNote = async () => {
     if (!notes.trim()) return;
@@ -2283,7 +2339,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
               </p>
             </div>
 
-            {hasActiveDisputeCase && (
+            {disputeOngoing && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                 <h3 className="font-semibold text-orange-900 mb-2">Centrum sprawy</h3>
                 <p className="text-sm text-orange-800 mb-3">
@@ -2294,6 +2350,20 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                   className="flex w-full items-center justify-center rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
                 >
                   Otwórz centrum sprawy
+                </Link>
+              </div>
+            )}
+            {disputeArchive && !disputeOngoing && (
+              <div className="p-4 rounded-lg border border-slate-200 bg-slate-50">
+                <h3 className="font-semibold text-slate-900 mb-2">Sprawa zamknięta ugodą</h3>
+                <p className="text-sm text-slate-600 mb-3">
+                  Wątek i ustalenia nadal są dostępne w archiwum centrum sprawy.
+                </p>
+                <Link
+                  to={`/orders/${orderId}/sprawa`}
+                  className="flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                >
+                  Otwórz archiwum sprawy
                 </Link>
               </div>
             )}
@@ -3239,9 +3309,16 @@ export default function OrderDetails() {
           }
         }
 
-        if (meRes?.user?.role === "provider" || meRes?.role === "provider") {
-          // Dla demo zleceń - znajdź ofertę providera w order.offers
+        const mePayload = meRes?.user || meRes;
+        const isProvRole = mePayload?.role === "provider";
+        const teamFlag = orderRes?.viewerIsCompanyTeamForOrderProvider === true;
+        const lead = isCompanyLeadUser(mePayload);
+
+        if (isProvRole || (teamFlag && lead)) {
           if (orderRes?.__demo && orderRes?.offers && Array.isArray(orderRes.offers)) {
+            if (teamFlag && lead) {
+              setMyOffer(pickCompanyTeamOfferAsMyOffer(orderRes));
+            } else {
             const myId = meRes?.user?._id || meRes?.user?.id || meRes?._id || meRes?.id;
             // Dla demo zleceń - jeśli użytkownik ma rolę provider, znajdź pierwszą ofertę z providerId
             // lub sprawdź czy jego ID pasuje do któregoś providerId
@@ -3266,15 +3343,11 @@ export default function OrderDetails() {
             } else {
               setMyOffer(null);
             }
-          } else {
-            // Dla rzeczywistych zleceń - pobierz z API
-          try {
-            const token = localStorage.getItem("token");
-            const myOfferData = await getMyOffer({ token, orderId });
-            setMyOffer(myOfferData);
-          } catch {
-            setMyOffer(null);
             }
+          } else {
+            const token = localStorage.getItem("token");
+            const mo = await resolveMyOfferForOrder({ token, orderId, orderRes, mePayload });
+            setMyOffer(mo);
           }
         }
 
@@ -3362,11 +3435,19 @@ export default function OrderDetails() {
           if (!cancelled) setAiFollowup(null);
         }
 
-        // odśwież myOffer u providera, żeby progress był poprawny
-        const role = (me?.role || user?.role || "").toLowerCase();
-        if (role === "provider") {
+        // odśwież myOffer u providera / zespołu firmy, żeby progress był poprawny
+        const mePayload = me || user;
+        const role = (mePayload?.role || "").toLowerCase();
+        const team = fresh?.viewerIsCompanyTeamForOrderProvider === true;
+        const lead = isCompanyLeadUser(mePayload);
+        if (role === "provider" || (team && lead)) {
           try {
-            const myOfferData = await getMyOffer({ token, orderId });
+            const myOfferData = await resolveMyOfferForOrder({
+              token,
+              orderId,
+              orderRes: fresh,
+              mePayload,
+            });
             if (!cancelled) setMyOffer(myOfferData || null);
           } catch {
             if (!cancelled) setMyOffer(null);
@@ -3401,7 +3482,7 @@ export default function OrderDetails() {
       socket.off("offer:accepted", onAccepted);
       socket.off("order:status_changed", onStatusChanged);
     };
-  }, [orderId, order?._id, order?.__demo, me?.role, user?.role]);
+  }, [orderId, order?._id, order?.__demo, me?.role, me?.roleInCompany, user?.role, user?.roleInCompany, order?.viewerIsCompanyTeamForOrderProvider]);
 
   // Pobierz oferty + konwersacje i ustaw aktywną konwersację dla czatu
   useEffect(() => {
@@ -3560,7 +3641,14 @@ export default function OrderDetails() {
       const t = localStorage.getItem("token");
       if (t) {
         try {
-          setMyOffer(await getMyOffer({ token: t, orderId }));
+          const mePayload = me || user;
+          const mo = await resolveMyOfferForOrder({
+            token: t,
+            orderId,
+            orderRes: fresh,
+            mePayload,
+          });
+          setMyOffer(mo);
         } catch {
           /* ignore */
         }
@@ -3713,9 +3801,9 @@ export default function OrderDetails() {
       
       // Jeśli zlecenie zostało zakończone i to klient - otwórz modal oceny
       if (isClient && fresh.status === 'released') {
-        // Sprawdź czy już nie ma oceny
-        const hasRating = fresh.ratings?.some(r => 
-          (typeof r.client === 'string' ? r.client : r.client?._id) === me?.id
+        const myId = me?._id || me?.id;
+        const hasRating = fresh.ratings?.some(
+          (r) => String(r.from?._id ?? r.from) === String(myId)
         );
         if (!hasRating) {
           setTimeout(() => {
@@ -3779,15 +3867,24 @@ export default function OrderDetails() {
       await apiPost(`/api/orders/${orderId}/start`, {});
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
-      // Odśwież również myOffer jeśli istnieje
-      if (fresh.offers && Array.isArray(fresh.offers)) {
-        const myId = me?._id || me?.id;
-        const myOfferData = fresh.offers.find(o => {
-          const offerProviderId = o.providerId || o.provider?._id || o.provider;
-          return offerProviderId && String(offerProviderId) === String(myId);
+      const token = localStorage.getItem("token");
+      if (token) {
+        const mePayload = me || user;
+        const mo = await resolveMyOfferForOrder({
+          token,
+          orderId,
+          orderRes: fresh,
+          mePayload,
         });
-        if (myOfferData) {
-          setMyOffer(myOfferData);
+        if (mo) {
+          setMyOffer(mo);
+        } else if (fresh.offers && Array.isArray(fresh.offers)) {
+          const myId = (me || user)?._id || (me || user)?.id;
+          const myOfferData = fresh.offers.find((o) => {
+            const offerProviderId = o.providerId || o.provider?._id || o.provider;
+            return offerProviderId && String(offerProviderId) === String(myId);
+          });
+          if (myOfferData) setMyOffer(myOfferData);
         }
       }
     } catch (e) {
@@ -3833,9 +3930,9 @@ export default function OrderDetails() {
       
       // Jeśli to klient i zlecenie zostało zakończone - otwórz modal oceny
       if (isClient && fresh.status === 'completed') {
-        // Sprawdź czy już nie ma oceny
-        const hasRating = fresh.ratings?.some(r => 
-          (typeof r.client === 'string' ? r.client : r.client?._id) === me?.id
+        const myId = me?._id || me?.id;
+        const hasRating = fresh.ratings?.some(
+          (r) => String(r.from?._id ?? r.from) === String(myId)
         );
         if (!hasRating) {
           setTimeout(() => {
@@ -4052,8 +4149,16 @@ export default function OrderDetails() {
       ? order.client
       : (order.client?._id || order.client?.id || null);
 
-  // Jeśli użytkownik ma rolę 'provider', zawsze widzi widok providera
-  const isProvider = currentUser?.role === "provider";
+  // Jeśli użytkownik ma rolę 'provider' LUB jest ownerem/menedżerem firmy przy zleceniu pracownika — widok wykonawcy
+  const isCompanyLead =
+    currentUser?.role === "company_owner" ||
+    currentUser?.role === "company_manager" ||
+    currentUser?.roleInCompany === "owner" ||
+    currentUser?.roleInCompany === "manager";
+  const viewerIsCompanyTeamForOrderProvider = Boolean(order?.viewerIsCompanyTeamForOrderProvider);
+  const isProvider =
+    currentUser?.role === "provider" ||
+    (viewerIsCompanyTeamForOrderProvider && isCompanyLead);
 
   // Klient: rola 'client' lub (fallback) userId == order.clientId
   const isClient =
@@ -4066,7 +4171,9 @@ export default function OrderDetails() {
   const hasAiPilot = Boolean(aiFollowup?.tip || aiFollowup?.title || aiFollowup?.seedQuery);
   const showStageAiHint = !hasAiPilot;
   const isClientCollectingOffers = isClient && tab === "details" && order.status === "collecting_offers";
-  const userIsProvider = me?.role === "provider";
+  const userIsProvider =
+    currentUser?.role === "provider" ||
+    (Boolean(order?.viewerIsCompanyTeamForOrderProvider) && isCompanyLead);
   const canOffer = !myOffer && (!order || order.status === "open" || order.status === "collecting_offers");
   const mobileTabs = ["chat", "details"];
   if (userIsProvider && canOffer) mobileTabs.push("offers");
@@ -4136,18 +4243,23 @@ export default function OrderDetails() {
   // Sprawdź czy provider jest przypisany do zlecenia LUB złożył ofertę (dla innych logik, np. uprawnień)
   const isAssignedProvider = (() => {
     if (!isProvider) return false;
-    
-    // Sprawdź czy jest przypisany jako provider zlecenia
-    const orderProviderId = typeof order.provider === "string" ? order.provider : order.provider?._id;
-    if (orderProviderId && me?.id === orderProviderId) return true;
-    
+
+    const orderProviderId =
+      typeof order.provider === "string" ? order.provider : order.provider?._id;
+    if (viewerIsCompanyTeamForOrderProvider && isCompanyLead && orderProviderId) {
+      return true;
+    }
+
+    const myUid = currentUser?._id || currentUser?.id;
+    if (orderProviderId && String(myUid) === String(orderProviderId)) return true;
+
     // Sprawdź czy ma ofertę na to zlecenie (dla demo i rzeczywistych zleceń)
     if (myOffer !== null && myOffer !== undefined) return true;
-    
+
     // Dla demo zleceń - jeśli użytkownik ma rolę provider i jest to demo zlecenie z ofertami,
     // sprawdź czy ma ofertę w order.offers
     if (order.__demo && order.offers && Array.isArray(order.offers) && order.offers.length > 0) {
-      const myId = me?._id || me?.id;
+      const myId = currentUser?._id || currentUser?.id;
       // Jeśli nie ma jeszcze przypisanego providera, a są oferty, sprawdź czy któraś pasuje
       if (!orderProviderId) {
         const hasOffer = order.offers.some(o => {
@@ -4175,9 +4287,8 @@ export default function OrderDetails() {
 
   const orderTitle = order?.service ? `Zlecenie: ${serviceLabel(order.service)} | Helpfli` : `Zlecenie #${order?._id?.slice(-6) || orderId} | Helpfli`;
 
-  const hasActiveDisputeCase =
-    order.status === "disputed" ||
-    ["reported", "refund_requested"].includes(order.disputeStatus);
+  const disputeOngoing = disputeCaseIsOngoing(order);
+  const disputeArchive = disputeCaseHasResolvedArchive(order);
 
   return (
     <div className="min-h-screen bg-[var(--qs-color-bg-soft)] py-4 md:py-6">
@@ -4262,7 +4373,7 @@ export default function OrderDetails() {
         </div>
       </div>
 
-      {hasActiveDisputeCase && (
+      {disputeOngoing && (
         <div className="w-full border-b border-orange-200 bg-orange-50">
           <div className="mx-auto max-w-6xl px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-start gap-2 min-w-0">
@@ -4277,6 +4388,25 @@ export default function OrderDetails() {
               className="shrink-0 inline-flex items-center justify-center rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
             >
               Otwórz centrum sprawy
+            </Link>
+          </div>
+        </div>
+      )}
+      {disputeArchive && !disputeOngoing && (
+        <div className="w-full border-b border-slate-200 bg-slate-50">
+          <div className="mx-auto max-w-6xl px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" aria-hidden />
+              <div className="text-sm text-slate-800">
+                <span className="font-semibold">Sprawa zamknięta ugodą.</span>{" "}
+                Wątek i rozliczenie znajdziesz w archiwum centrum sprawy.
+              </div>
+            </div>
+            <Link
+              to={`/orders/${orderId}/sprawa`}
+              className="shrink-0 inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+            >
+              Archiwum sprawy
             </Link>
           </div>
         </div>
@@ -4624,7 +4754,7 @@ export default function OrderDetails() {
           )}
 
           {/* TAB: OFERTY (tylko dla providera) */}
-          {tab === "offers" && (me?.role === 'provider' || user?.role === 'provider') && orderId && (
+          {tab === "offers" && isProvider && orderId && (
             <div className="space-y-6">
               {/* Sprawdź czy zlecenie jest jeszcze załadowane */}
               {!order && (
@@ -4674,13 +4804,15 @@ export default function OrderDetails() {
                           const fresh = await apiGet(`/api/orders/${orderId}`);
                           setOrder(fresh);
                           if (token) {
-                            try {
-                              const myOfferData = await getMyOffer({
-                                token,
-                                orderId,
-                              });
-                              setMyOffer(myOfferData);
-                            } catch {
+                            const mePayload = me || user;
+                            const myOfferData = await resolveMyOfferForOrder({
+                              token,
+                              orderId,
+                              orderRes: fresh,
+                              mePayload,
+                            });
+                            setMyOffer(myOfferData);
+                            if (!myOfferData) {
                               const pid = String(
                                 me?._id ||
                                   me?.id ||
@@ -4861,7 +4993,8 @@ export default function OrderDetails() {
 
                     <div className="rounded-xl border border-slate-200 bg-white p-2 md:p-3">
                       {!order.__demo &&
-                        me?.role === "provider" &&
+                        isProvider &&
+                        !viewerIsCompanyTeamForOrderProvider &&
                         ["open", "collecting_offers"].includes(order.status) &&
                         !myOffer && (
                           <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -5439,7 +5572,7 @@ export default function OrderDetails() {
                   </div>
                 )}
 
-                {["done", "completed", "closed"].includes(order.status) && (
+                {["done", "completed", "closed", "released", "rated"].includes(order.status) && (
                   <div className="mt-4">
                     <button
                       onClick={() => setOpenRate(true)}
@@ -5452,7 +5585,9 @@ export default function OrderDetails() {
 
                 {isProvider && (
                   <div className="mt-4">
-                    {me?.role === "provider" && me?.kyc?.status !== "verified" ? (
+                    {currentUser?.role === "provider" &&
+                    !viewerIsCompanyTeamForOrderProvider &&
+                    me?.kyc?.status !== "verified" ? (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
                         <div className="flex items-start gap-3">
                           <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5" />
@@ -5520,6 +5655,7 @@ export default function OrderDetails() {
           <RatingModal
             open={openRate}
             onClose={() => setOpenRate(false)}
+            heading={isProvider ? "Oceń klienta" : "Oceń wykonawcę"}
             orderId={order?._id}
             providerId={
               isProvider
@@ -5530,7 +5666,26 @@ export default function OrderDetails() {
                 ? order.provider
                 : order.provider?._id
             }
-            onSubmitted={() => setOpenRate(false)}
+            onSubmitted={async () => {
+              setOpenRate(false);
+              try {
+                const fresh = await apiGet(`/api/orders/${orderId}`);
+                setOrder(fresh);
+                const token = localStorage.getItem("token");
+                if (token) {
+                  const mePayload = me || user;
+                  const mo = await resolveMyOfferForOrder({
+                    token,
+                    orderId,
+                    orderRes: fresh,
+                    mePayload,
+                  });
+                  setMyOffer(mo);
+                }
+              } catch (_e) {
+                /* modal już zamknięty */
+              }
+            }}
           />
         </div>
       </div>
@@ -5574,10 +5729,16 @@ export default function OrderDetails() {
                     ...(editOfferForm.paymentMethod && ['system', 'external'].includes(editOfferForm.paymentMethod) ? { paymentMethod: editOfferForm.paymentMethod } : {})
                   }
                 });
-                const freshOffer = await getMyOffer({ token, orderId });
-                setMyOffer(freshOffer);
                 const fresh = await apiGet(`/api/orders/${orderId}`);
                 setOrder(fresh);
+                const mePayload = me || user;
+                const freshOffer = await resolveMyOfferForOrder({
+                  token,
+                  orderId,
+                  orderRes: fresh,
+                  mePayload,
+                });
+                setMyOffer(freshOffer);
                 setShowEditOfferModal(false);
                 toast({ title: "Oferta zaktualizowana", variant: "success" });
               } catch (err) {
