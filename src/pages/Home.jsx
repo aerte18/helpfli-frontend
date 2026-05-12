@@ -363,6 +363,15 @@ export default function Home() {
     };
   }, [isMobileViewport, viewMode, showAdvancedFilters, mapMobileImmersive]);
 
+  /** Bez min-h-screen w trybie mapy — inaczej dokument > viewport i sticky nav „pływa” przy overscroll. */
+  useEffect(() => {
+    if (viewMode !== "map" || !isMobileViewport) return undefined;
+    document.documentElement.classList.add("qs-map-route-scroll-lock");
+    return () => {
+      document.documentElement.classList.remove("qs-map-route-scroll-lock");
+    };
+  }, [viewMode, isMobileViewport]);
+
   useEffect(() => {
     if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
   }, [mapMobileImmersive]);
@@ -649,7 +658,13 @@ export default function Home() {
   }, [navigate]);
 
   return (
-    <div className={`min-h-screen ${viewMode === "map" ? "overflow-hidden" : "bg-slate-50"}`}>
+    <div
+      className={
+        viewMode === "map"
+          ? "relative min-h-0 overflow-hidden bg-slate-50"
+          : "min-h-screen bg-slate-50"
+      }
+    >
       <Helmet>
         <title>Szukaj wykonawców | Quicksy</title>
         <meta name="description" content="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą." />
@@ -996,34 +1011,41 @@ export default function Home() {
                 }}
               />
             </div>
-            {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMapMobileImmersive((v) => {
-                    const next = !v;
-                    if (next) setMapFiltersCollapsed(true);
-                    return next;
-                  });
-                }}
-                className="pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
-                style={{
-                  top: "max(0.5rem, env(safe-area-inset-top, 0px))",
-                  right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-                }}
-                aria-pressed={mapMobileImmersive}
-                aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
-                title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
-              >
-                {mapMobileImmersive ? (
-                  <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
-                ) : (
-                  <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
-                )}
-              </button>
-            )}
           </div>
         </div>
+        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
+          <button
+            type="button"
+            data-qs-map-immersive-toggle
+            onClick={() => {
+              setMapMobileImmersive((v) => {
+                const next = !v;
+                if (next) setMapFiltersCollapsed(true);
+                return next;
+              });
+            }}
+            className="pointer-events-auto fixed z-[1200] flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            style={{
+              right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+              bottom: mapMobileImmersive
+                ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
+                : !user
+                  ? "max(env(safe-area-inset-bottom, 0px), 0.75rem)"
+                  : compare.items.length
+                    ? "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 5.5rem)"
+                    : "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 0.75rem)",
+            }}
+            aria-pressed={mapMobileImmersive}
+            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
+            title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
+          >
+            {mapMobileImmersive ? (
+              <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
+            ) : (
+              <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
+            )}
+          </button>
+        )}
         {!isMobileViewport && (
         <div
           className="pointer-events-auto flex fixed right-3 z-[100] items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/80 p-1.5"

@@ -313,13 +313,23 @@ body.has-mobile-tab {
   }
 }
 
-/* Mapa mobile — tryb immersyjny: pełny ekran (max-lg ≈ ProviderHome isMobileViewport; Home ma przycisk tylko <sm) */
+/* Blokada przewijania całej strony w widoku mapy (Home / Provider) — bez „pustego” tła pod sticky nav */
+html.qs-map-route-scroll-lock,
+html.qs-map-route-scroll-lock body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100%;
+  height: 100dvh;
+}
+
+/* Mapa mobile — tryb immersyjny: pełny ekran */
 @media (max-width: 1023px) {
   body.qs-map-immersive header.qs-app-navbar,
   body.qs-map-immersive nav.qs-app-breadcrumb-tray,
   body.qs-map-immersive nav[data-qs-mobile-app-tab-bar],
   body.qs-map-immersive [data-qs-home-mobile-dock],
   body.qs-map-immersive [data-qs-provider-mobile-dock],
+  body.qs-map-immersive [data-qs-provider-map-status-strip],
   body.qs-map-immersive [data-qs-compare-bar],
   body.qs-map-immersive button[data-testid="ai-fab"],
   body.qs-map-immersive button[data-testid="provider-ai-fab"] {
@@ -382,7 +392,8 @@ body.has-mobile-tab {
   left: 0;
   right: 0;
   bottom: env(safe-area-inset-bottom, 0px);
-  z-index: 20;
+  /* Jak Home map shell — nad typową treścią, pod modałami / FAB */
+  z-index: 25;
   display: flex;
   flex-direction: column;
   min-height: 0;

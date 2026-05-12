@@ -611,6 +611,14 @@ export default function ProviderHome() {
   }, [isMobileViewport, viewMode, showAdvancedFilters, mapMobileImmersive]);
 
   useEffect(() => {
+    if (viewMode !== "map" || !isMobileViewport) return undefined;
+    document.documentElement.classList.add("qs-map-route-scroll-lock");
+    return () => {
+      document.documentElement.classList.remove("qs-map-route-scroll-lock");
+    };
+  }, [viewMode, isMobileViewport]);
+
+  useEffect(() => {
     if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
   }, [mapMobileImmersive]);
 
@@ -1342,7 +1350,13 @@ export default function ProviderHome() {
   }, [aiInsightsExpanded]);
 
   return (
-    <div className={`${viewMode === "map" ? "min-h-screen overflow-hidden bg-white" : "min-h-screen bg-[var(--qs-color-bg-soft)]"}`}>
+    <div
+      className={
+        viewMode === "map"
+          ? "relative min-h-0 overflow-hidden bg-white"
+          : "min-h-screen bg-[var(--qs-color-bg-soft)]"
+      }
+    >
       {/* Onboarding – pierwszy raz (3 kroki) */}
       {!onboardingDismissed && viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -1616,7 +1630,10 @@ export default function ProviderHome() {
       )}
 
       {/* Pasek statusu wykonawcy */}
-      <div className={`${viewMode === "map" ? "fixed" : "sticky"} ${viewMode === "map" ? "top-16" : "top-0"} left-0 right-0 z-[42] ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}>
+      <div
+        data-qs-provider-map-status-strip
+        className={`left-0 right-0 z-[42] ${viewMode === "map" ? "fixed top-[calc(var(--app-nav-sticky-offset)+var(--app-breadcrumb-bar-height))]" : "sticky top-0"} ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}
+      >
         <div
           className={`max-w-7xl mx-auto px-3 sm:px-4 ${
             isMobileViewport
@@ -1814,12 +1831,17 @@ export default function ProviderHome() {
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
+        <>
         <div
           className="qs-provider-map-stack"
-          style={{ top: "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height))" }}
+          style={{
+            top: isMobileViewport
+              ? "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 3.75rem)"
+              : "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 5.25rem)",
+          }}
         >
           {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md">
+            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-white/30 bg-slate-100/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
               <span className="truncate text-xs font-semibold text-slate-800">
                 {mapFiltersCollapsed ? "Mapa — rozwiń filtry" : "Filtry nad mapą"}
               </span>
@@ -1937,34 +1959,38 @@ export default function ProviderHome() {
                 <div className="flex h-full items-center justify-center text-slate-500">Brak danych mapy</div>
               )}
             </div>
-            {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMapMobileImmersive((v) => {
-                    const next = !v;
-                    if (next) setMapFiltersCollapsed(true);
-                    return next;
-                  });
-                }}
-                className="pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
-                style={{
-                  top: "max(0.5rem, env(safe-area-inset-top, 0px))",
-                  right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-                }}
-                aria-pressed={mapMobileImmersive}
-                aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
-                title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
-              >
-                {mapMobileImmersive ? (
-                  <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
-                ) : (
-                  <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
-                )}
-              </button>
-            )}
           </div>
         </div>
+        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
+          <button
+            type="button"
+            data-qs-map-immersive-toggle
+            onClick={() => {
+              setMapMobileImmersive((v) => {
+                const next = !v;
+                if (next) setMapFiltersCollapsed(true);
+                return next;
+              });
+            }}
+            className="pointer-events-auto fixed z-[1200] flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            style={{
+              right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+              bottom: mapMobileImmersive
+                ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
+                : "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 0.75rem)",
+            }}
+            aria-pressed={mapMobileImmersive}
+            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
+            title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
+          >
+            {mapMobileImmersive ? (
+              <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
+            ) : (
+              <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
+            )}
+          </button>
+        )}
+        </>
       ) : (
         // Tryb lista/podział - sticky toolbar (kompaktowy); przy przewijaniu – przezroczysty
         <div
