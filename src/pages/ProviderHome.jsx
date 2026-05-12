@@ -1819,7 +1819,7 @@ export default function ProviderHome() {
           style={{ top: "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height))" }}
         >
           {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md sm:hidden">
+            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur-md">
               <span className="truncate text-xs font-semibold text-slate-800">
                 {mapFiltersCollapsed ? "Mapa — rozwiń filtry" : "Filtry nad mapą"}
               </span>
@@ -1947,7 +1947,7 @@ export default function ProviderHome() {
                     return next;
                   });
                 }}
-                className="sm:hidden pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
+                className="pointer-events-auto absolute z-[200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white/95 shadow-md backdrop-blur-sm qs-tap-target"
                 style={{
                   top: "max(0.5rem, env(safe-area-inset-top, 0px))",
                   right: "max(0.75rem, env(safe-area-inset-right, 0px))",

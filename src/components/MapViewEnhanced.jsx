@@ -207,8 +207,11 @@ export default function MapViewEnhanced({
             background: white;
             border: 1px solid rgba(0,0,0,0.1);
           }
-          .map-view-enhanced .leaflet-control-zoom {
-            margin-top: 80px !important;
+          .map-view-enhanced.h-full .leaflet-control-zoom {
+            margin-top: 10px !important;
+          }
+          .map-view-enhanced:not(.h-full) .leaflet-control-zoom {
+            margin-top: 48px !important;
           }
         `}
       </style>
