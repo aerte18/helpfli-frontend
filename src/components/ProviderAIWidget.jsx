@@ -224,7 +224,7 @@ export default function ProviderAIWidget() {
 
   return (
     <>
-      {/* Floating Button */}
+      {!open && (
       <motion.button
         onClick={() => setOpen(true)}
         whileTap={{ scale: 0.95 }}
@@ -292,6 +292,7 @@ export default function ProviderAIWidget() {
           </AnimatePresence>
         </div>
       </motion.button>
+      )}
 
       {/* Modal */}
       <AnimatePresence>
@@ -301,17 +302,17 @@ export default function ProviderAIWidget() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60]"
               onClick={() => setOpen(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[60] flex items-stretch justify-center p-0 md:items-center md:justify-center md:p-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col overflow-hidden">
+              <div className="bg-white shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:rounded-none md:h-[600px] md:rounded-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-purple-50 to-pink-50">
                   <div className="flex items-center gap-3">

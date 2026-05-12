@@ -659,17 +659,17 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
   };
 
   // Style w zależności od trybu
-  const containerClass = mode === 'modal' 
-    ? "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
+  const containerClass = mode === 'modal'
+    ? 'fixed inset-0 z-[60] flex min-h-0 w-full flex-col overflow-hidden md:items-center md:justify-center md:p-4'
     : mode === 'inline'
-    ? "w-full"
-    : "min-h-screen bg-gray-50";
+    ? 'w-full'
+    : 'min-h-screen bg-gray-50';
 
   const cardClass = mode === 'modal'
-    ? "w-full max-w-[560px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col h-[72dvh] max-h-[640px] relative z-50"
+    ? 'relative z-[61] flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl md:h-[min(72dvh,640px)] md:max-h-[640px] md:max-w-[560px] md:rounded-2xl md:border md:border-gray-200'
     : mode === 'inline'
-    ? "w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[600px] relative z-50"
-    : "bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)] relative z-50";
+    ? 'w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[600px] relative z-50'
+    : 'bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)] relative z-50';
 
   const wrapperClass = mode === 'page'
     ? "container mx-auto py-8 max-w-4xl"
@@ -697,14 +697,14 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
   const content = (
     <div className={cardClass} style={{ pointerEvents: 'auto' }}>
       {/* Header - profesjonalny */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between md:px-6 md:py-4">
+        <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+          <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center">
+            <Sparkles className="w-[18px] h-[18px] md:w-5 md:h-5 text-white" />
           </div>
-          <div>
-            <div className="font-semibold text-white text-lg">Asystent AI</div>
-            <div className="text-xs text-white/80">{companyId ? 'Asystent dla firmy' : 'Asystent Helpfli'}</div>
+          <div className="min-w-0">
+            <div className="font-semibold text-white text-base md:text-lg truncate">Asystent AI</div>
+            <div className="text-[11px] md:text-xs text-white/80 truncate">{companyId ? 'Asystent dla firmy' : 'Asystent Helpfli'}</div>
           </div>
         </div>
                  <button
@@ -727,11 +727,11 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
 
       {/* Messages area */}
       <div 
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50 min-h-0"
+        className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-gray-50 min-h-0 md:px-6 md:py-4 md:space-y-4"
         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,0,0,.02) 20px, rgba(0,0,0,.02) 21px)' }}
       >
         {isInitializing ? (
-          <div className="flex items-center justify-center h-full min-h-[220px] sm:min-h-[400px]">
+          <div className="flex items-center justify-center h-full min-h-[180px] sm:min-h-[220px] md:min-h-[400px]">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center animate-pulse">
                 <Sparkles className="w-8 h-8 text-indigo-600" />
@@ -740,7 +740,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
             </div>
           </div>
         ) : msgs.length === 0 ? (
-          <div className="flex items-center justify-center h-full min-h-[220px] sm:min-h-[400px]">
+          <div className="flex items-center justify-center h-full min-h-[180px] sm:min-h-[220px] md:min-h-[400px]">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                 <Sparkles className="w-8 h-8 text-indigo-600" />
@@ -752,25 +752,25 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
         ) : (
           <>
             {showStartSuggestions && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-4">
-                  <div className="text-2xl font-semibold leading-tight text-slate-900">
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
+                <div className="mb-3 md:mb-4">
+                  <div className="text-lg font-semibold leading-tight text-slate-900 md:text-2xl">
                     <span className="text-orange-600">{startTitle}</span>
                     <br />
                     jak mogę Ci pomóc?
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-slate-800">
+                  <p className="mt-2 text-sm font-semibold text-slate-800 md:mt-3 md:text-sm">
                     {startSubtitle}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
                   {activeStartPrompts.map((prompt) => (
                     <button
                       key={prompt.label}
                       type="button"
                       onClick={() => handleStartPrompt(prompt)}
                       disabled={busy}
-                      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors md:px-3 md:text-sm ${
                         prompt.tone === 'pro'
                           ? 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100'
                           : prompt.tone === 'urgent'
@@ -1680,7 +1680,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
 
       {/* Przesłane pliki - podgląd */}
       {attachedFiles.length > 0 && (
-        <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+        <div className="px-3 py-2.5 border-t border-gray-200 bg-gray-50 md:px-6 md:py-3">
           <div className="flex flex-wrap gap-2">
             {attachedFiles.map((file, idx) => (
               <div key={idx} className="relative group">
@@ -1707,8 +1707,8 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
       )}
 
       {/* Input area - profesjonalny */}
-      <div className="p-4 border-t border-gray-200 bg-white space-y-3">
-        <div className="flex items-end gap-2">
+      <div className="border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 space-y-2.5 md:p-4 md:pb-4 md:pt-4 md:space-y-3">
+        <div className="flex items-end gap-1.5 md:gap-2">
           <button
             onClick={() => setShowLiveCamera(true)}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
@@ -1748,7 +1748,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                 ? "Np. zapytaj o zespół, obciążenie lub faktury…"
                 : "Krótko opisz problem lub dodaj zdjęcie/film…"
             }
-            className="flex-1 border border-gray-300 rounded-2xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none max-h-40 text-sm"
+            className="flex-1 border border-gray-300 rounded-2xl px-3 py-2.5 pr-10 text-base leading-snug focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none max-h-36 md:max-h-40 md:px-4 md:text-sm"
             rows={2}
             style={{ minHeight: '48px' }}
           />
@@ -1788,18 +1788,25 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
   return (
     <div className={containerClass}>
       {mode === 'modal' && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40" 
+        <div
+          className="absolute inset-0 z-0 bg-black/55"
           onClick={handleBackdropClick}
+          aria-hidden
         />
       )}
-      
+
       {wrapperClass ? (
         <div className={wrapperClass}>
           {content}
         </div>
       ) : (
-        <div className="relative z-50">
+        <div
+          className={
+            mode === 'modal'
+              ? 'relative z-10 flex min-h-0 w-full flex-1 flex-col md:h-auto md:min-h-0 md:flex-none md:items-center md:justify-center'
+              : 'relative z-50'
+          }
+        >
           {content}
         </div>
       )}
