@@ -41,10 +41,21 @@ export default function RatingModal({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
-        body: JSON.stringify({ ratedUser: providerId, rating: stars, comment, orderId }),
+        body: JSON.stringify({
+          ratedUser: providerId != null ? String(providerId) : undefined,
+          rating: Number(stars),
+          comment: comment?.trim() ? comment.trim() : undefined,
+          orderId: orderId != null ? String(orderId) : undefined,
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Błąd zapisu oceny');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        let msg = data?.message || 'Błąd zapisu oceny';
+        if (data?.orderStatus) {
+          msg = `${msg} (status zlecenia: ${data.orderStatus})`;
+        }
+        throw new Error(msg);
+      }
       onSubmitted?.(data);
       toast({
         title: "Ocena dodana",
