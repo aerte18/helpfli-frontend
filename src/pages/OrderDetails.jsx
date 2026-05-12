@@ -602,6 +602,45 @@ function NextStepBanner({ order, isClient, isProvider, isAssignedProvider = fals
   );
 }
 
+function normalizeOfferSuccessPercent(raw) {
+  if (raw == null || raw === "") return null;
+  let n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (n > 0 && n <= 1) n *= 100;
+  return Math.min(100, Math.max(0, n));
+}
+
+function dedupeTipStrings(arr) {
+  return [...new Set((arr || []).filter((s) => typeof s === "string" && s.trim()))].map((s) => s.trim());
+}
+
+/** Ujednolicenie pól predykcji (stare API: factors.positive; nowe: positiveFactors). */
+function mergeOrderPredictionForUi(pred) {
+  if (!pred || typeof pred !== "object") return null;
+  const positiveFactors =
+    Array.isArray(pred.positiveFactors) && pred.positiveFactors.length > 0
+      ? pred.positiveFactors
+      : Array.isArray(pred.factors?.positive)
+        ? pred.factors.positive
+        : [];
+  const negativeFactors =
+    Array.isArray(pred.negativeFactors) && pred.negativeFactors.length > 0
+      ? pred.negativeFactors
+      : Array.isArray(pred.factors?.negative)
+        ? pred.factors.negative
+        : [];
+  const actionableTips = dedupeTipStrings([
+    ...(Array.isArray(pred.actionableTips) ? pred.actionableTips : []),
+    ...(Array.isArray(pred.recommendations) ? pred.recommendations : []),
+  ]);
+  return {
+    ...pred,
+    positiveFactors,
+    negativeFactors,
+    actionableTips,
+  };
+}
+
 // Komponenty widoków etapowych
 function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, onEditOffer, onEditOrder, isClient, isProvider, myOffer, showOrderInfo = true, showMyOfferCard = true, showAiHint = true }) {
   const [aiRecommendation, setAiRecommendation] = useState(null);
@@ -1254,44 +1293,91 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                             </div>
                           )}
 
-                          {providerOfferAnalysis.prediction && (
-                            <div className="p-3 bg-white rounded-lg border border-indigo-100 space-y-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-indigo-600">📋</span>
-                                <span className="font-medium text-indigo-900">Wskazówki z analizy</span>
-                              </div>
-                              {providerOfferAnalysis.prediction.positiveFactors && providerOfferAnalysis.prediction.positiveFactors.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-emerald-700 mb-1">Mocne strony</p>
-                                  <ul className="text-xs text-slate-600 space-y-1">
-                                    {providerOfferAnalysis.prediction.positiveFactors.slice(0, 5).map((factor, idx) => (
-                                      <li key={idx}>• {factor}</li>
-                                    ))}
-                                  </ul>
+                          {providerOfferAnalysis.prediction && (() => {
+                            const pred = mergeOrderPredictionForUi(providerOfferAnalysis.prediction);
+                            if (!pred) return null;
+                            const pricingAdv = providerOfferAnalysis.pricing?.advice;
+                            const fromPricing = [];
+                            if (pricingAdv) {
+                              const p = pricingAdv.position;
+                              if (p === "high" || p === "above_max") {
+                                fromPricing.push(
+                                  "Przy analizie ceny: kwota jest wysoko — rozważ realnie niższą stawkę albo dopisz w wiadomości, za co klient dopłaca (np. oryginalne części, gwarancja, pilniejszy termin)."
+                                );
+                              }
+                              if (p === "low" || p === "below_min") {
+                                fromPricing.push(
+                                  "Cena jest nisko względem typowych widełek — w opisie ujmij jakość i zakres, żeby klient nie uznał oferty za „podejrzaną w dół”."
+                                );
+                              }
+                              if (p === "optimal" || p === "fair") {
+                                fromPricing.push(
+                                  "Cena wygląda na sensowną względem widełek — postaw na klarowny termin, zakres prac i szybką odpowiedź w czacie."
+                                );
+                              }
+                              if (pricingAdv.suggestedAmount != null && `${pricingAdv.suggestedAmount}`.trim() !== "") {
+                                fromPricing.push(
+                                  `Połącz to z sekcją „Analiza ceny” powyżej — jest tam sugerowana kwota ok. ${pricingAdv.suggestedAmount} zł (orientacyjnie).`
+                                );
+                              }
+                            }
+                            let actionable = dedupeTipStrings([...(pred.actionableTips || []), ...fromPricing]).slice(0, 8);
+                            if (actionable.length === 0) {
+                              actionable = [
+                                "Kliknij „Edytuj ofertę” i dopisz 2–4 zdania: co dokładnie zrobisz, kiedy możesz zacząć oraz czy w cenie są części i dojazd.",
+                                "Sprawdź, czy proponowany termin realizacji jest zgodny z tym, czego szuka klient w opisie zlecenia.",
+                              ];
+                            }
+                            const pct = normalizeOfferSuccessPercent(pred.successProbability);
+                            const pctLabel =
+                              pct != null
+                                ? `${pct.toLocaleString("pl-PL", { maximumFractionDigits: 1, minimumFractionDigits: 0 })}%`
+                                : "";
+                            return (
+                              <div className="p-3 bg-white rounded-lg border border-indigo-100 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-indigo-600">📋</span>
+                                  <span className="font-medium text-indigo-900">Wskazówki z analizy</span>
                                 </div>
-                              )}
-                              {providerOfferAnalysis.prediction.negativeFactors && providerOfferAnalysis.prediction.negativeFactors.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-amber-800 mb-1">Warto poprawić</p>
-                                  <ul className="text-xs text-slate-600 space-y-1">
-                                    {providerOfferAnalysis.prediction.negativeFactors.slice(0, 5).map((factor, idx) => (
-                                      <li key={idx}>• {factor}</li>
+
+                                <div className="rounded-lg bg-indigo-50/90 border border-indigo-100 p-3">
+                                  <p className="text-xs font-semibold text-indigo-950 mb-2">
+                                    Co zrobić, żeby podnieść szanse
+                                  </p>
+                                  <ol className="list-decimal list-inside space-y-1.5 text-xs text-indigo-950/95 leading-relaxed">
+                                    {actionable.map((t, idx) => (
+                                      <li key={idx} className="pl-0.5 marker:font-semibold">
+                                        {t}
+                                      </li>
                                     ))}
-                                  </ul>
+                                  </ol>
                                 </div>
-                              )}
-                              {providerOfferAnalysis.prediction.successProbability != null && providerOfferAnalysis.prediction.successProbability !== '' && (() => {
-                                const probNum = Number(providerOfferAnalysis.prediction.successProbability);
-                                const pct = Number.isFinite(probNum) ? Math.min(100, Math.max(0, probNum)) : null;
-                                if (pct == null) return null;
-                                const pctLabel = Number.isInteger(probNum)
-                                  ? `${probNum}%`
-                                  : `${probNum.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%`;
-                                return (
+
+                                {pred.positiveFactors && pred.positiveFactors.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-medium text-emerald-700 mb-1">Mocne strony</p>
+                                    <ul className="text-xs text-slate-600 space-y-1">
+                                      {pred.positiveFactors.slice(0, 5).map((factor, idx) => (
+                                        <li key={idx}>• {factor}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {pred.negativeFactors && pred.negativeFactors.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-medium text-amber-800 mb-1">Warto poprawić</p>
+                                    <ul className="text-xs text-slate-600 space-y-1">
+                                      {pred.negativeFactors.slice(0, 5).map((factor, idx) => (
+                                        <li key={idx}>• {factor}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {pct != null && (
                                   <div className="pt-2 border-t border-slate-100">
                                     <div className="flex items-center gap-2 mb-2">
                                       <span className="text-indigo-600 text-sm">📊</span>
-                                      <span className="text-xs font-medium text-slate-700">Szacunkowa szansa (model, orientacyjnie)</span>
+                                      <span className="text-xs font-medium text-slate-700">Szacunkowa szansa (heurystyka, orientacyjnie)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className="flex-1 bg-slate-200 rounded-full h-2 min-w-0">
@@ -1305,13 +1391,13 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                                       </span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 mt-2 leading-snug">
-                                      To szacunek automatyczny, nie gwarancja wyniku — o wyborze decyduje klient.
+                                      To szacunek automatyczny (reguły + dane ofert), nie gwarancja wyniku — o wyborze decyduje klient.
                                     </p>
                                   </div>
-                                );
-                              })()}
-                            </div>
-                          )}
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           <button
                             type="button"
@@ -2927,7 +3013,11 @@ export default function OrderDetails() {
         } else {
           try {
             const predData = await getOrderPrediction(orderId);
-            if (predData.prediction) setAiPrediction(predData.prediction);
+            const p =
+              predData?.prediction && typeof predData.prediction === "object"
+                ? predData.prediction
+                : predData;
+            if (p && typeof p === "object") setAiPrediction(p);
           } catch (e) {
             console.error("Failed to fetch AI prediction:", e);
           }
