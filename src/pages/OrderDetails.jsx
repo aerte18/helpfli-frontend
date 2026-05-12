@@ -608,6 +608,8 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
   const { user } = useAuth();
   const [providerOfferAnalysis, setProviderOfferAnalysis] = useState(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  /** Pełna analiza AI oferty (cena, czynniki, %) — domyślnie zwinięta, żeby nie szokować samym % */
+  const [providerAiOfferCoachOpen, setProviderAiOfferCoachOpen] = useState(false);
   
   // Sprawdź czy klient ma pakiet PRO (dla providera - aby pokazać szczegóły innych ofert)
   const clientHasPro = order.client?.level === 'pro' || 
@@ -672,6 +674,10 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
     
     fetchProviderOfferAnalysis();
   }, [orderId, isProvider, myOffer, providerHasPro, order.description]);
+
+  useEffect(() => {
+    setProviderAiOfferCoachOpen(false);
+  }, [orderId, myOffer?._id, myOffer?.id]);
 
   useEffect(() => {
     // Pobierz rekomendację AI dla najlepszej oferty (tylko dla klienta)
@@ -1171,110 +1177,149 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                     </div>
                   ) : providerOfferAnalysis ? (
                     <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="w-6 h-6 text-indigo-600 shrink-0" />
-                        <h3 className="font-semibold text-indigo-900">AI Analiza Twojej oferty</h3>
+                        <h3 className="font-semibold text-indigo-900">Jak wzmocnić Twoją ofertę</h3>
                         <span className="ml-auto px-2 py-1 bg-indigo-600 text-white text-xs rounded-full font-medium">
                           PRO
                         </span>
                       </div>
-                      
-                      {providerOfferAnalysis.pricing && (
-                        <div className="mb-3 p-3 bg-white rounded-lg border border-indigo-100">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-indigo-600">💰</span>
-                            <span className="font-medium text-indigo-900">Analiza ceny</span>
+                      <p className="text-xs text-indigo-900/85 mb-3 leading-relaxed">
+                        Przygotowaliśmy wskazówki dopasowane do tego zlecenia i treści Twojej oferty — zacznij od nich, zamiast od samej liczby.
+                      </p>
+
+                      {providerOfferAnalysis.prediction?.isTopChoice && (
+                        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-lg mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">⭐</span>
+                            <div className="flex-1">
+                              <p className="font-semibold text-emerald-900">AI wyróżnia Twoją ofertę!</p>
+                              <p className="text-xs text-emerald-700 mt-1">
+                                Twoja oferta wygląda na mocną w tym zestawieniu — i tak możesz sprawdzić szczegóły poniżej.
+                              </p>
+                            </div>
                           </div>
-                          {providerOfferAnalysis.pricing.advice && (
-                            <div className="space-y-2 text-sm">
-                              <div>
-                                <span className="font-medium text-slate-700">Pozycja:</span>{' '}
-                                <span className={`font-semibold ${
-                                  providerOfferAnalysis.pricing.advice.position === 'optimal' ? 'text-emerald-600' :
-                                  providerOfferAnalysis.pricing.advice.position === 'low' ? 'text-amber-600' :
-                                  providerOfferAnalysis.pricing.advice.position === 'high' ? 'text-red-600' :
-                                  'text-slate-600'
-                                }`}>
-                                  {providerOfferAnalysis.pricing.advice.position === 'optimal' ? 'Optymalna ✅' :
-                                   providerOfferAnalysis.pricing.advice.position === 'low' ? 'Niska ⚠️' :
-                                   providerOfferAnalysis.pricing.advice.position === 'high' ? 'Wysoka ⚠️' :
-                                   providerOfferAnalysis.pricing.advice.position}
-                                </span>
+                        </div>
+                      )}
+
+                      {!providerAiOfferCoachOpen ? (
+                        <button
+                          type="button"
+                          aria-expanded={providerAiOfferCoachOpen}
+                          onClick={() => setProviderAiOfferCoachOpen(true)}
+                          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-indigo-400 bg-white px-4 py-3 text-sm font-semibold text-indigo-900 shadow-sm hover:bg-indigo-50/80 transition-colors"
+                        >
+                          Zobacz, jak poprawić ofertę i zwiększyć szanse
+                          <ChevronDown className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                        </button>
+                      ) : (
+                        <div className="space-y-3">
+                          {providerOfferAnalysis.pricing && (
+                            <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-indigo-600">💰</span>
+                                <span className="font-medium text-indigo-900">Analiza ceny</span>
                               </div>
-                              {providerOfferAnalysis.pricing.advice.reasoning && (
-                                <p className="text-slate-600 text-xs mt-1">
-                                  {providerOfferAnalysis.pricing.advice.reasoning}
-                                </p>
-                              )}
-                              {providerOfferAnalysis.pricing.advice.suggestedAmount && (
-                                <div className="mt-2 pt-2 border-t border-indigo-100">
-                                  <span className="text-xs text-indigo-700">Sugerowana cena: </span>
-                                  <span className="font-semibold text-indigo-900">
-                                    {providerOfferAnalysis.pricing.advice.suggestedAmount} zł
-                                  </span>
+                              {providerOfferAnalysis.pricing.advice && (
+                                <div className="space-y-2 text-sm">
+                                  <div>
+                                    <span className="font-medium text-slate-700">Pozycja:</span>{' '}
+                                    <span className={`font-semibold ${
+                                      providerOfferAnalysis.pricing.advice.position === 'optimal' ? 'text-emerald-600' :
+                                      providerOfferAnalysis.pricing.advice.position === 'low' ? 'text-amber-600' :
+                                      providerOfferAnalysis.pricing.advice.position === 'high' ? 'text-red-600' :
+                                      'text-slate-600'
+                                    }`}>
+                                      {providerOfferAnalysis.pricing.advice.position === 'optimal' ? 'Optymalna ✅' :
+                                       providerOfferAnalysis.pricing.advice.position === 'low' ? 'Niska ⚠️' :
+                                       providerOfferAnalysis.pricing.advice.position === 'high' ? 'Wysoka ⚠️' :
+                                       providerOfferAnalysis.pricing.advice.position}
+                                    </span>
+                                  </div>
+                                  {providerOfferAnalysis.pricing.advice.reasoning && (
+                                    <p className="text-slate-600 text-xs mt-1">
+                                      {providerOfferAnalysis.pricing.advice.reasoning}
+                                    </p>
+                                  )}
+                                  {providerOfferAnalysis.pricing.advice.suggestedAmount && (
+                                    <div className="mt-2 pt-2 border-t border-indigo-100">
+                                      <span className="text-xs text-indigo-700">Sugerowana cena: </span>
+                                      <span className="font-semibold text-indigo-900">
+                                        {providerOfferAnalysis.pricing.advice.suggestedAmount} zł
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
                           )}
-                        </div>
-                      )}
-                      
-                      {providerOfferAnalysis.prediction && (
-                        <div className="mb-3 p-3 bg-white rounded-lg border border-indigo-100">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-indigo-600">📊</span>
-                            <span className="font-medium text-indigo-900">Szansa na wygranie</span>
-                          </div>
-                          {providerOfferAnalysis.prediction.successProbability && (
-                            <div className="space-y-2 text-sm">
+
+                          {providerOfferAnalysis.prediction && (
+                            <div className="p-3 bg-white rounded-lg border border-indigo-100 space-y-3">
                               <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-slate-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-indigo-600 h-2 rounded-full transition-all"
-                                    style={{ width: `${providerOfferAnalysis.prediction.successProbability}%` }}
-                                  ></div>
-                                </div>
-                                <span className="font-semibold text-indigo-900 min-w-[3rem] text-right">
-                                  {providerOfferAnalysis.prediction.successProbability}%
-                                </span>
+                                <span className="text-indigo-600">📋</span>
+                                <span className="font-medium text-indigo-900">Wskazówki z analizy</span>
                               </div>
                               {providerOfferAnalysis.prediction.positiveFactors && providerOfferAnalysis.prediction.positiveFactors.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-medium text-emerald-700 mb-1">✅ Mocne strony:</p>
+                                <div>
+                                  <p className="text-xs font-medium text-emerald-700 mb-1">Mocne strony</p>
                                   <ul className="text-xs text-slate-600 space-y-1">
-                                    {providerOfferAnalysis.prediction.positiveFactors.slice(0, 3).map((factor, idx) => (
+                                    {providerOfferAnalysis.prediction.positiveFactors.slice(0, 5).map((factor, idx) => (
                                       <li key={idx}>• {factor}</li>
                                     ))}
                                   </ul>
                                 </div>
                               )}
                               {providerOfferAnalysis.prediction.negativeFactors && providerOfferAnalysis.prediction.negativeFactors.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-medium text-amber-700 mb-1">⚠️ Do poprawy:</p>
+                                <div>
+                                  <p className="text-xs font-medium text-amber-800 mb-1">Warto poprawić</p>
                                   <ul className="text-xs text-slate-600 space-y-1">
-                                    {providerOfferAnalysis.prediction.negativeFactors.slice(0, 2).map((factor, idx) => (
+                                    {providerOfferAnalysis.prediction.negativeFactors.slice(0, 5).map((factor, idx) => (
                                       <li key={idx}>• {factor}</li>
                                     ))}
                                   </ul>
                                 </div>
                               )}
+                              {providerOfferAnalysis.prediction.successProbability != null && providerOfferAnalysis.prediction.successProbability !== '' && (() => {
+                                const probNum = Number(providerOfferAnalysis.prediction.successProbability);
+                                const pct = Number.isFinite(probNum) ? Math.min(100, Math.max(0, probNum)) : null;
+                                if (pct == null) return null;
+                                const pctLabel = Number.isInteger(probNum)
+                                  ? `${probNum}%`
+                                  : `${probNum.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%`;
+                                return (
+                                  <div className="pt-2 border-t border-slate-100">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-indigo-600 text-sm">📊</span>
+                                      <span className="text-xs font-medium text-slate-700">Szacunkowa szansa (model, orientacyjnie)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 bg-slate-200 rounded-full h-2 min-w-0">
+                                        <div
+                                          className="bg-indigo-600 h-2 rounded-full transition-all"
+                                          style={{ width: `${pct}%` }}
+                                        />
+                                      </div>
+                                      <span className="font-semibold text-indigo-900 min-w-[3.25rem] text-right text-sm tabular-nums">
+                                        {pctLabel}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-2 leading-snug">
+                                      To szacunek automatyczny, nie gwarancja wyniku — o wyborze decyduje klient.
+                                    </p>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
-                        </div>
-                      )}
-                      
-                      {/* Wyróżnienie jeśli AI uważa ofertę za najlepszą */}
-                      {providerOfferAnalysis.prediction?.isTopChoice && (
-                        <div className="p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">⭐</span>
-                            <div className="flex-1">
-                              <p className="font-semibold text-emerald-900">AI wyróżnia Twoją ofertę!</p>
-                              <p className="text-xs text-emerald-700 mt-1">
-                                Twoja oferta ma wysokie szanse na akceptację przez klienta.
-                              </p>
-                            </div>
-                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setProviderAiOfferCoachOpen(false)}
+                            className="w-full text-center text-xs font-medium text-indigo-800 hover:text-indigo-950 py-1.5"
+                          >
+                            Zwiń wskazówki
+                          </button>
                         </div>
                       )}
                     </div>
