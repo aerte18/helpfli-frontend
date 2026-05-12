@@ -1420,16 +1420,6 @@ export default function Home() {
             <div className="mt-2 rounded-xl border border-slate-200 bg-white qs-surface-sheet p-1.5 flex flex-col gap-1 origin-top-right qs-transition-soft opacity-100 translate-y-0 scale-100">
               <button
                 onClick={() => {
-                  setShowAdvancedFilters(true);
-                  setIsMobileViewMenuOpen(false);
-                }}
-                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
-                title="Filtry"
-              >
-                <Zap className="w-4 h-4" aria-hidden /> Filtry
-              </button>
-              <button
-                onClick={() => {
                   setViewMode("list");
                   setIsMobileViewMenuOpen(false);
                 }}
