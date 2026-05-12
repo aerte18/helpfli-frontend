@@ -6,6 +6,9 @@ import { useAuth } from "../context/AuthContext";
 const tabClass =
   "flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 py-2 px-1 text-[10px] font-medium transition-colors";
 
+/** Safari: odstęp layout↔visual rzadko przekracza ~100px; większe wartości to zwykle artefakt przy scrollu → „dziura” pod paskiem. */
+const MAX_VV_BOTTOM_GAP_PX = 120;
+
 export default function MobileAppTabBar() {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
@@ -33,7 +36,7 @@ export default function MobileAppTabBar() {
     return () => document.body.classList.remove("has-mobile-tab");
   }, [visible]);
 
-  /** Safari (iOS): przy zwiniętym chrome dolna krawędź layout viewport ≠ wizualny dół — bez tego zostaje „dziura”. */
+  /** Ustawia --qs-vv-bottom-offset (padding body, mapy itd.). Sam pasek: bottom:0 — offset na nav powodował „dziurę” przy scrollu w Safari. */
   const vvRaf = useRef(0);
   useEffect(() => {
     const root = document.documentElement;
@@ -61,7 +64,8 @@ export default function MobileAppTabBar() {
           clearOffset();
           return;
         }
-        const gap = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
+        const raw = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
+        const gap = Math.min(raw, MAX_VV_BOTTOM_GAP_PX);
         root.style.setProperty("--qs-vv-bottom-offset", `${gap}px`);
       });
     };
@@ -71,6 +75,7 @@ export default function MobileAppTabBar() {
     vv?.addEventListener("scroll", sync);
     mq.addEventListener("change", sync);
     window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, { passive: true });
 
     return () => {
       if (vvRaf.current) cancelAnimationFrame(vvRaf.current);
@@ -79,6 +84,7 @@ export default function MobileAppTabBar() {
       vv?.removeEventListener("scroll", sync);
       mq.removeEventListener("change", sync);
       window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync);
       clearOffset();
     };
   }, [visible]);
@@ -105,7 +111,7 @@ export default function MobileAppTabBar() {
 
   return (
     <nav
-      className="md:hidden fixed left-0 right-0 z-[45] qs-fixed-bottom-visual border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[45] border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)] [transform:translateZ(0)]"
       style={{
         backgroundColor: "var(--card)",
         borderColor: "var(--border)",
