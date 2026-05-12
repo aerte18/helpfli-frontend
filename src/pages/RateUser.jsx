@@ -21,7 +21,7 @@ function RateUser() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          to: userId,
+          ratedUser: userId,
           rating: stars,
           comment,
         }),

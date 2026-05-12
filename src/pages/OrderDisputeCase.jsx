@@ -35,6 +35,8 @@ function refundMethodDescription(method) {
       return "Płatność była poza systemem Helpfli — automatycznego zwrotu w aplikacji nie wykonano.";
     case "skipped_no_payment":
       return "Brak zarejestrowanej płatności systemowej — zwrotu w Stripe nie wykonano.";
+    case "split_refund":
+      return "Zwrot został rozłożony na główną płatność i dopłatę (Stripe) — szczegóły w wątku systemowym.";
     default:
       return null;
   }
@@ -145,6 +147,8 @@ export default function OrderDisputeCase() {
   const pending = st?.status === "pending";
   const accepted = st?.status === "accepted";
   const refundNote = accepted && st?.refundMethod ? refundMethodDescription(st.refundMethod) : null;
+  const mediationOpen = data?.mediationOpen !== false;
+  const disputeResolved = !!data?.disputeResolved;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16 pt-6">
@@ -204,6 +208,12 @@ export default function OrderDisputeCase() {
                   <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     Sprawa jest już po eskalacji do Helpfli (ugody ustala zespół).
+                  </div>
+                )}
+                {disputeResolved && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Sprawa zamknięta ugodą. Wątek możesz dalej czytać; nowej propozycji ugody ani eskalacji nie dodasz.
                   </div>
                 )}
               </div>
@@ -333,7 +343,7 @@ export default function OrderDisputeCase() {
                 </button>
               </div>
 
-              {!data.disputeEscalatedAt && (
+              {!data.disputeEscalatedAt && mediationOpen && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-4">
                   <h3 className="text-sm font-semibold text-slate-900">Propozycja ugody (kwota)</h3>
                   {accepted ? (
@@ -375,7 +385,7 @@ export default function OrderDisputeCase() {
                 </div>
               )}
 
-              {!data.disputeEscalatedAt && (
+              {mediationOpen && !data.disputeEscalatedAt && (
                 <div className="border-t border-slate-100 pt-4">
                   <button
                     type="button"

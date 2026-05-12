@@ -6,8 +6,9 @@ export default function RoleRoute({ allow = [] }) {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   
-  // Sprawdź czy użytkownik ma dozwoloną rolę
-  const hasAllowedRole = allow.includes(user.role);
+  const hasAllowedRole =
+    allow.includes(user.role) ||
+    (user.role === "superadmin" && allow.includes("admin"));
   
   // Dla provider routes - pozwól również company_owner i company_manager
   if (allow.includes("provider") && !hasAllowedRole) {
@@ -22,7 +23,7 @@ export default function RoleRoute({ allow = [] }) {
   if (!hasAllowedRole) {
     // Jeśli użytkownik jest adminem, ale próbuje dostać się do route, który nie jest dla admina,
     // przekieruj go do panelu admina
-    if (user.role === "admin") {
+    if (user.role === "admin" || user.role === "superadmin") {
       return <Navigate to="/admin" replace />;
     }
     // Klient na trasie tylko-provider → /home zamiast /dashboard (unikaj zamieszania z panelem)

@@ -127,6 +127,9 @@ export default function NotificationsPage() {
       order_funded: '💰',
       order_completed: '🎉',
       order_disputed: '⚠️',
+      dispute_case_message: '💬',
+      dispute_settlement_offer: '🤝',
+      dispute_settlement_resolved: '✅',
       new_quote: '💬',
       new_offer: '💼',
       order_updated: '📝',
@@ -148,6 +151,7 @@ export default function NotificationsPage() {
     if (type.startsWith('payment_')) return 'Płatności';
     if (type.startsWith('subscription_')) return 'Subskrypcje';
     if (type === 'chat_message') return 'Wiadomości';
+    if (type.startsWith('dispute_')) return 'Spory / sprawy';
     if (type === 'system_announcement') return 'System';
     return 'Inne';
   };

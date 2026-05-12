@@ -96,6 +96,7 @@ import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminReportHistory from "./pages/AdminReportHistory";
 import AdminInvoices from "./pages/admin/AdminInvoices";
 import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminLayout from "./components/admin/AdminLayout";
 
 // Komponenty KYC
@@ -286,7 +287,7 @@ function App() {
           <Route path="/company/:companyId/settings" element={<PrivateRoute><CompanySettings /></PrivateRoute>} />
 
         {/* Tylko dla admina */}
-        <Route element={<RoleRoute allow={["admin"]} />}>
+        <Route element={<RoleRoute allow={["admin", "superadmin"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
@@ -299,13 +300,14 @@ function App() {
             <Route path="/admin/sponsor-ads" element={<AdminSponsorAds />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/reports" element={<AdminReportHistory />} />
+            <Route path="/admin/disputes" element={<AdminDisputes />} />
             <Route path="/admin/invoices" element={<AdminInvoices />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
         </Route>
         
         {/* White-label management - dla admina i company owners */}
-        <Route path="/admin/whitelabel" element={<PrivateRoute><RoleRoute allow={["admin"]}><WhiteLabelManager /></RoleRoute></PrivateRoute>} />
+        <Route path="/admin/whitelabel" element={<PrivateRoute><RoleRoute allow={["admin", "superadmin"]}><WhiteLabelManager /></RoleRoute></PrivateRoute>} />
         <Route path="/account/whitelabel" element={<PrivateRoute><WhiteLabelManager /></PrivateRoute>} />
         
         {/* 404 catch-all route */}
