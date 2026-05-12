@@ -5,7 +5,8 @@ export function getClientOrderPresentation(order) {
     order?.paymentMethod === "external" || order?.paymentPreference === "external";
   const platformFee = Number(order?.pricing?.platformFee || 0);
   const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
-  const systemPaid = order?.paymentStatus === "succeeded" || order?.paidInSystem;
+  const systemPaid =
+    order?.paymentStatus === "succeeded" || order?.paidInSystem || order?.status === "funded";
   const needsExternalCommission = isExternalPayment && platformFee > 0 && !externalCommissionPaid;
   const needsSystemPayment = !isExternalPayment && status === "accepted" && !systemPaid;
 
@@ -181,9 +182,10 @@ export function getProviderOrderPresentation({ order, offer }) {
     order?.paymentMethod === "external" || order?.paymentPreference === "external";
   const platformFee = Number(order?.pricing?.platformFee || 0);
   const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
-  const systemPaid = order?.paymentStatus === "succeeded" || order?.paidInSystem;
+  const systemPaid =
+    order?.paymentStatus === "succeeded" || order?.paidInSystem || order?.status === "funded";
   const waitingPayment =
-    status === "accepted" &&
+    stage === "accepted" &&
     ((!isExternalPayment && !systemPaid) ||
       (isExternalPayment && platformFee > 0 && !externalCommissionPaid));
 
@@ -194,8 +196,9 @@ export function getProviderOrderPresentation({ order, offer }) {
       badgeClass: "bg-indigo-100 text-indigo-800",
       nextStepLabel: "Czekaj na decyzję klienta",
       nextStepHint: "Monitoruj czat i bądź gotowy doprecyzować ofertę.",
-      nextStepCta: "Czat",
+      nextStepCta: "Otwórz czat",
       nextStepHref: `/orders/${order?._id}?tab=chat`,
+      bannerAction: "chat",
       tone: "blue",
     };
   }
@@ -207,8 +210,9 @@ export function getProviderOrderPresentation({ order, offer }) {
       badgeClass: "bg-red-100 text-red-800",
       nextStepLabel: "Oferta nie została wybrana",
       nextStepHint: "Klient zaakceptował inną ofertę dla tego zlecenia.",
-      nextStepCta: "Szczegóły",
+      nextStepCta: "Zamknij szczegóły",
       nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
       tone: "red",
     };
   }
@@ -216,12 +220,14 @@ export function getProviderOrderPresentation({ order, offer }) {
   if (stage === "accepted" && waitingPayment) {
     return {
       stage,
-      label: "Zaakceptowane",
+      label: "Oferta wybrana",
       badgeClass: "bg-amber-100 text-amber-800",
-      nextStepLabel: "Oczekuj na płatność klienta",
-      nextStepHint: "Rozpoczęcie realizacji odblokuje się po płatności.",
-      nextStepCta: "Szczegóły",
-      nextStepHref: `/orders/${order?._id}?tab=my_offer`,
+      nextStepLabel: "Czekamy na płatność klienta",
+      nextStepHint:
+        "Klient musi dokończyć płatność w Helpfli (lub formalności przy płatności poza systemem). Dopiero wtedy u Ciebie pojawi się przycisk startu realizacji.",
+      nextStepCta: "Zobacz status",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
       tone: "amber",
     };
   }
@@ -229,12 +235,14 @@ export function getProviderOrderPresentation({ order, offer }) {
   if (stage === "accepted") {
     return {
       stage,
-      label: "Zaakceptowane",
-      badgeClass: "bg-green-100 text-green-800",
-      nextStepLabel: "Rozpocznij realizację",
-      nextStepHint: "Zlecenie jest gotowe, możesz rozpocząć pracę.",
-      nextStepCta: "Szczegóły",
-      nextStepHref: `/orders/${order?._id}?tab=my_offer`,
+      label: "Zlecenie opłacone",
+      badgeClass: "bg-emerald-100 text-emerald-800",
+      nextStepLabel: "Twoja kolej — rozpocznij realizację",
+      nextStepHint:
+        "Środki są zabezpieczone. Kliknij poniżej, przejdź do sekcji na dole strony i potwierdź start — status zmieni się na „W realizacji”, a klient dostanie powiadomienie.",
+      nextStepCta: "Rozpocznij realizację",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "start",
       tone: "emerald",
     };
   }
@@ -246,8 +254,9 @@ export function getProviderOrderPresentation({ order, offer }) {
       badgeClass: "bg-purple-100 text-purple-800",
       nextStepLabel: "Dokończ usługę",
       nextStepHint: "Po zakończeniu oznacz zlecenie jako zakończone.",
-      nextStepCta: "Szczegóły",
-      nextStepHref: `/orders/${order?._id}?tab=my_offer`,
+      nextStepCta: "Przejdź do zakończenia",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
       tone: "purple",
     };
   }
@@ -258,8 +267,9 @@ export function getProviderOrderPresentation({ order, offer }) {
     badgeClass: "bg-emerald-100 text-emerald-800",
     nextStepLabel: "Archiwum",
     nextStepHint: "Zlecenie zostało domknięte.",
-    nextStepCta: "Szczegóły",
-    nextStepHref: `/orders/${order?._id}?tab=my_offer`,
+    nextStepCta: "Podsumowanie",
+    nextStepHref: `/orders/${order?._id}?tab=details`,
+    bannerAction: "details",
     tone: "green",
   };
 }

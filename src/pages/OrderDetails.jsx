@@ -537,13 +537,22 @@ function PaymentStatusBadge({ paymentStatus, paidInSystem }) {
   );
 }
 
-function NextStepBanner({ order, isClient, isProvider, isAssignedProvider = false, onGoToOffers, onGoToPayment }) {
+function NextStepBanner({
+  order,
+  isClient,
+  isProvider,
+  isAssignedProvider = false,
+  onGoToOffers,
+  onGoToPayment,
+  onProviderBannerAction,
+}) {
   const status = order?.status;
 
-  let title = '';
-  let description = '';
-  let cta = '';
-  let tone = 'indigo';
+  let title = "";
+  let description = "";
+  let cta = "";
+  let tone = "indigo";
+  let providerPresentation = null;
 
   if (isClient) {
     const presentation = getClientOrderPresentation(order);
@@ -553,12 +562,12 @@ function NextStepBanner({ order, isClient, isProvider, isAssignedProvider = fals
     title = `Następny krok: ${presentation.nextStepLabel}`;
     description = presentation.nextStepHint;
     cta =
-      presentation.nextStepCta === 'Przejdź do ofert' || presentation.nextStepCta === 'Przejdź do płatności'
+      presentation.nextStepCta === "Przejdź do ofert" || presentation.nextStepCta === "Przejdź do płatności"
         ? presentation.nextStepCta
-        : '';
-    tone = presentation.tone || 'indigo';
+        : "";
+    tone = presentation.tone || "indigo";
   } else if (isProvider && isAssignedProvider) {
-    const providerPresentation = getProviderOrderPresentation({
+    providerPresentation = getProviderOrderPresentation({
       order,
       offer: order?.acceptedOfferId ? { _id: order.acceptedOfferId } : null,
     });
@@ -567,32 +576,42 @@ function NextStepBanner({ order, isClient, isProvider, isAssignedProvider = fals
     }
     title = `Następny krok: ${providerPresentation.nextStepLabel}`;
     description = providerPresentation.nextStepHint;
+    cta = providerPresentation.nextStepCta || "";
     tone = providerPresentation.tone || "indigo";
   } else {
     return null;
   }
 
   const palette = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-900',
-    amber: 'bg-amber-50 border-amber-200 text-amber-900',
-    emerald: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-    purple: 'bg-purple-50 border-purple-200 text-purple-900',
-    green: 'bg-green-50 border-green-200 text-green-900',
-    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+    blue: "bg-blue-50 border-blue-200 text-blue-900",
+    amber: "bg-amber-50 border-amber-200 text-amber-900",
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-900",
+    purple: "bg-purple-50 border-purple-200 text-purple-900",
+    green: "bg-green-50 border-green-200 text-green-900",
+    indigo: "bg-indigo-50 border-indigo-200 text-indigo-900",
   };
 
   return (
     <div className={`mb-5 rounded-xl border p-4 ${palette[tone] || palette.indigo}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="font-semibold">{title}</div>
-          <div className="text-sm opacity-90 mt-1">{description}</div>
+          <div className="text-sm opacity-90 mt-1 leading-snug">{description}</div>
         </div>
-        {cta && (
+        {cta && isClient && (
           <button
             type="button"
-            onClick={cta === 'Przejdź do ofert' ? onGoToOffers : onGoToPayment}
-            className="rounded-lg bg-white/90 px-3 py-2 text-sm font-medium border border-current/20 hover:bg-white"
+            onClick={cta === "Przejdź do ofert" ? onGoToOffers : onGoToPayment}
+            className="rounded-lg bg-white/90 px-3 py-2 text-sm font-medium border border-current/20 hover:bg-white shrink-0"
+          >
+            {cta}
+          </button>
+        )}
+        {cta && isProvider && onProviderBannerAction && providerPresentation?.bannerAction && (
+          <button
+            type="button"
+            onClick={() => onProviderBannerAction(providerPresentation.bannerAction)}
+            className="rounded-lg bg-white/90 px-4 py-2.5 text-sm font-semibold border border-current/25 hover:bg-white shadow-sm shrink-0"
           >
             {cta}
           </button>
@@ -1500,18 +1519,50 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
   const platformFee = Number(order.pricing?.platformFee || 0);
   const externalCommissionRequired = isExternalPayment && platformFee > 0;
   const externalReadyForStart = !externalCommissionRequired || externalCommissionPaid;
+  const systemPaymentReady =
+    !isExternalPayment &&
+    (order.paymentStatus === "succeeded" ||
+      order.paidInSystem ||
+      order.status === "funded");
+  const canStartWorkNow = isExternalPayment ? externalReadyForStart : systemPaymentReady;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="accepted" /></div>}
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-          <CheckCircle2 className="h-4 w-4 text-orange-600" />
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            isProvider && canStartWorkNow ? "bg-emerald-100" : "bg-orange-100"
+          }`}
+        >
+          <CheckCircle2
+            className={`h-4 w-4 ${
+              isProvider && canStartWorkNow ? "text-emerald-600" : "text-orange-600"
+            }`}
+          />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Oferta zaakceptowana</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {isClient
+              ? "Oferta zaakceptowana"
+              : canStartWorkNow
+                ? "Zlecenie opłacone — Twoja kolej"
+                : "Oferta zaakceptowana"}
+          </h2>
           <p className="text-xs text-slate-500">
-            {isClient ? 'Informacje o wykonawcy i płatności' : 'Twoja oferta została zaakceptowana'}
+            {isClient ? (
+              "Informacje o wykonawcy i płatności"
+            ) : canStartWorkNow ? (
+              isExternalPayment ? (
+                "Możesz rozpocząć pracę — użyj przycisku w sekcji poniżej, gdy jesteś gotowy."
+              ) : (
+                "Środki są zabezpieczone w systemie. Ustal szczegóły na czacie, potem potwierdź start realizacji."
+              )
+            ) : isExternalPayment ? (
+              "Klient musi jeszcze dokończyć wymagane formalności (np. prowizja za zlecenie)."
+            ) : (
+              "Oczekuj na opłatę zlecenia przez klienta — po zaksięgowaniu wpłaty pojawi się przycisk startu."
+            )}
           </p>
         </div>
       </div>
@@ -1570,9 +1621,14 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                 {platformFee > 0 ? (
                   <div className="mb-3 rounded-lg bg-white border border-amber-200 p-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-700">Opłata serwisowa:</span>
+                      <span className="text-slate-700">Opłata serwisowa (wg oferty):</span>
                       <span className="font-semibold text-slate-900">{platformFee.toFixed(2)} PLN</span>
                     </div>
+                    {platformFee > 0 && platformFee < 2 && !externalCommissionPaid && (
+                      <p className="text-xs text-slate-600 mt-2 leading-snug">
+                        Płatność kartą/BLIK ma minimum 2 zł — pobierzemy 2,00 PLN; prowizja z tej oferty to {platformFee.toFixed(2)} PLN.
+                      </p>
+                    )}
                     <div className="mt-2 text-xs">
                       {externalCommissionPaid ? (
                         <span className="text-emerald-700">✓ Formalności opłacone</span>
@@ -1644,47 +1700,73 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
         ) : (
           // WIDOK DLA PROVIDERA
           <>
-            {/* Status płatności / Przycisk rozpoczęcia */}
-            {isExternalPayment ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <h3 className="font-semibold text-emerald-900 mb-2">Rozpocznij realizację</h3>
-                <p className="text-sm text-emerald-800 mb-2">
-                  {externalReadyForStart
-                    ? 'Możesz rozpocząć pracę nad zleceniem.'
-                    : 'Oczekuj na działanie klienta.'}
-                </p>
-                {acceptedOffer?.completionDate && (
-                  <div className="mb-3 text-xs text-emerald-700">
-                    Najbliższy termin: {formatSmartTime(acceptedOffer.completionDate, { maxRelativeDays: 14 })}
-                  </div>
-                )}
-                {onStartWork && externalReadyForStart && (
-                  <button
-                    onClick={onStartWork}
-                    disabled={isLoadingStartWork}
-                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    {isLoadingStartWork && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isLoadingStartWork ? 'Rozpoczynanie...' : 'Przejdź do realizacji'}
-                  </button>
-                )}
-                {!externalReadyForStart && (
-                  <div className="text-amber-700 text-sm font-medium">⏳ Oczekuje na działanie klienta</div>
-                )}
+            {/* Status płatności + jednoznaczny CTA startu (kotwica dla banera „Następny krok”) */}
+            <div
+              id="provider-start-work"
+              className={`rounded-2xl border p-5 ${
+                canStartWorkNow
+                  ? "border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-sm"
+                  : "border-amber-200 bg-amber-50/80"
+              }`}
+            >
+              <div className="flex items-start gap-3 mb-3">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    canStartWorkNow ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-amber-600"
+                  }`}
+                >
+                  {canStartWorkNow ? (
+                    <CheckCircle2 className="h-5 w-5" />
+                  ) : (
+                    <Clock className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {canStartWorkNow ? "Rozpocznij realizację" : "Czekamy na klienta"}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                    {canStartWorkNow
+                      ? isExternalPayment
+                        ? "Formalności po stronie klienta są zakończone. Potwierdź start — status zmieni się na „W realizacji”, a klient dostanie powiadomienie."
+                        : "Zlecenie jest opłacone i środki są zabezpieczone (escrow). Potwierdź start, gdy ustalisz z klientem szczegóły — dopiero wtedy status przejdzie na „W realizacji”."
+                      : isExternalPayment
+                        ? "Zanim zaczniesz pracę, klient musi dokończyć wymagane kroki (np. opłata prowizji). Wróć tu po ich zakończeniu — pojawi się zielony przycisk."
+                        : "Klient jeszcze nie opłacił zlecenia w systemie. Po udanej płatności zobaczysz tutaj wyraźny przycisk „Przejdź do realizacji”."}
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <h3 className="font-semibold text-slate-900 mb-2">Status płatności</h3>
-                {order.paymentStatus === 'succeeded' || order.paidInSystem ? (
-                  <div className="text-green-600 font-medium">✓ Opłacone - możesz rozpocząć realizację</div>
-                ) : (
-                  <div className="text-amber-600 font-medium">⏳ Oczekuje na płatność</div>
-                )}
-                <p className="text-xs text-slate-600 mt-2">
-                  Po opłaceniu zlecenia przez klienta będziesz mógł rozpocząć realizację.
-                </p>
-              </div>
-            )}
+              {acceptedOffer?.completionDate && (
+                <div
+                  className={`mb-3 rounded-lg border px-3 py-2 text-xs ${
+                    canStartWorkNow
+                      ? "border-emerald-100 bg-white/70 text-emerald-900"
+                      : "border-amber-100 bg-white/60 text-amber-900"
+                  }`}
+                >
+                  Najbliższy termin z oferty:{" "}
+                  <span className="font-medium">
+                    {formatSmartTime(acceptedOffer.completionDate, { maxRelativeDays: 14 })}
+                  </span>
+                </div>
+              )}
+              {canStartWorkNow && onStartWork && (
+                <button
+                  type="button"
+                  onClick={onStartWork}
+                  disabled={isLoadingStartWork}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLoadingStartWork && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isLoadingStartWork ? "Rozpoczynanie…" : "Przejdź do realizacji"}
+                </button>
+              )}
+              {!canStartWorkNow && (
+                <div className="rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-sm font-medium text-amber-800">
+                  Następny krok po stronie klienta — nie musisz nic klikać; odśwież stronę za chwilę lub sprawdź czat.
+                </div>
+              )}
+            </div>
 
             {/* Informacje o kliencie */}
             {order.client && (
@@ -1827,9 +1909,12 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
           </div>
         )}
 
-        {/* Przycisk dla providera */}
+        {/* Przycisk dla providera (kotwica jak w etapie „zaakceptowana”) */}
         {isProvider && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div
+            id="provider-start-work"
+            className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm"
+          >
             <button
               onClick={async () => {
                 if (onStartWork) {
@@ -4033,9 +4118,7 @@ export default function OrderDetails() {
             </div>
           )}
 
-          {tab === "details" &&
-            !isClientCollectingOffers &&
-            !(isProvider && isAssignedProvider && order?.status === "accepted") && (
+          {tab === "details" && !isClientCollectingOffers && (
             <NextStepBanner
               order={order}
               isClient={isClient}
@@ -4052,6 +4135,22 @@ export default function OrderDetails() {
                 }
                 goTab('details');
                 setTimeout(() => document.getElementById('accepted-payment-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
+              onProviderBannerAction={(action) => {
+                if (action === "chat") {
+                  goTab("chat");
+                  return;
+                }
+                goTab("details");
+                if (action === "start") {
+                  setTimeout(
+                    () =>
+                      document
+                        .getElementById("provider-start-work")
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+                    80
+                  );
+                }
               }}
             />
           )}
