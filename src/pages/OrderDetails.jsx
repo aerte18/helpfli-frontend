@@ -134,6 +134,36 @@ async function resolveMyOfferForOrder({ token, orderId, orderRes, mePayload }) {
   return null;
 }
 
+/** Czy zalogowany użytkownik ma już wpis w `order.ratings` dla tej pary klient↔wykonawca (GET /api/orders/:id zwraca ratings). */
+function userHasSubmittedOrderRating({ order, userId, isClient, isProvider }) {
+  const list = order?.ratings;
+  if (!Array.isArray(list) || list.length === 0 || !userId) return false;
+  const uid = String(userId);
+  const clientId =
+    typeof order?.client === "string"
+      ? order.client
+      : order?.client?._id ?? order?.client?.id ?? null;
+  const providerId =
+    typeof order?.provider === "string"
+      ? order.provider
+      : order?.provider?._id ?? order?.provider?.id ?? null;
+  if (isClient && clientId && providerId) {
+    return list.some(
+      (r) =>
+        String(r.from?._id ?? r.from) === uid &&
+        String(r.to?._id ?? r.to) === String(providerId)
+    );
+  }
+  if (isProvider && clientId && providerId) {
+    return list.some(
+      (r) =>
+        String(r.from?._id ?? r.from) === uid &&
+        String(r.to?._id ?? r.to) === String(clientId)
+    );
+  }
+  return list.some((r) => String(r.from?._id ?? r.from) === uid);
+}
+
 function providerOrderMatch(order, user) {
   const aiMatch = order?.providerMatch || order?.aiFollowup?.providerMatch;
   if (aiMatch) return aiMatch;
@@ -2450,7 +2480,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
 }
 
 /** Jedna karta „następne kroki” dla klienta po zakończeniu przez wykonawcę — zastępuje rozproszone banery (NextStep + gwarancja). */
-function ClientOrderCompletionHub({ order, onScrollToAction }) {
+function ClientOrderCompletionHub({ order, onScrollToAction, hasClientRated = false }) {
   if (!order || order.status !== "completed") return null;
   const eligible = order.eligibleForGuarantee === true;
   const reasons = order.guaranteeReasons || [];
@@ -2478,7 +2508,12 @@ function ClientOrderCompletionHub({ order, onScrollToAction }) {
                 : " — wtedy zwalniamy rozliczenie zgodnie z płatnością w Helpfli."}
             </li>
             <li className="pl-1">
-              <span className="font-medium text-slate-900">Oceń wykonawcę</span> — pomaga innym wybrać dobrego specjalistę.
+              <span className={`font-medium ${hasClientRated ? "text-emerald-800" : "text-slate-900"}`}>
+                {hasClientRated ? "✓ Oceń wykonawcę" : "Oceń wykonawcę"}
+              </span>
+              {hasClientRated
+                ? " — Dziękujemy za opinię."
+                : " — pomaga innym wybrać dobrego specjalistę."}
             </li>
           </ol>
           <div
@@ -2526,6 +2561,8 @@ function OrderCompletedStageView({
   showAiHint = true,
   /** Gdy true: jedna karta „hub” nad widokiem — tu bez duplikatu zielonego podsumowania */
   useCompletionHubLayout = false,
+  /** Użytkownik ma już ocenę dla tej roli (wg order.ratings z API) */
+  hasMyRating = false,
 }) {
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState(null);
@@ -2695,18 +2732,32 @@ function OrderCompletedStageView({
         )}
 
         {/* Ocena */}
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <h3 className="font-semibold text-amber-900 mb-2">Oceń {isClient ? 'wykonawcę' : 'klienta'}</h3>
-          <p className="text-sm text-amber-800 mb-3">
-            Pomóż innym użytkownikom - zostaw opinię o {isClient ? 'wykonawcy' : 'kliencie'}.
-          </p>
-          <button
-            onClick={onRate}
-            className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium"
-          >
-            Dodaj ocenę
-          </button>
-        </div>
+        {hasMyRating ? (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-emerald-600 text-xl">✓</span>
+              <span className="font-semibold text-emerald-900">
+                {isClient ? "Dziękujemy za opinię o wykonawcy" : "Dziękujemy za opinię o kliencie"}
+              </span>
+            </div>
+            <p className="text-sm text-emerald-800">
+              Twoja ocena została zapisana i pomoże innym użytkownikom przy wyborze specjalisty.
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h3 className="font-semibold text-amber-900 mb-2">Oceń {isClient ? 'wykonawcę' : 'klienta'}</h3>
+            <p className="text-sm text-amber-800 mb-3">
+              Pomóż innym użytkownikom - zostaw opinię o {isClient ? 'wykonawcy' : 'kliencie'}.
+            </p>
+            <button
+              onClick={onRate}
+              className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium"
+            >
+              Dodaj ocenę
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4283,6 +4334,13 @@ export default function OrderDetails() {
     return false;
   })();
 
+  const hasMyOrderRating = userHasSubmittedOrderRating({
+    order,
+    userId: currentUserId,
+    isClient,
+    isProvider,
+  });
+
   // (Debug log usunięty) – nie spamuj konsoli użytkownika
 
   const orderTitle = order?.service ? `Zlecenie: ${serviceLabel(order.service)} | Helpfli` : `Zlecenie #${order?._id?.slice(-6) || orderId} | Helpfli`;
@@ -4420,6 +4478,8 @@ export default function OrderDetails() {
               order={order}
               offersCount={order.offers?.length || 0}
               myOffer={myOffer}
+              hasMyRating={hasMyOrderRating}
+              isProviderView={isProvider}
             />
           </div>
         </div>
@@ -4745,6 +4805,12 @@ export default function OrderDetails() {
           {tab === "details" && isClient && order?.status === "completed" && (
             <ClientOrderCompletionHub
               order={order}
+              hasClientRated={userHasSubmittedOrderRating({
+                order,
+                userId: me?._id || me?.id || user?._id || user?.id,
+                isClient: true,
+                isProvider: false,
+              })}
               onScrollToAction={() =>
                 document
                   .getElementById("client-confirm-receipt")
@@ -5177,6 +5243,7 @@ export default function OrderDetails() {
                         isProvider={true}
                         onRate={() => setOpenRate(true)}
                         showAiHint={showStageAiHint}
+                        hasMyRating={hasMyOrderRating}
                       />
                     );
                   }
@@ -5514,6 +5581,7 @@ export default function OrderDetails() {
                         isLoadingConfirmReceipt={confirmingReceipt}
                         showAiHint={showStageAiHint}
                         useCompletionHubLayout={isClient && order?.status === "completed"}
+                        hasMyRating={hasMyOrderRating}
                       />
                     );
                   }
@@ -5572,7 +5640,18 @@ export default function OrderDetails() {
                   </div>
                 )}
 
-                {["done", "completed", "closed", "released", "rated"].includes(order.status) && (
+                {["done", "completed", "closed", "released", "rated"].includes(order.status) &&
+                  (hasMyOrderRating ? (
+                    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span className="text-lg leading-none">✓</span>
+                        {isProvider ? "Wystawiłeś ocenę klienta" : "Wystawiłeś ocenę wykonawcy"}
+                      </div>
+                      <p className="mt-1 text-xs text-emerald-800">
+                        Dziękujemy — Twoja opinia jest zapisana i widoczna w profilu odbiorcy.
+                      </p>
+                    </div>
+                  ) : (
                   <div className="mt-4">
                     <button
                       onClick={() => setOpenRate(true)}
@@ -5581,7 +5660,7 @@ export default function OrderDetails() {
                       {isProvider ? "Oceń klienta" : "Oceń wykonawcę"}
                     </button>
                   </div>
-                )}
+                  ))}
 
                 {isProvider && (
                   <div className="mt-4">

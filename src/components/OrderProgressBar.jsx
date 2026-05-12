@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, CreditCard, Package, CheckSquare, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, CreditCard, Package, CheckSquare, XCircle, AlertCircle, Star } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 // Etapy dla klienta
@@ -21,20 +21,40 @@ const PROVIDER_STAGES = [
   { key: 'completed', label: 'Zakończone', icon: CheckSquare, color: 'gray' },
 ];
 
-export default function OrderProgressBar({ order, offersCount = 0, myOffer = null }) {
+const RATING_STAGE = { key: 'rated', label: 'Ocena', icon: Star, color: 'emerald' };
+
+function appendRatingStage(stages, order) {
+  if (!order?.status) return stages;
+  if (!['completed', 'released', 'rated'].includes(order.status)) return stages;
+  if (stages.some((s) => s.key === 'rated')) return stages;
+  return [...stages, RATING_STAGE];
+}
+
+export default function OrderProgressBar({
+  order,
+  offersCount = 0,
+  myOffer = null,
+  /** Z OrderDetails: czy użytkownik ma już wpis w order.ratings dla tej roli */
+  hasMyRating = false,
+  /** Nadpisanie roli widoku (np. owner firmy = panel wykonawcy) */
+  isProviderView: isProviderViewProp,
+}) {
   const { user } = useAuth();
-  const isProvider = user?.role === 'provider';
+  const isProvider =
+    isProviderViewProp !== undefined ? Boolean(isProviderViewProp) : user?.role === 'provider';
   
   // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
   const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
   
   // Wybierz odpowiednie etapy w zależności od roli i metody płatności
-  let STAGES = isProvider ? PROVIDER_STAGES : CLIENT_STAGES;
+  let STAGES = isProvider ? [...PROVIDER_STAGES] : [...CLIENT_STAGES];
   
   // Jeśli płatność jest zewnętrzna, usuń etap "funded" z listy etapów
   if (isExternalPayment) {
     STAGES = STAGES.filter(stage => stage.key !== 'funded');
   }
+
+  STAGES = appendRatingStage(STAGES, order);
 
   const getCurrentStage = () => {
     if (isProvider) {
@@ -52,7 +72,10 @@ export default function OrderProgressBar({ order, offersCount = 0, myOffer = nul
         
         // Jeśli zlecenie zakończone - sprawdź czy moja oferta była zaakceptowana
         if (orderStatus === 'completed' || orderStatus === 'rated' || orderStatus === 'released') {
-          return isMyOfferAccepted ? 'completed' : 'rejected';
+          if (!isMyOfferAccepted) return 'rejected';
+          if (hasMyRating || orderStatus === 'rated') return 'rated';
+          if (orderStatus === 'released') return 'rated';
+          return 'completed';
         }
         
         // Jeśli w realizacji - sprawdź czy moja oferta była zaakceptowana
@@ -97,8 +120,12 @@ export default function OrderProgressBar({ order, offersCount = 0, myOffer = nul
       return 'awaiting';
     }
     
-    // Dla klienta - standardowa logika
-    if (order.status === 'completed' || order.status === 'rated' || order.status === 'released') return 'completed';
+    // Dla klienta - standardowa logika (+ opcjonalny etap „Ocena”)
+    if (order.status === 'completed' || order.status === 'rated' || order.status === 'released') {
+      if (hasMyRating || order.status === 'rated') return 'rated';
+      if (order.status === 'released') return 'rated';
+      return 'completed';
+    }
     if (order.status === 'in_progress') return 'in_progress';
     if (order.status === 'funded' || order.paymentStatus === 'succeeded' || order.paidInSystem) return 'funded';
     if (order.status === 'accepted' || order.selectedOffer || order.acceptedOfferId) return 'accepted';
@@ -134,11 +161,18 @@ export default function OrderProgressBar({ order, offersCount = 0, myOffer = nul
         {/* Linia wypełniona */}
         <div 
           className="absolute top-4 left-0 h-0.5 bg-blue-500 z-0 transition-all duration-500"
-          style={{ width: currentIndex >= 0 ? `${(currentIndex / (STAGES.length - 1)) * 100}%` : '0%' }}
+          style={{ width: currentIndex >= 0 ? `${(currentIndex / Math.max(1, STAGES.length - 1)) * 100}%` : '0%' }}
         />
 
         {STAGES.map((stage, index) => {
-          const status = getStageStatus(index);
+          let status = getStageStatus(index);
+          if (
+            stage.key === 'rated' &&
+            (hasMyRating || order?.status === 'rated') &&
+            status === 'current'
+          ) {
+            status = 'completed';
+          }
           const Icon = stage.icon;
           
           let bgColor = 'bg-slate-100';
