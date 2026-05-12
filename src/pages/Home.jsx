@@ -1024,16 +1024,16 @@ export default function Home() {
                 return next;
               });
             }}
-            className="pointer-events-auto fixed z-[1200] flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            className="pointer-events-auto fixed z-[1200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
             style={{
               right: "max(0.75rem, env(safe-area-inset-right, 0px))",
               bottom: mapMobileImmersive
                 ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
                 : !user
-                  ? "max(env(safe-area-inset-bottom, 0px), 0.75rem)"
+                  ? "calc(0.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))"
                   : compare.items.length
-                    ? "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 5.5rem)"
-                    : "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 0.75rem)",
+                    ? "calc(4.75rem + 3.375rem + 5.5rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))"
+                    : "calc(4.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
             }}
             aria-pressed={mapMobileImmersive}
             aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}

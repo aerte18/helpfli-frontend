@@ -274,7 +274,7 @@ body.has-mobile-tab {
   bottom: var(--qs-vv-bottom-offset, 0px);
 }
 
-/* Elementy fixed nad tab barem — ten sam offset co przy pasku */
+/* Elementy fixed nad tab barem — ten sam offset co przy pasku (FAB AI: .qs-fixed-above-mobile-tab + ~3rem wysokości) */
 .qs-fixed-above-mobile-tab {
   bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
 }

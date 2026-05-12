@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -496,7 +496,6 @@ export default function ProviderHome() {
   });
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
-  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(false);
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
 
   const [mapSize, setMapSize] = useState(() => {
@@ -583,7 +582,6 @@ export default function ProviderHome() {
 
   useEffect(() => {
     if (viewMode !== "map" || showAdvancedFilters) {
-      setMapFiltersCollapsed(false);
       setIsMobileViewMenuOpen(false);
       setIsOrderListExpanded(false);
       setMapMobileImmersive(false);
@@ -1841,31 +1839,43 @@ export default function ProviderHome() {
           }}
         >
           {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive flex shrink-0 items-center justify-between gap-2 border-b border-white/30 bg-slate-100/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
-              <span className="truncate text-xs font-semibold text-slate-800">
-                {mapFiltersCollapsed ? "Mapa — rozwiń filtry" : "Filtry nad mapą"}
+            <div className="qs-home-map-shell-interactive flex shrink-0 items-center gap-2 border-b border-slate-200/40 bg-white/90 px-2 py-1 backdrop-blur-md">
+              <span className="min-w-0 flex-1 truncate text-[11px] leading-tight text-slate-700">
+                <span className="font-semibold text-slate-800">{list.length}</span>{" "}
+                {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
+                <span className="font-normal text-slate-500"> · {user?.location || "Twoja okolica"}</span>
               </span>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({
+                      service: "any",
+                      maxDistance: 300,
+                      budgetMin: "",
+                      budgetMax: "",
+                      providerId: "any",
+                      paymentType: "any",
+                      offersStatus: "any",
+                      sortBy: "default",
+                    });
+                    setRecommendedOnly(false);
+                  }}
+                  className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm"
+                >
+                  Wyczyść
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setMapFiltersCollapsed((v) => !v)}
-                className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                aria-expanded={!mapFiltersCollapsed}
+                onClick={() => setShowAdvancedFilters(true)}
+                className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
               >
-                {mapFiltersCollapsed ? (
-                  <>
-                    <ChevronDown className="h-4 w-4" aria-hidden />
-                    Rozwiń
-                  </>
-                ) : (
-                  <>
-                    <ChevronUp className="h-4 w-4" aria-hidden />
-                    Zwiń
-                  </>
-                )}
+                Filtry
               </button>
             </div>
           )}
-          {(!isMobileViewport || !mapFiltersCollapsed) && (
+          {!isMobileViewport && (
             <div className="qs-home-map-shell-interactive relative max-h-[min(38vh,20rem)] shrink-0 overflow-y-auto border-b border-gray-200/20 bg-white shadow-sm sm:max-h-none sm:overflow-visible">
               {hasActiveFilters && (
                 <button
@@ -1968,16 +1978,15 @@ export default function ProviderHome() {
             onClick={() => {
               setMapMobileImmersive((v) => {
                 const next = !v;
-                if (next) setMapFiltersCollapsed(true);
                 return next;
               });
             }}
-            className="pointer-events-auto fixed z-[1200] flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            className="pointer-events-auto fixed z-[1200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
             style={{
               right: "max(0.75rem, env(safe-area-inset-right, 0px))",
               bottom: mapMobileImmersive
                 ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
-                : "calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px) + 0.75rem)",
+                : "calc(4.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
             }}
             aria-pressed={mapMobileImmersive}
             aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
