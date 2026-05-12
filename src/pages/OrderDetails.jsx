@@ -564,12 +564,17 @@ function NextStepBanner({
     if (!presentation) {
       return null;
     }
+    if (status === "completed") {
+      return null;
+    }
     title = `Następny krok: ${presentation.nextStepLabel}`;
     description = presentation.nextStepHint;
-    cta =
-      presentation.nextStepCta === "Przejdź do ofert" || presentation.nextStepCta === "Przejdź do płatności"
-        ? presentation.nextStepCta
-        : "";
+    const ctaLabel = presentation.nextStepCta || "";
+    const ctaShows =
+      ctaLabel === "Przejdź do ofert" ||
+      ctaLabel === "Przejdź do płatności" ||
+      ctaLabel === "Przejdź do szczegółów";
+    cta = ctaShows ? ctaLabel : "";
     tone = presentation.tone || "indigo";
   } else if (isProvider && isAssignedProvider) {
     providerPresentation = getProviderOrderPresentation({
@@ -606,7 +611,21 @@ function NextStepBanner({
         {cta && isClient && (
           <button
             type="button"
-            onClick={cta === "Przejdź do ofert" ? onGoToOffers : onGoToPayment}
+            onClick={() => {
+              if (cta === "Przejdź do ofert") {
+                onGoToOffers?.();
+                return;
+              }
+              if (cta === "Przejdź do płatności") {
+                onGoToPayment?.();
+                return;
+              }
+              if (cta === "Przejdź do szczegółów") {
+                document
+                  .getElementById("client-confirm-receipt")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            }}
             className="rounded-lg bg-white/90 px-3 py-2 text-sm font-medium border border-current/20 hover:bg-white shrink-0"
           >
             {cta}
@@ -1959,6 +1978,9 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
   const { push: toast } = useToast();
   const navigate = useNavigate();
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
+  const hasActiveDisputeCase =
+    order.status === "disputed" ||
+    ["reported", "refund_requested"].includes(order.disputeStatus);
 
   const handleAddNote = async () => {
     if (!notes.trim()) return;
@@ -2261,6 +2283,21 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
               </p>
             </div>
 
+            {hasActiveDisputeCase && (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <h3 className="font-semibold text-orange-900 mb-2">Centrum sprawy</h3>
+                <p className="text-sm text-orange-800 mb-3">
+                  Trwa sprawa (spór / mediacja). Możesz pisać z klientem, złożyć lub odpowiedzieć na propozycję ugody albo przekazać sprawę do Helpfli.
+                </p>
+                <Link
+                  to={`/orders/${orderId}/sprawa`}
+                  className="flex w-full items-center justify-center rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
+                >
+                  Otwórz centrum sprawy
+                </Link>
+              </div>
+            )}
+
             {/* Notatki dla providera */}
             <div className="p-4 bg-slate-50 rounded-lg">
               <h3 className="font-semibold text-slate-900 mb-2">Dodaj notatkę</h3>
@@ -2342,9 +2379,99 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
   );
 }
 
-function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId, onRefresh, showAiHint = true }) {
+/** Jedna karta „następne kroki” dla klienta po zakończeniu przez wykonawcę — zastępuje rozproszone banery (NextStep + gwarancja). */
+function ClientOrderCompletionHub({ order, onScrollToAction }) {
+  if (!order || order.status !== "completed") return null;
+  const eligible = order.eligibleForGuarantee === true;
+  const reasons = order.guaranteeReasons || [];
+  const isExternal =
+    order.paymentMethod === "external" || order.paymentPreference === "external";
+
+  return (
+    <div className="mb-5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50/80 p-5 shadow-sm ring-1 ring-slate-100/80">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Następne kroki</p>
+            <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">Domknij zlecenie</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+              {isExternal
+                ? "Rozliczenie było poza systemem Helpfli — w aplikacji potwierdzasz tylko, że odebrałeś usługę, i możesz ocenić wykonawcę."
+                : "Wykonawca zakończył prace. Potwierdź odbiór, aby domknąć rozliczenie w systemie, potem zostaw krótką opinię."}
+            </p>
+          </div>
+          <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700 marker:font-semibold">
+            <li className="pl-1">
+              <span className="font-medium text-slate-900">Potwierdź odbiór</span>
+              {isExternal
+                ? " — jeśli wykonanie jest zgodne z ustaleniami."
+                : " — wtedy zwalniamy rozliczenie zgodnie z płatnością w Helpfli."}
+            </li>
+            <li className="pl-1">
+              <span className="font-medium text-slate-900">Oceń wykonawcę</span> — pomaga innym wybrać dobrego specjalistę.
+            </li>
+          </ol>
+          <div
+            className={`rounded-lg border px-3 py-2.5 text-xs leading-snug ${
+              eligible
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            {eligible ? (
+              <span>
+                <span className="font-semibold">Helpfli Protect</span> — przy sporze lub problemie możesz skorzystać z narzędzi ochrony zgodnie z regulaminem.
+              </span>
+            ) : (
+              <span>
+                <span className="font-semibold">Bez pełnej ochrony Helpfli</span>
+                {reasons.length > 0 ? ` — ${reasons.slice(0, 3).join(" · ")}` : ""}. Sporu ani zwrotu przez platformę nie złożysz.
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="shrink-0 lg:pt-1">
+          <button
+            type="button"
+            onClick={onScrollToAction}
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 lg:w-auto"
+          >
+            Przejdź do potwierdzenia
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderCompletedStageView({
+  order,
+  orderId,
+  isClient,
+  isProvider,
+  onRate,
+  onConfirmReceipt,
+  isLoadingConfirmReceipt = false,
+  onRefresh,
+  showAiHint = true,
+  /** Gdy true: jedna karta „hub” nad widokiem — tu bez duplikatu zielonego podsumowania */
+  useCompletionHubLayout = false,
+}) {
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState(null);
+
+  const isExternalPayment =
+    order?.paymentMethod === "external" || order?.paymentPreference === "external";
+  const needsAddonPaymentFirst =
+    isClient &&
+    !isExternalPayment &&
+    order?.completionType === "with_payment" &&
+    order?.additionalPaymentStatus !== "succeeded";
+  const showClientConfirmReceipt =
+    isClient &&
+    order?.status === "completed" &&
+    typeof onConfirmReceipt === "function" &&
+    !needsAddonPaymentFirst;
 
   const handleInvoiceUpload = async (e) => {
     e.preventDefault();
@@ -2392,22 +2519,34 @@ function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId,
         </div>
         <div>
           <h2 className="text-base font-semibold text-slate-900">Zakończone</h2>
-          <p className="text-xs text-slate-500">Wszystko gotowe</p>
+          <p className="text-xs text-slate-500">
+            {isClient && order.status === "completed"
+              ? "Potwierdź odbiór, aby domknąć zlecenie"
+              : isProvider && order.status === "completed"
+                ? "Oczekiwanie na klienta"
+                : "Wszystko gotowe"}
+          </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-emerald-600 text-xl">✓</span>
-            <span className="font-semibold text-emerald-900">Zlecenie zakończone pomyślnie</span>
+        {!(useCompletionHubLayout && isClient && order.status === "completed") && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-emerald-600 text-xl">✓</span>
+              <span className="font-semibold text-emerald-900">Zlecenie zakończone pomyślnie</span>
+            </div>
+            <p className="text-sm text-emerald-800">
+              {isClient
+                ? order.status === "completed"
+                  ? "Wykonawca oznaczył realizację jako zakończoną. Jeśli wszystko jest zgodnie z ustaleniami, potwierdź odbiór poniżej — potem możesz ocenić wykonawcę."
+                  : "Zlecenie jest domknięte po Twojej stronie. Możesz ocenić wykonawcę."
+                : order.status === "completed"
+                  ? "Oczekujemy na potwierdzenie odbioru przez klienta — wtedy domkniemy rozliczenie."
+                  : "Zlecenie zostało zakończone i zaakceptowane przez klienta. Środki zostaną wypłacone po potwierdzeniu odbioru."}
+            </p>
           </div>
-          <p className="text-sm text-emerald-800">
-            {isClient 
-              ? 'Zlecenie zostało zakończone i zaakceptowane. Jeśli wszystko jest w porządku, możesz ocenić wykonawcę.'
-              : 'Zlecenie zostało zakończone i zaakceptowane przez klienta. Środki zostaną wypłacone po potwierdzeniu odbioru.'}
-          </p>
-        </div>
+        )}
 
         {/* Informacje o zakończeniu */}
         {order.completionType && order.completionType !== 'simple' && (
@@ -2445,18 +2584,43 @@ function OrderCompletedStageView({ order, isClient, isProvider, onRate, orderId,
 
         {/* Status oczekiwania na wypłatę */}
         {order.status === 'completed' && order.status !== 'released' && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div
+            id="client-confirm-receipt"
+            className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
+          >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-blue-600 text-xl">⏳</span>
               <span className="font-semibold text-blue-900">
-                {isClient ? 'Oczekuje na potwierdzenie odbioru' : 'Oczekuje na potwierdzenie odbioru przez klienta'}
+                {isClient ? 'Twoja kolej: potwierdź odbiór' : 'Oczekuje na potwierdzenie odbioru przez klienta'}
               </span>
             </div>
             <p className="text-sm text-blue-800">
-              {isClient 
-                ? 'Potwierdź odbiór zlecenia, aby wypłacić środki wykonawcy.'
-                : 'Klient musi potwierdzić odbiór zlecenia, aby środki zostały wypłacone.'}
+              {isClient
+                ? isExternalPayment
+                  ? 'Rozliczenie było poza systemem Helpfli — potwierdzasz wyłącznie, że odebrałeś usługę. Żadnych środków nie przechodzi przez platformę.'
+                  : 'Po potwierdzeniu odbioru domykamy rozliczenie w systemie i możemy przekazać wynagrodzenie wykonawcy (zgodnie z płatnością w Helpfli).'
+                : 'Klient musi potwierdzić odbiór zlecenia, aby domknąć rozliczenie.'}
             </p>
+            {showClientConfirmReceipt && (
+              <button
+                type="button"
+                onClick={onConfirmReceipt}
+                disabled={isLoadingConfirmReceipt}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingConfirmReceipt && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isLoadingConfirmReceipt
+                  ? 'Przetwarzanie…'
+                  : isExternalPayment
+                    ? 'Potwierdź odbiór realizacji'
+                    : 'Potwierdź odbiór i domknij rozliczenie'}
+              </button>
+            )}
+            {isClient && needsAddonPaymentFirst && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Wymagana jest dopłata ustalona przy zakończeniu — najpierw ją opłać (np. w powiadomieniu e-mail lub po powrocie do etapu z dopłatą), potem wróć tutaj i potwierdź odbiór.
+              </p>
+            )}
           </div>
         )}
 
@@ -3530,10 +3694,15 @@ export default function OrderDetails() {
       paymentStatus: 'succeeded',
     };
     setOrder(optimisticOrder);
+
+    const extPay =
+      order?.paymentMethod === "external" || order?.paymentPreference === "external";
     
     toast({ 
       title: "Odbiór potwierdzony", 
-      description: "Środki zostały wypłacone wykonawcy",
+      description: extPay
+        ? "Zlecenie jest domknięte po Twojej stronie."
+        : "Rozliczenie w systemie zostało domknięte — wykonawca zostanie powiadomiony.",
       variant: "success"
     });
     
@@ -3780,9 +3949,10 @@ export default function OrderDetails() {
       setOrder(fresh);
       toast({ 
         title: "Spór zgłoszony", 
-        description: "Nasz zespół rozpatrzy go w ciągu 24h",
+        description: "Otwarto centrum sprawy — możesz pisać z drugą stroną i złożyć propozycję ugody.",
         variant: "success"
       });
+      navigate(`/orders/${orderId}/sprawa`);
     } catch (e) {
       toast({ 
         title: "Błąd zgłaszania sporu", 
@@ -4005,6 +4175,10 @@ export default function OrderDetails() {
 
   const orderTitle = order?.service ? `Zlecenie: ${serviceLabel(order.service)} | Helpfli` : `Zlecenie #${order?._id?.slice(-6) || orderId} | Helpfli`;
 
+  const hasActiveDisputeCase =
+    order.status === "disputed" ||
+    ["reported", "refund_requested"].includes(order.disputeStatus);
+
   return (
     <div className="min-h-screen bg-[var(--qs-color-bg-soft)] py-4 md:py-6">
       <Helmet>
@@ -4087,6 +4261,26 @@ export default function OrderDetails() {
           </div>
         </div>
       </div>
+
+      {hasActiveDisputeCase && (
+        <div className="w-full border-b border-orange-200 bg-orange-50">
+          <div className="mx-auto max-w-6xl px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <AlertCircle className="w-5 h-5 text-orange-700 shrink-0 mt-0.5" aria-hidden />
+              <div className="text-sm text-orange-950">
+                <span className="font-semibold">Aktywna sprawa (spór / reklamacja).</span>{" "}
+                Negocjacja, ugoda i eskalacja do Helpfli — w jednym miejscu.
+              </div>
+            </div>
+            <Link
+              to={`/orders/${orderId}/sprawa`}
+              className="shrink-0 inline-flex items-center justify-center rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+            >
+              Otwórz centrum sprawy
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* PROGRESS BAR */}
       {tab === "details" && (
@@ -4406,8 +4600,8 @@ export default function OrderDetails() {
             </div>
           )}
 
-          {/* BANNER GWARANCJI - tylko dla zakładki details */}
-          {tab === "details" && (
+          {/* BANNER GWARANCJI - tylko dla zakładki details; przy kliencie+completed hub zastępuje ten blok */}
+          {tab === "details" && !(isClient && order?.status === "completed") && (
             <div className="mb-5">
               <GuaranteeBanner
                 eligible={!!order.eligibleForGuarantee}
@@ -4416,6 +4610,17 @@ export default function OrderDetails() {
                 orderStatus={order.status}
               />
             </div>
+          )}
+
+          {tab === "details" && isClient && order?.status === "completed" && (
+            <ClientOrderCompletionHub
+              order={order}
+              onScrollToAction={() =>
+                document
+                  .getElementById("client-confirm-receipt")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            />
           )}
 
           {/* TAB: OFERTY (tylko dla providera) */}
@@ -4834,6 +5039,7 @@ export default function OrderDetails() {
                     return (
                       <OrderCompletedStageView 
                         order={order}
+                        orderId={orderId}
                         isClient={false}
                         isProvider={true}
                         onRate={() => setOpenRate(true)}
@@ -5167,10 +5373,14 @@ export default function OrderDetails() {
                     return (
                       <OrderCompletedStageView 
                         order={order}
+                        orderId={orderId}
                         isClient={isClient}
                         isProvider={isProvider}
                         onRate={() => setOpenRate(true)}
+                        onConfirmReceipt={confirmReceipt}
+                        isLoadingConfirmReceipt={confirmingReceipt}
                         showAiHint={showStageAiHint}
+                        useCompletionHubLayout={isClient && order?.status === "completed"}
                       />
                     );
                   }

@@ -1,6 +1,10 @@
 import { apiUrl } from "@/lib/apiUrl";
 // src/api/changeRequests.js
 
+function isValidMongoObjectId(id) {
+  return typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
+}
+
 export async function createChangeRequest({ token, orderId, payload }) {
   const res = await fetch(apiUrl(`/api/change-requests/orders/${orderId}/change-request`), {
     method: "POST",
@@ -44,6 +48,9 @@ export async function rejectChangeRequest({ token, changeRequestId, message }) {
 }
 
 export async function getChangeRequests({ token, orderId }) {
+  if (!isValidMongoObjectId(orderId)) {
+    return [];
+  }
   const res = await fetch(apiUrl(`/api/change-requests/order/${orderId}`), {
     headers: {
       "Content-Type": "application/json",

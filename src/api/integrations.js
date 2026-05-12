@@ -1,5 +1,5 @@
 // API helpers dla integracji zewnętrznych
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { apiUrl } from "@/lib/apiUrl";
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token');
@@ -11,11 +11,25 @@ function getAuthHeaders() {
 
 // ========== CALENDAR INTEGRATIONS ==========
 
-export async function connectCalendar(provider, code) {
-  const res = await fetch(`${API_URL}/api/integrations/calendar/connect`, {
+export async function getCalendarAuthUrl(provider, redirectUri) {
+  const params = new URLSearchParams();
+  if (redirectUri) params.set('redirectUri', redirectUri);
+
+  const res = await fetch(apiUrl(`/api/integrations/calendar/${provider}/auth-url?${params.toString()}`), {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Błąd generowania linku autoryzacji');
+  }
+  return res.json();
+}
+
+export async function connectCalendar(provider, code, redirectUri) {
+  const res = await fetch(apiUrl(`/api/integrations/calendar/${provider}/callback`), {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ provider, code }),
+    body: JSON.stringify({ code, redirectUri }),
   });
   if (!res.ok) {
     const error = await res.json();
@@ -25,7 +39,7 @@ export async function connectCalendar(provider, code) {
 }
 
 export async function getCalendarIntegrations() {
-  const res = await fetch(`${API_URL}/api/integrations/calendar`, {
+  const res = await fetch(apiUrl('/api/integrations/calendar'), {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Błąd pobierania integracji');
@@ -33,7 +47,7 @@ export async function getCalendarIntegrations() {
 }
 
 export async function disconnectCalendar(integrationId) {
-  const res = await fetch(`${API_URL}/api/integrations/calendar/${integrationId}`, {
+  const res = await fetch(apiUrl(`/api/integrations/calendar/${integrationId}`), {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -42,7 +56,7 @@ export async function disconnectCalendar(integrationId) {
 }
 
 export async function syncCalendar(integrationId) {
-  const res = await fetch(`${API_URL}/api/integrations/calendar/${integrationId}/sync`, {
+  const res = await fetch(apiUrl(`/api/integrations/calendar/${integrationId}/sync`), {
     method: 'POST',
     headers: getAuthHeaders(),
   });
@@ -53,7 +67,7 @@ export async function syncCalendar(integrationId) {
 // ========== PAYMENT INTEGRATIONS ==========
 
 export async function getPaymentMethods() {
-  const res = await fetch(`${API_URL}/api/integrations/payments/methods`, {
+  const res = await fetch(apiUrl('/api/integrations/payments/methods'), {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Błąd pobierania metod płatności');
@@ -61,7 +75,7 @@ export async function getPaymentMethods() {
 }
 
 export async function setDefaultPaymentMethod(method) {
-  const res = await fetch(`${API_URL}/api/integrations/payments/default`, {
+  const res = await fetch(apiUrl('/api/integrations/payments/default'), {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ method }),

@@ -99,10 +99,12 @@ export function getClientOrderPresentation(order) {
     return {
       label: "Do potwierdzenia",
       badgeClass: "bg-emerald-100 text-emerald-800",
-      stageDescription: "Zakończone - potwierdź odbiór i oceń wykonawcę",
+      stageDescription: "Wykonawca zakończył — potwierdź odbiór i oceń",
       nextStepLabel: "Potwierdź odbiór",
-      nextStepHint: "Sprawdź rezultat i domknij zlecenie.",
-      nextStepCta: "Szczegóły",
+      nextStepHint: isExternalPayment
+        ? "Na dole strony (Szczegóły) użyj zielonego przycisku „Potwierdź odbiór realizacji”, potem możesz dodać opinię."
+        : "Na dole strony (Szczegóły) potwierdź odbiór — wtedy domykamy rozliczenie w systemie. Następnie oceń wykonawcę.",
+      nextStepCta: "Przejdź do szczegółów",
       nextStepHref: `/orders/${orderId}?tab=details`,
       tone: "green",
     };

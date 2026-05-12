@@ -1,9 +1,8 @@
 // Integracje kalendarzowe (Google, Outlook)
-import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect } from 'react';
 import { 
   getCalendarIntegrations, 
-  connectCalendar, 
+  getCalendarAuthUrl,
   disconnectCalendar,
   syncCalendar
 } from '../../api/integrations';
@@ -32,8 +31,11 @@ export default function CalendarIntegrations() {
 
   const handleConnect = async (provider) => {
     try {
-      // Otwórz okno OAuth
-      const authUrl = apiUrl(`/api/integrations/calendar/auth/${provider}`);
+      const redirectUri = `${window.location.origin}/integrations/calendar/callback`;
+      localStorage.setItem('pendingCalendarProvider', provider);
+      localStorage.setItem('pendingCalendarRedirectUri', redirectUri);
+
+      const { authUrl } = await getCalendarAuthUrl(provider, redirectUri);
       const popup = window.open(
         authUrl,
         'Calendar Auth',
@@ -42,7 +44,7 @@ export default function CalendarIntegrations() {
 
       // Nasłuchuj na callback
       const checkClosed = setInterval(() => {
-        if (popup.closed) {
+        if (!popup || popup.closed) {
           clearInterval(checkClosed);
           fetchIntegrations();
         }

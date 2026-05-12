@@ -33,12 +33,14 @@ import CreateOrder from "./pages/CreateOrder";
 import RateUser from "./pages/RateUser";
 import UserRatings from "./pages/UserRatings";
 import OrderDetails from "./pages/OrderDetails";
+import OrderDisputeCase from "./pages/OrderDisputeCase";
 import NearbyProvidersPage from "./pages/NearbyProvidersPage";
 import ProviderProfile from './pages/ProviderProfile';
 import ProvidersPage from "./pages/ProvidersPage";
 import OrderChat from "./pages/OrderChat";
 import Messages from "./pages/Messages";
 import NotificationsPage from "./pages/NotificationsPage";
+import CalendarCallback from "./pages/integrations/CalendarCallback";
 
 // Company management pages
 import CompanyDashboard from "./pages/company/CompanyDashboard";
@@ -207,6 +209,7 @@ function App() {
           <Route path="/account/subscriptions" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
           <Route path="/account/boosts" element={<PrivateRoute><Boosts /></PrivateRoute>} />
           <Route path="/account/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
+          <Route path="/integrations/calendar/callback" element={<PrivateRoute><CalendarCallback /></PrivateRoute>} />
           {/* Legacy redirecty */}
           <Route path="/billing" element={<Navigate to="/account/wallet" replace />} />
           <Route path="/subscriptions" element={<Navigate to="/account/subscriptions" replace />} />
@@ -231,6 +234,7 @@ function App() {
           <Route path="/my-orders" element={<MyOrders />} />
           <Route path="/orders/my" element={<MyOrders />} />
           <Route path="/orders/:orderId" element={<OrderDetails />} />
+          <Route path="/orders/:orderId/sprawa" element={<OrderDisputeCase />} />
           <Route path="/orders/:orderId/:tabSlug" element={<LegacyOrderTabRedirect />} />
           <Route path="/orders/:orderId/chat" element={<OrderChat />} />
           <Route path="/rate-user/:userId" element={<RateUser />} />
