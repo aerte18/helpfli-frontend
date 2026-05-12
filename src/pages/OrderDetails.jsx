@@ -35,6 +35,11 @@ import { serviceLabel } from "../utils/serviceLabels";
 import { getClientOrderPresentation, getProviderOrderPresentation } from "../utils/orderFlowLabels";
 import { openAI } from "../ai/chat/bus";
 
+/** Spór / zwrot przez Helpfli tylko przy aktywnej ochronie (zgodnie z GET order + GuaranteeBanner). */
+function isHelpfliProtectionToolsEnabled(order) {
+  return !!(order && order.eligibleForGuarantee === true);
+}
+
 const authHeaders = () => {
   const token = localStorage.getItem("token");
   return {
@@ -1690,7 +1695,9 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                     </div>
                     <ul className="text-xs text-slate-600 space-y-1">
                       <li>• Obsługiwane: karta, BLIK, Przelewy24</li>
-                      <li>• W razie problemu możesz zgłosić spór i wnioskować o zwrot</li>
+                      <li>
+                        • Po opłacie w systemie masz ochronę Helpfli (spór, zwrot) — przy płatności poza systemem rozliczasz się bezpośrednio z wykonawcą.
+                      </li>
                     </ul>
                   </>
                 )}
@@ -1829,6 +1836,7 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
 }
 
 function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoadingStartWork = false, showAiHint = true }) {
+  const protectionTools = isHelpfliProtectionToolsEnabled(order);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="funded" /></div>}
@@ -1900,11 +1908,19 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
         </div>
 
         {/* Gwarancja Helpfli dla klienta */}
-        {isClient && (
+        {isClient && protectionTools && (
           <div className="p-3 bg-white rounded border border-green-200">
             <p className="text-xs text-green-900 font-medium mb-1">🛡️ Gwarancja Helpfli aktywna</p>
             <p className="text-xs text-green-700">
               Masz pełną ochronę: możliwość sporu, zwroty i wsparcie Helpfli w przypadku problemów.
+            </p>
+          </div>
+        )}
+        {isClient && !protectionTools && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-medium text-amber-900">Ochrona Helpfli nie obejmuje tego zlecenia</p>
+            <p className="mt-1 text-xs text-amber-800">
+              Przy rozliczeniu poza systemem lub bez spełnionych warunków ochrony spory i zwroty nie są obsługiwane przez platformę — ustalenia pozostają między Tobą a wykonawcą.
             </p>
           </div>
         )}
@@ -1942,6 +1958,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
   const [submitting, setSubmitting] = useState(false);
   const { push: toast } = useToast();
   const navigate = useNavigate();
+  const protectionTools = isHelpfliProtectionToolsEnabled(order);
 
   const handleAddNote = async () => {
     if (!notes.trim()) return;
@@ -1996,7 +2013,9 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
             <div className="p-4 bg-slate-50 rounded-lg">
               <h3 className="font-semibold text-slate-900 mb-2">Dodaj uwagę lub feedback</h3>
               <p className="text-xs text-gray-600 mb-3">
-                Jeśli masz uwagi dotyczące realizacji, możesz je tutaj zapisać. W przypadku problemów możesz zgłosić spór.
+                {protectionTools
+                  ? "Jeśli masz uwagi dotyczące realizacji, możesz je tutaj zapisać. W przypadku problemów z ochroną Helpfli możesz też zgłosić spór w sekcji poniżej."
+                  : "Jeśli masz uwagi dotyczące realizacji, możesz je tutaj zapisać. Przy tej formie rozliczenia spory i zwroty nie są obsługiwane przez Helpfli — skontaktuj się bezpośrednio z wykonawcą."}
               </p>
               <textarea
                 value={notes}
@@ -2014,34 +2033,43 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
               </button>
             </div>
 
-            {/* Gwarancja Helpfli */}
-            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-              <h3 className="font-semibold text-indigo-900 mb-2">🛡️ Gwarancja Helpfli</h3>
-              <p className="text-sm text-indigo-800 mb-3">
-                Jeśli masz problemy z realizacją, możesz:
-              </p>
-              <div className="space-y-2">
-                <button
-                  onClick={onReportDispute}
-                  disabled={isLoadingReportDispute}
-                  className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  {isLoadingReportDispute && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isLoadingReportDispute ? 'Zgłaszanie...' : 'Zgłoś spór'}
-                </button>
-                <button
-                  onClick={onRequestRefund}
-                  disabled={isLoadingRequestRefund}
-                  className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  {isLoadingRequestRefund && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isLoadingRequestRefund ? 'Przetwarzanie...' : 'Poproś o zwrot'}
-                </button>
+            {/* Gwarancja Helpfli — tylko przy aktywnej ochronie (spójnie z banerem u góry) */}
+            {protectionTools ? (
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <h3 className="font-semibold text-indigo-900 mb-2">🛡️ Gwarancja Helpfli</h3>
+                <p className="text-sm text-indigo-800 mb-3">Jeśli masz problemy z realizacją, możesz:</p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={onReportDispute}
+                    disabled={isLoadingReportDispute}
+                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    {isLoadingReportDispute && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isLoadingReportDispute ? "Zgłaszanie..." : "Zgłoś spór"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRequestRefund}
+                    disabled={isLoadingRequestRefund}
+                    className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    {isLoadingRequestRefund && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isLoadingRequestRefund ? "Przetwarzanie..." : "Poproś o zwrot"}
+                  </button>
+                </div>
+                <p className="text-xs text-indigo-700 mt-3">
+                  Helpfli rozpatrzy spór w ciągu 24h i pomoże rozwiązać problem.
+                </p>
               </div>
-              <p className="text-xs text-indigo-700 mt-3">
-                Helpfli rozpatrzy spór w ciągu 24h i pomoże rozwiązać problem.
-              </p>
-            </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <h3 className="font-semibold text-slate-900 mb-1">Ochrona Helpfli niedostępna</h3>
+                <p className="text-sm text-slate-600">
+                  Przy tym zleceniu nie korzystasz z pełnej ochrony Helpfli (np. płatność poza systemem lub brak warunków ochrony). Sporu ani zwrotu środków przez platformę nie złożysz — rozwiązuj kwestie bezpośrednio z wykonawcą lub przez czat.
+                </p>
+              </div>
+            )}
 
             {/* Sesja wideo (jeśli istnieje) */}
             {videoSession && (
@@ -2138,9 +2166,11 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                 </div>
 
                 <p className="text-sm text-emerald-800 mb-3">
-                  {order.completionType === 'with_payment' && !isExternalPayment
-                    ? 'Sprawdź szczegóły dopłaty. Możesz zaakceptować i zapłacić, lub wszcząć spór jeśli nie zgadzasz się z dopłatą.'
-                    : 'Sprawdź czy wszystko jest w porządku i potwierdź odbiór.'}
+                  {order.completionType === "with_payment" && !isExternalPayment
+                    ? protectionTools
+                      ? "Sprawdź szczegóły dopłaty. Możesz zaakceptować i zapłacić, lub wszcząć spór jeśli nie zgadzasz się z dopłatą."
+                      : "Sprawdź szczegóły dopłaty i zaakceptuj płatność dopłaty, jeśli się zgadzasz. Sporu przez Helpfli przy tym zleceniu nie złożysz — pełna ochrona nie jest aktywna."
+                    : "Sprawdź czy wszystko jest w porządku i potwierdź odbiór."}
                 </p>
 
                 <div className="space-y-2">
@@ -2190,14 +2220,17 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                           {isLoadingConfirmReceipt ? 'Potwierdzanie...' : 'Potwierdź odbiór i wypłać środki'}
                         </button>
                       )}
-                      <button
-                        onClick={onReportDispute}
-                        disabled={isLoadingReportDispute}
-                        className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                      >
-                        {isLoadingReportDispute && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {isLoadingReportDispute ? 'Zgłaszanie...' : 'Wszcząć spór'}
-                      </button>
+                      {protectionTools && (
+                        <button
+                          type="button"
+                          onClick={onReportDispute}
+                          disabled={isLoadingReportDispute}
+                          className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
+                        >
+                          {isLoadingReportDispute && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {isLoadingReportDispute ? "Zgłaszanie..." : "Wszcząć spór"}
+                        </button>
+                      )}
                     </>
                   ) : (
                     <button
@@ -3726,6 +3759,14 @@ export default function OrderDetails() {
   };
 
   const reportDispute = async () => {
+    if (!isHelpfliProtectionToolsEnabled(order)) {
+      toast({
+        title: "Ochrona Helpfli niedostępna",
+        description: "Przy tym zleceniu sporu przez platformę nie złożysz.",
+        variant: "warning",
+      });
+      return;
+    }
     setDisputeReason("");
     setShowDisputeConfirm(true);
   };
@@ -3754,6 +3795,14 @@ export default function OrderDetails() {
   };
 
   const requestRefund = async () => {
+    if (!isHelpfliProtectionToolsEnabled(order)) {
+      toast({
+        title: "Zwrot przez Helpfli niedostępny",
+        description: "Przy tym zleceniu wniosku o zwrot przez platformę nie złożysz.",
+        variant: "warning",
+      });
+      return;
+    }
     setShowRefundConfirm(true);
   };
 
