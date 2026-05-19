@@ -189,7 +189,9 @@ export default function CompleteOrderModal({ isOpen, onClose, onComplete, order 
                   <div className="flex-1">
                     <div className="font-medium text-slate-900">💰 Z dopłatą</div>
                     <div className="text-sm text-slate-600 mt-1">
-                      Jeśli wykonano dodatkowe prace poza zakresem umowy, możesz poprosić o dopłatę. Klient będzie mógł zaakceptować lub wszcząć spór.
+                      Jeśli wykonano dodatkowe prace poza zakresem umowy, możesz poprosić o dopłatę.{' '}
+                      <strong>Dopłatę opłaca wyłącznie klient</strong> w Helpfli — Ty nie płacisz w systemie.
+                      Klient może zaakceptować i zapłacić, albo wszcząć spór.
                     </div>
                     {completionType === 'with_payment' && (
                     <div className="mt-3 space-y-3">

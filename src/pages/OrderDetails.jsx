@@ -20,6 +20,8 @@ import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
 import CompleteOrderModal from "../components/CompleteOrderModal";
+import ClientCompletionReview from "../components/ClientCompletionReview";
+import { canClientConfirmReceipt } from "../utils/orderCompletion";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { createChangeRequest, acceptChangeRequest, rejectChangeRequest, getChangeRequests } from "../api/changeRequests";
 import { Clock, Banknote, FileText, MapPin, Loader2, Package, Briefcase, ShieldAlert, CheckCircle2, CreditCard, Settings, CheckSquare, Inbox, MessageSquare, AlertCircle, Copy, Check, Sparkles, ChevronDown } from "lucide-react";
@@ -2071,7 +2073,7 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
   );
 }
 
-function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onConfirmReceipt, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null, showAiHint = true }) {
+function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onConfirmReceipt, onAcceptCompletion, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingAcceptCompletion = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null, showAiHint = true }) {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { push: toast } = useToast();
@@ -2229,147 +2231,22 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
             )}
 
             {/* Potwierdzenie odbioru - gdy provider zakończył */}
-            {(order.status === 'completed' || order.completionNotes || order.completionType) && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <h3 className="font-semibold text-emerald-900 mb-2">Zlecenie zakończone przez wykonawcę</h3>
-                
-                {/* Sprawdź czy płatność jest zewnętrzna */}
-                {(() => {
-                  const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
-                  
-                  return (
-                    <>
-                      {/* Podsumowanie zakończenia */}
-                      <div className="mb-3 p-3 bg-white rounded border border-emerald-200">
-                        <p className="text-xs font-medium text-emerald-900 mb-2">Podsumowanie zakończenia:</p>
-                        {order.completionType === 'simple' && (
-                          <p className="text-sm text-emerald-800">✓ Zlecenie zostało wykonane zgodnie z umową.</p>
-                        )}
-                        {order.completionType === 'with_notes' && order.completionNotes && (
-                          <div>
-                            <p className="text-xs font-medium text-emerald-900 mb-1">📝 Uwagi od wykonawcy:</p>
-                            <p className="text-sm text-emerald-800">{order.completionNotes}</p>
-                          </div>
-                        )}
-                        {/* Dla płatności zewnętrznej nie pokazuj opcji dopłaty */}
-                        {order.completionType === 'with_payment' && !isExternalPayment && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-amber-900 mb-1">💰 Wymagana dopłata</p>
-                      {order.additionalAmount && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-amber-800">Kwota dopłaty:</span>
-                          <span className="font-semibold text-amber-900">{order.additionalAmount} zł</span>
-                        </div>
-                      )}
-                      {order.paymentReason && (
-                        <div>
-                          <p className="text-xs font-medium text-amber-900 mb-1">Uzasadnienie:</p>
-                          <p className="text-sm text-amber-800">{order.paymentReason}</p>
-                        </div>
-                      )}
-                      <div className="mt-2 pt-2 border-t border-amber-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-amber-800">Kwota bazowa:</span>
-                          <span className="font-medium">{order.acceptedOffer?.amount || order.acceptedOffer?.price || order.budget || 0} zł</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-amber-800">Dopłata:</span>
-                          <span className="font-medium">+{order.additionalAmount || 0} zł</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-amber-200 font-semibold">
-                          <span className="text-amber-900">Łącznie do zapłaty:</span>
-                          <span className="text-amber-900">{(parseFloat(order.acceptedOffer?.amount || order.acceptedOffer?.price || order.budget || 0) + parseFloat(order.additionalAmount || 0)).toFixed(2)} zł</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-sm text-emerald-800 mb-3">
-                  {order.completionType === "with_payment" && !isExternalPayment
-                    ? protectionTools
-                      ? "Sprawdź szczegóły dopłaty. Możesz zaakceptować i zapłacić, lub wszcząć spór jeśli nie zgadzasz się z dopłatą."
-                      : "Sprawdź szczegóły dopłaty i zaakceptuj płatność dopłaty, jeśli się zgadzasz. Sporu przez Helpfli przy tym zleceniu nie złożysz — pełna ochrona nie jest aktywna."
-                    : "Sprawdź czy wszystko jest w porządku i potwierdź odbiór."}
-                </p>
-
-                <div className="space-y-2">
-                  {order.completionType === 'with_payment' && !isExternalPayment ? (
-                    <>
-                      {order.additionalPaymentStatus === 'succeeded' && (
-                        <div className="w-full px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg text-sm font-medium text-center border border-emerald-200">
-                          Dopłata została opłacona. Możesz teraz potwierdzić odbiór.
-                        </div>
-                      )}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const token = localStorage.getItem("token");
-                            const res = await fetch(apiUrl('/api/payments/create-additional-intent'), {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`
-                              },
-                              body: JSON.stringify({ orderId, methodHint: 'card' })
-                            });
-                            const data = await res.json().catch(() => ({}));
-                            if (!res.ok) throw new Error(data?.message || 'Nie udało się utworzyć płatności dopłaty');
-                            window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
-                          } catch (error) {
-                            console.error('Błąd akceptacji dopłaty:', error);
-                            toast({ title: 'Błąd akceptacji dopłaty', description: getErrorMessage(error), variant: 'error' });
-                          }
-                        }}
-                        disabled={order.additionalPaymentStatus === 'succeeded' || order.additionalPaymentStatus === 'processing'}
-                        className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
-                      >
-                        {order.additionalPaymentStatus === 'succeeded'
-                          ? 'Dopłata opłacona'
-                          : order.additionalPaymentStatus === 'processing'
-                            ? 'Dopłata w trakcie płatności'
-                            : 'Zaakceptuj dopłatę i zapłać'}
-                      </button>
-                      {order.additionalPaymentStatus === 'succeeded' && (
-                        <button
-                          onClick={onConfirmReceipt}
-                          disabled={isLoadingConfirmReceipt}
-                          className="w-full px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          {isLoadingConfirmReceipt && <Loader2 className="w-4 h-4 animate-spin" />}
-                          {isLoadingConfirmReceipt ? 'Potwierdzanie...' : 'Potwierdź odbiór i wypłać środki'}
-                        </button>
-                      )}
-                      {protectionTools && (
-                        <button
-                          type="button"
-                          onClick={onReportDispute}
-                          disabled={isLoadingReportDispute}
-                          className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          {isLoadingReportDispute && <Loader2 className="w-4 h-4 animate-spin" />}
-                          {isLoadingReportDispute ? "Zgłaszanie..." : "Wszcząć spór"}
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={onConfirmReceipt}
-                      disabled={isLoadingConfirmReceipt}
-                      className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center gap-2"
-                    >
-                      {isLoadingConfirmReceipt && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {isLoadingConfirmReceipt 
-                        ? 'Potwierdzanie...' 
-                        : (isExternalPayment ? 'Potwierdź odbiór zlecenia' : 'Potwierdź odbiór i wypłać środki')}
-                    </button>
-                  )}
-                </div>
-              </>
-              );
-            })()}
-              </div>
+            {order.status === 'completed' && (
+              <ClientCompletionReview
+                order={order}
+                orderId={orderId}
+                protectionTools={protectionTools}
+                onAcceptCompletion={onAcceptCompletion}
+                onConfirmReceipt={onConfirmReceipt}
+                onReportDispute={onReportDispute}
+                isLoadingAccept={isLoadingAcceptCompletion}
+                isLoadingConfirmReceipt={isLoadingConfirmReceipt}
+                isLoadingReportDispute={isLoadingReportDispute}
+                toast={toast}
+                getErrorMessage={getErrorMessage}
+              />
             )}
+
           </>
         ) : (
           // WIDOK DLA PROVIDERA
@@ -2509,15 +2386,23 @@ function ClientOrderCompletionHub({ order, onScrollToAction, hasClientRated = fa
             <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
               {isExternal
                 ? "Rozliczenie było poza systemem Helpfli — w aplikacji potwierdzasz tylko, że odebrałeś usługę, i możesz ocenić wykonawcę."
-                : "Wykonawca zakończył prace. Potwierdź odbiór, aby domknąć rozliczenie w systemie, potem zostaw krótką opinię."}
+                : order.clientCompletionStatus === "pending"
+                  ? "Wykonawca zakończył prace. Zaakceptuj zakończenie (bez uwag, z uwagami lub z dopłatą — dopłatę opłaca klient), potem potwierdź odbiór i oceń wykonawcę."
+                  : "Zaakceptowałeś zakończenie. Potwierdź odbiór, aby domknąć rozliczenie w systemie, potem zostaw krótką opinię."}
             </p>
           </div>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700 marker:font-semibold">
             <li className="pl-1">
-              <span className="font-medium text-slate-900">Potwierdź odbiór</span>
+              <span className="font-medium text-slate-900">
+                {isExternal || order.clientCompletionStatus !== "pending"
+                  ? "Potwierdź odbiór"
+                  : "Zaakceptuj zakończenie i potwierdź odbiór"}
+              </span>
               {isExternal
                 ? " — jeśli wykonanie jest zgodne z ustaleniami."
-                : " — wtedy zwalniamy rozliczenie zgodnie z płatnością w Helpfli."}
+                : order.clientCompletionStatus === "pending"
+                  ? " — najpierw akceptacja (lub spór), przy dopłacie płaci klient."
+                  : " — wtedy zwalniamy rozliczenie zgodnie z płatnością w Helpfli."}
             </li>
             <li className="pl-1">
               <span className={`font-medium ${hasClientRated ? "text-emerald-800" : "text-slate-900"}`}>
@@ -2568,7 +2453,11 @@ function OrderCompletedStageView({
   isProvider,
   onRate,
   onConfirmReceipt,
+  onAcceptCompletion,
+  onReportDispute,
   isLoadingConfirmReceipt = false,
+  isLoadingAcceptCompletion = false,
+  isLoadingReportDispute = false,
   onRefresh,
   showAiHint = true,
   /** Gdy true: jedna karta „hub” nad widokiem — tu bez duplikatu zielonego podsumowania */
@@ -2578,19 +2467,18 @@ function OrderCompletedStageView({
 }) {
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceFile, setInvoiceFile] = useState(null);
+  const { push: toast } = useToast();
 
   const isExternalPayment =
     order?.paymentMethod === "external" || order?.paymentPreference === "external";
-  const needsAddonPaymentFirst =
-    isClient &&
-    !isExternalPayment &&
-    order?.completionType === "with_payment" &&
-    order?.additionalPaymentStatus !== "succeeded";
+  const protectionTools = isHelpfliProtectionToolsEnabled(order);
+  const showSystemCompletionReview =
+    isClient && order?.status === "completed" && !isExternalPayment;
   const showClientConfirmReceipt =
     isClient &&
     order?.status === "completed" &&
     typeof onConfirmReceipt === "function" &&
-    !needsAddonPaymentFirst;
+    isExternalPayment;
 
   const handleInvoiceUpload = async (e) => {
     e.preventDefault();
@@ -2701,8 +2589,25 @@ function OrderCompletedStageView({
           </div>
         )}
 
-        {/* Status oczekiwania na wypłatę */}
-        {order.status === 'completed' && order.status !== 'released' && (
+        {showSystemCompletionReview && (
+          <ClientCompletionReview
+            order={order}
+            orderId={orderId}
+            protectionTools={protectionTools}
+            onAcceptCompletion={onAcceptCompletion}
+            onConfirmReceipt={onConfirmReceipt}
+            onReportDispute={onReportDispute}
+            isLoadingAccept={isLoadingAcceptCompletion}
+            isLoadingConfirmReceipt={isLoadingConfirmReceipt}
+            isLoadingReportDispute={isLoadingReportDispute}
+            toast={toast}
+            getErrorMessage={getErrorMessage}
+            sectionId="client-confirm-receipt"
+          />
+        )}
+
+        {/* Status oczekiwania na wypłatę — płatność poza Helpfli */}
+        {order.status === 'completed' && order.status !== 'released' && !showSystemCompletionReview && (
           <div
             id="client-confirm-receipt"
             className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
@@ -2734,11 +2639,6 @@ function OrderCompletedStageView({
                     ? 'Potwierdź odbiór realizacji'
                     : 'Potwierdź odbiór i domknij rozliczenie'}
               </button>
-            )}
-            {isClient && needsAddonPaymentFirst && (
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                Wymagana jest dopłata ustalona przy zakończeniu — najpierw ją opłać (np. w powiadomieniu e-mail lub po powrocie do etapu z dopłatą), potem wróć tutaj i potwierdź odbiór.
-              </p>
             )}
           </div>
         )}
@@ -2833,6 +2733,7 @@ export default function OrderDetails() {
   const [disputeReason, setDisputeReason] = useState("");
   const [showRefundConfirm, setShowRefundConfirm] = useState(false);
   const [startingWork, setStartingWork] = useState(false);
+  const [acceptingCompletion, setAcceptingCompletion] = useState(false);
   const [fundingEscrow, setFundingEscrow] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
   const [completingOrder, setCompletingOrder] = useState(false);
@@ -3944,6 +3845,27 @@ export default function OrderDetails() {
       });
     } finally {
       setAcceptingOrder(false);
+    }
+  };
+
+  const acceptCompletion = async () => {
+    setAcceptingCompletion(true);
+    try {
+      const fresh = await apiPost(`/api/orders/${orderId}/accept-completion`, {});
+      setOrder(fresh.order || fresh);
+      toast({
+        title: "Zaakceptowano zakończenie",
+        description: "Możesz teraz potwierdzić odbiór zlecenia.",
+        variant: "success",
+      });
+    } catch (e) {
+      toast({
+        title: "Nie udało się zaakceptować",
+        description: getErrorMessage(e),
+        variant: "error",
+      });
+    } finally {
+      setAcceptingCompletion(false);
     }
   };
 
@@ -5674,10 +5596,12 @@ export default function OrderDetails() {
                         isProvider={isProvider}
                         onCompleteOrder={() => setShowCompleteOrderModal(true)}
                         onConfirmReceipt={confirmReceipt}
+                        onAcceptCompletion={acceptCompletion}
                         onReportDispute={reportDispute}
                         onRequestRefund={requestRefund}
                         isLoadingCompleteOrder={completingOrder}
                         isLoadingConfirmReceipt={confirmingReceipt}
+                        isLoadingAcceptCompletion={acceptingCompletion}
                         isLoadingReportDispute={reportingDispute}
                         isLoadingRequestRefund={requestingRefund}
                         showAiHint={showStageAiHint}
@@ -5695,7 +5619,11 @@ export default function OrderDetails() {
                         isProvider={isProvider}
                         onRate={() => setOpenRate(true)}
                         onConfirmReceipt={confirmReceipt}
+                        onAcceptCompletion={acceptCompletion}
+                        onReportDispute={reportDispute}
                         isLoadingConfirmReceipt={confirmingReceipt}
+                        isLoadingAcceptCompletion={acceptingCompletion}
+                        isLoadingReportDispute={reportingDispute}
                         showAiHint={showStageAiHint}
                         useCompletionHubLayout={isClient && order?.status === "completed"}
                         hasMyRating={hasMyOrderRating}
