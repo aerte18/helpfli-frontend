@@ -15,6 +15,13 @@ import { companyAiChat } from "../../api/companies";
 import { useTelemetry } from "../../hooks/useTelemetry";
 import { extractAIReply, sanitizeHistoryContent } from "../../utils/extractAIReply";
 import useUserLocation, { wantsDeviceLocation } from "../../hooks/useUserLocation";
+import {
+  getStoredChosenPath,
+  setStoredChosenPath,
+  pathFromChoiceLabel,
+  stepSubtitle,
+  cleanDescriptionText,
+} from "../../utils/conciergeFlow";
 
 const CLIENT_START_PROMPTS = [
   {
@@ -204,6 +211,7 @@ export default function UnifiedAIConcierge({
   const [sessionList, setSessionList] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [chosenPath, setChosenPath] = useState(() => getStoredChosenPath());
 
   // Dla użytkownika firmy: pobierz companyId (żeby pokazać Asystenta dla firmy zamiast klienta)
   useEffect(() => {
@@ -371,6 +379,8 @@ export default function UnifiedAIConcierge({
     setInput("");
     setAttachedFiles([]);
     sessionAttachmentUrlsRef.current = [];
+    setChosenPath(null);
+    setStoredChosenPath(null);
     setBusy(false);
     setCurrentSessionId(newSessionId);
     try {
@@ -427,7 +437,9 @@ export default function UnifiedAIConcierge({
       budget && typeof budget === "object"
         ? budget.max ?? budget.min ?? ""
         : budget ?? "";
-    const description = draft?.providerBrief?.customerSummary || payload.description || input || 'Problem wykryty przez Asystenta AI';
+    const description = cleanDescriptionText(
+      draft?.providerBrief?.customerSummary || payload.description || input || 'Problem wykryty przez Asystenta AI'
+    );
     const payloadAtt = filesToOrderAttachments(
       (payload.attachments || []).map((a) =>
         typeof a === "string" ? { url: a } : a
@@ -602,6 +614,7 @@ export default function UnifiedAIConcierge({
         requestBody = {
           messages: requestMessages,
           sessionId,
+          chosenPath: chosenPath || getStoredChosenPath() || undefined,
           userContext: userContextLocation ? { location: userContextLocation } : {},
           imageUrls: imageUrls
         };
@@ -657,6 +670,10 @@ export default function UnifiedAIConcierge({
           } : null,
           urgency: result.urgency,
           nextStep: result.nextStep,
+          uiPhase: result.uiPhase || data.uiPhase || 'clarify',
+          conversationStep: result.conversationStep || data.conversationStep || null,
+          conversationSummary: result.conversationSummary || data.conversationSummary || null,
+          chosenPath: result.chosenPath || data.chosenPath || chosenPath || null,
           diySteps: agents.diy?.steps || [],
           safety: result.safety || agents.diagnostic?.safety || null,
           dangerFlags: result.safety?.flag ? [result.safety.reason] : [],
@@ -675,6 +692,7 @@ export default function UnifiedAIConcierge({
           text: "",
           streaming: true,
           nextStep: result.nextStep,
+          uiPhase: result.uiPhase || data.uiPhase || 'clarify',
           showCameraButton: true,
           agents,
           matching: agents.matching || null,
@@ -691,7 +709,17 @@ export default function UnifiedAIConcierge({
           abVariants: data.abVariants || null,
         };
 
-        setMsgs((m) => [...m.filter((msg) => !msg.transient), assistantBase]);
+        if (result.chosenPath || data.chosenPath) {
+          const path = result.chosenPath || data.chosenPath;
+          setChosenPath(path);
+          setStoredChosenPath(path);
+        }
+
+        setMsgs((m) => [...m.filter((msg) => !msg.transient), {
+          ...assistantBase,
+          conversationStep: result.conversationStep || data.conversationStep || null,
+          conversationSummary: result.conversationSummary || data.conversationSummary || null,
+        }]);
         setCurrentSessionId(sessionId);
 
         await animateReplyText(replyText, (partial) => {
@@ -860,25 +888,36 @@ export default function UnifiedAIConcierge({
     ? msgs.filter((m, idx) => !(idx === 0 && m.role === 'assistant'))
     : msgs;
   const latestAssistant = [...visibleMessages].reverse().find((m) => m.role === 'assistant');
-  const actionNextSteps = ['suggest_providers', 'create_order', 'show_pricing', 'order_created'];
-  const latestAssistantIsClarifying = Boolean(
-    latestAssistant?.questions?.length &&
-    !actionNextSteps.includes(latestAssistant?.nextStep)
-  );
-  const shouldShowFlowPanel = !isDiagnosticActive && !latestAssistantIsClarifying && actionNextSteps.includes(analysisResult?.nextStep);
-  const hasAnalysisCards = Boolean(
-    analysisResult?.matching?.topProviders?.length ||
-    analysisResult?.pricing?.ranges ||
-    (analysisResult?.diySteps?.length > 0) ||
-    analysisResult?.serviceCandidate?.code ||
-    analysisResult?.sponsorAds?.length
-  );
-  const shouldShowHeavyAnalysis = Boolean(
-    !companyId &&
-    !isDiagnosticActive &&
-    hasAnalysisCards &&
-    !latestAssistantIsClarifying
-  );
+  const uiPhase =
+    analysisResult?.uiPhase ||
+    latestAssistant?.uiPhase ||
+    (latestAssistant?.nextStep === 'offer_choices' ? 'choose_action' : 'clarify');
+
+  const conversationStep =
+    analysisResult?.conversationStep ||
+    latestAssistant?.conversationStep ||
+    null;
+  const conversationSummary =
+    analysisResult?.conversationSummary ||
+    latestAssistant?.conversationSummary ||
+    null;
+  const headerStepLine = stepSubtitle(conversationStep);
+
+  const showChoiceCard = uiPhase === 'choose_action' && !chosenPath;
+  const showOrderCard = uiPhase === 'create_order';
+  const showProvidersPanel = uiPhase === 'providers';
+  const showPricingPanel = uiPhase === 'pricing';
+  const showDiyPanel = uiPhase === 'diy';
+  const showClarifyOnly = uiPhase === 'clarify' || uiPhase === 'diagnose';
+
+  const choiceActions = [
+    { label: 'Znajdź wykonawcę', value: 'Pokaż najlepiej dopasowanych wykonawców w mojej okolicy.' },
+    { label: 'Utwórz zlecenie', value: 'Chcę utworzyć zlecenie na podstawie naszej rozmowy.' },
+    { label: 'Sprawdź cenę', value: 'Ile może kosztować taka usługa? Pokaż orientacyjne widełki cenowe.' },
+    { label: 'Spróbuję sam (DIY)', value: 'Pokaż bezpieczne kroki DIY, które mogę zrobić samodzielnie.' },
+  ];
+
+  const shouldShowHeavyAnalysis = showProvidersPanel || showPricingPanel || showDiyPanel;
 
   const content = (
     <div className={`${cardClass} relative`} style={{ pointerEvents: 'auto' }}>
@@ -898,7 +937,7 @@ export default function UnifiedAIConcierge({
           </div>
           <div className="min-w-0">
             <div className="font-semibold text-white text-base md:text-lg truncate">Asystent AI</div>
-            <div className="text-[11px] md:text-xs text-white/80 truncate">{busy ? "Piszę odpowiedź…" : companyId ? "Asystent dla firmy" : "Asystent Helpfli"}</div>
+            <div className="text-[11px] md:text-xs text-white/80 truncate">{busy ? "Piszę odpowiedź…" : headerStepLine || (companyId ? "Asystent dla firmy" : "Asystent Helpfli")}</div>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -1167,7 +1206,39 @@ export default function UnifiedAIConcierge({
                         />
                       </div>
                     )}
-                    {latestAssistant === m && m.orderDraft && !m.diagnosticFlow && (
+                    {latestAssistant === m && showChoiceCard && !m.diagnosticFlow && (
+                      <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 max-w-md shadow-sm">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 mb-1">
+                          Co dalej?
+                        </div>
+                        {conversationSummary && (
+                          <p className="text-sm text-slate-800 mb-2 font-medium">{conversationSummary}</p>
+                        )}
+                        <p className="text-sm text-slate-600 mb-3">
+                          Wybierz jedną opcję — pokażę tylko to, czego potrzebujesz (bez kilku paneli naraz).
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {choiceActions.map((action) => (
+                            <button
+                              key={action.label}
+                              type="button"
+                              onClick={() => {
+                                const path = pathFromChoiceLabel(action.label);
+                                if (path) {
+                                  setChosenPath(path);
+                                  setStoredChosenPath(path);
+                                }
+                                ask(action.value);
+                              }}
+                              className="rounded-lg border border-indigo-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-indigo-800 hover:bg-indigo-50 transition-colors"
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {latestAssistant === m && showOrderCard && m.orderDraft && !m.diagnosticFlow && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
@@ -1242,9 +1313,17 @@ export default function UnifiedAIConcierge({
                         </button>
                       </div>
                     )}
-                    {latestAssistant === m && !m.diagnosticFlow && ((m.questions && m.questions.length > 0) || (m.quickReplies && m.quickReplies.length > 0)) && (
+                    {latestAssistant === m && !m.diagnosticFlow && !showChoiceCard && !showOrderCard && (
+                      (showClarifyOnly
+                        ? (m.questions || []).slice(0, 1)
+                        : [...(m.quickReplies || []), ...(m.questions || [])].slice(0, 2)
+                      ).length > 0
+                    ) && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
-                        {[...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))].slice(0, 3).map((reply, idx) => (
+                        {(showClarifyOnly
+                          ? (m.questions || []).slice(0, 1).map((question) => ({ label: question, value: question }))
+                          : [...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))]
+                        ).slice(0, showClarifyOnly ? 1 : 2).map((reply, idx) => (
                           <button
                             key={`${reply.label}-${idx}`}
                             type="button"
@@ -1260,8 +1339,8 @@ export default function UnifiedAIConcierge({
                       </div>
                     )}
                     
-                    {/* Przyciski akcji na podstawie nextStep (V2) */}
-                    {latestAssistant === m && m.nextStep && !m.diagnosticFlow && !actionNextSteps.includes(m.nextStep) && !(m.orderDraft && m.nextStep === 'create_order') && (
+                    {/* Stare przyciski nextStep — wyłączone (używamy uiPhase) */}
+                    {false && latestAssistant === m && m.nextStep && !m.diagnosticFlow && (
                       <div className="mt-3 ml-12 flex flex-wrap gap-2">
                         {m.nextStep === 'suggest_diy' && (
                           <button
@@ -1361,7 +1440,7 @@ export default function UnifiedAIConcierge({
             {/* Wyświetlanie wyników analizy */}
             {analysisResult && (
               <div className="mt-4 space-y-3">
-                {shouldShowFlowPanel && (
+                {false && (
                   <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1418,7 +1497,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
                 {/* Helpfli poleca: DIY / wezwij fachowca */}
-                {analysisResult.recommendation && shouldShowHeavyAnalysis && (
+                {analysisResult.recommendation && (showProvidersPanel || showDiyPanel) && (
                   <div className={`rounded-xl border p-4 ${
                     analysisResult.recommendation.type === 'provider'
                       ? 'bg-amber-50 border-amber-200'
@@ -1436,7 +1515,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
                 {/* Sugerowana usługa */}
-                {analysisResult.serviceCandidate && shouldShowHeavyAnalysis && (
+                {false && analysisResult.serviceCandidate && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                     <p className="text-xs text-indigo-600 font-medium mb-1">Sugerowana usługa</p>
                     <p className="font-semibold text-indigo-900">{serviceLabel(analysisResult.serviceCandidate.name)}</p>
@@ -1446,7 +1525,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
 
-                {shouldShowHeavyAnalysis && (analysisResult.serviceCandidate || analysisResult.pricing?.ranges || analysisResult.matching?.topProviders?.length > 0) && (
+                {showProvidersPanel && (analysisResult.serviceCandidate || analysisResult.matching?.topProviders?.length > 0) && (
                   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
@@ -1510,7 +1589,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* DIY Steps - z agenta DIY */}
-                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && shouldShowHeavyAnalysis && (
+                {analysisResult.diySteps && analysisResult.diySteps.length > 0 && showDiyPanel && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" data-diy-section>
                     <div className="font-semibold text-foreground mb-3 flex items-center gap-2">
                       🔧 Kroki do wykonania
@@ -1552,7 +1631,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Pricing - Widełki cenowe z agenta */}
-                {analysisResult.pricing?.ranges && shouldShowHeavyAnalysis && (
+                {analysisResult.pricing?.ranges && showPricingPanel && (
                   <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
                     <div className="font-semibold text-gray-800 mb-3">💰 Widełki cenowe</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1586,7 +1665,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Matching - Wykonawcy z agenta */}
-                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && shouldShowHeavyAnalysis && (
+                {analysisResult.matching?.topProviders && analysisResult.matching.topProviders.length > 0 && showProvidersPanel && (
                   <div className="bg-white border border-indigo-200 rounded-xl p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
@@ -1920,6 +1999,9 @@ export default function UnifiedAIConcierge({
       {/* Przesłane pliki - podgląd */}
       {attachedFiles.length > 0 && (
         <div className="px-3 py-2.5 border-t border-gray-200 bg-gray-50 md:px-6 md:py-3">
+          <p className="text-xs text-indigo-700 mb-2">
+            {uploading ? 'Wgrywam zdjęcie…' : 'Zdjęcie zostanie dołączone do rozmowy i ewentualnego zlecenia.'}
+          </p>
           <div className="flex flex-wrap gap-2">
             {attachedFiles.map((file, idx) => (
               <div key={idx} className="relative group">
