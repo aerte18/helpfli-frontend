@@ -3926,53 +3926,34 @@ export default function OrderDetails() {
 
   const completeOrder = async (completionData) => {
     setCompletingOrder(true);
-    setShowCompleteOrderModal(false);
-    
-    // Optymistyczna aktualizacja
-    const previousOrder = { ...order };
-    const optimisticOrder = {
-      ...order,
-      status: 'completed',
-      completedAt: new Date().toISOString(),
-      completionType: completionData?.completionType || null,
-      completionNotes: completionData?.completionNotes || null,
-      additionalAmount: completionData?.additionalAmount || null,
-      paymentReason: completionData?.paymentReason || null,
-    };
-    setOrder(optimisticOrder);
-    
-    toast({ 
-      title: "Zlecenie zakończone", 
-      description: "Klient został powiadomiony o zakończeniu",
-      variant: "success"
-    });
-    
     try {
       await apiPost(`/api/orders/${orderId}/complete`, completionData || {});
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
-      
-      // Jeśli to klient i zlecenie zostało zakończone - otwórz modal oceny
-      if (isClient && fresh.status === 'completed') {
+      setShowCompleteOrderModal(false);
+
+      toast({
+        title: "Zlecenie zakończone",
+        description: "Klient został powiadomiony o zakończeniu",
+        variant: "success",
+      });
+
+      if (isClient && fresh.status === "completed") {
         const myId = me?._id || me?.id;
         const hasRating = fresh.ratings?.some(
           (r) => String(r.from?._id ?? r.from) === String(myId)
         );
         if (!hasRating) {
-          setTimeout(() => {
-            setOpenRate(true);
-          }, 1000); // Opóźnienie 1s dla lepszego UX
+          setTimeout(() => setOpenRate(true), 1000);
         }
       }
     } catch (e) {
-      // Cofnij optymistyczną aktualizację
-      setOrder(previousOrder);
-      setShowCompleteOrderModal(true); // Przywróć modal
-      toast({ 
-        title: "Błąd zakończenia zlecenia", 
+      toast({
+        title: "Błąd zakończenia zlecenia",
         description: getErrorMessage(e),
-        variant: "error"
+        variant: "error",
       });
+      throw e;
     } finally {
       setCompletingOrder(false);
     }
@@ -6080,6 +6061,7 @@ export default function OrderDetails() {
           onClose={() => setShowCompleteOrderModal(false)}
           onComplete={completeOrder}
           order={order}
+          kycVerified={me?.kyc?.status === "verified"}
         />
       )}
 

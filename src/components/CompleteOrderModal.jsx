@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldAlert, X } from 'lucide-react';
 
-export default function CompleteOrderModal({ isOpen, onClose, onComplete, order }) {
+export default function CompleteOrderModal({
+  isOpen,
+  onClose,
+  onComplete,
+  order,
+  kycVerified = true,
+}) {
   // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
   const isExternalPayment = order?.paymentMethod === 'external' || order?.paymentPreference === 'external';
+  const kycRequired = !isExternalPayment && !kycVerified;
   
   const [completionType, setCompletionType] = useState('simple'); // 'simple' | 'with_notes' | 'with_payment'
   const [notes, setNotes] = useState('');
@@ -48,6 +56,13 @@ export default function CompleteOrderModal({ isOpen, onClose, onComplete, order 
       return;
     }
     
+    if (kycRequired) {
+      setErrors({
+        kyc: 'Przy płatności przez Helpfli wymagana jest weryfikacja KYC przed zakończeniem zlecenia.',
+      });
+      return;
+    }
+
     setErrors({});
 
     setSubmitting(true);
@@ -104,6 +119,29 @@ export default function CompleteOrderModal({ isOpen, onClose, onComplete, order 
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {kycRequired && (
+            <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <ShieldAlert className="h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <h3 className="font-semibold text-amber-900">Wymagana weryfikacja KYC</h3>
+                <p className="mt-1 text-sm text-amber-800">
+                  Przy rozliczeniu przez Helpfli musisz mieć zweryfikowany profil wykonawcy, zanim zakończysz zlecenie.
+                </p>
+                <Link
+                  to="/kyc"
+                  className="mt-3 inline-flex rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                >
+                  Przejdź do weryfikacji
+                </Link>
+                {errors.kyc && (
+                  <p className="mt-2 text-sm text-red-600" role="alert">
+                    {errors.kyc}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Informacja o zleceniu */}
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
             <h3 className="font-semibold text-slate-900 mb-2">Informacje o zleceniu</h3>
@@ -311,7 +349,12 @@ export default function CompleteOrderModal({ isOpen, onClose, onComplete, order 
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting || (completionType === 'with_notes' && !notes.trim()) || (completionType === 'with_payment' && (!additionalAmount || !paymentReason.trim()))}
+            disabled={
+              submitting ||
+              kycRequired ||
+              (completionType === 'with_notes' && !notes.trim()) ||
+              (completionType === 'with_payment' && (!additionalAmount || !paymentReason.trim()))
+            }
             className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {submitting ? 'Zapisywanie...' : 'Zakończ zlecenie'}
