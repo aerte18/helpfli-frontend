@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, Infinity as InfinityIcon } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
+import {
+	formatOfferLimitShort,
+	getLargeProjectSlotLabel,
+	getOfferLimitFromPlan,
+} from "../constants/subscriptionLimits";
 
 export default function PricingTable({ plans = [], onSelect, currentSubscription = null, onStartTrial = null }) {
 	const [requestInvoice, setRequestInvoice] = useState(false);
@@ -34,6 +39,7 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 		} else if (audienceType === 'provider') {
 			return [
 				'Odpowiedzi na zlecenia',
+				'Duże projekty (koszt w slotach)',
 				'Asystent AI',
 				'Profil',
 				'Statystyki',
@@ -105,13 +111,24 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 			return null;
 		}
 		
+		// Duże projekty — koszt slotów
+		if (featureLower.includes('duże projekty') && audienceType === 'provider') {
+			return getLargeProjectSlotLabel(planKey);
+		}
+
 		// Asystent AI (provider)
-		if (featureLower.includes('ai chat') && audienceType === 'provider') {
-			if (planKey === 'PROV_STD' || planKey === 'PROV_STD_PLUS' || planKey === 'PROV_PRO') {
+		if (
+			(featureLower.includes('asystent ai') || featureLower.includes('ai chat')) &&
+			audienceType === 'provider'
+		) {
+			if (perksText.includes('ai chat nielimitowane') || planKey === 'PROV_STD_PLUS' || planKey === 'PROV_PRO') {
 				return 'Nielimitowane';
 			}
+			if (perksText.includes('ai chat') || planKey === 'PROV_STD') {
+				return 'W pakiecie STANDARD';
+			}
 			if (planKey === 'PROV_FREE') {
-				return '20 zapytań/mies.';
+				return 'Brak w pakiecie FREE';
 			}
 			return null;
 		}
@@ -547,6 +564,22 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 						<p className="text-sm text-gray-500 mt-1">
 							{p.priceMonthly === 0 ? 'na zawsze' : 'miesięcznie'}
 						</p>
+						{(audienceType === 'provider' || audienceType === 'business') && (() => {
+							const offerLimit = getOfferLimitFromPlan(p);
+							const offerLabel = formatOfferLimitShort(offerLimit);
+							if (!offerLabel) return null;
+							const unlimited = offerLimit === Infinity;
+							return (
+								<p className={`mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
+									unlimited
+										? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+										: 'bg-slate-100 text-slate-800 border border-slate-200'
+								}`}>
+									{unlimited && <InfinityIcon className="w-4 h-4 shrink-0" aria-hidden />}
+									{offerLabel}
+								</p>
+							);
+						})()}
 					</div>
 					
 					{/* Przycisk */}

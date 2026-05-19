@@ -5,6 +5,7 @@ import CheckoutButton from "../payment/CheckoutButton";
 import StripeProvider from "../payment/StripeProvider";
 import CheckoutPage from "../payment/CheckoutPage";
 import { apiUrl } from "@/lib/apiUrl";
+import { getOrderPaymentFlow, isPaymentFlowLocked } from "../utils/paymentFlow";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -41,14 +42,20 @@ export default function Checkout() {
   const clientSecret = searchParams.get('cs');
   const checkoutKind = searchParams.get('kind'); // commission | contact_unlock | listing_addons
   const contactUnlockFeeParam = searchParams.get('fee');
-  const showMobilePayBar = order?.status === 'accepted' && paymentMethod === 'system' && !paymentIntentId;
+  const lockedPaymentFlow = order ? getOrderPaymentFlow(order) : null;
+  const paymentFlowLocked = order ? isPaymentFlowLocked(order) : false;
+  const showMobilePayBar =
+    order?.status === "accepted" &&
+    paymentMethod === "system" &&
+    !paymentIntentId;
 
   const load = async () => {
     setLoading(true);
     try {
       const res = await apiGet(`/api/orders/${orderId}`);
       setOrder(res);
-      setPaymentMethod(res.paymentMethod || "system");
+      const lockedFlow = getOrderPaymentFlow(res);
+      setPaymentMethod(lockedFlow || "system");
     } catch (e) {
       console.error("Błąd ładowania zlecenia:", e);
     } finally {
@@ -225,7 +232,26 @@ export default function Checkout() {
           </div>
 
           {/* Przełącznik metody płatności */}
-          {order.status === 'accepted' && (
+          {order.status === "accepted" && paymentFlowLocked && (
+            <div className="mb-6 border border-indigo-200 rounded-xl p-4 bg-indigo-50/80">
+              <h2 className="font-semibold mb-2 text-indigo-950">Metoda płatności</h2>
+              <p className="text-sm text-indigo-900">
+                {lockedPaymentFlow === "system" ? (
+                  <>
+                    <strong>Płatność przez Helpfli</strong> — ustalona przy tworzeniu zlecenia i akceptacji oferty.
+                    Środki trafiają do bezpiecznego escrow z ochroną transakcji.
+                  </>
+                ) : (
+                  <>
+                    <strong>Płatność poza systemem</strong> — ustalona wcześniej. Rozliczasz się bezpośrednio z
+                    wykonawcą; na Helpfli opłacasz tylko ewentualną prowizję platformy.
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+
+          {order.status === "accepted" && !paymentFlowLocked && (
             <div className="mb-6 border border-gray-200 rounded-xl p-4">
               <h2 className="font-semibold mb-3">Metoda płatności</h2>
               <div className="flex flex-col sm:flex-row gap-3 mb-3">

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import PricingTable from "../components/PricingTable";
+import SubscriptionLimitsGuide from "../components/SubscriptionLimitsGuide";
 import ExitIntentPopup from "../components/ExitIntentPopup";
 import { getPlans, getMySubscription, subscribePlan, cancelSubscription, startTrial } from "../api/subscriptions";
 import { getCompanySubscription } from "../api/companies";
@@ -291,6 +292,18 @@ export default function Subscriptions() {
               <div className="text-xs text-gray-500">
                 Ważny do: {new Date(mine.validUntil).toLocaleDateString()} • Darmowe ekspresy: {mine.freeExpressLeft}
               </div>
+              {(audience === "provider" || audience === "business") &&
+                user?.monthlyOffersLimit != null && (
+                  <div className="text-xs text-gray-700 mt-1">
+                    Sloty ofert (ten miesiąc):{" "}
+                    <strong>
+                      {user.monthlyOffersUsed ?? 0} /{" "}
+                      {(user.monthlyOffersLimit ?? 0) >= 999999
+                        ? "nielimitowane"
+                        : user.monthlyOffersLimit}
+                    </strong>
+                  </div>
+                )}
             </div>
             {!mine.renews ? null : (
               <button className="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm hover:bg-rose-700 transition-colors" onClick={onCancel}>
@@ -299,6 +312,13 @@ export default function Subscriptions() {
             )}
           </div>
         )}
+
+        <SubscriptionLimitsGuide
+          audience={audience}
+          plans={plans}
+          monthlyOffersUsed={user?.monthlyOffersUsed}
+          monthlyOffersLimit={user?.monthlyOffersLimit}
+        />
 
         <PricingTable plans={plans} onSelect={onSelect} currentSubscription={mine} onStartTrial={onStartTrial} />
         

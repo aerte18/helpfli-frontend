@@ -2,6 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 
+function stripePaymentErrorMessage(error) {
+  if (!error) return 'Nie udało się zrealizować płatności.';
+  const code = error.code || '';
+  const map = {
+    incomplete_cvc: 'Kod CVC/CVV jest niepełny — wpisz wszystkie 3 cyfry z odwrotu karty.',
+    incomplete_number: 'Numer karty jest niepełny.',
+    incomplete_expiry: 'Data ważności karty jest niepełna (MM/RR).',
+    invalid_cvc: 'Nieprawidłowy kod CVC/CVV.',
+    invalid_number: 'Nieprawidłowy numer karty.',
+    card_declined: 'Karta została odrzucona. Spróbuj innej karty lub metody (BLIK / Przelewy24).',
+    expired_card: 'Karta jest przeterminowana.',
+    processing_error: 'Błąd przetwarzania u operatora płatności. Spróbuj ponownie za chwilę.',
+    payment_intent_authentication_failure: 'Uwierzytelnienie 3D Secure nie powiodło się.',
+  };
+  if (map[code]) return map[code];
+  return error.message || 'Płatność odrzucona. Sprawdź dane karty lub wybierz inną metodę.';
+}
+
 export default function CheckoutPage() {
   const stripe = useStripe();
   const elements = useElements();
@@ -11,6 +29,7 @@ export default function CheckoutPage() {
   const isSubscriptionCheckout = checkoutType === 'subscription';
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
   // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.
@@ -41,35 +60,58 @@ export default function CheckoutPage() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || processing) return;
 
-    // Przekaż parametry z URL do return_url (Stripe dopisze payment_intent* przy redirectcie)
-    const sp = new URLSearchParams(window.location.search);
-    const kind = sp.get('kind');
-    const type = sp.get('type') || (kind === 'commission' ? 'commission' : '');
-    const providerId = sp.get('providerId');
-    const price = sp.get('price');
-    let orderId = sp.get('orderId');
-    if (!orderId) {
-      const m = window.location.pathname.match(/^\/checkout\/([^/?#]+)/);
-      if (m) orderId = decodeURIComponent(m[1]);
+    setMessage('');
+    setProcessing(true);
+
+    try {
+      // Wymagane przez Stripe Payment Element — walidacja pól przed confirm
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setMessage(stripePaymentErrorMessage(submitError));
+        return;
+      }
+
+      const sp = new URLSearchParams(window.location.search);
+      const kind = sp.get('kind');
+      const type = sp.get('type') || (kind === 'commission' ? 'commission' : '');
+      const providerId = sp.get('providerId');
+      const price = sp.get('price');
+      let orderId = sp.get('orderId');
+      if (!orderId) {
+        const m = window.location.pathname.match(/^\/checkout\/([^/?#]+)/);
+        if (m) orderId = decodeURIComponent(m[1]);
+      }
+
+      const extra = new URLSearchParams();
+      if (type) extra.set('type', type);
+      if (providerId) extra.set('providerId', providerId);
+      if (orderId) extra.set('orderId', orderId);
+      if (price) extra.set('price', price);
+
+      let returnUrl = `${window.location.origin}/payment-result`;
+      const q = extra.toString();
+      if (q) returnUrl += `?${q}`;
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl },
+        redirect: 'if_required',
+      });
+
+      if (error) {
+        setMessage(stripePaymentErrorMessage(error));
+        return;
+      }
+
+      // Karta bez przekierowania (np. nie wymaga 3DS) — idź do wyniku
+      window.location.href = returnUrl;
+    } catch (err) {
+      setMessage(err?.message || 'Nieoczekiwany błąd płatności.');
+    } finally {
+      setProcessing(false);
     }
-
-    const extra = new URLSearchParams();
-    if (type) extra.set('type', type);
-    if (providerId) extra.set('providerId', providerId);
-    if (orderId) extra.set('orderId', orderId);
-    if (price) extra.set('price', price);
-
-    let returnUrl = `${window.location.origin}/payment-result`;
-    const q = extra.toString();
-    if (q) returnUrl += `?${q}`;
-
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: returnUrl },
-    });
-    if (error) setMessage(error.message || 'Błąd płatności');
   };
 
   if (!ready) return <div>Ładowanie…</div>;
@@ -104,10 +146,10 @@ export default function CheckoutPage() {
           )}
           <button 
             type="submit"
-            disabled={!stripe || !elements}
+            disabled={!stripe || !elements || processing}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
           >
-            {!stripe || !elements ? 'Ładowanie...' : 'Zapłać'}
+            {processing ? 'Przetwarzanie…' : !stripe || !elements ? 'Ładowanie...' : 'Zapłać'}
           </button>
           <p className="text-center text-xs text-slate-500 pt-2">
             Płatność obsługuje operator płatności (np. Stripe / P24). Kontynuując, akceptujesz{' '}

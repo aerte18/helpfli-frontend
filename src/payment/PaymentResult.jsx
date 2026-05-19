@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useStripe } from '@stripe/react-stripe-js';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { apiPost } from '../lib/api';
+
+/** Po autoryzacji karty (escrow) Stripe zwraca requires_capture, nie succeeded. */
+function isStripePaymentOk(status) {
+  return status === 'succeeded' || status === 'requires_capture';
+}
+
+function isStripePaymentPending(status) {
+  return status === 'processing';
+}
 
 export default function PaymentResult() {
   const stripe = useStripe();
@@ -26,10 +36,15 @@ export default function PaymentResult() {
       return;
     }
 
+    const successMessage = (piStatus) =>
+      piStatus === 'requires_capture'
+        ? 'Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.'
+        : 'Płatność zakończona pomyślnie!';
+
     const applyRedirectStatus = () => {
       if (redirectStatus === 'succeeded') {
         setStatus('success');
-        setMessage('Płatność zakończona pomyślnie!');
+        setMessage(successMessage('requires_capture'));
       } else if (redirectStatus === 'processing') {
         setStatus('processing');
         setMessage('Płatność jest przetwarzana...');
@@ -39,23 +54,40 @@ export default function PaymentResult() {
       }
     };
 
+    const syncOrderAfterPayment = async () => {
+      const orderId =
+        searchParams.get('orderId') || searchParams.get('orderid');
+      const payType = searchParams.get('type');
+      if (!orderId || payType === 'subscription') return;
+      try {
+        await apiPost(`/api/orders/${orderId}/fund`, {});
+      } catch (e) {
+        console.warn('syncOrderAfterPayment fund:', e);
+      }
+    };
+
     const checkPaymentStatus = async () => {
       try {
         if (clientSecret) {
           const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
 
-          if (paymentIntent.status === 'succeeded') {
+          if (isStripePaymentOk(paymentIntent.status)) {
             setStatus('success');
-            setMessage('Płatność zakończona pomyślnie!');
-          } else if (paymentIntent.status === 'processing') {
+            setMessage(successMessage(paymentIntent.status));
+            await syncOrderAfterPayment();
+          } else if (isStripePaymentPending(paymentIntent.status)) {
             setStatus('processing');
             setMessage('Płatność jest przetwarzana...');
+          } else if (redirectStatus === 'succeeded') {
+            applyRedirectStatus();
+            await syncOrderAfterPayment();
           } else {
             setStatus('error');
             setMessage(paymentIntent.last_payment_error?.message || 'Płatność nie powiodła się');
           }
         } else if (redirectStatus) {
           applyRedirectStatus();
+          if (redirectStatus === 'succeeded') await syncOrderAfterPayment();
         } else if (paymentIntentId) {
           setStatus('error');
           setMessage(
@@ -66,6 +98,7 @@ export default function PaymentResult() {
         console.error('Błąd sprawdzania statusu płatności:', error);
         if (redirectStatus === 'succeeded' || redirectStatus === 'processing') {
           applyRedirectStatus();
+          if (redirectStatus === 'succeeded') await syncOrderAfterPayment();
           return;
         }
         setStatus('error');
@@ -77,7 +110,7 @@ export default function PaymentResult() {
   }, [stripe, searchParams]);
 
   const handleContinue = () => {
-    const orderId = searchParams.get('orderId');
+    const orderId = searchParams.get('orderId') || searchParams.get('orderid');
     const payType = searchParams.get('type');
     if (payType === 'subscription') {
       navigate('/account/subscriptions');

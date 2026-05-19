@@ -28,7 +28,7 @@ function Badge({ b }) {
   return <span className={`text-xs px-2 py-1 rounded-full border ${map[b]}`}>{textMap[b]}</span>;
 }
 
-export default function OffersList({ orderId, recommendedOfferId, topOfferIds = [], aiReasoning }) {
+export default function OffersList({ orderId, recommendedOfferId, topOfferIds = [], aiReasoning, highlightOfferId = null }) {
   const token = useAuthToken();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -52,6 +52,18 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
   const [stripeBlockReason, setStripeBlockReason] = useState("");
   const [orderData, setOrderData] = useState(null);
   const [favoritePrompt, setFavoritePrompt] = useState(null);
+
+  useEffect(() => {
+    if (!highlightOfferId || !offers.length) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`offer-row-${highlightOfferId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-indigo-500", "ring-offset-2");
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [highlightOfferId, offers.length]);
 
   // Dev: przykładowe oferty dla orderId demo-* (produkcja: API)
   const DEMO_OFFERS = {
@@ -605,11 +617,16 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         <div className="space-y-3">
           {view.map((o) => {
             const isHighlighted = (o.highlightedUntil && new Date(o.highlightedUntil) > new Date()) || (o.boostUntil && new Date(o.boostUntil) > new Date());
+            const oid = o._id || o.id;
+            const isNotifHighlight = highlightOfferId && String(oid) === String(highlightOfferId);
             return (
-            <div 
-              key={o._id} 
+            <div
+              key={oid}
+              id={oid ? `offer-row-${oid}` : undefined}
               className={`rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md ${
-                isHighlighted
+                isNotifHighlight
+                  ? "border-indigo-400 border-2 ring-2 ring-indigo-500 ring-offset-2 bg-indigo-50/30"
+                  : isHighlighted
                   ? 'border-yellow-400 border-2 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg shadow-yellow-200' 
                   : 'border-slate-200 bg-white'
               }`}

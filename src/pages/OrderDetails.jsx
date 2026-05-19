@@ -774,7 +774,7 @@ function mergeOrderPredictionForUi(pred) {
 }
 
 // Komponenty widoków etapowych
-function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, onEditOffer, onEditOrder, isClient, isProvider, myOffer, showOrderInfo = true, showMyOfferCard = true, showAiHint = true }) {
+function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, onEditOffer, onEditOrder, isClient, isProvider, myOffer, showOrderInfo = true, showMyOfferCard = true, showAiHint = true, highlightOfferId = null }) {
   const [aiRecommendation, setAiRecommendation] = useState(null);
   const { user } = useAuth();
   const [providerOfferAnalysis, setProviderOfferAnalysis] = useState(null);
@@ -1614,6 +1614,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
           recommendedOfferId={aiRecommendation?.recommendedOfferId}
           topOfferIds={aiRecommendation?.topOfferIds}
           aiReasoning={aiRecommendation?.reasoning}
+          highlightOfferId={highlightOfferId}
         />
       </div>
     </div>
@@ -2777,11 +2778,18 @@ export default function OrderDetails() {
   const [tab, setTab] = useState(tabFromUrl === "offers" ? "offers" : (tabFromUrl === "chat" ? "chat" : (tabFromUrl === "my_offer" ? "my_offer" : "details")));
 
   useEffect(() => {
-    const t = new URLSearchParams(location.search).get("tab");
+    const params = new URLSearchParams(location.search);
+    const t = params.get("tab");
+    const role = me?.role || user?.role;
     if (t === "offers" || t === "chat" || t === "my_offer" || t === "details") {
+      // Klient: powiadomienia linkują ?tab=offers — pokazujemy tę samą treść co lista ofert
+      if (role === "client" && t === "offers") {
+        setTab("offers");
+        return;
+      }
       setTab(t);
     }
-  }, [location.search]);
+  }, [location.search, me?.role, user?.role]);
 
   const [me, setMe] = useState(null);
   const [order, setOrderState] = useState(null);
@@ -3434,11 +3442,16 @@ export default function OrderDetails() {
         // Pobierz change requests dla zlecenia (błędy sieciowe = pusty stan)
         try {
           const token = localStorage.getItem("token");
-          const crs = await getChangeRequests({ token, orderId });
-          setChangeRequests(crs);
-          const pending = crs.find((cr) => cr.status === "pending");
-          if (pending) {
-            setPendingChangeRequest(pending);
+          if (!orderId || !/^[0-9a-fA-F]{24}$/.test(String(orderId))) {
+            setChangeRequests([]);
+            setPendingChangeRequest(null);
+          } else {
+            const crs = await getChangeRequests({ token, orderId });
+            setChangeRequests(crs);
+            const pending = crs.find((cr) => cr.status === "pending");
+            if (pending) {
+              setPendingChangeRequest(pending);
+            }
           }
         } catch {
           setChangeRequests([]);
@@ -3763,10 +3776,14 @@ export default function OrderDetails() {
         );
       }
 
-      const effectivePaymentMethod =
-        fresh?.paymentMethod || acceptData.paymentMethod || "system";
+      const effectivePaymentFlow =
+        fresh?.paymentPreference === "external"
+          ? "external"
+          : fresh?.paymentPreference === "system"
+            ? "system"
+            : acceptData.paymentMethod || "system";
 
-      if (effectivePaymentMethod === "system") {
+      if (effectivePaymentFlow === "system") {
         toast({
           title: "Oferta zaakceptowana",
           description: "Przechodzimy do bezpiecznej płatności.",
@@ -4229,6 +4246,11 @@ export default function OrderDetails() {
     (Boolean(order?.viewerIsCompanyTeamForOrderProvider) && isCompanyLead);
   const canOffer = !myOffer && (!order || order.status === "open" || order.status === "collecting_offers");
   const mobileTabs = ["chat", "details"];
+  const clientShowsOffersTab =
+    isClient &&
+    (["open", "collecting_offers"].includes(order?.status) ||
+      (order?.offers?.length ?? 0) > 0);
+  if (clientShowsOffersTab) mobileTabs.splice(1, 0, "offers");
   if (userIsProvider && canOffer) mobileTabs.push("offers");
   if (userIsProvider && myOffer) mobileTabs.push("my_offer");
   const stageForAi = order?.status === "completed"
@@ -4425,7 +4447,15 @@ export default function OrderDetails() {
                         : "text-slate-500 hover:bg-slate-100"
                     }`}
                   >
-                    {t === "chat" ? "Czat" : t === "offers" ? "Oferta" : t === "my_offer" ? "Moja oferta" : "Szczegóły"}
+                    {t === "chat"
+                      ? "Czat"
+                      : t === "offers"
+                        ? isClient
+                          ? "Oferty"
+                          : "Oferta"
+                        : t === "my_offer"
+                          ? "Moja oferta"
+                          : "Szczegóły"}
                   </button>
                 ))}
             </div>
@@ -4546,13 +4576,7 @@ export default function OrderDetails() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    goTab("details");
-                    setTimeout(
-                      () => document.getElementById("order-offers-section")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                      50
-                    );
-                  }}
+                  onClick={() => goTab("offers")}
                   disabled={!order?.offers?.length}
                   className="rounded-lg px-3 py-2 text-sm font-medium border border-blue-200 bg-white text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -4840,7 +4864,37 @@ export default function OrderDetails() {
             />
           )}
 
-          {/* TAB: OFERTY (tylko dla providera) */}
+          {/* TAB: OFERTY — klient: lista ofert; provider: formularz składania */}
+          {tab === "offers" && isClient && order && (
+            <OrderOffersStageView
+              order={order}
+              orderId={orderId}
+              onAcceptOffer={acceptOffer}
+              onCancelOffer={undefined}
+              onEditOffer={undefined}
+              onEditOrder={() => {
+                setEditForm({
+                  description: order.description || "",
+                  location:
+                    (order.location && typeof order.location === "object"
+                      ? order.location.address
+                      : order.location) || "",
+                  budget: order.budget ?? "",
+                  urgency: order.urgency || "flexible",
+                  serviceDetails: order.serviceDetails || "",
+                });
+                setShowEditOrderModal(true);
+              }}
+              isClient
+              isProvider={false}
+              myOffer={null}
+              showOrderInfo={false}
+              showMyOfferCard={false}
+              showAiHint={showStageAiHint}
+              highlightOfferId={new URLSearchParams(location.search).get("offerId")}
+            />
+          )}
+
           {tab === "offers" && isProvider && orderId && (
             <div className="space-y-6">
               {/* Sprawdź czy zlecenie jest jeszcze załadowane */}
