@@ -149,18 +149,23 @@ export function getClientStatusLabel(order) {
   return getClientOrderPresentation(order).label;
 }
 
-export function getProviderStageKey({ order, offer }) {
+export function getProviderStageKey({ order, offer, viewerProviderId = null }) {
   const status = order?.status;
   const acceptedOfferId = order?.acceptedOfferId?._id || order?.acceptedOfferId;
   const myOfferId = offer?._id || offer?.id;
   const acceptedProviderId =
     order?.provider?._id || order?.provider || order?.acceptedOffer?.providerId;
-  const myProviderId = offer?.providerId?._id || offer?.providerId;
+  const myProviderId =
+    offer?.providerId?._id || offer?.providerId || viewerProviderId;
   const isAcceptedByOfferId =
     acceptedOfferId && myOfferId && String(acceptedOfferId) === String(myOfferId);
   const isAcceptedByProviderId =
     acceptedProviderId && myProviderId && String(acceptedProviderId) === String(myProviderId);
-  const isAccepted = isAcceptedByOfferId || isAcceptedByProviderId;
+  const isAcceptedByViewerAssignment =
+    acceptedProviderId &&
+    viewerProviderId &&
+    String(acceptedProviderId) === String(viewerProviderId);
+  const isAccepted = isAcceptedByOfferId || isAcceptedByProviderId || isAcceptedByViewerAssignment;
 
   if (isAccepted) {
     if (status === "in_progress") return "in_progress";
@@ -177,8 +182,8 @@ export function getProviderStageKey({ order, offer }) {
   return "offered";
 }
 
-export function getProviderOrderPresentation({ order, offer }) {
-  const stage = getProviderStageKey({ order, offer });
+export function getProviderOrderPresentation({ order, offer, viewerProviderId = null }) {
+  const stage = getProviderStageKey({ order, offer, viewerProviderId });
   const status = order?.status;
   const isExternalPayment =
     order?.paymentMethod === "external" || order?.paymentPreference === "external";

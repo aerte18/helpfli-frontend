@@ -636,6 +636,8 @@ function NextStepBanner({
   isClient,
   isProvider,
   isAssignedProvider = false,
+  viewerProviderId = null,
+  myOffer = null,
   onGoToOffers,
   onGoToPayment,
   onProviderBannerAction,
@@ -666,9 +668,16 @@ function NextStepBanner({
     cta = ctaShows ? ctaLabel : "";
     tone = presentation.tone || "indigo";
   } else if (isProvider && isAssignedProvider) {
+    const bannerOffer =
+      myOffer ||
+      (order?.acceptedOfferId
+        ? { _id: order.acceptedOfferId?._id || order.acceptedOfferId }
+        : null) ||
+      (viewerProviderId ? { providerId: viewerProviderId } : null);
     providerPresentation = getProviderOrderPresentation({
       order,
-      offer: order?.acceptedOfferId ? { _id: order.acceptedOfferId } : null,
+      offer: bannerOffer,
+      viewerProviderId,
     });
     if (!providerPresentation) {
       return null;
@@ -4625,6 +4634,8 @@ export default function OrderDetails() {
               isClient={isClient}
               isProvider={isProvider}
               isAssignedProvider={isAssignedProvider}
+              viewerProviderId={currentUser?._id || currentUser?.id}
+              myOffer={myOffer}
               onGoToOffers={() => {
                 goTab('details');
                 setTimeout(() => document.getElementById('order-offers-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
@@ -5233,11 +5244,19 @@ export default function OrderDetails() {
                         return 'rejected';
                       }
                     } else {
+                      const orderProviderId = order.provider?._id || order.provider;
+                      const myUid = currentUser?._id || currentUser?.id;
+                      const isChosenProvider =
+                        orderProviderId && myUid && String(orderProviderId) === String(myUid);
+
                       if (orderStatus === 'completed' || orderStatus === 'rated' || orderStatus === 'released') {
-                        return 'rejected';
+                        return isChosenProvider ? 'completed' : 'rejected';
                       }
-                      if (orderStatus === 'in_progress' || orderStatus === 'funded') {
-                        return 'rejected';
+                      if (orderStatus === 'in_progress') {
+                        return isChosenProvider ? 'in_progress' : 'rejected';
+                      }
+                      if (orderStatus === 'funded') {
+                        return isChosenProvider ? 'funded' : 'rejected';
                       }
                       if (acceptedOfferId) {
                         return 'rejected';
