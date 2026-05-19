@@ -638,7 +638,7 @@ export default function UnifiedAIConcierge({
         };
       }
       
-      const res = await fetch(endpoint, {
+      let res = await fetch(endpoint, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -646,16 +646,41 @@ export default function UnifiedAIConcierge({
         },
         body: JSON.stringify(requestBody),
       });
+
+      let usedV1Fallback = false;
+      if (!res.ok && USE_V2 && res.status === 404) {
+        const fallbackEndpoint = apiUrl('/api/ai/concierge/analyze');
+        const lastUserContent =
+          requestMessages.filter((m) => m.role === 'user').pop()?.content ||
+          q ||
+          'Opisz problem';
+        console.warn('Asystent AI: v2 niedostępny (404), fallback do analyze');
+        res = await fetch(fallbackEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            description: lastUserContent,
+            imageUrls,
+            conversationHistory,
+            locationText: userContextLocation?.text,
+            lat: userContextLocation?.lat,
+            lon: userContextLocation?.lng,
+          }),
+        });
+        endpoint = fallbackEndpoint;
+        usedV1Fallback = true;
+      }
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error('Asystent AI HTTP', res.status, endpoint, errorData);
-        // Limity są obsługiwane przez backend i wysyłane jako powiadomienia
-        // Nie pokazujemy alertów w UI
         throw new Error(
           errorData.message ||
             (res.status === 404
-              ? 'Usługa AI jest chwilowo niedostępna (błąd połączenia z API). Odśwież stronę.'
+              ? 'Usługa AI jest chwilowo niedostępna. Odśwież stronę za chwilę.'
               : 'Błąd podczas analizy')
         );
       }
@@ -663,7 +688,7 @@ export default function UnifiedAIConcierge({
       const data = await res.json();
       
       // Obsługa odpowiedzi V2 (nowy format)
-      if (USE_V2 && (data.result || data.reply)) {
+      if (USE_V2 && !usedV1Fallback && (data.result || data.reply)) {
         const result = data.result || data;
         const agents = data.agents || {};
         
@@ -762,7 +787,7 @@ export default function UnifiedAIConcierge({
         );
         
         // Jeśli są pytania, dodaj je jako sugestie
-      } else {
+      } else if (usedV1Fallback || !USE_V2) {
         // Obsługa odpowiedzi V1 (stary format - backward compatibility)
         setAnalysisResult(data);
         
