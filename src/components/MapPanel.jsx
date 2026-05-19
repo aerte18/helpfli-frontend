@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import {
+  MapInitialRecenter,
   MapLocateControl,
   UserLocationLayer,
 } from "./MapUserLocation";
@@ -36,7 +37,18 @@ function FitBoundsOnDataChange({ providers }) {
   return null;
 }
 
-export default function MapPanel({ providers = [], onQuickView, onCompare }) {
+function providerCoords(p) {
+  if (Array.isArray(p.coords) && p.coords.length === 2) {
+    const [lat, lng] = p.coords;
+    if (isFinite(lat) && isFinite(lng)) return [lat, lng];
+  }
+  const lat = p.lat ?? p.location?.lat ?? p.locationCoords?.lat;
+  const lng = p.lng ?? p.location?.lng ?? p.locationCoords?.lng;
+  if (isFinite(lat) && isFinite(lng)) return [lat, lng];
+  return null;
+}
+
+export default function MapPanel({ providers = [], onQuickView, onCompare, onSelect }) {
   const [onlyNow, setOnlyNow] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const defaultCenter = [52.2297, 21.0122];
@@ -59,17 +71,21 @@ export default function MapPanel({ providers = [], onQuickView, onCompare }) {
     refreshUserLocation();
   }, [refreshUserLocation]);
   
-  // Filtrowanie providerów
-  const validProviders = (providers || []).filter(
-    p => Array.isArray(p.coords) && p.coords.length === 2 && isFinite(p.coords[0]) && isFinite(p.coords[1])
-  );
+  const validProviders = (providers || [])
+    .map((p) => {
+      const coords = providerCoords(p);
+      return coords ? { ...p, coords } : null;
+    })
+    .filter(Boolean);
   
   // Dodatkowe filtrowanie przez "Dostępni teraz"
   const mapProviders = validProviders.filter(p => 
     !onlyNow || p.provider_status?.isOnline === true
   );
   
-  const initialCenter = mapProviders[0]?.coords || defaultCenter;
+  const initialCenter = userLocation
+    ? [userLocation.lat, userLocation.lng]
+    : mapProviders[0]?.coords || defaultCenter;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-0 shadow-sm overflow-hidden">
@@ -86,9 +102,19 @@ export default function MapPanel({ providers = [], onQuickView, onCompare }) {
             Dostępni teraz
           </label>
         </div>
-        <p className="text-xs text-slate-500">
-          Debug: {mapProviders.length} z {validProviders.length} providerów z poprawnymi koordynatami
-        </p>
+        {import.meta.env.DEV && (
+          <p className="text-xs text-slate-500">
+            {mapProviders.length} wykonawców na mapie
+            {validProviders.length !== (providers || []).length
+              ? ` (${(providers || []).length - validProviders.length} bez współrzędnych)`
+              : ""}
+          </p>
+        )}
+        {validProviders.length === 0 && (
+          <p className="text-xs text-amber-700 mb-2">
+            Brak wykonawców z lokalizacją na mapie — sprawdź listę powyżej lub poszerz wyszukiwanie.
+          </p>
+        )}
       </div>
 
       <div className="h-64 sm:h-72 md:h-80 lg:h-[420px] w-full">
@@ -101,6 +127,7 @@ export default function MapPanel({ providers = [], onQuickView, onCompare }) {
           <FitBoundsOnDataChange providers={mapProviders} />
 
           <UserLocationLayer userLocation={userLocation} />
+          <MapInitialRecenter userLocation={userLocation} />
           <MapLocateControl
             userLocation={userLocation}
             onRequestLocation={refreshUserLocation}
@@ -116,7 +143,7 @@ export default function MapPanel({ providers = [], onQuickView, onCompare }) {
                 // Wersja B: kolor wg POZIOMU
                 // icon={iconForLevel(p.level)}
                 eventHandlers={{
-                  click: () => onQuickView?.(p)
+                  click: () => (onSelect || onQuickView)?.(p)
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>

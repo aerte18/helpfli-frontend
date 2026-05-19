@@ -85,8 +85,9 @@ export default function SearchPage() {
           const priceBase = typeof provider.price === "number" ? provider.price : 100;
           const priceTo = priceBase + 50;
 
-          const lat = provider.locationCoords?.lat ?? 52.2297;
-          const lng = provider.locationCoords?.lng ?? 21.0122;
+          const lat = provider.locationCoords?.lat ?? provider.location?.lat ?? provider.lat;
+          const lng = provider.locationCoords?.lng ?? provider.location?.lng ?? provider.lng;
+          const hasCoords = isFinite(lat) && isFinite(lng);
 
           return {
             id: provider._id || provider.id || name,
@@ -109,7 +110,7 @@ export default function SearchPage() {
             verified: provider.verified === true,
             b2b: provider.b2b === true,
             badges: Array.isArray(provider.badges) ? provider.badges : ["Gwarancja Helpfli"],
-            coords: [lat, lng],
+            coords: hasCoords ? [lat, lng] : null,
             online: provider.online === true,
             avatar: provider.avatar || null,
           };
@@ -156,12 +157,23 @@ export default function SearchPage() {
       return b.quality - a.quality; // default: quality
     });
 
-  const handleProviderClick = (provider) => {
-    navigate(`/providers/${provider.id}`);
+  const openProviderProfile = (provider) => {
+    const id = provider?.id || provider?._id;
+    if (!id) return;
+    navigate(`/provider/${id}`);
   };
 
   const handleCreateOrder = (provider) => {
-    navigate(`/orders/new?providerId=${provider.id}&service=${provider.service}&desc=${encodeURIComponent(provider.description || '')}`);
+    const id = provider?.id || provider?._id;
+    navigate("/create-order", {
+      state: {
+        recommendedProviderId: id,
+        prefill: {
+          service: provider.service,
+          description: provider.description || "",
+        },
+      },
+    });
   };
 
   if (loading) {
@@ -288,7 +300,11 @@ export default function SearchPage() {
         {/* Mapa */}
         {filtered.length > 0 && (
           <div className="mt-8">
-            <MapPanel providers={filtered} />
+            <MapPanel
+              providers={filtered}
+              onSelect={openProviderProfile}
+              onQuickView={openProviderProfile}
+            />
           </div>
         )}
 

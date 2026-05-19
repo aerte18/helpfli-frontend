@@ -1,10 +1,11 @@
 import React from "react";
+import { AssistantMessageContent } from "../utils/formatChatMessage";
 
 function clsx(...a) { return a.filter(Boolean).join(" "); }
 
-export default function ChatBubble({ role, text, ts }) {
+export default function ChatBubble({ role, text, ts, rich = false }) {
   const isUser = role === "user";
-  const time = ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+  const time = ts ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
 
   return (
     <div className={clsx("flex w-full items-end gap-2", isUser ? "justify-end" : "justify-start")}>
@@ -15,11 +16,15 @@ export default function ChatBubble({ role, text, ts }) {
       )}
       <div className={clsx(
         "max-w-[min(92%,28rem)] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug shadow-sm sm:max-w-[80%] sm:px-4 sm:py-2.5 sm:text-sm sm:leading-relaxed",
-        isUser 
-          ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm" 
+        isUser
+          ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-sm"
           : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm"
       )}>
-        <div className="whitespace-pre-wrap">{text}</div>
+        {rich && !isUser ? (
+          <AssistantMessageContent text={text} />
+        ) : (
+          <div className="whitespace-pre-wrap">{text}</div>
+        )}
         <div className={clsx("mt-1.5 text-[11px] opacity-70 sm:text-[10px]", isUser ? "text-blue-100" : "text-gray-500")}>
           {time}
         </div>
@@ -41,9 +46,9 @@ export function TypingBubble() {
       </div>
       <div className="rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-3.5 py-2.5 text-[15px] shadow-sm sm:px-4 sm:text-sm">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: "0ms" }} />
+          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: "150ms" }} />
+          <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: "300ms" }} />
         </div>
       </div>
     </div>
