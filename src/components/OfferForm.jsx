@@ -11,6 +11,26 @@ const OFFER_FORM_AI_KEY = "offerForm_showAi";
 /** Twarda blokada: poniżej wymagane potwierdzenie „Wyślij mimo to” (zgodne z backendem). */
 const OFFER_QUALITY_HARD_THRESHOLD = 45;
 
+/** Wartość dla input[type=datetime-local] w strefie użytkownika (nie UTC z toISOString). */
+function toDatetimeLocalValue(date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function resolveCompletionDateValue(completionDate, isPriority, priorityDateTime) {
+  if (completionDate?.trim()) return completionDate.trim();
+  if (isPriority && priorityDateTime) {
+    return toDatetimeLocalValue(priorityDateTime);
+  }
+  return "";
+}
+
+function hasActiveFieldErrors(errors) {
+  return Object.values(errors || {}).some((v) => Boolean(v));
+}
+
 function useAuthToken() {
   try { return localStorage.getItem("token") || ""; } catch { return ""; }
 }
@@ -93,7 +113,7 @@ export default function OfferForm({
     if (date) {
       const parsed = new Date(date);
       if (!Number.isNaN(parsed.getTime()) && parsed > new Date()) {
-        setCompletionDate(parsed.toISOString().slice(0, 16));
+        setCompletionDate(toDatetimeLocalValue(parsed));
       }
     }
     if (Array.isArray(draft.recommendedIncludes)) setPriceIncludes(draft.recommendedIncludes);
@@ -139,6 +159,24 @@ export default function OfferForm({
   useEffect(() => {
     if (orderId) reloadBands();
   }, [orderId, token]);
+
+  // Termin klienta był tylko w value inputa — bez sync do state walidacja padała na pustym polu.
+  useEffect(() => {
+    if (completionDate?.trim()) return;
+    if (isPriority && priorityDateTime) {
+      const local = toDatetimeLocalValue(priorityDateTime);
+      if (local) setCompletionDate(local);
+    }
+  }, [orderId, isPriority, priorityDateTime]);
+
+  const clearFieldError = (field) => {
+    setFieldErrors((prev) => {
+      if (!prev?.[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   // Pobierz sugestie AI dla zlecenia
   useEffect(() => {
@@ -278,7 +316,7 @@ export default function OfferForm({
       missing.push("Podaj cenę.");
     }
 
-    if (completionDate) {
+    if (resolveCompletionDateValue(completionDate, isPriority, priorityDateTime)) {
       score += 14;
       strengths.push("Termin realizacji jest określony.");
     } else {
@@ -338,7 +376,7 @@ export default function OfferForm({
       warnings: warnings.slice(0, 4),
       missing: missing.slice(0, 3)
     };
-  }, [amount, completionDate, message, priceHint, priceIncludes, contactMethod, isFinalPrice, aiSuggestions]);
+  }, [amount, completionDate, message, priceHint, priceIncludes, contactMethod, isFinalPrice, aiSuggestions, isPriority, priorityDateTime]);
   const displayedOfferQuality = aiPreflightQuality || offerQuality;
   const suggestedQuestions = useMemo(
     () => (Array.isArray(aiSuggestions?.suggestions?.questions) ? aiSuggestions.suggestions.questions.slice(0, 4) : []),
@@ -448,13 +486,20 @@ export default function OfferForm({
       }
     }
     
-    // Walidacja terminu realizacji
-    if (!completionDate) {
+    // Walidacja terminu realizacji (uwzględnij termin klienta z priorityDateTime)
+    const effectiveCompletionDate = resolveCompletionDateValue(
+      completionDate,
+      isPriority,
+      priorityDateTime
+    );
+    if (!effectiveCompletionDate) {
       errors.completionDate = "Wybierz termin realizacji";
     } else {
-      const selectedDate = new Date(completionDate);
+      const selectedDate = new Date(effectiveCompletionDate);
       const now = new Date();
-      if (selectedDate < now) {
+      if (Number.isNaN(selectedDate.getTime())) {
+        errors.completionDate = "Nieprawidłowy termin realizacji";
+      } else if (selectedDate < now) {
         errors.completionDate = "Termin realizacji nie może być w przeszłości";
       }
     }
@@ -468,9 +513,13 @@ export default function OfferForm({
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      setFormError("Proszę poprawić błędy w formularzu");
-      // Przewiń do pierwszego błędu
       const firstErrorField = Object.keys(errors)[0];
+      setFormError(
+        errors[firstErrorField]
+          ? `Proszę poprawić błędy: ${errors[firstErrorField]}`
+          : "Proszę poprawić błędy w formularzu"
+      );
+      // Przewiń do pierwszego błędu
       const element = document.getElementById(`offer-${firstErrorField}`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -497,8 +546,11 @@ export default function OfferForm({
     setFormError("");
     setFieldErrors({});
     try {
-      // Użyj terminu wybranego przez providera (może być inny niż termin klienta)
-      const finalCompletionDate = completionDate;
+      const finalCompletionDate = resolveCompletionDateValue(
+        completionDate,
+        isPriority,
+        priorityDateTime
+      );
       
       // Przygotuj informacje o cenie i kontakcie
       const priceInfo = {
@@ -800,9 +852,7 @@ export default function OfferForm({
               onChange={(e) => {
                 setAmount(e.target.value);
                 // Wyczyść błąd gdy użytkownik zacznie pisać
-                if (fieldErrors.amount) {
-                  setFieldErrors({ ...fieldErrors, amount: undefined });
-                }
+                clearFieldError("amount");
               }}
               placeholder="np. 150"
               required
@@ -895,15 +945,12 @@ export default function OfferForm({
           <input
             id="offer-completion-date"
             type="datetime-local"
-            value={completionDate || (isPriority && priorityDateTime ? new Date(priorityDateTime).toISOString().slice(0, 16) : '')}
+            value={resolveCompletionDateValue(completionDate, isPriority, priorityDateTime)}
             onChange={(e) => {
               setCompletionDate(e.target.value);
-              // Wyczyść błąd gdy użytkownik wybierze datę
-              if (fieldErrors.completionDate) {
-                setFieldErrors({ ...fieldErrors, completionDate: undefined });
-              }
+              clearFieldError("completionDate");
             }}
-            min={new Date().toISOString().slice(0, 16)}
+            min={toDatetimeLocalValue(new Date())}
             required
             className={`w-full h-11 px-4 rounded-lg border bg-white text-slate-900 focus:outline-none focus:ring-2 transition-all ${
               fieldErrors.completionDate 
@@ -1309,9 +1356,7 @@ export default function OfferForm({
             onChange={(e) => {
               setMessage(e.target.value);
               // Wyczyść błąd gdy użytkownik zacznie pisać
-              if (fieldErrors.message) {
-                setFieldErrors({ ...fieldErrors, message: undefined });
-              }
+              clearFieldError("message");
             }}
             placeholder="Opisz jak wykonasz zlecenie, doświadczenie, gwarancje..."
             rows={5}
@@ -1346,7 +1391,7 @@ export default function OfferForm({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={sending || Object.keys(fieldErrors).length > 0}
+          disabled={sending || hasActiveFieldErrors(fieldErrors)}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 text-base font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center shadow-sm"
           aria-label="Wyślij ofertę do klienta"
         >
