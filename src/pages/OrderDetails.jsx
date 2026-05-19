@@ -2776,6 +2776,7 @@ export default function OrderDetails() {
   const [copiedId, setCopiedId] = useState(false);
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const [tab, setTab] = useState(tabFromUrl === "offers" ? "offers" : (tabFromUrl === "chat" ? "chat" : (tabFromUrl === "my_offer" ? "my_offer" : "details")));
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -2791,7 +2792,6 @@ export default function OrderDetails() {
     }
   }, [location.search, me?.role, user?.role]);
 
-  const [me, setMe] = useState(null);
   const [order, setOrderState] = useState(null);
   const setOrder = useCallback((next) => {
     setOrderState((prev) => {
