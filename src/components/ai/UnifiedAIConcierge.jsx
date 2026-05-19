@@ -22,6 +22,12 @@ import {
   stepSubtitle,
   cleanDescriptionText,
 } from "../../utils/conciergeFlow";
+import {
+  ConciergeChoiceChips,
+  ConciergeOrderSnippet,
+  ConciergeSafetyHint,
+  ConciergeDiagnosticHint,
+} from "./ConciergeInlineHints";
 
 const CLIENT_START_PROMPTS = [
   {
@@ -703,7 +709,10 @@ export default function UnifiedAIConcierge({
           toolUsed: data.toolUsed || null,
           toolResult: data.toolResult || null,
           questions: result.questions || [],
-          quickReplies: agents.orderDraft?.quickReplies || [],
+          quickReplies:
+            ['clarify', 'diagnose', 'providers'].includes(result.uiPhase || data.uiPhase)
+              ? []
+              : agents.orderDraft?.quickReplies || [],
           orderDraft: agents.orderDraft || null,
           diagnosticFlow: result.diagnosticFlow || null,
           sessionId,
@@ -919,6 +928,9 @@ export default function UnifiedAIConcierge({
   const showPricingPanel = uiPhase === 'pricing';
   const showDiyPanel = uiPhase === 'diy';
   const showClarifyOnly = uiPhase === 'clarify' || uiPhase === 'diagnose';
+  const compactChatMode = showClarifyOnly || showChoiceCard;
+  const shouldShowHeavyAnalysis = showProvidersPanel || showPricingPanel || showDiyPanel;
+  const showBottomPanels = !compactChatMode && shouldShowHeavyAnalysis;
 
   const choiceActions = [
     { label: 'Znajdź wykonawcę', value: 'Pokaż najlepiej dopasowanych wykonawców w mojej okolicy.' },
@@ -926,8 +938,6 @@ export default function UnifiedAIConcierge({
     { label: 'Sprawdź cenę', value: 'Ile może kosztować taka usługa? Pokaż orientacyjne widełki cenowe.' },
     { label: 'Spróbuję sam (DIY)', value: 'Pokaż bezpieczne kroki DIY, które mogę zrobić samodzielnie.' },
   ];
-
-  const shouldShowHeavyAnalysis = showProvidersPanel || showPricingPanel || showDiyPanel;
 
   const content = (
     <div className={`${cardClass} relative`} style={{ pointerEvents: 'auto' }}>
@@ -1215,9 +1225,18 @@ export default function UnifiedAIConcierge({
                         </button>
                       </div>
                     )}
+                                        {latestAssistant === m && showClarifyOnly && (analysisResult?.diagnostic?.risk === 'high' || analysisResult?.safety?.level === 'critical') && (
+                      <ConciergeSafetyHint
+                        message={
+                          analysisResult.diagnostic?.immediateActions?.[0] ||
+                          analysisResult.safety?.reason ||
+                          'Przy zalaniu wyłącz prąd w zalanym obszarze i ogranicz wyciek wody.'
+                        }
+                      />
+                    )}
                     {m.diagnosticFlow && (
-                      <div className="mt-3 ml-12 max-w-md">
-                        <DiagnosticFlowCard
+                      <div className="mt-2 ml-11 max-w-lg">
+                        <ConciergeDiagnosticHint
                           flow={m.diagnosticFlow}
                           onHelped={() => handleDiagnosticHelped(m.diagnosticFlow)}
                           onFailed={() => handleDiagnosticFailed(m.diagnosticFlow)}
@@ -1225,116 +1244,27 @@ export default function UnifiedAIConcierge({
                       </div>
                     )}
                     {latestAssistant === m && showChoiceCard && !m.diagnosticFlow && (
-                      <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 max-w-md shadow-sm">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-indigo-600 mb-1">
-                          Co dalej?
-                        </div>
-                        {conversationSummary && (
-                          <p className="text-sm text-slate-800 mb-2 font-medium">{conversationSummary}</p>
-                        )}
-                        <p className="text-sm text-slate-600 mb-3">
-                          Wybierz jedną opcję — pokażę tylko to, czego potrzebujesz (bez kilku paneli naraz).
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {choiceActions.map((action) => (
-                            <button
-                              key={action.label}
-                              type="button"
-                              onClick={() => {
-                                const path = pathFromChoiceLabel(action.label);
-                                if (path) {
-                                  setChosenPath(path);
-                                  setStoredChosenPath(path);
-                                }
-                                ask(action.value);
-                              }}
-                              className="rounded-lg border border-indigo-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-indigo-800 hover:bg-indigo-50 transition-colors"
-                            >
-                              {action.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <ConciergeChoiceChips
+                        actions={choiceActions}
+                        conversationSummary={conversationSummary}
+                        onSelect={(action) => {
+                          const path = pathFromChoiceLabel(action.label);
+                          if (path) {
+                            setChosenPath(path);
+                            setStoredChosenPath(path);
+                          }
+                          ask(action.value);
+                        }}
+                      />
                     )}
                     {latestAssistant === m && showOrderCard && m.orderDraft && !m.diagnosticFlow && (
-                      <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
-                        <div className="flex items-center justify-between gap-3 mb-2">
-                          <div>
-                            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
-                              {m.orderDraft.canCreate ? 'Potwierdzenie zlecenia' : 'Draft zlecenia'}
-                            </div>
-                            <div className="text-sm font-semibold text-slate-900">
-                              {m.orderDraft.canCreate ? 'Sprawdź dane przed utworzeniem' : 'Uzupełnij brakujące dane'}
-                            </div>
-                          </div>
-                          <div className="text-xs font-semibold text-indigo-700">
-                            {m.orderDraft.completion?.percent ?? 0}%
-                          </div>
-                        </div>
-                        <div className="space-y-1 text-xs text-slate-700">
-                          <div><span className="font-medium">Usługa:</span> {serviceLabel(m.orderDraft.summary?.service || m.orderDraft.orderPayload?.service, 'Nie wybrano')}</div>
-                          <div><span className="font-medium">Opis:</span> {m.orderDraft.summary?.description || m.orderDraft.orderPayload?.description || 'Brak'}</div>
-                          <div><span className="font-medium">Lokalizacja:</span> {m.orderDraft.summary?.location || 'Brak'}</div>
-                          <div><span className="font-medium">Termin:</span> {m.orderDraft.summary?.preferredTime || 'Do ustalenia'}</div>
-                          {(m.orderDraft.orderPayload?.attachments?.length > 0 || sessionAttachmentUrlsRef.current.length > 0) && (
-                            <div><span className="font-medium">Zdjęcia z czatu:</span> dołączymy {Math.max(m.orderDraft.orderPayload?.attachments?.length || 0, sessionAttachmentUrlsRef.current.length)} plik(ów) do zlecenia</div>
-                          )}
-                        </div>
-                        {m.orderDraft.providerBrief && (
-                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="text-xs font-semibold text-slate-800">Brief dla wykonawcy</div>
-                              {m.orderDraft.quality && (
-                                <div className="text-[11px] font-semibold text-indigo-700">
-                                  Jakość: {m.orderDraft.quality.percent}% ({m.orderDraft.quality.level})
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs font-medium text-slate-900">
-                              {m.orderDraft.providerBrief.title}
-                            </div>
-                            {m.orderDraft.providerBrief.suggestedAttachments?.length > 0 && (
-                              <div className="mt-2 text-[11px] text-slate-600">
-                                Warto dodać: {m.orderDraft.providerBrief.suggestedAttachments.join(', ')}
-                              </div>
-                            )}
-                            {m.orderDraft.quality?.missingForPro?.length > 0 && (
-                              <div className="mt-1 text-[11px] text-amber-700">
-                                Do wersji pro brakuje: {m.orderDraft.quality.missingForPro.slice(0, 3).join(', ')}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {m.orderDraft.gapAnalysis?.filled?.length > 0 && (
-                          <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">
-                            Zebrane: {m.orderDraft.gapAnalysis.filled.map((f) => f.label).join(', ')}
-                          </div>
-                        )}
-                        {m.orderDraft.missing?.length > 0 && (
-                          <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
-                            Brakuje: {m.orderDraft.missing.join(', ')}
-                          </div>
-                        )}
-                        {m.orderDraft.nextQuestion && !m.orderDraft.canCreate && (
-                          <div className="mt-2 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5">
-                            Następne pytanie: {m.orderDraft.nextQuestion}
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) });
-                            if (mode === 'modal' && onClose) onClose();
-                          }}
-                          className={`mt-3 w-full rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                            m.orderDraft.canCreate
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
-                          }`}
-                        >
-                          {m.orderDraft.canCreate ? 'Potwierdzam, utwórz zlecenie' : 'Otwórz formularz i uzupełnij'}
-                        </button>
-                      </div>
+                      <ConciergeOrderSnippet
+                        orderDraft={m.orderDraft}
+                        onOpenForm={() => {
+                          navigate('/create-order', { state: buildCreateOrderState(m.orderDraft) });
+                          if (mode === 'modal' && onClose) onClose();
+                        }}
+                      />
                     )}
                     {latestAssistant === m && !m.diagnosticFlow && !showChoiceCard && !showOrderCard && (
                       (showClarifyOnly
@@ -1342,7 +1272,7 @@ export default function UnifiedAIConcierge({
                         : [...(m.quickReplies || []), ...(m.questions || [])].slice(0, 2)
                       ).length > 0
                     ) && (
-                      <div className="mt-3 ml-12 flex flex-wrap gap-2">
+                      <div className="mt-1.5 ml-11 flex flex-wrap gap-1.5">
                         {(showClarifyOnly
                           ? (m.questions || []).slice(0, 1).map((question) => ({ label: question, value: question }))
                           : [...(m.quickReplies || []), ...(m.questions || []).map((question) => ({ label: question, value: question }))]
@@ -1354,7 +1284,7 @@ export default function UnifiedAIConcierge({
                               const val = reply.value || reply.label;
                               if (val) ask(val);
                             }}
-                            className="px-3 py-1.5 text-xs rounded-full border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
+                            className="px-2.5 py-1 text-[11px] rounded-full border border-slate-200 bg-white/90 text-slate-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800 transition-colors"
                           >
                             {reply.label}
                           </button>
@@ -1461,7 +1391,7 @@ export default function UnifiedAIConcierge({
             ))}
             
             {/* Wyświetlanie wyników analizy */}
-            {analysisResult && (
+            {analysisResult && showBottomPanels && (
               <div className="mt-4 space-y-3">
                 {false && (
                   <div className="rounded-xl border border-indigo-200 bg-white p-4 shadow-sm">
@@ -1520,7 +1450,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
                 {/* Helpfli poleca: DIY / wezwij fachowca */}
-                {analysisResult.recommendation && (showProvidersPanel || showDiyPanel) && (
+                {analysisResult.recommendation && (showProvidersPanel || showDiyPanel) && showBottomPanels && (
                   <div className={`rounded-xl border p-4 ${
                     analysisResult.recommendation.type === 'provider'
                       ? 'bg-amber-50 border-amber-200'
@@ -1548,7 +1478,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
 
-                {showProvidersPanel && (analysisResult.serviceCandidate || analysisResult.matching?.topProviders?.length > 0) && (
+                {showProvidersPanel && analysisResult.matching?.topProviders?.length > 0 && (
                   <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
@@ -1813,7 +1743,7 @@ export default function UnifiedAIConcierge({
                 )}
 
                 {/* Reklamy / Polecane sklepy i usługi */}
-                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && shouldShowHeavyAnalysis && (
+                {analysisResult.sponsorAds && analysisResult.sponsorAds.length > 0 && showBottomPanels && (
                   <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
                       <span>🏪</span> Polecane dla Ciebie
@@ -1844,7 +1774,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Diagnostic - Ocena ryzyka */}
-                {analysisResult.diagnostic && shouldShowHeavyAnalysis && (
+                {analysisResult.diagnostic && showBottomPanels && (
                   <div className={`border rounded-xl p-4 ${
                     analysisResult.diagnostic.risk === 'high' 
                       ? 'bg-red-50 border-red-200' 
@@ -1876,7 +1806,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Parts */}
-                {analysisResult.parts && analysisResult.parts.length > 0 && shouldShowHeavyAnalysis && (
+                {analysisResult.parts && analysisResult.parts.length > 0 && showBottomPanels && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                     <div className="font-semibold text-foreground mb-2">🛒 Części przydatne do naprawy</div>
                     <ul className="text-sm space-y-1 text-muted-foreground">
@@ -1892,7 +1822,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Safety Triage */}
-                {analysisResult.safety?.flag && (
+                {analysisResult.safety?.flag && showBottomPanels && !analysisResult.diagnostic && (
                   <div className={`rounded-xl border p-4 ${
                     analysisResult.safety.level === 'critical'
                       ? 'bg-red-50 border-red-300'
@@ -1944,7 +1874,7 @@ export default function UnifiedAIConcierge({
                 )}
                 
                 {/* Utwórz zlecenie w 1 kliknięciu (gdy Helpfli poleca fachowca i mamy draft) */}
-                {shouldShowHeavyAnalysis && analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
+                {showOrderCard && analysisResult.recommendation?.type === 'provider' && analysisResult.draftId && (
                   <div className="mt-3">
                     <button
                       onClick={async () => {
@@ -1987,7 +1917,7 @@ export default function UnifiedAIConcierge({
                   </div>
                 )}
                 {/* Przycisk Utwórz zlecenie (gdy brak draftId lub inna ścieżka) */}
-                {shouldShowHeavyAnalysis && analysisResult.serviceCandidate && (
+                {showOrderCard && analysisResult.serviceCandidate && (
                   <div className="mt-3">
                     <button
                       onClick={() => {
