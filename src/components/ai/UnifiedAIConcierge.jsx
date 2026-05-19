@@ -6,10 +6,15 @@ import { serviceLabel } from "../../utils/serviceLabels";
 import { createOrder } from "../../api/orders";
 import LiveCameraAI from "../LiveCameraAI";
 import ChatBubble, { TypingBubble } from "../ChatBubble";
-import { Sparkles, X, Paperclip, Send, Video, Loader2, AlertTriangle } from "lucide-react";
+import { Sparkles, X, Paperclip, Send, Video, Loader2, AlertTriangle, RotateCcw, History } from "lucide-react";
+import { animateReplyText } from "../../utils/animateReply";
+import ProviderMiniCards from "./ProviderMiniCards";
+import ConciergeHistoryPanel from "./ConciergeHistoryPanel";
 import { onAI, closeAI } from "../../ai/chat/bus";
 import { companyAiChat } from "../../api/companies";
 import { useTelemetry } from "../../hooks/useTelemetry";
+import { extractAIReply, sanitizeHistoryContent } from "../../utils/extractAIReply";
+import useUserLocation, { wantsDeviceLocation } from "../../hooks/useUserLocation";
 
 const CLIENT_START_PROMPTS = [
   {
@@ -41,6 +46,11 @@ const CLIENT_START_PROMPTS = [
     label: "Opisz problem za mnie i utwórz zlecenie",
     value: "Pomóż mi opisać problem, zadaj najważniejsze pytania i przygotuj zlecenie dla wykonawcy.",
     tone: "draft"
+  },
+  {
+    label: "Użyj mojej lokalizacji",
+    value: "Chcę użyć mojej aktualnej lokalizacji",
+    tone: "urgent"
   }
 ];
 
@@ -187,6 +197,13 @@ export default function UnifiedAIConcierge({
   const { trackSearch, trackProviderView, trackProviderContact, trackOrderFormStart } = useTelemetry();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  /** Zdjęcia/pliki z całej sesji czatu — przenoszone do formularza zlecenia */
+  const sessionAttachmentUrlsRef = useRef([]);
+  const { location: deviceLocation, refresh: refreshDeviceLocation } = useUserLocation();
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessionList, setSessionList] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
 
   // Dla użytkownika firmy: pobierz companyId (żeby pokazać Asystenta dla firmy zamiast klienta)
   useEffect(() => {
@@ -243,6 +260,64 @@ export default function UnifiedAIConcierge({
   }, [seedQuery, open]);
 
   useEffect(() => {
+    if (!open || companyId) return;
+    refreshDeviceLocation();
+  }, [open, companyId, refreshDeviceLocation]);
+
+  const loadSessionList = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setSessionsLoading(true);
+    try {
+      const res = await fetch(apiUrl("/api/ai/concierge/sessions?limit=20"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) setSessionList(data.sessions || []);
+    } catch (e) {
+      console.warn("loadSessionList:", e);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  const openHistory = () => {
+    setShowHistory(true);
+    loadSessionList();
+  };
+
+  const loadSession = async (sessionId) => {
+    const token = localStorage.getItem("token");
+    if (!token || !sessionId) return;
+    setBusy(true);
+    try {
+      const res = await fetch(apiUrl(`/api/ai/concierge/sessions/${encodeURIComponent(sessionId)}`), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.message || "Błąd wczytywania");
+      const restored = (data.messages || []).map((m) => ({
+        role: m.role,
+        text: m.role === "assistant" ? extractAIReply(m.text) : m.text,
+        ts: m.ts ? new Date(m.ts).getTime() : Date.now(),
+      }));
+      setMsgs(restored.length ? restored : [{ role: "assistant", text: clientWelcome }]);
+      setAnalysisResult(null);
+      setCurrentSessionId(sessionId);
+      try {
+        localStorage.setItem("ai_concierge_session_id", sessionId);
+      } catch {
+        // ignore
+      }
+      setShowHistory(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
     if (open) return;
     // Przy kolejnym otwarciu ponownie rozpoznaj kontekst firmy.
     setCompanyId(null);
@@ -277,7 +352,33 @@ export default function UnifiedAIConcierge({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs]);
+  }, [msgs, busy, analysisResult]);
+
+  const filesToOrderAttachments = (files = []) =>
+    files
+      .map((f) => ({
+        url: f.url,
+        mimeType: f.mimeType || f.type || "image/jpeg",
+        filename: f.name || f.filename || "zdjecie.jpg",
+        size: f.size || 0,
+      }))
+      .filter((a) => a.url);
+
+  const resetConversation = () => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    setMsgs([{ role: "assistant", text: companyId ? companyWelcome : clientWelcome }]);
+    setAnalysisResult(null);
+    setInput("");
+    setAttachedFiles([]);
+    sessionAttachmentUrlsRef.current = [];
+    setBusy(false);
+    setCurrentSessionId(newSessionId);
+    try {
+      localStorage.setItem("ai_concierge_session_id", newSessionId);
+    } catch {
+      // ignore
+    }
+  };
 
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -322,7 +423,23 @@ export default function UnifiedAIConcierge({
   const buildCreateOrderState = (draft = analysisResult?.orderDraft) => {
     const payload = draft?.orderPayload || {};
     const budget = payload.budget;
+    const budgetValue =
+      budget && typeof budget === "object"
+        ? budget.max ?? budget.min ?? ""
+        : budget ?? "";
     const description = draft?.providerBrief?.customerSummary || payload.description || input || 'Problem wykryty przez Asystenta AI';
+    const payloadAtt = filesToOrderAttachments(
+      (payload.attachments || []).map((a) =>
+        typeof a === "string" ? { url: a } : a
+      )
+    );
+    const sessionAtt = filesToOrderAttachments(sessionAttachmentUrlsRef.current);
+    const seen = new Set();
+    const mergedAttachments = [...payloadAtt, ...sessionAtt].filter((a) => {
+      if (seen.has(a.url)) return false;
+      seen.add(a.url);
+      return true;
+    });
     const aiBrief = draft ? {
       source: 'concierge',
       providerBrief: draft.providerBrief || null,
@@ -343,12 +460,15 @@ export default function UnifiedAIConcierge({
     return {
       fromAI: true,
       aiBrief,
+      attachments: mergedAttachments,
       preFilled: {
         description,
         service: payload.service || analysisResult?.serviceCandidate?.code,
         location: payload.location || '',
+        preferredTime: payload.preferredTime || analysisResult?.extracted?.timeWindow || '',
         urgency: payload.urgency || analysisResult?.urgency || 'standard',
-        budget: budget?.max || budget?.min || '',
+        budget: budgetValue,
+        attachments: mergedAttachments,
         diySteps: analysisResult?.diySteps,
         parts: analysisResult?.parts,
         aiBrief
@@ -357,7 +477,9 @@ export default function UnifiedAIConcierge({
         description,
         service: payload.service || analysisResult?.serviceCandidate?.code,
         location: payload.location || '',
+        preferredTime: payload.preferredTime || '',
         urgency: payload.urgency || analysisResult?.urgency || 'standard',
+        attachments: mergedAttachments,
         aiBrief
       }
     };
@@ -378,6 +500,16 @@ export default function UnifiedAIConcierge({
     
     const filesForMessage = attachedFiles;
     const imageUrls = filesForMessage.map(f => f.url);
+    if (filesForMessage.length > 0) {
+      const next = filesToOrderAttachments(filesForMessage);
+      const seen = new Set(sessionAttachmentUrlsRef.current.map((f) => f.url));
+      for (const att of next) {
+        if (!seen.has(att.url)) {
+          sessionAttachmentUrlsRef.current.push(att);
+          seen.add(att.url);
+        }
+      }
+    }
     
     setMsgs((m) => [...m, { 
       role: "user", 
@@ -396,13 +528,40 @@ export default function UnifiedAIConcierge({
     try {
       const conversationHistory = msgs
         .filter(m => m.role === 'user' || m.role === 'assistant')
-        .map(m => ({ role: m.role, content: m.text || '' }))
+        .map(m => ({
+          role: m.role,
+          content: m.role === 'assistant' ? sanitizeHistoryContent(m.text || '') : (m.text || '')
+        }))
         .slice(-10);
+
+      let activeLocation = deviceLocation;
+      if (wantsDeviceLocation(q)) {
+        const fresh = await refreshDeviceLocation();
+        if (fresh) activeLocation = fresh;
+      }
+
+      const userContextLocation = activeLocation
+        ? {
+            text: activeLocation.text,
+            lat: activeLocation.lat,
+            lng: activeLocation.lng,
+          }
+        : user?.location?.text
+          ? {
+              text: user.location.text,
+              lat: user.location.lat,
+              lng: user.location.lng,
+            }
+          : null;
+
+      const locationNote = userContextLocation?.text
+        ? `\n\n[Moja lokalizacja: ${userContextLocation.text}]`
+        : "";
       const requestMessages = [
         ...conversationHistory,
         {
           role: 'user',
-          content: q || (attachedFiles.length > 0 ? `Przesłano ${attachedFiles.length} plik(ów) do analizy` : '')
+          content: (q || (attachedFiles.length > 0 ? `Przesłano ${attachedFiles.length} plik(ów) do analizy` : '')) + locationNote
         }
       ];
 
@@ -443,7 +602,7 @@ export default function UnifiedAIConcierge({
         requestBody = {
           messages: requestMessages,
           sessionId,
-          userContext: { location: null },
+          userContext: userContextLocation ? { location: userContextLocation } : {},
           imageUrls: imageUrls
         };
       } else {
@@ -474,8 +633,8 @@ export default function UnifiedAIConcierge({
       const data = await res.json();
       
       // Obsługa odpowiedzi V2 (nowy format)
-      if (USE_V2 && data.result) {
-        const result = data.result;
+      if (USE_V2 && (data.result || data.reply)) {
+        const result = data.result || data;
         const agents = data.agents || {};
         
         // Zapisz sessionId i messageId dla feedbacku (jeśli dostępne)
@@ -508,31 +667,46 @@ export default function UnifiedAIConcierge({
           orderDraft: agents.orderDraft || null // Draft zlecenia
         });
         
-        // Główna odpowiedź = naturalna wypowiedź agenta (jak rozmowa). Szczegóły (ceny, wykonawcy) w blokach poniżej.
-        const replyText = result.reply || "Analizuję Twój problem...";
-
-setMsgs((m) => [...m.filter((msg) => !msg.transient), {
+        const replyText = extractAIReply(result.reply || data.reply) || "Analizuję Twój problem...";
+        const msgId = `msg_${Date.now()}`;
+        const assistantBase = {
+          id: msgId,
           role: "assistant",
-          text: replyText,
+          text: "",
+          streaming: true,
           nextStep: result.nextStep,
           showCameraButton: true,
-          agents: agents,
+          agents,
+          matching: agents.matching || null,
+          pricing: agents.pricing || null,
           toolUsed: data.toolUsed || null,
           toolResult: data.toolResult || null,
           questions: result.questions || [],
           quickReplies: agents.orderDraft?.quickReplies || [],
           orderDraft: agents.orderDraft || null,
           diagnosticFlow: result.diagnosticFlow || null,
-          sessionId: sessionId,
-          messageId: messageId,
-          requestId: data.requestId
-        }]);
+          sessionId,
+          messageId,
+          requestId: data.requestId,
+          abVariants: data.abVariants || null,
+        };
+
+        setMsgs((m) => [...m.filter((msg) => !msg.transient), assistantBase]);
+        setCurrentSessionId(sessionId);
+
+        await animateReplyText(replyText, (partial) => {
+          setMsgs((prev) =>
+            prev.map((msg) => (msg.id === msgId ? { ...msg, text: partial } : msg))
+          );
+        });
+
+        setMsgs((prev) =>
+          prev.map((msg) =>
+            msg.id === msgId ? { ...msg, text: replyText, streaming: false } : msg
+          )
+        );
         
         // Jeśli są pytania, dodaj je jako sugestie
-        if (result.questions && result.questions.length > 0) {
-          // Pytania można później wyświetlić jako szybkie odpowiedzi
-          console.log('Pytania do wyświetlenia:', result.questions);
-        }
       } else {
         // Obsługa odpowiedzi V1 (stary format - backward compatibility)
         setAnalysisResult(data);
@@ -546,7 +720,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
       console.error('Asystent AI error:', error);
       setMsgs((m) => [...m.filter((msg) => !msg.transient), { 
         role: "assistant", 
-        text: error.message || "Ups, spróbuj ponownie." 
+        text: "Nie udało się teraz odpowiedzieć. Spróbuj ponownie lub opisz problem krócej." 
       }]);
     } finally {
       setBusy(false);
@@ -692,10 +866,30 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
     !actionNextSteps.includes(latestAssistant?.nextStep)
   );
   const shouldShowFlowPanel = !isDiagnosticActive && !latestAssistantIsClarifying && actionNextSteps.includes(analysisResult?.nextStep);
-  const shouldShowHeavyAnalysis = false;
+  const hasAnalysisCards = Boolean(
+    analysisResult?.matching?.topProviders?.length ||
+    analysisResult?.pricing?.ranges ||
+    (analysisResult?.diySteps?.length > 0) ||
+    analysisResult?.serviceCandidate?.code ||
+    analysisResult?.sponsorAds?.length
+  );
+  const shouldShowHeavyAnalysis = Boolean(
+    !companyId &&
+    !isDiagnosticActive &&
+    hasAnalysisCards &&
+    !latestAssistantIsClarifying
+  );
 
   const content = (
-    <div className={cardClass} style={{ pointerEvents: 'auto' }}>
+    <div className={`${cardClass} relative`} style={{ pointerEvents: 'auto' }}>
+      <ConciergeHistoryPanel
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        sessions={sessionList}
+        loading={sessionsLoading}
+        currentSessionId={currentSessionId || (typeof localStorage !== 'undefined' ? localStorage.getItem('ai_concierge_session_id') : null)}
+        onSelectSession={loadSession}
+      />
       {/* Header - profesjonalny */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between md:px-6 md:py-4">
         <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
@@ -704,25 +898,50 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
           </div>
           <div className="min-w-0">
             <div className="font-semibold text-white text-base md:text-lg truncate">Asystent AI</div>
-            <div className="text-[11px] md:text-xs text-white/80 truncate">{companyId ? 'Asystent dla firmy' : 'Asystent Helpfli'}</div>
+            <div className="text-[11px] md:text-xs text-white/80 truncate">{busy ? "Piszę odpowiedź…" : companyId ? "Asystent dla firmy" : "Asystent Helpfli"}</div>
           </div>
         </div>
-                 <button
-                   onClick={() => {
-                     if (attachBus) {
-                       setInternalOpen(false);
-                       closeAI();
-                     } else {
-                       if (onClose) {
-                         onClose();
-                       }
-                     }
-                   }}
-                   className="p-2 rounded-lg hover:bg-white/20 transition-colors"
-                   aria-label="Zamknij"
-                 >
-                   <X className="w-5 h-5 text-white" />
-                 </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {!companyId && (
+            <button
+              type="button"
+              onClick={openHistory}
+              disabled={busy}
+              className="p-2 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+              title="Historia rozmów"
+              aria-label="Historia rozmów"
+            >
+              <History className="w-5 h-5 text-white" />
+            </button>
+          )}
+          {msgs.some((m) => m.role === "user") && (
+            <button
+              type="button"
+              onClick={resetConversation}
+              disabled={busy}
+              className="p-2 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+              title="Nowa rozmowa"
+              aria-label="Nowa rozmowa"
+            >
+              <RotateCcw className="w-5 h-5 text-white" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (attachBus) {
+                setInternalOpen(false);
+                closeAI();
+              } else if (onClose) {
+                onClose();
+              }
+            }}
+            className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+            aria-label="Zamknij"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* Messages area */}
@@ -814,7 +1033,19 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                   </>
                 ) : (
                   <div className="w-full">
-                    <ChatBubble role="assistant" text={m.text} ts={m.createdAt || Date.now()} />
+                    <ChatBubble
+                      role="assistant"
+                      text={m.streaming ? m.text || " " : m.text}
+                      ts={m.createdAt || Date.now()}
+                      rich={!m.streaming}
+                    />
+                    {m.matching?.topProviders?.length > 0 && !m.streaming && (
+                      <ProviderMiniCards
+                        providers={m.matching.topProviders}
+                        onSelect={openProviderProfile}
+                        onCreateOrder={createOrderForProvider}
+                      />
+                    )}
                     {/* Lista zleceń z narzędzia listMyOrders – linki do szczegółów */}
                     {m.toolResult?.orders && m.toolResult.orders.length > 0 && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-indigo-50/80 p-3 max-w-md">
@@ -873,7 +1104,8 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                                   messageId: m.messageId,
                                   agent: 'concierge',
                                   quickFeedback: 'positive',
-                                  wasHelpful: true
+                                  wasHelpful: true,
+                                  metadata: { abVariants: m.abVariants || null }
                                 })
                               });
                               if (feedbackRes.ok) {
@@ -906,7 +1138,8 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                                   messageId: m.messageId,
                                   agent: 'concierge',
                                   quickFeedback: 'negative',
-                                  wasHelpful: false
+                                  wasHelpful: false,
+                                  metadata: { abVariants: m.abVariants || null }
                                 })
                               });
                               if (feedbackRes.ok) {
@@ -934,7 +1167,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                         />
                       </div>
                     )}
-                    {latestAssistant === m && m.orderDraft && !m.diagnosticFlow && m.nextStep === 'create_order' && !shouldShowFlowPanel && (
+                    {latestAssistant === m && m.orderDraft && !m.diagnosticFlow && (
                       <div className="mt-3 ml-12 rounded-xl border border-indigo-200 bg-white p-3 max-w-md shadow-sm">
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <div>
@@ -954,6 +1187,9 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                           <div><span className="font-medium">Opis:</span> {m.orderDraft.summary?.description || m.orderDraft.orderPayload?.description || 'Brak'}</div>
                           <div><span className="font-medium">Lokalizacja:</span> {m.orderDraft.summary?.location || 'Brak'}</div>
                           <div><span className="font-medium">Termin:</span> {m.orderDraft.summary?.preferredTime || 'Do ustalenia'}</div>
+                          {(m.orderDraft.orderPayload?.attachments?.length > 0 || sessionAttachmentUrlsRef.current.length > 0) && (
+                            <div><span className="font-medium">Zdjęcia z czatu:</span> dołączymy {Math.max(m.orderDraft.orderPayload?.attachments?.length || 0, sessionAttachmentUrlsRef.current.length)} plik(ów) do zlecenia</div>
+                          )}
                         </div>
                         {m.orderDraft.providerBrief && (
                           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -1012,7 +1248,10 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                           <button
                             key={`${reply.label}-${idx}`}
                             type="button"
-                            onClick={() => setInput(reply.value || reply.label)}
+                            onClick={() => {
+                              const val = reply.value || reply.label;
+                              if (val) ask(val);
+                            }}
                             className="px-3 py-1.5 text-xs rounded-full border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50 transition-colors"
                           >
                             {reply.label}
@@ -1672,7 +1911,7 @@ setMsgs((m) => [...m.filter((msg) => !msg.transient), {
                 )}
               </div>
             )}
-            {busy && <TypingBubble />}
+            {busy && !msgs.some((m) => m.streaming) && <TypingBubble />}
             <div ref={messagesEndRef} />
           </>
         )}

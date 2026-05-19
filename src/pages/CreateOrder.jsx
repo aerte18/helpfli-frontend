@@ -84,7 +84,11 @@ export default function CreateOrder() {
   const [paymentPreference, setPaymentPreference] = useState("system"); // preferencje płatności: "system" | "external"
   const [userLocation, setUserLocation] = useState(null); // geolokalizacja
   const [locationLoading, setLocationLoading] = useState(false);
-  const [attachments, setAttachments] = useState([]); // załączniki
+  const initialAttachments =
+    preFilled.attachments ||
+    locationState.state?.attachments ||
+    [];
+  const [attachments, setAttachments] = useState(initialAttachments);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [recommendedProviders, setRecommendedProviders] = useState(locationState.state?.recommendedProviders || []);
   const [priceHints, setPriceHints] = useState(locationState.state?.priceHints || null);
@@ -278,6 +282,13 @@ export default function CreateOrder() {
       let finalDescription = description;
       if (serviceDetails && serviceDetails.trim()) {
         finalDescription = serviceDetails.trim() + "\n\n" + description;
+      }
+      const preferredTime =
+        preFilled.preferredTime ||
+        locationState.state?.prefill?.preferredTime ||
+        "";
+      if (preferredTime && !finalDescription.includes(preferredTime)) {
+        finalDescription = `${finalDescription}\n\nPreferowany termin: ${preferredTime}`.trim();
       }
 
       const payload = {
