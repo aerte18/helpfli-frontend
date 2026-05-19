@@ -14,6 +14,7 @@ import { getMyOffer, cancelOffer, updateOffer, getOffersOfOrder, postOffer, acce
 import { Link } from "react-router-dom";
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import OrderProgressBar from "../components/OrderProgressBar";
+import { isOffersOnlyOrder } from "../utils/orderMode";
 import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
@@ -4473,6 +4474,13 @@ export default function OrderDetails() {
       {/* PROGRESS BAR */}
       {tab === "details" && (
         <div className="w-full border-b border-slate-200 bg-white">
+          {isOffersOnlyOrder(order) && (
+            <div className="mx-auto max-w-6xl px-4 md:px-6 pt-3">
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-950">
+                <strong>Tryb: tylko oferty.</strong> Zbierasz wyceny i kontakt od wykonawców — rozliczenie za roboty poza Helpfli.
+              </div>
+            </div>
+          )}
           <div className="mx-auto max-w-6xl px-4 md:px-6 py-3">
             <OrderProgressBar
               order={order}

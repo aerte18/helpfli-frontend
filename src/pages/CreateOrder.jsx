@@ -10,6 +10,7 @@ import { useTelemetry } from "../hooks/useTelemetry";
 import { Upload, Users, Briefcase, MapPin, FileText, Sparkles, CheckCircle, ShieldCheck, CreditCard, ShoppingCart, BarChart2, LocateFixed } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { openAI } from "../ai/chat/bus";
+import { formatPriceHint } from "../utils/orderMode";
 
 function useQuery() {
   const { search } = useLocation();
@@ -82,6 +83,11 @@ export default function CreateOrder() {
   const [urgency, setUrgency] = useState(preFilled.urgency || ""); // pilność
   const [contactPreference, setContactPreference] = useState(""); // preferencje kontaktu
   const [paymentPreference, setPaymentPreference] = useState("system"); // preferencje płatności: "system" | "external"
+  const [orderMode, setOrderMode] = useState(
+    preFilled.orderMode || (preFilled.suggestOffersOnly ? 'offers_only' : 'standard')
+  );
+  const [serviceMeta, setServiceMeta] = useState(preFilled.serviceMeta || null);
+  const [showOffersOnlyHint, setShowOffersOnlyHint] = useState(Boolean(preFilled.suggestOffersOnly));
   const [userLocation, setUserLocation] = useState(null); // geolokalizacja
   const [locationLoading, setLocationLoading] = useState(false);
   const initialAttachments =
@@ -106,6 +112,26 @@ export default function CreateOrder() {
   } = useTelemetry();
   const orderFormTrackedStep = useRef(0);
   const orderFormSubmitted = useRef(false);
+
+  const budgetNum = budget && String(budget).trim() ? parseFloat(budget) : null;
+
+  useEffect(() => {
+    const fromMeta = Boolean(serviceMeta?.offerOnlySuggested);
+    const fromBudget = budgetNum != null && !Number.isNaN(budgetNum) && budgetNum >= 50000;
+    const desc = `${description} ${service}`.toLowerCase();
+    const keywords = [
+      'budowa domu', 'generalny remont', 'dom pod klucz', 'fotowoltaik',
+      'budowa hali', 'stan surowy', 'generalny wykonawca', 'fit-out',
+    ];
+    const fromText = keywords.some((k) => desc.includes(k));
+    setShowOffersOnlyHint(fromMeta || fromBudget || fromText);
+  }, [serviceMeta, budgetNum, description, service]);
+
+  useEffect(() => {
+    if (orderMode === 'offers_only') {
+      setPaymentPreference('external');
+    }
+  }, [orderMode]);
 
   const isImageAttachment = (attachment) => {
     const mime = String(attachment?.mimeType || attachment?.type || '').toLowerCase();
@@ -328,9 +354,14 @@ export default function CreateOrder() {
       
       // Dodaj preferencje płatności - zgodnie z flow
       // "system" = Helpfli Protect (z gwarancją), "external" = płatność poza systemem (bez gwarancji)
-      if (paymentPreference) {
+      payload.orderMode = orderMode === 'offers_only' ? 'offers_only' : 'standard';
+      if (orderMode === 'offers_only') {
+        payload.paymentPreference = 'external';
+      } else if (paymentPreference) {
         payload.paymentPreference = paymentPreference;
-        payload.paymentMethod = paymentPreference; // Ustaw paymentMethod zgodnie z wyborem
+      }
+      if (selectedCategory?.subcategorySlug) {
+        payload.service = selectedCategory.subcategorySlug;
       }
       
       // Dodaj załączniki jeśli są
@@ -860,6 +891,12 @@ export default function CreateOrder() {
           <ServiceCategoryDropdown
             onCategorySelect={(categoryData) => {
               setSelectedCategory(categoryData);
+              setServiceMeta({
+                tier: categoryData.tier,
+                offerOnlySuggested: categoryData.offerOnlySuggested,
+                base_price_min: categoryData.base_price_min,
+                base_price_max: categoryData.base_price_max,
+              });
               // Ustaw pełną nazwę: kategoria + subkategoria (jeśli jest)
               const fullServiceName = categoryData.subcategory 
                 ? `${categoryData.category} - ${categoryData.subcategory}`
@@ -994,6 +1031,36 @@ export default function CreateOrder() {
           </div>
         </div>
 
+        {serviceMeta && formatPriceHint(serviceMeta.base_price_min, serviceMeta.base_price_max) && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <span className="font-medium">Orientacyjnie na rynku:</span>{' '}
+            {formatPriceHint(serviceMeta.base_price_min, serviceMeta.base_price_max)}
+            <span className="text-slate-500"> — wykonawcy podadzą swoje wyceny w ofertach.</span>
+          </div>
+        )}
+
+        {showOffersOnlyHint && (
+          <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-4 space-y-3">
+            <p className="text-sm text-indigo-950">
+              <strong>To wygląda na projekt długoterminowy.</strong> Możesz tylko zebrać oferty od wykonawców,
+              a rozliczenie za roboty ustalić poza Helpfli.
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={orderMode === 'offers_only'}
+                onChange={(e) => setOrderMode(e.target.checked ? 'offers_only' : 'standard')}
+              />
+              <span className="text-sm font-medium text-indigo-950">
+                Pozyskaj tylko oferty (bez płatności za remont przez Helpfli)
+              </span>
+            </label>
+          </div>
+        )}
+
+        {orderMode !== 'offers_only' && (
+        <>
         <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 4 — Rozliczenie</div>
         <div className="space-y-3">
           <label className="block text-sm font-medium" style={{ color: 'var(--foreground)' }}>
@@ -1076,6 +1143,8 @@ export default function CreateOrder() {
             
           </div>
         </div>
+        </>
+        )}
 
         {/* Pilność */}
         <div className="space-y-2">

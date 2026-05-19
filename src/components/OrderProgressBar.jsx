@@ -11,6 +11,14 @@ const CLIENT_STAGES = [
   { key: 'completed', label: 'Zakończone', icon: CheckSquare, color: 'gray' },
 ];
 
+const CLIENT_STAGES_OFFERS_ONLY = [
+  { key: 'open', label: 'Zbieranie ofert', icon: Circle, color: 'blue' },
+  { key: 'offers', label: 'Oferty złożone', icon: Package, color: 'yellow' },
+  { key: 'accepted', label: 'Wykonawca wybrany', icon: CheckCircle2, color: 'orange' },
+  { key: 'contact', label: 'Kontakt odblokowany', icon: CheckCircle2, color: 'green' },
+  { key: 'completed', label: 'Zamknięte', icon: CheckSquare, color: 'gray' },
+];
+
 // Etapy dla dostawcy
 const PROVIDER_STAGES = [
   { key: 'awaiting', label: 'Oczekuje', icon: Clock, color: 'blue' },
@@ -43,11 +51,13 @@ export default function OrderProgressBar({
   const isProvider =
     isProviderViewProp !== undefined ? Boolean(isProviderViewProp) : user?.role === 'provider';
   
+  const isOffersOnly = order?.orderMode === 'offers_only';
+
   // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
   const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
   
   // Wybierz odpowiednie etapy w zależności od roli i metody płatności
-  let STAGES = isProvider ? [...PROVIDER_STAGES] : [...CLIENT_STAGES];
+  let STAGES = isProvider ? [...PROVIDER_STAGES] : (isOffersOnly ? [...CLIENT_STAGES_OFFERS_ONLY] : [...CLIENT_STAGES]);
   
   // Jeśli płatność jest zewnętrzna, usuń etap "funded" z listy etapów
   if (isExternalPayment) {
@@ -120,6 +130,19 @@ export default function OrderProgressBar({
       return 'awaiting';
     }
     
+    // Klient — tryb „tylko oferty”
+    if (isOffersOnly) {
+      if (order.status === 'completed' || order.status === 'rated' || order.status === 'released') {
+        if (hasMyRating || order.status === 'rated') return 'rated';
+        return 'completed';
+      }
+      if (order.contactUnlockedAt || order.status === 'accepted' || order.acceptedOfferId) {
+        return 'contact';
+      }
+      if (order.status === 'collecting_offers' || offersCount > 0) return 'offers';
+      return 'open';
+    }
+
     // Dla klienta - standardowa logika (+ opcjonalny etap „Ocena”)
     if (order.status === 'completed' || order.status === 'rated' || order.status === 'released') {
       if (hasMyRating || order.status === 'rated') return 'rated';

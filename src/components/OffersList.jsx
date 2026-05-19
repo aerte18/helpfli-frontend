@@ -51,6 +51,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
   const [forceExternalPayment, setForceExternalPayment] = useState(false);
   const [stripeBlockReason, setStripeBlockReason] = useState("");
   const [orderData, setOrderData] = useState(null);
+  const [favoritePrompt, setFavoritePrompt] = useState(null);
 
   // Dev: przykładowe oferty dla orderId demo-* (produkcja: API)
   const DEMO_OFFERS = {
@@ -329,9 +330,20 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
   async function onAccept(offerId) {
     if (orderAlreadyAccepted) return;
     const offer = offers.find((o) => String(o._id || o.id) === String(offerId));
-    if (offer) {
-      setAcceptModal({ isOpen: true, offer, order: orderData });
+    if (!offer) return;
+
+    if (orderData?.orderMode === 'offers_only') {
+      await handleAcceptOffer({
+        offerId,
+        paymentMethod: 'external',
+        includeGuarantee: false,
+        totalAmount: offer.amount,
+        breakdown: { platformFee: 0 },
+      });
+      return;
     }
+
+    setAcceptModal({ isOpen: true, offer, order: orderData });
   }
 
   async function handleAcceptOffer(acceptData) {
@@ -391,10 +403,23 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         /* ignore */
       }
 
+      if (acceptResult.suggestAddFavorite && acceptResult.providerId) {
+        const chosen = offers.find((o) => String(o._id || o.id) === String(acceptData.offerId));
+        setFavoritePrompt({
+          providerId: acceptResult.providerId,
+          providerName: chosen?.providerName || chosen?.provider?.name || 'wykonawcę',
+        });
+      }
+
       const pm =
         acceptResult.paymentMethod ||
         acceptData.paymentMethod ||
         "system";
+
+      if (acceptResult.orderMode === 'offers_only' || orderData?.orderMode === 'offers_only') {
+        navigate(`/orders/${orderId}?tab=details`, { replace: true });
+        return;
+      }
       
       // Płatność w systemie → checkout (trasa pod PrivateRoute, nie tylko provider)
       if (pm === "system") {
@@ -865,6 +890,44 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         disableSystemPayment={forceExternalPayment}
         systemDisabledReason={stripeBlockReason}
       />
+
+      {favoritePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900">Zapisz wykonawcę?</h3>
+            <p className="text-sm text-slate-600">
+              Czy chcesz dodać <strong>{favoritePrompt.providerName}</strong> do ulubionych wykonawców?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border border-slate-300 text-sm"
+                onClick={() => setFavoritePrompt(null)}
+              >
+                Później
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium"
+                onClick={async () => {
+                  try {
+                    await fetch(apiUrl(`/api/favorites/${favoritePrompt.providerId}`), {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    setInfo('Dodano do ulubionych wykonawców');
+                  } catch {
+                    setError('Nie udało się zapisać w ulubionych');
+                  }
+                  setFavoritePrompt(null);
+                }}
+              >
+                Dodaj do ulubionych
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal TOP 3 rekomendowane przez AI */}
       {showTopModal && showAIShortlist && (

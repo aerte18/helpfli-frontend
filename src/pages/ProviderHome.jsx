@@ -17,6 +17,7 @@ import ProviderAdvancedFilters from "../components/ProviderAdvancedFilters";
 import { getMyOffers } from "../api/offers";
 import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
 import { serviceLabel } from "../utils/serviceLabels";
+import OrderModeBadge from "../components/OrderModeBadge";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -675,6 +676,14 @@ export default function ProviderHome() {
     });
     return ids;
   }, [recommendedOrdersSafe]);
+  const recommendedById = useMemo(() => {
+    const map = new Map();
+    recommendedOrdersSafe.forEach((rec) => {
+      const id = String(rec?.id || rec?._id || "").trim();
+      if (id) map.set(id, rec);
+    });
+    return map;
+  }, [recommendedOrdersSafe]);
   const providerServiceSlugs = useMemo(
     () => expandProviderServiceSlugs(user?.services || [], allServices),
     [user?.services, allServices]
@@ -1071,10 +1080,12 @@ export default function ProviderHome() {
 
     const withRecommendation = sorted.map((o) => {
       const id = String(o?._id || o?.id || "").trim();
+      const recMeta = id ? recommendedById.get(id) : null;
       const enriched = {
         ...o,
+        orderMode: o.orderMode || recMeta?.orderMode || "standard",
         isRecommendedForProvider: !!(id && recommendedIdSet.has(id)),
-        recommendedReason: "",
+        recommendedReason: recMeta?.reason || "",
       };
       const aiMatch = buildProviderListMatch(enriched);
       return {
@@ -1089,7 +1100,7 @@ export default function ProviderHome() {
     }
 
     return withRecommendation;
-  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedIdSet, recommendedOnly, myOfferStateByOrderId]);
+  }, [demand, filters, userLocation, calculateDistance, showAllServices, user, allServices, providerServiceSlugs, clientMaxDistance, recommendedIdSet, recommendedById, recommendedOnly, myOfferStateByOrderId]);
 
   // Zlecenia, do których wykonawca ma aktywną ofertę (do zielonego przycisku "Twoja oferta")
   const orderIdsWithMyOffer = useMemo(() => {
@@ -2860,6 +2871,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
                 <span>Płatność poza systemem</span>
               </span>
             )}
+            <OrderModeBadge orderMode={data.orderMode} />
             {data.isRecommendedForProvider && (
               <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                 ✨ Polecane dla Ciebie
@@ -3168,6 +3180,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
                 {aiMatch.score}%
               </span>
             )}
+            <OrderModeBadge orderMode={data.orderMode} className="mt-0.5" />
             <h3 className="text-sm font-medium text-slate-800 truncate">{service}</h3>
           </div>
         </div>

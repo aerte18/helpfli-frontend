@@ -492,7 +492,10 @@ export default function UnifiedAIConcierge({
         attachments: mergedAttachments,
         diySteps: analysisResult?.diySteps,
         parts: analysisResult?.parts,
-        aiBrief
+        aiBrief,
+        orderMode: draft?.suggestOffersOnly ? 'offers_only' : 'standard',
+        suggestOffersOnly: Boolean(draft?.suggestOffersOnly),
+        serviceMeta: draft?.serviceMeta || null,
       },
       prefill: {
         description,

@@ -367,7 +367,12 @@ export default function ServiceCategoryDropdown({
         subcategoryId: subcategory?.id,
         categorySlug: category.slug || category.id,
         subcategorySlug: subcategory?.slug || subcategory?.id,
-        keywords: subcategory?.keywords
+        keywords: subcategory?.keywords,
+        tier: subcategory?.tier || category.tier || 'quick',
+        offerOnlySuggested: Boolean(subcategory?.offerOnlySuggested ?? category.offerOnlySuggested),
+        b2b: Boolean(subcategory?.b2b ?? category.b2b),
+        base_price_min: Number(subcategory?.base_price_min) || 0,
+        base_price_max: Number(subcategory?.base_price_max) || 0,
       });
     }
   };

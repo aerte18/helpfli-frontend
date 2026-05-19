@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { useAuth } from "../context/AuthContext";
 import ServiceSelector from "../components/ServiceSelector";
 import { orderServiceMatchesProvider } from "../utils/orderServiceMatch";
+import OrderModeBadge from "../components/OrderModeBadge";
 
 // Funkcja do tworzenia nowoczesnych pinezek dla zleceń
 function orderIcon(order) {
@@ -461,9 +462,12 @@ function OrderCard({ order, onSubmitProposal }) {
     <div className="bg-white rounded-xl shadow-sm border p-6">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {order.service}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {order.service}
+            </h3>
+            <OrderModeBadge orderMode={order.orderMode} />
+          </div>
           {order.serviceDetails && (
             <div className="text-base text-indigo-700 font-medium mb-2">
               {order.serviceDetails}

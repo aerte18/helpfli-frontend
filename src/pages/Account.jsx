@@ -2320,6 +2320,8 @@ function PaymentsTab({ user, fetchMe }) {
   const [stripeStatus, setStripeStatus] = useState(null);
   const [paymentPreference, setPaymentPreference] = useState(user?.providerPaymentPreference || 'system');
   const [savingPaymentPref, setSavingPaymentPref] = useState(false);
+  const [orderScope, setOrderScope] = useState(user?.providerOrderScope || 'both');
+  const [savingOrderScope, setSavingOrderScope] = useState(false);
 
   // Zawsze pobierz aktualny status z Stripe (backend zapisuje też do User) — inaczej po onboardingu widać stare „Nie”
   useEffect(() => {
@@ -2358,7 +2360,37 @@ function PaymentsTab({ user, fetchMe }) {
     if (user?.providerPaymentPreference) {
       setPaymentPreference(user.providerPaymentPreference);
     }
+    if (user?.providerOrderScope) {
+      setOrderScope(user.providerOrderScope);
+    }
   }, [user]);
+
+  const handleSaveOrderScope = async () => {
+    try {
+      setSavingOrderScope(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(apiUrl(`/api/users/me`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ providerOrderScope: orderScope }),
+      });
+      if (res.ok) {
+        if (typeof fetchMe === 'function') fetchMe();
+        alert('Preferencje rodzaju zleceń zostały zapisane');
+      } else {
+        const error = await res.json();
+        alert(`Błąd: ${error.message || 'Nie udało się zapisać preferencji'}`);
+      }
+    } catch (error) {
+      console.error('Błąd zapisywania providerOrderScope:', error);
+      alert('Błąd zapisywania preferencji zleceń');
+    } finally {
+      setSavingOrderScope(false);
+    }
+  };
 
   const handleSavePaymentPreference = async () => {
     try {
@@ -2453,6 +2485,82 @@ function PaymentsTab({ user, fetchMe }) {
 
   return (
     <div className="space-y-4">
+      <Card title="Rodzaj zleceń na rynku">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Wybierz, jakie zlecenia chcesz widzieć na liście dostępnych zleceń i w powiadomieniach.
+            Projekty „tylko oferty” (budowa, duży remont) to osobny tryb — bez płatności przez Helpfli za roboty.
+          </p>
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-400 transition-colors">
+              <input
+                type="radio"
+                name="providerOrderScope"
+                value="quick_only"
+                checked={orderScope === 'quick_only'}
+                onChange={(e) => setOrderScope(e.target.value)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 shrink-0 text-slate-600" aria-hidden />
+                  <span>Szybkie zlecenia</span>
+                </div>
+                <p className="text-sm text-slate-600 mt-1">
+                  Hydraulik, elektryk, sprzątanie itd. Bez dużych projektów w trybie „tylko oferty”.
+                </p>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-400 transition-colors">
+              <input
+                type="radio"
+                name="providerOrderScope"
+                value="large_only"
+                checked={orderScope === 'large_only'}
+                onChange={(e) => setOrderScope(e.target.value)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 shrink-0 text-indigo-600" aria-hidden />
+                  <span>Duże projekty (tylko oferty)</span>
+                </div>
+                <p className="text-sm text-slate-600 mt-1">
+                  Budowa, generalny remont, zbieranie wycen — klient wybiera wykonawcę i kontaktuje się poza platformą.
+                </p>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-indigo-400 transition-colors">
+              <input
+                type="radio"
+                name="providerOrderScope"
+                value="both"
+                checked={orderScope === 'both'}
+                onChange={(e) => setOrderScope(e.target.value)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 shrink-0 text-indigo-600" aria-hidden />
+                  <span>Oba typy</span>
+                </div>
+                <p className="text-sm text-slate-600 mt-1">
+                  Widzisz wszystkie otwarte zlecenia — szybkie usługi i duże projekty.
+                </p>
+              </div>
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveOrderScope}
+            disabled={savingOrderScope || orderScope === (user?.providerOrderScope || 'both')}
+            className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {savingOrderScope ? 'Zapisywanie...' : 'Zapisz rodzaj zleceń'}
+          </button>
+        </div>
+      </Card>
+
       {/* Preferencje płatności – jakie zlecenia akceptuję */}
       <Card title="Preferencje płatności">
         <div className="space-y-4">

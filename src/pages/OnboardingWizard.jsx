@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { User, Briefcase, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import ProviderServiceCategoryPicker from "../components/ProviderServiceCategoryPicker";
+import ProviderOrderScopePicker from "../components/ProviderOrderScopePicker";
 import { resolveSelectionKeysToMongoIds } from "../utils/serviceSelectionKeys";
 
 export default function OnboardingWizard() {
@@ -24,6 +25,7 @@ export default function OnboardingWizard() {
     services: [],
     priceNote: ""
   });
+  const [orderScope, setOrderScope] = useState("both");
 
   useEffect(() => {
     if (!user) {
@@ -122,6 +124,15 @@ export default function OnboardingWizard() {
       const items = Array.isArray(listData.items) ? listData.items : [];
 
       const mongoIds = resolveSelectionKeysToMongoIds(chosen, items);
+
+      await fetch(apiUrl("/api/users/me"), {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ providerOrderScope: orderScope }),
+      });
 
       if (chosen.length > 0 && mongoIds.length === 0) {
         throw new Error(
@@ -366,7 +377,8 @@ export default function OnboardingWizard() {
       </div>
 
       {role === "provider" ? (
-        <div className="space-y-4">
+        <div className="space-y-4 text-left">
+          <ProviderOrderScopePicker value={orderScope} onChange={setOrderScope} />
           <ProviderServiceCategoryPicker
             selectedIds={profileData.services ?? []}
             onSelectedIdsChange={(services) =>
