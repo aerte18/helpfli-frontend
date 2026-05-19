@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import Footer from "../components/Footer";
 import PageBackground, { GlassCard } from "../components/PageBackground";
 import { apiUrl } from "@/lib/apiUrl";
+import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function Contact() {
+  const c = companyPublicInfo;
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -62,7 +64,9 @@ export default function Contact() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium text-slate-700 mb-1">Email</h3>
-                <p className="text-indigo-600 font-medium">helpfli@outlook.com</p>
+                <a href={`mailto:${c.emailContact}`} className="text-indigo-600 font-medium hover:underline">
+                  {c.emailContact}
+                </a>
               </div>
               <div>
                 <h3 className="font-medium text-slate-700 mb-1">Godziny pracy</h3>

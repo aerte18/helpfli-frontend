@@ -1,32 +1,67 @@
 /**
- * Dane publikowane na stronie (P24, Stripe, konsument).
- * Uzupełnij zmienne środowiskowe VITE_COMPANY_* w produkcji lub edytuj domyślne wartości po wpisie do KRS.
+ * Operator serwisu Helpfli — dane publikowane w regulaminie, polityce prywatności, stopce, P24.
+ * Na razie bez formy spółki (KRS/NIP) — tylko marka Helpfli i kontakt.
  */
 const env = typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : {};
 
+const CONTACT_EMAIL =
+  env.VITE_COMPANY_EMAIL_CONTACT ||
+  env.VITE_COMPANY_EMAIL_LEGAL ||
+  env.VITE_COMPANY_EMAIL_PRIVACY ||
+  "helpfli@outlook.com";
+
 export const companyPublicInfo = {
   brand: "Helpfli",
-  legalName: env.VITE_COMPANY_LEGAL_NAME || "Helpfli Sp. z o.o.",
-  /** Pełny adres do korespondencji i rejestru */
-  addressLine1: env.VITE_COMPANY_ADDRESS_LINE1 || "[ulica i numer — uzupełnij]",
-  addressLine2: env.VITE_COMPANY_ADDRESS_LINE2 || "[kod pocztowy i miejscowość — uzupełnij]",
+  legalName: env.VITE_COMPANY_LEGAL_NAME || "Helpfli",
+  /** false = nie pokazuj KRS/NIP/REGON w UI (do czasu rejestracji spółki) */
+  showRegistry: env.VITE_COMPANY_SHOW_REGISTRY === "true",
+  addressLine1: env.VITE_COMPANY_ADDRESS_LINE1 || "",
+  addressLine2: env.VITE_COMPANY_ADDRESS_LINE2 || "",
   country: env.VITE_COMPANY_COUNTRY || "Polska",
-  krs: env.VITE_COMPANY_KRS || "[numer KRS — uzupełnij]",
-  nip: env.VITE_COMPANY_NIP || "[NIP — uzupełnij]",
-  regon: env.VITE_COMPANY_REGON || "[REGON — uzupełnij]",
-  emailLegal: env.VITE_COMPANY_EMAIL_LEGAL || "kontakt@helpfli.pl",
-  emailPrivacy: env.VITE_COMPANY_EMAIL_PRIVACY || "kontakt@helpfli.pl",
-  phone: env.VITE_COMPANY_PHONE || "[telefon — uzupełnij]",
+  krs: env.VITE_COMPANY_KRS || "",
+  nip: env.VITE_COMPANY_NIP || "",
+  regon: env.VITE_COMPANY_REGON || "",
+  emailContact: CONTACT_EMAIL,
+  emailLegal: CONTACT_EMAIL,
+  emailPrivacy: CONTACT_EMAIL,
+  emailSupport: CONTACT_EMAIL,
+  phone: env.VITE_COMPANY_PHONE || "",
   siteUrl: env.VITE_PUBLIC_SITE_URL || "https://helpfli.pl",
 };
 
+/** Akapit o operatorze do regulaminu / polityki */
+export function operatorIntroParagraph() {
+  const c = companyPublicInfo;
+  const site = c.siteUrl.replace(/^https?:\/\//, "");
+  let text = `Platformę ${c.brand} (${site}) prowadzi ${c.legalName}`;
+  if (c.addressLine1?.trim()) {
+    text += `, ${c.addressLine1}${c.addressLine2?.trim() ? `, ${c.addressLine2}` : ""}, ${c.country}`;
+  } else {
+    text += ` (${c.country})`;
+  }
+  if (c.showRegistry && c.krs?.trim()) {
+    text += `, wpisaną do KRS pod numerem ${c.krs}`;
+    if (c.nip?.trim()) text += `, NIP: ${c.nip}`;
+    if (c.regon?.trim()) text += `, REGON: ${c.regon}`;
+  }
+  text += ".";
+  return text;
+}
+
 export function companyLegalBlockLines() {
   const c = companyPublicInfo;
-  return [
-    c.legalName,
-    c.addressLine1,
-    c.addressLine2,
-    `${c.country} · KRS: ${c.krs} · NIP: ${c.nip} · REGON: ${c.regon}`,
-    `E-mail: ${c.emailLegal} · Tel.: ${c.phone}`,
-  ];
+  const lines = [c.legalName];
+  if (c.addressLine1?.trim()) {
+    lines.push(c.addressLine1);
+    if (c.addressLine2?.trim()) lines.push(c.addressLine2);
+    lines.push(c.country);
+  }
+  if (c.showRegistry && c.krs?.trim()) {
+    const reg = [c.krs && `KRS: ${c.krs}`, c.nip && `NIP: ${c.nip}`, c.regon && `REGON: ${c.regon}`]
+      .filter(Boolean)
+      .join(" · ");
+    if (reg) lines.push(reg);
+  }
+  lines.push(`E-mail: ${c.emailContact}${c.phone?.trim() ? ` · Tel.: ${c.phone}` : ""}`);
+  return lines;
 }

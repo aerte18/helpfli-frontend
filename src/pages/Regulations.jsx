@@ -1,7 +1,7 @@
 import React from "react";
 import Footer from "../components/Footer";
 import { Link } from "react-router-dom";
-import { companyPublicInfo } from "../legal/companyPublicInfo";
+import { companyPublicInfo, operatorIntroParagraph } from "../legal/companyPublicInfo";
 
 export default function Regulations() {
   const c = companyPublicInfo;
@@ -33,9 +33,7 @@ export default function Regulations() {
 
       <p className="mb-4">
         Niniejszy Regulamin określa zasady korzystania z platformy {c.brand}, dostępnej pod adresem{" "}
-        {c.siteUrl.replace(/^https?:\/\//, "")}, prowadzonej przez {c.legalName}, z siedzibą pod adresem:{" "}
-        {c.addressLine1}, {c.addressLine2}, {c.country}, wpisaną do rejestru przedsiębiorców KRS pod numerem{" "}
-        {c.krs}, NIP: {c.nip}, REGON: {c.regon}.
+        {c.siteUrl.replace(/^https?:\/\//, "")}. {operatorIntroParagraph()}
       </p>
 
       <p className="mb-4">
@@ -184,7 +182,11 @@ export default function Regulations() {
       <h2 className="text-2xl font-semibold mt-6 mb-3">§7 Reklamacje</h2>
       <div className="space-y-3 mb-4">
         <p>
-          <strong>7.1.</strong> Reklamacje dotyczące działania Platformy można zgłaszać na adres e-mail: kontakt@helpfli.pl lub za pośrednictwem formularza kontaktowego dostępnego na Platformie.
+          <strong>7.1.</strong> Reklamacje dotyczące działania Platformy można zgłaszać na adres e-mail:{" "}
+          <a href={`mailto:${c.emailLegal}`} className="text-blue-600 hover:underline">
+            {c.emailLegal}
+          </a>{" "}
+          lub za pośrednictwem formularza kontaktowego dostępnego na Platformie.
         </p>
         <p>
           <strong>7.2.</strong> Reklamacja powinna zawierać: imię i nazwisko (nazwę) reklamującego, adres e-mail, opis problemu oraz żądanie.

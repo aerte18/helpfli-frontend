@@ -11,10 +11,10 @@ export default function About() {
 
         <p className="text-sm text-gray-600 mb-6 leading-relaxed">
           Helpfli to <strong>marketplace usług lokalnych</strong>: łączymy osoby potrzebujące wykonawcy z
-          profesjonalistami i firmami z branży m.in. remontowej, transportowej i usług domowych. Pełne dane podmiotu
-          prowadzącego serwis:{" "}
+          profesjonalistami i firmami z branży m.in. remontowej, transportowej i usług domowych. Informacje o operatorze
+          serwisu:{" "}
           <Link to="/dane-firmy" className="text-indigo-600 hover:underline">
-            Informacje o firmie
+            Informacje o operatorze
           </Link>
           .
         </p>

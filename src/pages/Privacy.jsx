@@ -22,8 +22,21 @@ export default function Privacy() {
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">§1 Administrator danych</h2>
         <p className="text-gray-800 mb-4">
-          Administratorem danych osobowych jest <strong>{c.legalName}</strong> z siedzibą: {c.addressLine1},{" "}
-          {c.addressLine2}, {c.country} (KRS: {c.krs}, NIP: {c.nip}, REGON: {c.regon}).
+          Administratorem danych osobowych jest <strong>{c.legalName}</strong>
+          {c.addressLine1?.trim() ? (
+            <>
+              {" "}
+              ({c.addressLine1}
+              {c.addressLine2?.trim() ? `, ${c.addressLine2}` : ""}, {c.country}
+              {c.showRegistry && c.krs?.trim()
+                ? ` · KRS: ${c.krs}, NIP: ${c.nip}, REGON: ${c.regon}`
+                : ""}
+              )
+            </>
+          ) : (
+            <> ({c.country})</>
+          )}
+          .
         </p>
         <p className="text-gray-800 mb-4">
           Kontakt w sprawach ochrony danych:{" "}

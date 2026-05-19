@@ -1,8 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function Cooperation() {
+  const c = companyPublicInfo;
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
@@ -131,10 +133,10 @@ export default function Cooperation() {
               Skontaktuj się z nami
             </Link>
             <a 
-              href="mailto:partnerships@helpfli.pl"
+              href={`mailto:${c.emailContact}`}
               className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors text-center"
             >
-              partnerships@helpfli.pl
+              {c.emailContact}
             </a>
           </div>
         </div>

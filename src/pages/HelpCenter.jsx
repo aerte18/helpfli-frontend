@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function HelpCenter() {
+  const c = companyPublicInfo;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -157,10 +159,16 @@ export default function HelpCenter() {
             </p>
             <div className="space-y-2">
               <p className="text-gray-700">
-                <span className="font-medium">Ogólne:</span> kontakt@helpfli.pl
+                <span className="font-medium">Kontakt:</span>{" "}
+                <a href={`mailto:${c.emailContact}`} className="text-indigo-600 hover:underline">
+                  {c.emailContact}
+                </a>
               </p>
               <p className="text-gray-700">
-                <span className="font-medium">Wsparcie:</span> support@helpfli.pl
+                <span className="font-medium">Formularz:</span>{" "}
+                <Link to="/contact" className="text-indigo-600 hover:underline">
+                  /contact
+                </Link>
               </p>
             </div>
           </div>
@@ -204,10 +212,10 @@ export default function HelpCenter() {
               Skontaktuj się z nami
             </Link>
             <a 
-              href="mailto:support@helpfli.pl"
+              href={`mailto:${c.emailContact}`}
               className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors text-center"
             >
-              support@helpfli.pl
+              {c.emailContact}
             </a>
           </div>
         </div>

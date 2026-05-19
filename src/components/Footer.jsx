@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 
@@ -19,17 +19,17 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/services" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Lista usług
+                  Lista usĹ‚ug
                 </Link>
               </li>
               <li>
                 <Link to="/cennik" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Cennik i opłaty
+                  Cennik i opĹ‚aty
                 </Link>
               </li>
               <li>
                 <Link to="/dane-firmy" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Dane firmy
+                  Informacje o operatorze
                 </Link>
               </li>
               <li>
@@ -39,12 +39,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/prywatnosc" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Polityka prywatności
+                  Polityka prywatnoĹ›ci
                 </Link>
               </li>
               <li>
                 <Link to="/cooperation" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Współpraca
+                  WspĂłĹ‚praca
                 </Link>
               </li>
               <li>
@@ -72,30 +72,30 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Dane firmy */}
+          {/* Operator */}
           <div className="min-w-[220px] rounded-xl border border-gray-100 p-4 md:min-w-0 md:rounded-none md:border-0 md:p-0">
-            <h3 className="text-base font-semibold text-gray-900 mb-3 md:text-lg md:mb-4">Dane firmy</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3 md:text-lg md:mb-4">Operator</h3>
             <div className="text-sm md:text-base text-gray-600 space-y-2">
               <p className="font-medium text-gray-900">{c.legalName}</p>
               <p>
                 <Link to="/dane-firmy" className="text-indigo-600 hover:underline">
-                  Pełne dane rejestrowe
+                  Informacje o operatorze
                 </Link>
               </p>
               <p>
-                <a href={`mailto:${c.emailLegal}`} className="hover:text-gray-900">
-                  {c.emailLegal}
+                <a href={`mailto:${c.emailContact}`} className="hover:text-gray-900">
+                  {c.emailContact}
                 </a>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Dolna część footera */}
+        {/* Dolna czÄ™Ĺ›Ä‡ footera */}
         <div className="border-t border-gray-200 mt-8 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-500 text-sm mb-4 md:mb-0">
-              © 2026 Helpfli. Wszystkie prawa zastrzeżone.
+              Â© 2026 Helpfli. Wszystkie prawa zastrzeĹĽone.
             </div>
             <div className="flex space-x-6">
               <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -123,3 +123,4 @@ export default function Footer() {
     </footer>
   );
 }
+
