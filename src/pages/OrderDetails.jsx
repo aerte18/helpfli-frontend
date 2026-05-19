@@ -3343,6 +3343,29 @@ export default function OrderDetails() {
 
         setMe(meRes?.user || meRes);
         setOrder(orderRes);
+
+        const mePayloadSync = meRes?.user || meRes;
+        const isClientForOrder =
+          mePayloadSync?.role === "client" ||
+          String(orderRes?.client?._id || orderRes?.client) === String(mePayloadSync?._id || mePayloadSync?.id);
+        const needsPaymentSync =
+          isClientForOrder &&
+          orderRes?.status === "accepted" &&
+          orderRes?.paymentPreference !== "external" &&
+          orderRes?.paymentStatus !== "succeeded" &&
+          !orderRes?.paidInSystem &&
+          orderRes?.status !== "funded";
+        if (needsPaymentSync) {
+          try {
+            const sync = await apiGet(`/api/payments/order/${orderId}/sync-status`);
+            if (sync?.paid && sync?.order) {
+              setOrder(sync.order);
+            }
+          } catch (syncErr) {
+            console.warn("payment sync-status:", syncErr?.message || syncErr);
+          }
+        }
+
         try {
           const followupData = await apiGet(`/api/orders/${orderId}/ai-followup`);
           setAiFollowup(followupData.providerMatch ? { ...(followupData.followup || {}), providerMatch: followupData.providerMatch } : (followupData.followup || null));
