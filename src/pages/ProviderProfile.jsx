@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
+import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AskQuoteModal from "../components/AskQuoteModal";
@@ -51,6 +52,7 @@ const apiPost = async (path, body) => {
 export default function ProviderProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const { state } = useLocation(); // provider z listy / nawigacja z listy z openQuote
   const [provider, setProvider] = useState(state?.provider || null);
   const [providerData, setProviderData] = useState(null);
@@ -58,6 +60,8 @@ export default function ProviderProfile() {
   const [openQuote, setOpenQuote] = useState(!!state?.openQuote);
   const [openRate, setOpenRate] = useState(false);
   const [canRate, setCanRate] = useState(false);
+  const [rateOrderId, setRateOrderId] = useState(null);
+  const [rateHeading, setRateHeading] = useState("Oceń wykonawcę");
   const [error, setError] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
 
@@ -86,18 +90,32 @@ export default function ProviderProfile() {
     })();
   }, [id]);
 
-  // 2b) Sprawdź czy bieżący użytkownik może ocenić tego providera (mają zakończone zlecenie)
+  const isOwnProfile =
+    currentUser?._id && id && String(currentUser._id) === String(id);
+
+  // 2b) Ocena tylko po zakończonym wspólnym zleceniu (nie na własnym profilu)
   useEffect(() => {
     (async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return setCanRate(false);
-        const res = await fetch(apiUrl(`/api/ratings/eligible?otherUser=${id}`), { headers: { Authorization: `Bearer ${token}` } });
+        if (!token || isOwnProfile) {
+          setCanRate(false);
+          setRateOrderId(null);
+          return;
+        }
+        const res = await fetch(apiUrl(`/api/ratings/eligible?otherUser=${id}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const j = await res.json();
-        setCanRate(!!j.eligible);
-      } catch { setCanRate(false); }
+        setCanRate(!!j.eligible && !!j.orderId);
+        setRateOrderId(j.orderId || null);
+        setRateHeading(j.heading || "Oceń wykonawcę");
+      } catch {
+        setCanRate(false);
+        setRateOrderId(null);
+      }
     })();
-  }, [id]);
+  }, [id, isOwnProfile]);
 
   // 3) Zawsze pobierz pełne dane providera (populated services) – także gdy przyszły z listy
   useEffect(() => {
@@ -509,12 +527,12 @@ export default function ProviderProfile() {
                   <span>Złóż zlecenie</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
-                {canRate && (
+                {canRate && rateOrderId && (
                   <button
                     onClick={() => setOpenRate(true)}
                     className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 hover:text-yellow-900 transition-colors text-left font-medium"
                   >
-                    <span>Oceń wykonawcę</span>
+                    <span>{rateHeading}</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
@@ -606,6 +624,8 @@ export default function ProviderProfile() {
       <RatingModal
         open={openRate}
         onClose={() => setOpenRate(false)}
+        heading={rateHeading}
+        orderId={rateOrderId}
         providerId={provider._id}
         onSubmitted={() => {
           fetch(apiUrl(`/api/ratings/avg/${provider._id}`))
