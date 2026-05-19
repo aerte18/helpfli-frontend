@@ -606,7 +606,6 @@ export default function UnifiedAIConcierge({
 
       // Tryb klienta: Concierge V2 lub V1
       const USE_V2 = import.meta.env.VITE_USE_AI_V2 !== 'false';
-      const API_URL = import.meta.env.VITE_API_URL || '';
       
       let endpoint, requestBody;
       
@@ -622,7 +621,7 @@ export default function UnifiedAIConcierge({
       }
       
       if (USE_V2) {
-        endpoint = `${API_URL}/api/ai/concierge/v2`;
+        endpoint = apiUrl('/api/ai/concierge/v2');
         requestBody = {
           messages: requestMessages,
           sessionId,
@@ -631,7 +630,7 @@ export default function UnifiedAIConcierge({
           imageUrls: imageUrls
         };
       } else {
-        endpoint = `${API_URL}/api/ai/concierge/analyze`;
+        endpoint = apiUrl('/api/ai/concierge/analyze');
         requestBody = {
           description: q || 'Analizuj przesłane pliki i zaproponuj rozwiązanie',
           imageUrls: imageUrls,
@@ -650,9 +649,15 @@ export default function UnifiedAIConcierge({
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.error('Asystent AI HTTP', res.status, endpoint, errorData);
         // Limity są obsługiwane przez backend i wysyłane jako powiadomienia
         // Nie pokazujemy alertów w UI
-        throw new Error(errorData.message || 'Błąd podczas analizy');
+        throw new Error(
+          errorData.message ||
+            (res.status === 404
+              ? 'Usługa AI jest chwilowo niedostępna (błąd połączenia z API). Odśwież stronę.'
+              : 'Błąd podczas analizy')
+        );
       }
       
       const data = await res.json();
@@ -1161,9 +1166,8 @@ export default function UnifiedAIConcierge({
                         <button
                           onClick={async (e) => {
                             try {
-                              const API_URL = import.meta.env.VITE_API_URL || '';
                               const token = localStorage.getItem('token');
-                              const feedbackRes = await fetch(`${API_URL}/api/ai/feedback`, {
+                              const feedbackRes = await fetch(apiUrl('/api/ai/feedback'), {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json',
@@ -1195,9 +1199,8 @@ export default function UnifiedAIConcierge({
                         <button
                           onClick={async (e) => {
                             try {
-                              const API_URL = import.meta.env.VITE_API_URL || '';
                               const token = localStorage.getItem('token');
-                              const feedbackRes = await fetch(`${API_URL}/api/ai/feedback`, {
+                              const feedbackRes = await fetch(apiUrl('/api/ai/feedback'), {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json',
@@ -1762,7 +1765,7 @@ export default function UnifiedAIConcierge({
                         >
                           {ad.imageUrl && (
                             <div className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-white border border-amber-200">
-                              <img src={ad.imageUrl.startsWith('http') ? ad.imageUrl : `${import.meta.env.VITE_API_URL || ''}${ad.imageUrl}`} alt={ad.title} className="w-full h-full object-cover" />
+                              <img src={ad.imageUrl.startsWith('http') ? ad.imageUrl : apiUrl(ad.imageUrl)} alt={ad.title} className="w-full h-full object-cover" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
@@ -1883,9 +1886,8 @@ export default function UnifiedAIConcierge({
                       onClick={async () => {
                         setSubmittingOneClick(true);
                         try {
-                          const base = import.meta.env.VITE_API_URL || '';
                           const token = localStorage.getItem('token');
-                          const res = await fetch(`${base}/api/ai/drafts/${analysisResult.draftId}/submit`, {
+                          const res = await fetch(apiUrl(`/api/ai/drafts/${analysisResult.draftId}/submit`), {
                             method: 'POST',
                             headers: {
                               'Content-Type': 'application/json',

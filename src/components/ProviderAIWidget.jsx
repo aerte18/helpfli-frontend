@@ -121,9 +121,8 @@ export default function ProviderAIWidget() {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || '';
       
-      const response = await fetch(`${API_URL}/api/provider-ai-chat`, {
+      const response = await fetch(apiUrl('/api/provider-ai-chat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -943,7 +943,7 @@ export default function ProviderHome() {
 
   // Status ostatniej oferty wykonawcy per zlecenie (do CTA i ukrywania zleceń już zamkniętych)
   const myOfferStateByOrderId = useMemo(() => {
-    const map = new globalThis.Map();
+    const map = new Map();
     (offers || []).forEach((off) => {
       const id = off.orderId?._id || off.orderId;
       if (!id) return;
@@ -2121,7 +2121,7 @@ export default function ProviderHome() {
               }`}
               title="Mapa"
             >
-              <Map className="w-4 h-4" aria-hidden />
+              <MapIcon className="w-4 h-4" aria-hidden />
             </button>
           </div>
         </div>
@@ -2315,7 +2315,7 @@ export default function ProviderHome() {
                 }`}
                 title="Mapa"
               >
-                <Map className="w-4 h-4" aria-hidden />
+                <MapIcon className="w-4 h-4" aria-hidden />
               </button>
             </div>
             <div className="w-full h-full bg-white">
@@ -2399,7 +2399,7 @@ export default function ProviderHome() {
             }`}
             title="Mapa"
           >
-            <Map className="w-4 h-4" aria-hidden />
+            <MapIcon className="w-4 h-4" aria-hidden />
           </button>
         </div>
       )}
@@ -2451,7 +2451,7 @@ export default function ProviderHome() {
                   viewMode === "map" ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                <Map className="w-4 h-4" />
+                <MapIcon className="w-4 h-4" />
                 Mapa
               </button>
             </div>
