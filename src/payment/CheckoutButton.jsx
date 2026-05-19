@@ -21,6 +21,10 @@ export default function CheckoutButton({
         body: JSON.stringify({ orderId, ...(showInvoiceOption ? { requestInvoice } : {}) }),
       });
       const data = await res.json();
+      if (res.status === 409 && data.alreadyPaid) {
+        window.location.href = `/orders/${encodeURIComponent(orderId)}`;
+        return;
+      }
       if (!res.ok) throw new Error(data.message || 'Błąd');
       const qs = new URLSearchParams({
         pi: data.paymentIntentId,

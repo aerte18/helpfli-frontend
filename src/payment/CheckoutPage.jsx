@@ -94,7 +94,7 @@ export default function CheckoutPage() {
       const q = extra.toString();
       if (q) returnUrl += `?${q}`;
 
-      const { error } = await stripe.confirmPayment({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: { return_url: returnUrl },
         redirect: 'if_required',
@@ -105,8 +105,16 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Karta bez przekierowania (np. nie wymaga 3DS) — idź do wyniku
-      window.location.href = returnUrl;
+      // Karta bez 3DS — dopisz parametry Stripe do URL (inaczej payment-result nie wie, że sukces)
+      const resultUrl = new URL(returnUrl, window.location.origin);
+      if (paymentIntent?.id) {
+        resultUrl.searchParams.set('payment_intent', paymentIntent.id);
+        resultUrl.searchParams.set('redirect_status', 'succeeded');
+        if (paymentIntent.client_secret) {
+          resultUrl.searchParams.set('payment_intent_client_secret', paymentIntent.client_secret);
+        }
+      }
+      window.location.href = resultUrl.toString();
     } catch (err) {
       setMessage(err?.message || 'Nieoczekiwany błąd płatności.');
     } finally {

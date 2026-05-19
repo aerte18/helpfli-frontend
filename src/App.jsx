@@ -253,9 +253,7 @@ function App() {
           <Route path="/checkout" element={
             <StripeProvider><CheckoutPage/></StripeProvider>
           }/>
-          <Route path="/payment-result" element={
-            <StripeProvider><PaymentResult/></StripeProvider>
-          }/>
+          <Route path="/payment-result" element={<PaymentResult />} />
           {/* Płatność za konkretne zlecenie — klienci i providerzy (nie tylko RoleRoute provider) */}
           <Route path="/checkout/:orderId" element={<Checkout />} />
           

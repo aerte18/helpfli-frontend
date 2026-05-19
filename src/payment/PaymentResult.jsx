@@ -1,113 +1,83 @@
 import { useEffect, useState } from 'react';
-import { useStripe } from '@stripe/react-stripe-js';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiPost } from '../lib/api';
 
-/** Po autoryzacji karty (escrow) Stripe zwraca requires_capture, nie succeeded. */
-function isStripePaymentOk(status) {
-  return status === 'succeeded' || status === 'requires_capture';
-}
-
-function isStripePaymentPending(status) {
-  return status === 'processing';
-}
-
 export default function PaymentResult() {
-  const stripe = useStripe();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
+  const [duplicatesReleased, setDuplicatesReleased] = useState(0);
 
   useEffect(() => {
-    if (!stripe) return;
-
-    // Stripe dopisuje payment_intent + payment_intent_client_secret + redirect_status.
-    // retrievePaymentIntent() wymaga wyłącznie pełnego client secret (pi_…_secret_…), NIE samego id pi_….
-    const clientSecretRaw = searchParams.get('payment_intent_client_secret');
-    const paymentIntentId = searchParams.get('payment_intent');
     const redirectStatus = searchParams.get('redirect_status');
-    const clientSecret =
-      clientSecretRaw && clientSecretRaw.includes('_secret_') ? clientSecretRaw.trim() : null;
+    const paymentIntentId = searchParams.get('payment_intent');
+    const orderId = searchParams.get('orderId') || searchParams.get('orderid');
 
-    if (!clientSecret && !paymentIntentId && !redirectStatus) {
+    if (!paymentIntentId && !redirectStatus) {
       setStatus('error');
-      setMessage('Brak informacji o płatności');
+      setMessage('Brak informacji o płatności w adresie URL.');
       return;
     }
 
-    const successMessage = (piStatus) =>
-      piStatus === 'requires_capture'
-        ? 'Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.'
-        : 'Płatność zakończona pomyślnie!';
+    if (redirectStatus === 'succeeded') {
+      setStatus('success');
+      setMessage('Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.');
+    } else if (redirectStatus === 'processing') {
+      setStatus('processing');
+      setMessage('Płatność jest przetwarzana…');
+      return;
+    } else if (redirectStatus) {
+      setStatus('error');
+      setMessage('Płatność nie powiodła się.');
+      return;
+    }
 
-    const applyRedirectStatus = () => {
-      if (redirectStatus === 'succeeded') {
-        setStatus('success');
-        setMessage(successMessage('requires_capture'));
-      } else if (redirectStatus === 'processing') {
-        setStatus('processing');
-        setMessage('Płatność jest przetwarzana...');
-      } else if (redirectStatus) {
-        setStatus('error');
-        setMessage('Płatność nie powiodła się');
-      }
-    };
+    if (!paymentIntentId) {
+      setStatus('error');
+      setMessage('Brak identyfikatora płatności. Otwórz zlecenie z konta.');
+      return;
+    }
 
-    const syncOrderAfterPayment = async () => {
-      const orderId =
-        searchParams.get('orderId') || searchParams.get('orderid');
-      const payType = searchParams.get('type');
-      if (!orderId || payType === 'subscription') return;
+    let cancelled = false;
+    (async () => {
       try {
-        await apiPost(`/api/orders/${orderId}/fund`, {});
-      } catch (e) {
-        console.warn('syncOrderAfterPayment fund:', e);
-      }
-    };
+        const data = await apiPost('/api/payments/complete-return', {
+          paymentIntentId,
+          orderId: orderId || undefined,
+        });
+        if (cancelled) return;
 
-    const checkPaymentStatus = async () => {
-      try {
-        if (clientSecret) {
-          const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
-
-          if (isStripePaymentOk(paymentIntent.status)) {
-            setStatus('success');
-            setMessage(successMessage(paymentIntent.status));
-            await syncOrderAfterPayment();
-          } else if (isStripePaymentPending(paymentIntent.status)) {
-            setStatus('processing');
-            setMessage('Płatność jest przetwarzana...');
-          } else if (redirectStatus === 'succeeded') {
-            applyRedirectStatus();
-            await syncOrderAfterPayment();
-          } else {
-            setStatus('error');
-            setMessage(paymentIntent.last_payment_error?.message || 'Płatność nie powiodła się');
+        if (data.success) {
+          setStatus('success');
+          setMessage(data.message || 'Płatność zakończona pomyślnie!');
+          if (data.duplicatesCanceled > 0) {
+            setDuplicatesReleased(data.duplicatesCanceled);
           }
-        } else if (redirectStatus) {
-          applyRedirectStatus();
-          if (redirectStatus === 'succeeded') await syncOrderAfterPayment();
-        } else if (paymentIntentId) {
+        } else if (redirectStatus === 'succeeded') {
+          setStatus('success');
+          setMessage('Płatność przyjęta. Odśwież stronę zlecenia, jeśli status się nie zmienił.');
+        } else {
           setStatus('error');
-          setMessage(
-            'Brak pełnego klucza płatności w adresie (client secret). Otwórz zlecenie z konta — status płatności zaktualizuje się po chwili.'
-          );
+          setMessage(data.message || 'Nie udało się potwierdzić płatności.');
         }
       } catch (error) {
-        console.error('Błąd sprawdzania statusu płatności:', error);
-        if (redirectStatus === 'succeeded' || redirectStatus === 'processing') {
-          applyRedirectStatus();
-          if (redirectStatus === 'succeeded') await syncOrderAfterPayment();
-          return;
+        console.error('complete-return:', error);
+        if (cancelled) return;
+        if (redirectStatus === 'succeeded') {
+          setStatus('success');
+          setMessage('Płatność przyjęta. Odśwież stronę zlecenia za chwilę.');
+        } else {
+          setStatus('error');
+          setMessage(error?.message || 'Błąd sprawdzania statusu płatności.');
         }
-        setStatus('error');
-        setMessage('Wystąpił błąd podczas sprawdzania statusu płatności');
       }
-    };
+    })();
 
-    checkPaymentStatus();
-  }, [stripe, searchParams]);
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   const handleContinue = () => {
     const orderId = searchParams.get('orderId') || searchParams.get('orderid');
@@ -127,65 +97,97 @@ export default function PaymentResult() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Sprawdzanie statusu płatności...</p>
+          <motionlessSpinner />
+          <p className="text-gray-600">Sprawdzanie statusu płatności…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        {status === 'success' ? (
+        {status === 'success' && (
           <>
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
-              <svg className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
+            <IconCircle variant="success" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Płatność zakończona pomyślnie!</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <p className="text-gray-600 mb-4">{message}</p>
+            {duplicatesReleased > 0 && (
+              <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4">
+                Zwolniono {duplicatesReleased} zbędne autoryzacje na karcie (została jedna opłata za zlecenie).
+              </p>
+            )}
             <button
+              type="button"
               onClick={handleContinue}
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700"
             >
               Przejdź do zlecenia
             </button>
           </>
-        ) : status === 'processing' ? (
+        )}
+
+        {status === 'processing' && (
           <>
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
-            </div>
+            <motionlessSpinner />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Przetwarzanie płatności</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
-            <p className="text-sm text-gray-500">Możesz zamknąć to okno. Otrzymasz powiadomienie, gdy płatność zostanie zakończona.</p>
+            <p className="text-gray-600">{message}</p>
           </>
-        ) : (
+        )}
+
+        {status === 'error' && (
           <>
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-              <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
+            <IconCircle variant="error" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Płatność nie powiodła się</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <p className="text-gray-600 mb-4">{message}</p>
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-left">
+              Jeśli na koncie widać obciążenie, <strong>nie płac ponownie</strong> — otwórz zlecenie z listy lub
+              napisz na helpfli@outlook.com z numerem zlecenia.
+            </p>
             <button
+              type="button"
               onClick={() => navigate(-1)}
-              className="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors mb-3"
+              className="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 mb-3"
             >
-              Spróbuj ponownie
+              Wróć
             </button>
             <button
+              type="button"
               onClick={() => navigate('/my-orders')}
-              className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300"
             >
               Wróć do zleceń
             </button>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function motionlessSpinner() {
+  return (
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-4" role="status" />
+  );
+}
+
+function IconCircle({ variant }) {
+  const isSuccess = variant === 'success';
+  return (
+    <div
+      className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+        isSuccess ? 'bg-emerald-100' : 'bg-red-100'
+      }`}
+    >
+      {isSuccess ? (
+        <svg className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      )}
     </div>
   );
 }
