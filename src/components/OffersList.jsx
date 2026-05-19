@@ -417,6 +417,31 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         "system";
 
       if (acceptResult.orderMode === 'offers_only' || orderData?.orderMode === 'offers_only') {
+        if (acceptResult.requiresContactUnlock && acceptResult.contactUnlockFeePln > 0) {
+          try {
+            const unlockRes = await fetch(apiUrl('/api/payments/create-contact-unlock-intent'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ orderId }),
+            });
+            const unlockData = await unlockRes.json();
+            if (unlockRes.ok && unlockData.waived) {
+              navigate(`/orders/${orderId}?tab=details`, { replace: true });
+              return;
+            }
+            if (unlockRes.ok && unlockData.clientSecret) {
+              const pi = encodeURIComponent(unlockData.paymentIntentId);
+              const cs = encodeURIComponent(unlockData.clientSecret);
+              window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${pi}&cs=${cs}&kind=contact_unlock&fee=${unlockData.contactUnlockFeePln || 24}`;
+              return;
+            }
+          } catch (unlockErr) {
+            setError(unlockErr.message || 'Nie udało się rozpocząć płatności za kontakt');
+          }
+        }
         navigate(`/orders/${orderId}?tab=details`, { replace: true });
         return;
       }

@@ -2871,7 +2871,7 @@ function DemandCard({ data, hasMyOffer = false, onQuote, onChat, onDetails }) {
                 <span>Płatność poza systemem</span>
               </span>
             )}
-            <OrderModeBadge orderMode={data.orderMode} />
+            <OrderModeBadge orderMode={data.orderMode} verifiedProvidersOnly={data.verifiedProvidersOnly} />
             {data.isRecommendedForProvider && (
               <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                 ✨ Polecane dla Ciebie
@@ -3180,7 +3180,7 @@ function DemandCardCompact({ data, hasMyOffer = false, onQuote, onChat, onDetail
                 {aiMatch.score}%
               </span>
             )}
-            <OrderModeBadge orderMode={data.orderMode} className="mt-0.5" />
+            <OrderModeBadge orderMode={data.orderMode} verifiedProvidersOnly={data.verifiedProvidersOnly} className="mt-0.5" />
             <h3 className="text-sm font-medium text-slate-800 truncate">{service}</h3>
           </div>
         </div>

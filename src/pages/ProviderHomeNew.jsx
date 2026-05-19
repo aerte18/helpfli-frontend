@@ -466,7 +466,7 @@ function OrderCard({ order, onSubmitProposal }) {
             <h3 className="text-lg font-semibold text-gray-900">
               {order.service}
             </h3>
-            <OrderModeBadge orderMode={order.orderMode} />
+            <OrderModeBadge orderMode={order.orderMode} verifiedProvidersOnly={order.verifiedProvidersOnly} />
           </div>
           {order.serviceDetails && (
             <div className="text-base text-indigo-700 font-medium mb-2">

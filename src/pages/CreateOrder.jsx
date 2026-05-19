@@ -11,6 +11,7 @@ import { Upload, Users, Briefcase, MapPin, FileText, Sparkles, CheckCircle, Shie
 import { Helmet } from "react-helmet-async";
 import { openAI } from "../ai/chat/bus";
 import { formatPriceHint } from "../utils/orderMode";
+import OffersOnlyListingAddons from "../components/OffersOnlyListingAddons";
 
 function useQuery() {
   const { search } = useLocation();
@@ -88,6 +89,9 @@ export default function CreateOrder() {
   );
   const [serviceMeta, setServiceMeta] = useState(preFilled.serviceMeta || null);
   const [showOffersOnlyHint, setShowOffersOnlyHint] = useState(Boolean(preFilled.suggestOffersOnly));
+  const [addonFastTrack, setAddonFastTrack] = useState(false);
+  const [addonHighlight, setAddonHighlight] = useState(false);
+  const [addonVerifiedOnly, setAddonVerifiedOnly] = useState(false);
   const [userLocation, setUserLocation] = useState(null); // geolokalizacja
   const [locationLoading, setLocationLoading] = useState(false);
   const initialAttachments =
@@ -387,8 +391,51 @@ export default function CreateOrder() {
       const data = await r.json().catch(()=>({}));
       if (!r.ok) throw new Error(data.message || data.error || "Błąd tworzenia zlecenia.");
 
-      setSubmitting(false);
       const orderId = data._id || data.orderId || data.id || "";
+
+      if (
+        orderId &&
+        orderMode === "offers_only" &&
+        (addonFastTrack || addonHighlight || addonVerifiedOnly)
+      ) {
+        try {
+          const addonRes = await fetch(apiUrl(`/api/orders/${orderId}/listing-addons`), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              fastTrack: addonFastTrack,
+              highlight: addonHighlight,
+              verifiedProvidersOnly: addonVerifiedOnly,
+            }),
+          });
+          const addonData = await addonRes.json().catch(() => ({}));
+          if (!addonRes.ok) {
+            throw new Error(addonData.message || "Nie udało się aktywować opcji widoczności");
+          }
+          if (addonData.requiresPayment && addonData.clientSecret && addonData.paymentIntentId) {
+            setSubmitting(false);
+            const pi = encodeURIComponent(addonData.paymentIntentId);
+            const cs = encodeURIComponent(addonData.clientSecret);
+            const fee = encodeURIComponent(addonData.totalPln || "");
+            window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${pi}&cs=${cs}&kind=listing_addons&fee=${fee}`;
+            return;
+          }
+        } catch (addonErr) {
+          setSubmitting(false);
+          setError(
+            addonErr.message ||
+              "Zlecenie utworzone, ale opcje widoczności nie zostały aktywowane. Możesz je dokupić w szczegółach zlecenia."
+          );
+          setCreatedOrderId(orderId);
+          setShowSuccess(true);
+          return;
+        }
+      }
+
+      setSubmitting(false);
       orderFormSubmitted.current = true;
       setCreatedOrderId(orderId);
       setCreatedOrderDirect(orderType === "direct");
@@ -1053,10 +1100,22 @@ export default function CreateOrder() {
                 onChange={(e) => setOrderMode(e.target.checked ? 'offers_only' : 'standard')}
               />
               <span className="text-sm font-medium text-indigo-950">
-                Pozyskaj tylko oferty (bez płatności za remont przez Helpfli)
+                Pozyskaj tylko oferty (bez płatności za remont przez Helpfli). Po wyborze wykonawcy: odblokowanie kontaktu 24&nbsp;zł (w pakiecie PRO klienta — gratis).
               </span>
             </label>
           </div>
+        )}
+
+        {orderMode === "offers_only" && (
+          <OffersOnlyListingAddons
+            fastTrack={addonFastTrack}
+            onFastTrackChange={setAddonFastTrack}
+            highlight={addonHighlight}
+            onHighlightChange={setAddonHighlight}
+            verifiedOnly={addonVerifiedOnly}
+            onVerifiedOnlyChange={setAddonVerifiedOnly}
+            fastTrackIncludedInPro={false}
+          />
         )}
 
         {orderMode !== 'offers_only' && (

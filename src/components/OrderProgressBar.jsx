@@ -136,8 +136,11 @@ export default function OrderProgressBar({
         if (hasMyRating || order.status === 'rated') return 'rated';
         return 'completed';
       }
-      if (order.contactUnlockedAt || order.status === 'accepted' || order.acceptedOfferId) {
+      if (order.contactUnlockedAt && !order.contactLocked) {
         return 'contact';
+      }
+      if (order.status === 'accepted' || order.acceptedOfferId) {
+        return 'accepted';
       }
       if (order.status === 'collecting_offers' || offersCount > 0) return 'offers';
       return 'open';

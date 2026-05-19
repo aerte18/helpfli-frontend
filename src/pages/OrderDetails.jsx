@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import OrderProgressBar from "../components/OrderProgressBar";
 import { isOffersOnlyOrder } from "../utils/orderMode";
+import OrderContactUnlockCard from "../components/OrderContactUnlockCard";
 import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
@@ -4475,10 +4476,22 @@ export default function OrderDetails() {
       {tab === "details" && (
         <div className="w-full border-b border-slate-200 bg-white">
           {isOffersOnlyOrder(order) && (
-            <div className="mx-auto max-w-6xl px-4 md:px-6 pt-3">
+            <div className="mx-auto max-w-6xl px-4 md:px-6 pt-3 space-y-3">
               <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-950">
                 <strong>Tryb: tylko oferty.</strong> Zbierasz wyceny i kontakt od wykonawców — rozliczenie za roboty poza Helpfli.
               </div>
+              {order.contactLocked && isClient && (
+                <OrderContactUnlockCard
+                  orderId={order._id || order.id}
+                  feePln={order.contactUnlockFeePln || 24}
+                  onUnlocked={() => window.location.reload()}
+                />
+              )}
+              {order.contactLocked && isProvider && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                  Dane kontaktowe klienta będą widoczne po opłacie odblokowania kontaktu przez klienta.
+                </p>
+              )}
             </div>
           )}
           <div className="mx-auto max-w-6xl px-4 md:px-6 py-3">
