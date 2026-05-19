@@ -35,7 +35,7 @@ export default function CreateOrder() {
 
   const [orderType, setOrderType] = useState(initialIsDirect ? "direct" : "open"); // "open" | "direct"
   const [service, setService] = useState(preFilled.service || serviceFromUrl);
-  const [serviceDetails, setServiceDetails] = useState(""); // doprecyzowanie usługi
+  const [serviceDetails, setServiceDetails] = useState(preFilled.serviceDetails || ""); // doprecyzowanie usługi (marka/model z AI)
   const [isOtherSubcategory, setIsOtherSubcategory] = useState(false); // czy wybrana podkategoria to "Inne"
   const [description, setDescription] = useState(preFilled.description || descFromUrl);
   const [location, setLocation] = useState(preFilled.location || "");

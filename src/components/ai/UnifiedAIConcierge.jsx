@@ -452,6 +452,8 @@ export default function UnifiedAIConcierge({
       seen.add(a.url);
       return true;
     });
+    const detailLines = draft?.extracted?.details || [];
+    const serviceDetails = detailLines.length ? detailLines.join('; ') : '';
     const aiBrief = draft ? {
       source: 'concierge',
       providerBrief: draft.providerBrief || null,
@@ -475,6 +477,7 @@ export default function UnifiedAIConcierge({
       attachments: mergedAttachments,
       preFilled: {
         description,
+        serviceDetails,
         service: payload.service || analysisResult?.serviceCandidate?.code,
         location: payload.location || '',
         preferredTime: payload.preferredTime || analysisResult?.extracted?.timeWindow || '',
@@ -713,6 +716,13 @@ export default function UnifiedAIConcierge({
           const path = result.chosenPath || data.chosenPath;
           setChosenPath(path);
           setStoredChosenPath(path);
+        } else if (
+          agents.matching?.topProviders?.length > 0 ||
+          result.uiPhase === 'providers' ||
+          result.nextStep === 'suggest_providers'
+        ) {
+          setChosenPath('providers');
+          setStoredChosenPath('providers');
         }
 
         setMsgs((m) => [...m.filter((msg) => !msg.transient), {
@@ -1078,9 +1088,17 @@ export default function UnifiedAIConcierge({
                       ts={m.createdAt || Date.now()}
                       rich={!m.streaming}
                     />
-                    {m.matching?.topProviders?.length > 0 && !m.streaming && (
+                    {!m.streaming &&
+                      (m.matching?.topProviders?.length > 0 ||
+                        (latestAssistant === m &&
+                          showProvidersPanel &&
+                          analysisResult?.matching?.topProviders?.length > 0)) && (
                       <ProviderMiniCards
-                        providers={m.matching.topProviders}
+                        providers={
+                          m.matching?.topProviders?.length > 0
+                            ? m.matching.topProviders
+                            : analysisResult.matching.topProviders
+                        }
                         onSelect={openProviderProfile}
                         onCreateOrder={createOrderForProvider}
                       />
@@ -1285,6 +1303,11 @@ export default function UnifiedAIConcierge({
                                 Do wersji pro brakuje: {m.orderDraft.quality.missingForPro.slice(0, 3).join(', ')}
                               </div>
                             )}
+                          </div>
+                        )}
+                        {m.orderDraft.gapAnalysis?.filled?.length > 0 && (
+                          <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">
+                            Zebrane: {m.orderDraft.gapAnalysis.filled.map((f) => f.label).join(', ')}
                           </div>
                         )}
                         {m.orderDraft.missing?.length > 0 && (
