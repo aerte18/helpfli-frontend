@@ -4,7 +4,7 @@ import { getOfferHint, postOffer } from "../api/offers";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "./toast/ToastProvider";
 import { useTelemetry } from "../hooks/useTelemetry";
-import { Send, Sparkles, X, Info, ChevronDown, ChevronUp, ClipboardList, Wallet, ShieldCheck } from "lucide-react";
+import { Send, Sparkles, Info, ChevronUp, ShieldCheck } from "lucide-react";
 import { getErrorMessage } from "../utils/errorMessages";
 import {
   getUrgencyLabel,
@@ -60,6 +60,197 @@ function Badge({ type }) {
   return <span className={`text-xs px-2 py-1 rounded-full border ${x.cls}`}>{x.text}</span>;
 }
 
+/** Zwijany panel AI — nie zasłania pól formularza */
+function OfferAiAssistPanel({
+  visible,
+  onShow,
+  onHide,
+  loading,
+  data,
+  onApplyAll,
+  onApplyPrice,
+  onApplyDescription,
+}) {
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        onClick={onShow}
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/40 px-3 py-2.5 text-sm font-medium text-indigo-800 hover:bg-indigo-50"
+      >
+        <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+        Pokaż podpowiedzi AI (cena, opis, ryzyka)
+      </button>
+    );
+  }
+
+  const suggested = data?.pricing?.suggested;
+  const win = data?.suggestions?.winScore;
+  const winLabel = data?.suggestions?.winLabel;
+
+  return (
+    <details className="group rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white overflow-hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold text-indigo-950">
+          <Sparkles className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+          <span>Podpowiedzi AI</span>
+          {loading && <span className="text-xs font-normal text-indigo-600">ładowanie…</span>}
+          {!loading && suggested != null && (
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-indigo-900 shadow-sm">
+              ~{Math.round(suggested)} zł
+            </span>
+          )}
+          {!loading && win != null && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900">
+              {win}% {winLabel || "szansy"}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 text-xs text-indigo-600 group-open:hidden">Rozwiń</span>
+        <ChevronUp className="h-4 w-4 shrink-0 text-indigo-500 hidden group-open:block" aria-hidden />
+      </summary>
+
+      <div className="border-t border-indigo-100 px-4 py-3 space-y-3 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {data?.pricing && (
+            <button
+              type="button"
+              onClick={onApplyAll}
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+            >
+              Wstaw wszystko do formularza
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onHide}
+            className="text-xs text-indigo-600 hover:text-indigo-900 font-medium"
+          >
+            Ukryj AI
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-xs text-indigo-700">Analizuję zlecenie…</p>
+        ) : !data ? (
+          <p className="text-xs text-indigo-700">Brak sugestii — wypełnij formularz ręcznie.</p>
+        ) : (
+          <>
+            <p className="text-xs text-slate-600">
+              <strong className="text-slate-800">{data.orderSummary?.service || "Usługa"}</strong>
+              {data.orderSummary?.location ? ` · ${data.orderSummary.location}` : ""}
+            </p>
+
+            {data.pricing && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
+                <span className="text-xs text-indigo-900">
+                  Cena: <strong className="text-base">{Math.round(data.pricing.suggested)} zł</strong>
+                  <span className="text-indigo-600 font-normal">
+                    {" "}
+                    ({Math.round(data.pricing.range?.min || 0)}–{Math.round(data.pricing.range?.max || 0)} zł)
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={onApplyPrice}
+                  className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 underline"
+                >
+                  Wstaw cenę
+                </button>
+              </div>
+            )}
+
+            {data.suggestions?.description && (
+              <div className="rounded-lg border border-indigo-100 bg-white/80 p-2">
+                <div className="flex flex-wrap justify-between gap-1 mb-1">
+                  <span className="text-xs font-medium text-indigo-900">Przykładowy opis</span>
+                  <button
+                    type="button"
+                    onClick={onApplyDescription}
+                    className="text-xs font-semibold text-indigo-700 underline"
+                  >
+                    Wstaw do opisu
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-3 italic">{data.suggestions.description}</p>
+              </div>
+            )}
+
+            {(data.suggestions?.tips?.length > 0 || data.suggestions?.risks?.length > 0) && (
+              <details className="text-xs text-slate-700">
+                <summary className="cursor-pointer font-medium text-indigo-900">Więcej wskazówek i ryzyk</summary>
+                <ul className="mt-2 list-disc pl-4 space-y-0.5">
+                  {(data.suggestions?.tips || []).slice(0, 4).map((t, i) => (
+                    <li key={`tip-${i}`}>{t}</li>
+                  ))}
+                  {(data.suggestions?.risks || []).slice(0, 3).map((r, i) => (
+                    <li key={`risk-${i}`} className="text-amber-800">{r}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function OfferQualityDetails({ quality, loadingPreflight, hasLlm, defaultOpen = false }) {
+  if (!quality) return null;
+  const toneRing =
+    quality.tone === "emerald"
+      ? "border-emerald-200"
+      : quality.tone === "rose"
+        ? "border-rose-200"
+        : quality.tone === "amber"
+          ? "border-amber-200"
+          : "border-slate-200";
+
+  return (
+    <details
+      className={`rounded-lg border bg-slate-50/80 ${toneRing}`}
+      open={defaultOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2 font-medium text-slate-800">
+          <Sparkles className="h-3.5 w-3.5 text-indigo-500" aria-hidden />
+          Jakość oferty (AI)
+          {loadingPreflight && <span className="text-xs font-normal text-slate-500">…</span>}
+        </span>
+        <span
+          className={`rounded-md px-2 py-0.5 text-xs font-bold ${
+            quality.percent >= 70
+              ? "bg-emerald-100 text-emerald-800"
+              : quality.percent >= 45
+                ? "bg-amber-100 text-amber-800"
+                : "bg-rose-100 text-rose-800"
+          }`}
+        >
+          {quality.percent}%
+        </span>
+      </summary>
+      <div className="border-t border-slate-200 px-3 py-2 text-xs text-slate-600 space-y-2">
+        <p>{hasLlm ? "Ocena z analizy AI." : "Ocena uproszczona (offline)."}</p>
+        {(quality.missing?.length > 0 || quality.warnings?.length > 0) && (
+          <ul className="space-y-0.5 text-amber-900">
+            {[...(quality.missing || []), ...(quality.warnings || [])].slice(0, 3).map((item, idx) => (
+              <li key={idx}>• {item}</li>
+            ))}
+          </ul>
+        )}
+        {quality.strengths?.length > 0 && (
+          <ul className="space-y-0.5 text-emerald-800">
+            {quality.strengths.slice(0, 2).map((item, idx) => (
+              <li key={idx}>✓ {item}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
+  );
+}
+
 export default function OfferForm({
   orderId,
   service,
@@ -100,9 +291,9 @@ export default function OfferForm({
   const [loadingPreflight, setLoadingPreflight] = useState(false);
   const [aiPreflightQuality, setAiPreflightQuality] = useState(null);
   const [showAiSuggestions, setShowAiSuggestions] = useState(() => {
-    try { return localStorage.getItem(OFFER_FORM_AI_KEY) !== "false"; } catch { return true; }
+    try { return localStorage.getItem(OFFER_FORM_AI_KEY) === "true"; } catch { return false; }
   });
-  const [aiSuggestionsCollapsed, setAiSuggestionsCollapsed] = useState(false);
+  const [showQuestionsPanel, setShowQuestionsPanel] = useState(false);
   /** Użytkownik potwierdził wysyłkę poniżej progu. */
   const [offerLowQualityOverrideAck, setOfferLowQualityOverrideAck] = useState(false);
   /** Po co najmniej jednej zablokowanej (lub wymagającej mimo) próbie wysyłki — pokaż panel z CTA. */
@@ -648,207 +839,47 @@ export default function OfferForm({
     }
   }
 
+  const applyAiPriceOnly = () => {
+    if (aiSuggestions?.pricing?.suggested) {
+      setAmount(String(Math.round(aiSuggestions.pricing.suggested)));
+      toast({ title: "Cena wstawiona", variant: "success" });
+    }
+  };
+
+  const applyAiDescriptionOnly = () => {
+    const text = aiSuggestions?.suggestions?.description;
+    if (text) {
+      setMessage(text);
+      toast({ title: "Opis wstawiony", variant: "success" });
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Krok 1/3 - Asystent AI (opcjonalny, zwijalny) */}
+      <p className="text-sm text-slate-600">
+        Wypełnij <strong className="text-slate-900">cenę</strong>, <strong className="text-slate-900">termin</strong> i opcjonalnie <strong className="text-slate-900">opis</strong>, potem wyślij ofertę.
+      </p>
+
       {orderId && (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Krok 1/3 — Sprawdź sugestie AI (opcjonalne)</span>
-            {!showAiSuggestions && (
-              <button
-                type="button"
-                onClick={() => setShowAiSuggestionsAndPersist(true)}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-              >
-                Pokaż sugestie AI
-              </button>
-            )}
-          </div>
-          {showAiSuggestions && (
-        <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-indigo-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-indigo-900">Asystent AI</h3>
-                <p className="text-xs text-indigo-700">Analiza zlecenia i sugestie</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setAiSuggestionsCollapsed((c) => !c)}
-                className="text-indigo-400 hover:text-indigo-600 p-1"
-                aria-label={aiSuggestionsCollapsed ? "Rozwiń" : "Zwiń"}
-              >
-                {aiSuggestionsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAiSuggestionsAndPersist(false)}
-                className="text-indigo-400 hover:text-indigo-600 text-sm p-1"
-                aria-label="Zamknij"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          {!aiSuggestionsCollapsed && (
-          loadingAiSuggestions ? (
-            <div className="flex items-center gap-2 text-sm text-indigo-700">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-              <span>Analizuję zlecenie...</span>
-            </div>
-          ) : aiSuggestions ? (
-            <div className="space-y-3 text-sm">
-              {/* Podsumowanie zlecenia */}
-              <div className="bg-white/60 rounded-lg p-3 border border-indigo-100">
-                <div className="font-medium text-indigo-900 mb-2 flex items-center gap-2"><ClipboardList className="w-4 h-4 shrink-0" aria-hidden /> Co klient podał:</div>
-                <div className="space-y-1 text-indigo-800 text-xs">
-                  <div><strong>Usługa:</strong> {aiSuggestions.orderSummary?.service || 'Nie podano'}</div>
-                  <div><strong>Lokalizacja:</strong> {aiSuggestions.orderSummary?.location || 'Nie podano'}</div>
-                  {aiSuggestions.orderSummary?.budget && (
-                    <div><strong>Budżet:</strong> {typeof aiSuggestions.orderSummary.budget === 'object' 
-                      ? `${aiSuggestions.orderSummary.budget.min || '?'}–${aiSuggestions.orderSummary.budget.max || '?'} zł`
-                      : `${aiSuggestions.orderSummary.budget} zł`}</div>
-                  )}
-                  <div><strong>Pilność:</strong> {
-                    aiSuggestions.orderSummary?.urgency === 'now' ? '⚡ Pilne' :
-                    aiSuggestions.orderSummary?.urgency === 'today' ? '📅 Dzisiaj' :
-                    aiSuggestions.orderSummary?.urgency === 'tomorrow' ? '📅 Jutro' :
-                    aiSuggestions.orderSummary?.urgency === 'this_week' ? '📅 W tym tygodniu' :
-                    '📅 Elastyczne'
-                  }</div>
-                  {aiSuggestions.orderSummary?.hasAttachments && (
-                    <div><strong>Załączniki:</strong> 📎 Zdjęcia/filmy dostępne</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Sugerowana cena */}
-              {aiSuggestions.pricing && (
-                <div className="bg-white/60 rounded-lg p-3 border border-indigo-100">
-                  <div className="font-medium text-indigo-900 mb-2 flex items-center gap-2"><Wallet className="w-4 h-4 shrink-0" aria-hidden /> Sugerowana cena:</div>
-                  <div className="text-indigo-800 text-xs space-y-1">
-                    <div className="text-base font-bold text-indigo-900">
-                      {Math.round(aiSuggestions.pricing.suggested)} zł
-                    </div>
-                    <div className="text-xs text-indigo-600">
-                      Zakres: {Math.round(aiSuggestions.pricing.range?.min || 0)}–{Math.round(aiSuggestions.pricing.range?.max || 0)} zł
-                    </div>
-                    {aiSuggestions.pricing.reasoning && (
-                      <div className="text-xs text-indigo-600 italic mt-1">
-                        {aiSuggestions.pricing.reasoning}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => applyAiDraft({
-                        price: aiSuggestions.pricing.suggested,
-                        description: aiSuggestions.suggestions?.description,
-                        completionDate: aiSuggestions.suggestions?.completionDate,
-                        recommendedIncludes: aiSuggestions.suggestions?.recommendedIncludes,
-                        recommendedContactMethod: aiSuggestions.suggestions?.recommendedContactMethod,
-                        isFinalPriceRecommended: aiSuggestions.suggestions?.isFinalPriceRecommended
-                      })}
-                      className="mt-2 inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
-                    >
-                      Wstaw całą propozycję do formularza
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {aiSuggestions.suggestions?.winScore && (
-                <div className="bg-white/60 rounded-lg p-3 border border-emerald-100">
-                  <div className="font-medium text-emerald-900 mb-1">Szansa oferty</div>
-                  <div className="flex items-center gap-2 text-sm text-emerald-800">
-                    <span className="text-lg font-bold">{aiSuggestions.suggestions.winScore}%</span>
-                    <span>{aiSuggestions.suggestions.winLabel || 'Dobra szansa'}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Sugestie co dopisać */}
-              {aiSuggestions.suggestions && (
-                <div className="bg-white/60 rounded-lg p-3 border border-indigo-100">
-                  <div className="font-medium text-indigo-900 mb-2">✨ Co dopisać w ofercie:</div>
-                  <div className="space-y-2 text-indigo-800 text-xs">
-                    {aiSuggestions.suggestions.tips && aiSuggestions.suggestions.tips.length > 0 && (
-                      <ul className="list-disc list-inside space-y-1">
-                        {aiSuggestions.suggestions.tips.map((tip, idx) => (
-                          <li key={idx}>{tip}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {aiSuggestions.suggestions.description && (
-                      <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-100">
-                        <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                          <span className="font-medium">💡 Przykładowy opis:</span>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setMessage(aiSuggestions.suggestions.description);
-                                toast({ title: "Opis wypełniony", description: "Sugestia AI została wstawiona do opisu oferty.", variant: "success" });
-                              }}
-                              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline shrink-0"
-                            >
-                              Użyj sugestii
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const text = aiSuggestions.suggestions.description;
-                                setMessage((prev) => (prev ? prev + "\n\n" + text : text));
-                                toast({ title: "Dodano do opisu", description: "Sugestia została dopisana do Twojego tekstu.", variant: "success" });
-                              }}
-                              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline shrink-0"
-                            >
-                              Dodaj do mojego tekstu
-                            </button>
-                          </div>
-                        </div>
-                        <div className="text-xs italic">{aiSuggestions.suggestions.description}</div>
-                      </div>
-                    )}
-                    {aiSuggestions.suggestions.timeline && (
-                      <div className="mt-2">
-                        <strong>⏱️ Sugerowany termin:</strong> {aiSuggestions.suggestions.timeline}
-                      </div>
-                    )}
-                    {aiSuggestions.suggestions.risks?.length > 0 && (
-                      <div className="mt-2 rounded-lg border border-amber-100 bg-amber-50 p-2">
-                        <div className="font-medium text-amber-900 mb-1">Na co uważać:</div>
-                        <ul className="list-disc list-inside space-y-1 text-amber-800">
-                          {aiSuggestions.suggestions.risks.slice(0, 3).map((risk, idx) => <li key={idx}>{risk}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    {aiSuggestions.suggestions.questions?.length > 0 && (
-                      <div className="mt-2">
-                        <div className="font-medium text-indigo-900 mb-1">Pytania do klienta:</div>
-                        <ul className="list-disc list-inside space-y-1">
-                          {aiSuggestions.suggestions.questions.slice(0, 3).map((question, idx) => <li key={idx}>{question}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-indigo-600">
-              Nie udało się pobrać sugestii AI. Możesz złożyć ofertę ręcznie.
-            </div>
-          )
-          )}
-        </div>
-          )}
-        </>
+        <OfferAiAssistPanel
+          visible={showAiSuggestions}
+          onShow={() => setShowAiSuggestionsAndPersist(true)}
+          onHide={() => setShowAiSuggestionsAndPersist(false)}
+          loading={loadingAiSuggestions}
+          data={aiSuggestions}
+          onApplyAll={() =>
+            applyAiDraft({
+              price: aiSuggestions?.pricing?.suggested,
+              description: aiSuggestions?.suggestions?.description,
+              completionDate: aiSuggestions?.suggestions?.completionDate,
+              recommendedIncludes: aiSuggestions?.suggestions?.recommendedIncludes,
+              recommendedContactMethod: aiSuggestions?.suggestions?.recommendedContactMethod,
+              isFinalPriceRecommended: aiSuggestions?.suggestions?.isFinalPriceRecommended,
+            })
+          }
+          onApplyPrice={applyAiPriceOnly}
+          onApplyDescription={applyAiDescriptionOnly}
+        />
       )}
 
       {/* Błąd formularza (np. walidacja / wysyłka) */}
@@ -862,8 +893,11 @@ export default function OfferForm({
         </div>
       )}
 
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Krok 2/3 — Cena i termin</div>
-      <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+        <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">1</span>
+          Cena i termin
+        </h3>
         <div className="space-y-2">
           <label htmlFor="offer-price" className="text-sm font-medium text-slate-900">
             Cena (zł) <span className="text-red-600">*</span>
@@ -907,21 +941,26 @@ export default function OfferForm({
             </p>
           )}
 
-          {/* Podpowiedź widełek / badge */}
-          {!bandsError && priceHint && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
-                <div className="min-w-0">
-                  Sugerowany zakres:{" "}
-                  <span className="font-semibold text-slate-900">
-                    {priceHint.suggestedLo}–{priceHint.suggestedHi} zł
-                  </span>
-                </div>
-                <div className="shrink-0">{position?.badge ? <Badge type={position.badge} /> : null}</div>
-              </div>
-              <p className="text-xs text-slate-500">Oferty w tym zakresie są najczęściej akceptowane przez klientów.</p>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {!bandsError && priceHint && (
+              <p className="text-xs text-slate-600">
+                Zakres rynkowy:{" "}
+                <span className="font-semibold text-slate-900">
+                  {priceHint.suggestedLo}–{priceHint.suggestedHi} zł
+                </span>
+                {position?.badge ? <> · <Badge type={position.badge} /></> : null}
+              </p>
+            )}
+            {aiSuggestions?.pricing?.suggested && (
+              <button
+                type="button"
+                onClick={applyAiPriceOnly}
+                className="text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
+              >
+                AI: {Math.round(aiSuggestions.pricing.suggested)} zł
+              </button>
+            )}
+          </div>
 
           {/* Błąd pobierania widełek – pod polem ceny (można ukryć i pokazać jako osobną kartę w OrderDetails) */}
           {!hideBandsError && bandsError && (
@@ -973,44 +1012,20 @@ export default function OfferForm({
             </div>
           )}
 
-          {/* Preferowany okno czasowe klienta (create-order: jutro, elastycznie…) */}
           {orderUrgency && !(isPriority && priorityDateTime) && (
-            <div className="mb-2 p-3 rounded-lg border border-amber-200 bg-amber-50">
-              <div className="text-xs font-medium text-amber-900 mb-1">
-                {getUrgencyLabel(orderUrgency)?.emoji || '📅'} Preferowany termin klienta:
-              </div>
-              <div className="text-sm font-medium text-amber-900">
-                {getUrgencyLabel(orderUrgency)?.label || orderUrgency}
-              </div>
-              <div className="text-xs text-amber-800 mt-1">
-                Klient podał orientacyjny termin — Ty proponujesz konkretną datę i godzinę realizacji poniżej.
-                {completionDate && (
-                  <>
-                    {' '}
-                    Sugerujemy:{' '}
-                    <strong>
-                      {new Date(completionDate).toLocaleString('pl-PL', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </strong>
-                    .
-                  </>
-                )}
-              </div>
+            <p className="text-xs text-amber-900 rounded-lg border border-amber-100 bg-amber-50/80 px-2.5 py-2">
+              Klient: <strong>{getUrgencyLabel(orderUrgency)?.label || orderUrgency}</strong> — podaj konkretną datę poniżej.{" "}
               <button
                 type="button"
-                className="mt-2 text-xs font-semibold text-amber-900 underline hover:text-amber-950"
+                className="font-semibold underline hover:no-underline"
                 onClick={() => {
                   const suggested = suggestCompletionLocalFromUrgency(orderUrgency, orderUrgencyTime);
                   if (suggested) setCompletionDate(suggested);
                 }}
               >
-                Użyj sugerowanego terminu
+                Wstaw sugerowany termin
               </button>
-            </div>
+            </p>
           )}
 
           <input
@@ -1240,92 +1255,45 @@ export default function OfferForm({
           )}
         </div>
 
-        {/* Informacja o preferencjach płatności zlecenia + tooltip */}
         {orderPaymentPreference && (
-          <div className={`p-4 border rounded-lg ${
-            orderPaymentPreference === 'system' 
-              ? 'bg-blue-50 border-blue-200' 
-              : 'bg-amber-50 border-amber-200'
-          }`}>
-            <div className="text-sm font-medium mb-2 flex items-center gap-2" style={{
-              color: orderPaymentPreference === 'system' ? '#1e40af' : '#92400e'
-            }}>
-              Metoda płatności zlecenia:
-              <span
-                title="Helpfli Protect: pieniądze trafiają najpierw do depozytu, Ty dostajesz wypłatę po zakończeniu zlecenia. Klient ma gwarancję, Ty masz ochronę przed brakiem zapłaty."
-                className="cursor-help"
-              >
-                <Info className="w-4 h-4 opacity-70" />
-              </span>
-            </div>
-            {orderPaymentPreference === 'system' ? (
-              <div className="text-sm flex items-center gap-2" style={{ color: '#1e3a8a' }}>
-                <ShieldCheck className="w-5 h-5 shrink-0 text-emerald-600" aria-hidden />
-                <span><strong>Helpfli Protect</strong> — Płatność przez system Helpfli z gwarancją. Twoja oferta będzie rozliczana przez system escrow.</span>
-              </div>
+          <p
+            className={`text-xs rounded-lg px-2.5 py-2 flex items-start gap-2 ${
+              orderPaymentPreference === "system"
+                ? "bg-blue-50 text-blue-900 border border-blue-100"
+                : "bg-amber-50 text-amber-900 border border-amber-100"
+            }`}
+            title={
+              orderPaymentPreference === "system"
+                ? "Środki w depozycie do potwierdzenia odbioru przez klienta."
+                : "Rozliczenie bezpośrednio z klientem."
+            }
+          >
+            {orderPaymentPreference === "system" ? (
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
             ) : (
-              <div className="text-sm flex items-center gap-2" style={{ color: '#78350f' }}>
-                <span>💳</span>
-                <span><strong>Płatność poza systemem</strong> — Rozliczenie bezpośrednio z klientem. Ryzyko nieopłacenia jest po obu stronach; Helpfli nie pomoże w razie sporu.</span>
-              </div>
+              <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
             )}
-          </div>
+            <span>
+              {orderPaymentPreference === "system"
+                ? "Klient wybrał Helpfli Protect (escrow)."
+                : "Klient wybrał płatność poza systemem."}
+            </span>
+          </p>
         )}
+      </div>
 
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Krok 3/3 — Opis i wyślij</div>
-        <div className={`rounded-xl border p-4 ${
-          displayedOfferQuality.tone === 'emerald'
-            ? 'border-emerald-200 bg-emerald-50'
-            : displayedOfferQuality.tone === 'blue'
-              ? 'border-blue-200 bg-blue-50'
-              : displayedOfferQuality.tone === 'amber'
-                ? 'border-amber-200 bg-amber-50'
-                : 'border-rose-200 bg-rose-50'
-        }`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-indigo-600" aria-hidden />
-                AI ocena jakości oferty
-              </div>
-              <p className="mt-1 text-xs text-slate-600">
-                Sprawdza, czy oferta jest konkretna, zrozumiała i zmniejsza ryzyko pytań od klienta.
-              </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {loadingPreflight ? 'AI aktualizuje ocenę...' : (aiPreflightQuality ? 'Ocena oparta o analizę AI (LLM).' : 'Tryb awaryjny: lokalna ocena heurystyczna.')}
-              </p>
-            </div>
-            <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
-              <div className="text-xl font-bold text-slate-900">{displayedOfferQuality.percent}%</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{displayedOfferQuality.label}</div>
-            </div>
-          </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+        <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">2</span>
+          Opis i wysłanie
+        </h3>
 
-          {(displayedOfferQuality.missing.length > 0 || displayedOfferQuality.warnings.length > 0 || displayedOfferQuality.strengths.length > 0) && (
-            <div className="mt-3 grid gap-2 md:grid-cols-2">
-              {(displayedOfferQuality.missing.length > 0 || displayedOfferQuality.warnings.length > 0) && (
-                <div className="rounded-lg border border-white/70 bg-white/70 p-3">
-                  <div className="mb-1 text-xs font-semibold text-amber-900">Do poprawy przed wysłaniem</div>
-                  <ul className="space-y-1 text-xs text-slate-700">
-                    {[...displayedOfferQuality.missing, ...displayedOfferQuality.warnings].slice(0, 4).map((item, idx) => (
-                      <li key={`${item}-${idx}`}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {displayedOfferQuality.strengths.length > 0 && (
-                <div className="rounded-lg border border-white/70 bg-white/70 p-3">
-                  <div className="mb-1 text-xs font-semibold text-emerald-900">Mocne strony</div>
-                  <ul className="space-y-1 text-xs text-slate-700">
-                    {displayedOfferQuality.strengths.slice(0, 4).map((item, idx) => (
-                      <li key={`${item}-${idx}`}>• {item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <OfferQualityDetails
+          quality={displayedOfferQuality}
+          loadingPreflight={loadingPreflight}
+          hasLlm={Boolean(aiPreflightQuality)}
+          defaultOpen={displayedQualityPct > 0 && displayedQualityPct < 55}
+        />
 
         {offerLowQualityBlockShown &&
           displayedQualityPct > 0 &&
@@ -1376,48 +1344,51 @@ export default function OfferForm({
             </div>
           )}
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-900">Pytania do klienta (przed ofertą)</div>
-            <p className="text-xs text-slate-600 mt-1">
-              Zadawaj krótkie pytania techniczne. Nie podawaj telefonu, maila ani linków - system je ukryje.
-            </p>
-          </div>
-
-          {suggestedQuestions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {suggestedQuestions.map((q, idx) => (
-                <button
-                  key={`${q}-${idx}`}
-                  type="button"
-                  onClick={() => appendQuestionToMessage(q)}
-                  className="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
-                >
-                  + {q}
-                </button>
-              ))}
+        <button
+          type="button"
+          onClick={() => setShowQuestionsPanel((v) => !v)}
+          className="w-full flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+        >
+          <span>Pytania do klienta w opisie (opcjonalnie)</span>
+          <span className="text-xs text-slate-500">{showQuestionsPanel ? "Ukryj" : "Pokaż"}</span>
+        </button>
+        {showQuestionsPanel && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+            <p className="text-xs text-slate-600">Krótkie pytania dopisują się do opisu oferty (bez telefonu/linków).</p>
+            {suggestedQuestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedQuestions.map((q, idx) => (
+                  <button
+                    key={`${q}-${idx}`}
+                    type="button"
+                    onClick={() => appendQuestionToMessage(q)}
+                    className="rounded-full border border-indigo-200 bg-white px-2.5 py-1 text-xs text-indigo-800 hover:bg-indigo-50"
+                  >
+                    + {q}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={questionDraft}
+                onChange={(e) => setQuestionDraft(e.target.value)}
+                placeholder="Np. Czy widać numer modelu urządzenia?"
+                className="h-9 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                maxLength={220}
+              />
+              <button
+                type="button"
+                onClick={() => appendQuestionToMessage(questionDraft)}
+                disabled={!questionDraft.trim()}
+                className="h-9 rounded-lg bg-slate-800 px-3 text-sm font-medium text-white disabled:opacity-50"
+              >
+                Dodaj
+              </button>
             </div>
-          )}
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              value={questionDraft}
-              onChange={(e) => setQuestionDraft(e.target.value)}
-              placeholder="Np. Czy masz dostęp do skrzynki bezpieczników?"
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              maxLength={220}
-            />
-            <button
-              type="button"
-              onClick={() => appendQuestionToMessage(questionDraft)}
-              disabled={!questionDraft.trim()}
-              className="h-10 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Dodaj pytanie
-            </button>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor="offer-description" className="text-sm font-medium text-slate-900">
