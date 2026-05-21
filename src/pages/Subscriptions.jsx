@@ -226,6 +226,7 @@ export default function Subscriptions() {
   const onStartTrial = async (planKey) => {
     try {
       const data = await startTrial(planKey);
+      if (fetchMe) await fetchMe();
       await fetchAll();
       alert(data?.message || `Rozpoczęto 7-dniowy trial dla planu ${planKey}`);
     } catch (e) {

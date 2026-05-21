@@ -58,6 +58,64 @@ export const BUSINESS_OFFER_ROWS = [
   { planKey: "BUSINESS_PRO", name: "PRO", slots: Infinity, aiPool: "Nielimitowane (zespół)", largeProject: "Max 1 slot / oferta (PRO wykonawcy)" },
 ];
 
+/** Teksty do podpowiedzi w przewodniku limitów (hover / rozwijane). */
+export const SLOT_GUIDE_COPY = {
+  slotsColumn: {
+    title: "Odpowiedzi / miesiąc (sloty)",
+    lines: [
+      "Jeden slot = jedna wysłana oferta na zwykłe zlecenie.",
+      "Limit resetuje się co miesiąc wraz z pakietem.",
+      "PRO = brak miesięcznego limitu slotów (nielimitowane odpowiedzi).",
+    ],
+  },
+  aiColumnProvider: {
+    title: "Asystent AI",
+    lines: [
+      "Osobny limit od slotów — dotyczy czatu AI przy składaniu ofert.",
+      "FREE: brak w pakiecie, STANDARD: ograniczony, STANDARD+ i PRO: nielimitowany.",
+    ],
+  },
+  aiColumnBusiness: {
+    title: "AI zespołu",
+    lines: [
+      "Wspólna pula zapytań AI dla całej firmy w panelu B2B.",
+      "Nie zużywa slotów odpowiedzi na zlecenia.",
+    ],
+  },
+  largeProjectColumn: {
+    title: "Duże projekty",
+    lines: [
+      "Zlecenia „Pozyskaj tylko oferty” (remont, budowa) mogą kosztować więcej slotów.",
+      "FREE / STANDARD / STANDARD+: 2–3 sloty za jedną ofertę (wg wielkości).",
+      "PRO wykonawcy: duży projekt liczy się jako max 1 slot za ofertę.",
+    ],
+  },
+  howSlotsWork: {
+    title: "Jak działają sloty?",
+    lines: [
+      "Każda wysłana oferta zużywa sloty z miesięcznego pakietu.",
+      "Zwykłe zlecenie = 1 slot.",
+      "Duże projekty mogą kosztować 2–3 sloty (szczegóły poniżej).",
+      "Pilne zlecenia nie zużywają dodatkowych slotów ponad koszt oferty.",
+    ],
+  },
+};
+
+export function getPlanLimitTooltipLines(row, { isBusiness = false } = {}) {
+  const lines = [];
+  if (row.slots === Infinity) {
+    lines.push("Odpowiedzi: nielimitowane (bez miesięcznego limitu slotów).");
+  } else if (row.slots != null) {
+    lines.push(`Odpowiedzi: ${row.slots} slotów miesięcznie (1 oferta zwykle = 1 slot).`);
+  }
+  lines.push(`${isBusiness ? "AI zespołu" : "Asystent AI"}: ${row.aiLabel || "—"}.`);
+  lines.push(`Duże projekty: ${row.largeProject || "—"}.`);
+  if (row.planKey === "PROV_PRO" || row.planKey === "BUSINESS_PRO") {
+    lines.push("Pakiet PRO: najkorzystniejszy przy dużych projektach i wysokiej liczbie ofert.");
+  }
+  return lines;
+}
+
 export const CLIENT_UNLIMITED_HINTS = [
   { feature: "Pilne zlecenia", free: "Bez limitu", std: "Bez limitu", pro: "Bez limitu" },
   { feature: "Asystent AI", free: "50 zapytań / mies.", std: "Nielimitowany", pro: "Nielimitowany" },
