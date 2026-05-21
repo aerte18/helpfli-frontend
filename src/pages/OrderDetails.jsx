@@ -21,7 +21,7 @@ import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
 import CompleteOrderModal from "../components/CompleteOrderModal";
-import ClientCompletionReview from "../components/ClientCompletionReview";
+import ClientCompletionReview, { ClientExternalCompletionPanel } from "../components/ClientCompletionReview";
 import { canClientConfirmReceipt } from "../utils/orderCompletion";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { createChangeRequest, acceptChangeRequest, rejectChangeRequest, getChangeRequests } from "../api/changeRequests";
@@ -2397,10 +2397,10 @@ function ClientOrderCompletionHub({ order, onScrollToAction, hasClientRated = fa
             <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">Domknij zlecenie</h2>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
               {isExternal
-                ? "Rozliczenie było poza systemem Helpfli — w aplikacji potwierdzasz tylko, że odebrałeś usługę, i możesz ocenić wykonawcę."
+                ? "Rozliczenie było poza systemem Helpfli — potwierdź odbiór tylko jeśli usługa jest OK. Przy problemie nie potwierdzaj — ustal zwrot bezpośrednio z wykonawcą."
                 : order.clientCompletionStatus === "pending"
-                  ? "Wykonawca zakończył prace. Zaakceptuj zakończenie (bez uwag, z uwagami lub z dopłatą — dopłatę opłaca klient), potem potwierdź odbiór i oceń wykonawcę."
-                  : "Zaakceptowałeś zakończenie. Potwierdź odbiór, aby domknąć rozliczenie w systemie, potem zostaw krótką opinię."}
+                  ? "Wykonawca zakończył prace. Możesz dodać swoje uwagi, zaakceptować zakończenie lub zgłosić spór (środki w escrow). Potem potwierdź odbiór i oceń wykonawcę."
+                  : "Zaakceptowałeś zakończenie. Potwierdź odbiór, aby zwolnić środki wykonawcy, potem zostaw opinię."}
             </p>
           </div>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700 marker:font-semibold">
@@ -2467,6 +2467,7 @@ function OrderCompletedStageView({
   onConfirmReceipt,
   onAcceptCompletion,
   onReportDispute,
+  onGoChat,
   isLoadingConfirmReceipt = false,
   isLoadingAcceptCompletion = false,
   isLoadingReportDispute = false,
@@ -2486,11 +2487,6 @@ function OrderCompletedStageView({
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
   const showSystemCompletionReview =
     isClient && order?.status === "completed" && !isExternalPayment;
-  const showClientConfirmReceipt =
-    isClient &&
-    order?.status === "completed" &&
-    typeof onConfirmReceipt === "function" &&
-    isExternalPayment;
 
   const handleInvoiceUpload = async (e) => {
     e.preventDefault();
@@ -2609,6 +2605,7 @@ function OrderCompletedStageView({
             onAcceptCompletion={onAcceptCompletion}
             onConfirmReceipt={onConfirmReceipt}
             onReportDispute={onReportDispute}
+            onGoChat={onGoChat}
             isLoadingAccept={isLoadingAcceptCompletion}
             isLoadingConfirmReceipt={isLoadingConfirmReceipt}
             isLoadingReportDispute={isLoadingReportDispute}
@@ -2618,40 +2615,26 @@ function OrderCompletedStageView({
           />
         )}
 
-        {/* Status oczekiwania na wypłatę — płatność poza Helpfli */}
-        {order.status === 'completed' && order.status !== 'released' && !showSystemCompletionReview && (
-          <div
-            id="client-confirm-receipt"
-            className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
-          >
+        {isClient && isExternalPayment && order.status === "completed" && order.status !== "released" && (
+          <ClientExternalCompletionPanel
+            order={order}
+            onConfirmReceipt={onConfirmReceipt}
+            onGoChat={onGoChat}
+            isLoadingConfirmReceipt={isLoadingConfirmReceipt}
+            sectionId="client-confirm-receipt"
+          />
+        )}
+
+        {/* Provider: oczekiwanie na potwierdzenie odbioru */}
+        {!isClient && order.status === "completed" && order.status !== "released" && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-blue-600 text-xl">⏳</span>
-              <span className="font-semibold text-blue-900">
-                {isClient ? 'Twoja kolej: potwierdź odbiór' : 'Oczekuje na potwierdzenie odbioru przez klienta'}
-              </span>
+              <span className="font-semibold text-blue-900">Oczekuje na potwierdzenie odbioru przez klienta</span>
             </div>
             <p className="text-sm text-blue-800">
-              {isClient
-                ? isExternalPayment
-                  ? 'Rozliczenie było poza systemem Helpfli — potwierdzasz wyłącznie, że odebrałeś usługę. Żadnych środków nie przechodzi przez platformę.'
-                  : 'Po potwierdzeniu odbioru domykamy rozliczenie w systemie i możemy przekazać wynagrodzenie wykonawcy (zgodnie z płatnością w Helpfli).'
-                : 'Klient musi potwierdzić odbiór zlecenia, aby domknąć rozliczenie.'}
+              Klient musi zaakceptować zakończenie (przy płatności w Helpfli) i potwierdzić odbiór, aby domknąć rozliczenie.
             </p>
-            {showClientConfirmReceipt && (
-              <button
-                type="button"
-                onClick={onConfirmReceipt}
-                disabled={isLoadingConfirmReceipt}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isLoadingConfirmReceipt && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isLoadingConfirmReceipt
-                  ? 'Przetwarzanie…'
-                  : isExternalPayment
-                    ? 'Potwierdź odbiór realizacji'
-                    : 'Potwierdź odbiór i domknij rozliczenie'}
-              </button>
-            )}
           </div>
         )}
 
@@ -3860,10 +3843,14 @@ export default function OrderDetails() {
     }
   };
 
-  const acceptCompletion = async () => {
+  const acceptCompletion = async (payload) => {
     setAcceptingCompletion(true);
     try {
-      const fresh = await apiPost(`/api/orders/${orderId}/accept-completion`, {});
+      const body =
+        payload?.clientNotes && String(payload.clientNotes).trim()
+          ? { clientNotes: String(payload.clientNotes).trim() }
+          : {};
+      const fresh = await apiPost(`/api/orders/${orderId}/accept-completion`, body);
       setOrder(fresh.order || fresh);
       toast({
         title: "Zaakceptowano zakończenie",
@@ -4046,7 +4033,7 @@ export default function OrderDetails() {
     }
   };
 
-  const reportDispute = async () => {
+  const reportDispute = async (prefilledReason) => {
     if (!isHelpfliProtectionToolsEnabled(order)) {
       toast({
         title: "Ochrona Helpfli niedostępna",
@@ -4055,7 +4042,7 @@ export default function OrderDetails() {
       });
       return;
     }
-    setDisputeReason("");
+    setDisputeReason(typeof prefilledReason === "string" ? prefilledReason : "");
     setShowDisputeConfirm(true);
   };
 
@@ -5627,6 +5614,7 @@ export default function OrderDetails() {
                         onConfirmReceipt={confirmReceipt}
                         onAcceptCompletion={acceptCompletion}
                         onReportDispute={reportDispute}
+                        onGoChat={() => goTab("chat")}
                         isLoadingConfirmReceipt={confirmingReceipt}
                         isLoadingAcceptCompletion={acceptingCompletion}
                         isLoadingReportDispute={reportingDispute}
