@@ -16,6 +16,7 @@ import SponsorAdBanner from "../components/SponsorAdBanner";
 import OrderProgressBar from "../components/OrderProgressBar";
 import { isOffersOnlyOrder } from "../utils/orderMode";
 import OrderContactUnlockCard from "../components/OrderContactUnlockCard";
+import ProviderClientHandoffCard from "../components/ProviderClientHandoffCard";
 import OrderStatusTimeline from "../components/OrderStatusTimeline";
 import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
@@ -1632,7 +1633,7 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
   );
 }
 
-function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEscrow, CheckoutButton, onStartWork, isLoadingStartWork = false, isLoadingFundEscrow = false, videoSession = null, showAiHint = true }) {
+function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEscrow, CheckoutButton, onStartWork, onGoChat, isLoadingStartWork = false, isLoadingFundEscrow = false, videoSession = null, showAiHint = true }) {
   const navigate = useNavigate();
   const provider = order.provider || order.acceptedOffer?.providerMeta;
   const acceptedOffer = order.acceptedOffer || order.offers?.find(o => o._id === order.acceptedOfferId);
@@ -1895,21 +1896,12 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
               )}
             </div>
 
-            {/* Informacje o kliencie */}
-            {order.client && (
-              <div className="p-4 bg-slate-50 rounded-lg">
-                <h3 className="font-semibold text-slate-900 mb-2">Klient</h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold">
-                      {(order.client.name || 'K').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-900">{order.client.name || 'Klient'}</div>
-                  </div>
-                </div>
-              </div>
+            {isProvider && order.client && onGoChat && (
+              <ProviderClientHandoffCard
+                order={order}
+                acceptedOffer={acceptedOffer}
+                onGoChat={onGoChat}
+              />
             )}
 
             {/* Sesja wideo (jeśli istnieje) */}
@@ -1955,8 +1947,9 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
   );
 }
 
-function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoadingStartWork = false, showAiHint = true }) {
+function OrderFundedStageView({ order, isClient, isProvider, onStartWork, onGoChat, isLoadingStartWork = false, showAiHint = true }) {
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
+  const acceptedOffer = order.acceptedOffer || order.offers?.find((o) => o._id === order.acceptedOfferId);
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="funded" /></div>}
@@ -2045,6 +2038,14 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
           </div>
         )}
 
+        {isProvider && order.client && onGoChat && (
+          <ProviderClientHandoffCard
+            order={order}
+            acceptedOffer={acceptedOffer}
+            onGoChat={onGoChat}
+          />
+        )}
+
         {/* Przycisk dla providera (kotwica jak w etapie „zaakceptowana”) */}
         {isProvider && (
           <div
@@ -2073,7 +2074,8 @@ function OrderFundedStageView({ order, isClient, isProvider, onStartWork, isLoad
   );
 }
 
-function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onConfirmReceipt, onAcceptCompletion, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingAcceptCompletion = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null, showAiHint = true }) {
+function OrderInProgressStageView({ order, orderId, isClient, isProvider, onCompleteOrder, onGoChat, onConfirmReceipt, onAcceptCompletion, onReportDispute, onRequestRefund, isLoadingCompleteOrder = false, isLoadingConfirmReceipt = false, isLoadingAcceptCompletion = false, isLoadingReportDispute = false, isLoadingRequestRefund = false, videoSession = null, showAiHint = true }) {
+  const acceptedOffer = order.acceptedOffer || order.offers?.find((o) => o._id === order.acceptedOfferId);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { push: toast } = useToast();
@@ -2251,6 +2253,16 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
         ) : (
           // WIDOK DLA PROVIDERA
           <>
+            {order.client && onGoChat && (
+              <ProviderClientHandoffCard
+                id="provider-execution-handoff"
+                order={order}
+                acceptedOffer={acceptedOffer}
+                onGoChat={onGoChat}
+                variant="kickoff"
+              />
+            )}
+
             <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
               <h3 className="font-semibold text-purple-900 mb-2">Realizujesz zlecenie</h3>
               <p className="text-sm text-purple-800">
@@ -3881,16 +3893,21 @@ export default function OrderDetails() {
     };
     setOrder(optimisticOrder);
     
-    toast({ 
-      title: "Praca rozpoczęta", 
-      description: "Zlecenie przeszło do etapu 'W realizacji'",
-      variant: "success"
+    toast({
+      title: "Realizacja rozpoczęta",
+      description: "Skontaktuj się z klientem i potwierdź termin — dane są w sekcji poniżej.",
+      variant: "success",
     });
-    
+
     try {
       await apiPost(`/api/orders/${orderId}/start`, {});
       const fresh = await apiGet(`/api/orders/${orderId}`);
       setOrder(fresh);
+      setTimeout(() => {
+        document
+          .getElementById("provider-execution-handoff")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 200);
       const token = localStorage.getItem("token");
       if (token) {
         const mePayload = me || user;
@@ -5211,6 +5228,7 @@ export default function OrderDetails() {
                         onFundEscrow={fundEscrow}
                         CheckoutButton={CheckoutButton}
                         onStartWork={startWork}
+                        onGoChat={() => goTab('chat')}
                         isLoadingStartWork={startingWork}
                         isLoadingFundEscrow={fundingEscrow}
                         videoSession={videoSession}
@@ -5227,6 +5245,7 @@ export default function OrderDetails() {
                         isClient={false}
                         isProvider={true}
                         onStartWork={startWork}
+                        onGoChat={() => goTab('chat')}
                         isLoadingStartWork={startingWork}
                         showAiHint={showStageAiHint}
                       />
@@ -5241,6 +5260,7 @@ export default function OrderDetails() {
                         orderId={orderId}
                         isClient={false}
                         isProvider={true}
+                        onGoChat={() => goTab('chat')}
                         onCompleteOrder={() => setShowCompleteOrderModal(true)}
                         onConfirmReceipt={confirmReceipt}
                         onReportDispute={reportDispute}
@@ -5547,6 +5567,7 @@ export default function OrderDetails() {
                         onFundEscrow={fundEscrow}
                         CheckoutButton={CheckoutButton}
                         onStartWork={startWork}
+                        onGoChat={() => goTab('chat')}
                         isLoadingStartWork={startingWork}
                         isLoadingFundEscrow={fundingEscrow}
                         videoSession={videoSession}
@@ -5563,6 +5584,7 @@ export default function OrderDetails() {
                         isClient={isClient}
                         isProvider={isProvider}
                         onStartWork={startWork}
+                        onGoChat={() => goTab('chat')}
                         isLoadingStartWork={startingWork}
                         showAiHint={showStageAiHint}
                       />
@@ -5577,6 +5599,7 @@ export default function OrderDetails() {
                         orderId={orderId}
                         isClient={isClient}
                         isProvider={isProvider}
+                        onGoChat={() => goTab('chat')}
                         onCompleteOrder={() => setShowCompleteOrderModal(true)}
                         onConfirmReceipt={confirmReceipt}
                         onAcceptCompletion={acceptCompletion}
