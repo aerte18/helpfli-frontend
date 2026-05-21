@@ -34,6 +34,16 @@ export default function CompleteOrderModal({
 
   if (!isOpen) return null;
 
+  const baseAmount = parseFloat(
+    order?.acceptedOffer?.amount || order?.acceptedOffer?.price || order?.budget || 0
+  );
+  const baseAlreadyPaid =
+    !isExternalPayment &&
+    (order?.paymentStatus === 'succeeded' ||
+      order?.paymentStatus === 'processing' ||
+      order?.paidInSystem ||
+      ['funded', 'in_progress', 'completed'].includes(order?.status));
+
   const handleSubmit = async () => {
     const newErrors = {};
     
@@ -147,7 +157,13 @@ export default function CompleteOrderModal({
             <h3 className="font-semibold text-slate-900 mb-2">Informacje o zleceniu</h3>
             <div className="space-y-1 text-sm text-slate-700">
               <div><span className="font-medium">Usługa:</span> {order?.service || 'Nie podano'}</div>
-              <div><span className="font-medium">Kwota:</span> {order?.acceptedOffer?.amount || order?.acceptedOffer?.price || order?.budget || 'Nie podano'} zł</div>
+              <div>
+                <span className="font-medium">Kwota z oferty:</span>{' '}
+                {baseAmount || 'Nie podano'} zł
+                {baseAlreadyPaid && (
+                  <span className="ml-1 text-emerald-700">(już opłacona przez klienta w Helpfli)</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -307,22 +323,23 @@ export default function CompleteOrderModal({
             </div>
           </div>
 
-          {/* Podsumowanie */}
+          {/* Podsumowanie dopłaty — klient płaci tylko dopłatę; kwota z oferty jest już w escrow */}
           {completionType === 'with_payment' && additionalAmount && (
             <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-              <h4 className="font-semibold text-indigo-900 mb-2">Podsumowanie</h4>
+              <h4 className="font-semibold text-indigo-900 mb-2">Podsumowanie dopłaty</h4>
+              <p className="text-xs text-indigo-700 mb-3">
+                Nie pobierasz ponownie kwoty z oferty — prosisz wyłącznie o dodatkową płatność od klienta.
+              </p>
               <div className="space-y-1 text-sm text-indigo-800">
-                <div className="flex justify-between">
-                  <span>Kwota bazowa:</span>
-                  <span className="font-medium">{order?.acceptedOffer?.amount || order?.acceptedOffer?.price || order?.budget || 0} zł</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Dopłata:</span>
-                  <span className="font-medium">+{parseFloat(additionalAmount) || 0} zł</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-indigo-200 font-semibold">
-                  <span>Łącznie:</span>
-                  <span>{(parseFloat(order?.acceptedOffer?.amount || order?.acceptedOffer?.price || order?.budget || 0) + parseFloat(additionalAmount || 0)).toFixed(2)} zł</span>
+                {baseAmount > 0 && (
+                  <div className="flex justify-between text-indigo-700">
+                    <span>Kwota z oferty{baseAlreadyPaid ? ' (już w escrow)' : ''}:</span>
+                    <span>{baseAmount.toFixed(2)} zł</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-indigo-200 font-semibold text-indigo-900">
+                  <span>Do zapłaty przez klienta (dopłata):</span>
+                  <span>{(parseFloat(additionalAmount) || 0).toFixed(2)} zł</span>
                 </div>
               </div>
             </div>
