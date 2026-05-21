@@ -2247,6 +2247,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
                 onAcceptCompletion={onAcceptCompletion}
                 onConfirmReceipt={onConfirmReceipt}
                 onReportDispute={onReportDispute}
+                onGoChat={onGoChat}
                 isLoadingAccept={isLoadingAcceptCompletion}
                 isLoadingConfirmReceipt={isLoadingConfirmReceipt}
                 isLoadingReportDispute={isLoadingReportDispute}

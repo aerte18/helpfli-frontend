@@ -125,7 +125,6 @@ export default function ClientCompletionReview({
 
       {pending && !rejected && (
         <>
-          <ClientCompletionOptionsGuide order={order} protectionTools={protectionTools} />
           <div className="mb-3">
             <label htmlFor="client-completion-notes" className="block text-xs font-semibold text-slate-800 mb-1">
               Twoje uwagi dla wykonawcy (opcjonalnie)
@@ -138,112 +137,174 @@ export default function ClientCompletionReview({
               rows={3}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <p className="mt-1 text-[11px] text-slate-500">
-              Przy problemie z realizacją nie akceptuj — użyj „Zgłoś spór” (Helpfli Protect) lub napisz na czacie.
-            </p>
           </div>
 
-          <div className="space-y-2">
-            {type === 'simple' && (
-              <button
-                type="button"
-                onClick={handleAccept}
-                disabled={isLoadingAccept}
-                className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {isLoadingAccept ? <LoadingLabel text="Zapisywanie…" /> : 'Akceptuję — wykonanie zgodne z umową'}
-              </button>
-            )}
+          <div className="mb-3 rounded-xl border-2 border-slate-200 bg-slate-50/50 p-4 space-y-4">
+            <p className="text-sm font-semibold text-slate-900">Twoja decyzja</p>
 
-            {type === 'with_notes' && (
-              <button
-                type="button"
-                onClick={handleAccept}
-                disabled={isLoadingAccept}
-                className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {isLoadingAccept ? (
-                  <LoadingLabel text="Zapisywanie…" />
-                ) : (
-                  'Akceptuję zakończenie (wraz z uwagami wykonawcy)'
-                )}
-              </button>
-            )}
-
-            {type === 'with_payment' && (
-              <>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-emerald-900">Zgadzam się</p>
+              {type === 'simple' && (
                 <button
                   type="button"
-                  onClick={payAdditional}
-                  disabled={addonProcessing}
+                  onClick={handleAccept}
+                  disabled={isLoadingAccept}
                   className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  Akceptuję dopłatę i przechodzę do płatności
+                  {isLoadingAccept ? <LoadingLabel text="Zapisywanie…" /> : 'Akceptuję — wykonanie zgodne z umową'}
                 </button>
-                <p className="text-xs text-center text-amber-800">
-                  Do zapłaty teraz: <strong>{addonAmount} zł</strong> (tylko dopłata).
-                </p>
-              </>
-            )}
-
-            {protectionTools ? (
-              <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-3 space-y-2">
-                <p className="text-xs font-semibold text-orange-950 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-                  Problem z realizacją?
-                </p>
-                <p className="text-[11px] text-orange-900 leading-snug">
-                  Nie klikaj akceptacji, jeśli usługa nie została wykonana lub jest niezgodna. Zgłoś spór — środki
-                  pozostaną w escrow do rozstrzygnięcia (mediacja, ugoda lub zwrot).
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {disputePresets.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      disabled={isLoadingReportDispute}
-                      onClick={() => handleDisputeWithPreset(p.reason)}
-                      className="rounded-full border border-orange-300 bg-white px-2.5 py-1 text-[11px] font-medium text-orange-900 hover:bg-orange-100 disabled:opacity-50"
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+              )}
+              {type === 'with_notes' && (
                 <button
                   type="button"
-                  onClick={() => handleDisputeWithPreset(clientNotes.trim() || 'Spór dotyczący zakończenia zlecenia przez wykonawcę.')}
-                  disabled={isLoadingReportDispute}
-                  className="w-full rounded-lg border border-orange-400 bg-white px-4 py-2.5 text-sm font-semibold text-orange-900 hover:bg-orange-100 disabled:opacity-50"
+                  onClick={handleAccept}
+                  disabled={isLoadingAccept}
+                  className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {isLoadingReportDispute ? (
-                    <LoadingLabel text="Zgłaszanie…" />
-                  ) : type === 'with_payment' ? (
-                    'Nie akceptuję dopłaty — zgłoś spór'
+                  {isLoadingAccept ? (
+                    <LoadingLabel text="Zapisywanie…" />
                   ) : (
-                    'Zgłoś spór (ochrona Helpfli)'
+                    'Akceptuję zakończenie (wraz z uwagami wykonawcy)'
                   )}
                 </button>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-                <span className="font-semibold">Bez ochrony Helpfli</span> — zwrotu ani sporu przez platformę nie
-                złożysz. Ustal sprawę z wykonawcą na czacie
-                {onGoChat && (
-                  <>
-                    {' '}
+              )}
+              {type === 'with_payment' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={payAdditional}
+                    disabled={addonProcessing}
+                    className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    Akceptuję dopłatę i przechodzę do płatności
+                  </button>
+                  <p className="text-xs text-center text-emerald-900">
+                    Do zapłaty teraz: <strong>{addonAmount} zł</strong> (tylko dopłata — kwota z oferty już w escrow).
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3" aria-hidden>
+              <div className="h-px flex-1 bg-slate-300" />
+              <span className="text-xs font-medium text-slate-500">lub</span>
+              <div className="h-px flex-1 bg-slate-300" />
+            </div>
+
+            <div className="space-y-2 rounded-xl border-2 border-orange-300 bg-orange-50 p-3">
+              <p className="text-xs font-semibold text-orange-950 flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                Nie zgadzam się
+              </p>
+              {protectionTools ? (
+                <>
+                  <p className="text-[11px] text-orange-900 leading-snug">
+                    {type === 'with_payment'
+                      ? 'Nie akceptuj dopłaty ani wykonania — zgłoś spór. Środki z oferty pozostaną w escrow do rozstrzygnięcia.'
+                      : 'Nie akceptuj wykonania — zgłoś spór. Środki pozostaną w escrow do rozstrzygnięcia (mediacja, ugoda lub zwrot).'}
+                  </p>
+                  {type === 'with_payment' && (
+                    <button
+                      type="button"
+                      disabled={isLoadingReportDispute}
+                      onClick={() =>
+                        handleDisputeWithPreset(
+                          PROBLEM_PRESETS.find((p) => p.id === 'surcharge')?.reason ||
+                            'Nie akceptuję dopłaty — kwota lub zakres prac nie były uzgodnione z góry.'
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-orange-500 bg-white px-4 py-2.5 text-sm font-semibold text-orange-950 hover:bg-orange-100 disabled:opacity-50"
+                    >
+                      {isLoadingReportDispute ? (
+                        <LoadingLabel text="Zgłaszanie…" />
+                      ) : (
+                        'Nie akceptuję dopłaty — zgłoś spór'
+                      )}
+                    </button>
+                  )}
+                  {type !== 'with_payment' && (
+                    <button
+                      type="button"
+                      disabled={isLoadingReportDispute}
+                      onClick={() =>
+                        handleDisputeWithPreset(
+                          PROBLEM_PRESETS.find((p) => p.id === 'not_done')?.reason ||
+                            'Usługa nie została wykonana lub wykonana w niewystarczającym zakresie.'
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-orange-500 bg-white px-4 py-2.5 text-sm font-semibold text-orange-950 hover:bg-orange-100 disabled:opacity-50"
+                    >
+                      {isLoadingReportDispute ? (
+                        <LoadingLabel text="Zgłaszanie…" />
+                      ) : (
+                        'Nie akceptuję wykonania — zgłoś spór'
+                      )}
+                    </button>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {disputePresets
+                      .filter((p) => (type === 'with_payment' ? p.id !== 'surcharge' : true))
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          disabled={isLoadingReportDispute}
+                          onClick={() => handleDisputeWithPreset(p.reason)}
+                          className="rounded-full border border-orange-300 bg-white px-2.5 py-1 text-[11px] font-medium text-orange-900 hover:bg-orange-100 disabled:opacity-50"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDisputeWithPreset(
+                        clientNotes.trim() || 'Spór dotyczący zakończenia zlecenia przez wykonawcę.'
+                      )
+                    }
+                    disabled={isLoadingReportDispute}
+                    className="w-full rounded-lg border border-orange-400 bg-white px-4 py-2 text-sm font-medium text-orange-900 hover:bg-orange-100 disabled:opacity-50"
+                  >
+                    {isLoadingReportDispute ? (
+                      <LoadingLabel text="Zgłaszanie…" />
+                    ) : (
+                      'Inny powód — zgłoś spór'
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[11px] text-orange-900 leading-snug">
+                    Przy tym zleceniu <strong>nie ma ochrony Helpfli</strong> — sporu ani zwrotu przez platformę nie
+                    złożysz. Nie klikaj zielonego przycisku akceptacji ani dopłaty; ustal sprawę z wykonawcą na czacie.
+                  </p>
+                  {type === 'with_payment' && (
+                    <p className="text-[11px] font-semibold text-orange-950">
+                      Nie akceptuję dopłaty ({addonAmount} zł) — nie przechodzę do płatności.
+                    </p>
+                  )}
+                  {onGoChat ? (
                     <button
                       type="button"
                       onClick={onGoChat}
-                      className="font-semibold text-amber-950 underline hover:no-underline"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-orange-500 bg-white px-4 py-2.5 text-sm font-semibold text-orange-950 hover:bg-orange-100"
                     >
-                      Otwórz czat
+                      <MessageSquare className="h-4 w-4" aria-hidden />
+                      Nie akceptuję — napisz na czacie
                     </button>
-                  </>
-                )}
-                . Nie potwierdzaj odbioru, jeśli usługa nie została wykonana.
-              </div>
-            )}
+                  ) : (
+                    <p className="text-xs text-orange-900">
+                      Skontaktuj się z wykonawcą poza platformą. Nie potwierdzaj odbioru, dopóki sprawa nie jest
+                      ustalona.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
+
+          <ClientCompletionOptionsGuide order={order} protectionTools={protectionTools} />
         </>
       )}
 
