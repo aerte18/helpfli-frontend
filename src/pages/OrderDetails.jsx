@@ -22,7 +22,13 @@ import ChangeRequestModal from "../components/ChangeRequestModal";
 import ChangeRequestResponseModal from "../components/ChangeRequestResponseModal";
 import CompleteOrderModal from "../components/CompleteOrderModal";
 import ClientCompletionReview, { ClientExternalCompletionPanel } from "../components/ClientCompletionReview";
-import { canClientConfirmReceipt } from "../utils/orderCompletion";
+import ClientCompletionOptionsGuide from "../components/ClientCompletionOptionsGuide";
+import {
+  canClientConfirmReceipt,
+  canUserRateOrder,
+  isAwaitingClientAfterProviderComplete,
+  isOrderDisputeBlockingProgress,
+} from "../utils/orderCompletion";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { createChangeRequest, acceptChangeRequest, rejectChangeRequest, getChangeRequests } from "../api/changeRequests";
 import { Clock, Banknote, FileText, MapPin, Loader2, Package, Briefcase, ShieldAlert, CheckCircle2, CreditCard, Settings, CheckSquare, Inbox, MessageSquare, AlertCircle, Copy, Check, Sparkles, ChevronDown } from "lucide-react";
@@ -2381,79 +2387,30 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
 }
 
 /** Jedna karta „następne kroki” dla klienta po zakończeniu przez wykonawcę — zastępuje rozproszone banery (NextStep + gwarancja). */
-function ClientOrderCompletionHub({ order, onScrollToAction, hasClientRated = false }) {
+function ClientOrderCompletionHub({ order, onScrollToAction }) {
   if (!order || order.status !== "completed") return null;
-  const eligible = order.eligibleForGuarantee === true;
-  const reasons = order.guaranteeReasons || [];
   const isExternal =
     order.paymentMethod === "external" || order.paymentPreference === "external";
+  const pending = !isExternal && order.clientCompletionStatus === "pending";
 
   return (
-    <div className="mb-5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50/80 p-5 shadow-sm ring-1 ring-slate-100/80">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1 space-y-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Następne kroki</p>
-            <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">Domknij zlecenie</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-              {isExternal
-                ? "Rozliczenie było poza systemem Helpfli — potwierdź odbiór tylko jeśli usługa jest OK. Przy problemie nie potwierdzaj — ustal zwrot bezpośrednio z wykonawcą."
-                : order.clientCompletionStatus === "pending"
-                  ? "Wykonawca zakończył prace. Możesz dodać swoje uwagi, zaakceptować zakończenie lub zgłosić spór (środki w escrow). Potem potwierdź odbiór i oceń wykonawcę."
-                  : "Zaakceptowałeś zakończenie. Potwierdź odbiór, aby zwolnić środki wykonawcy, potem zostaw opinię."}
-            </p>
-          </div>
-          <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700 marker:font-semibold">
-            <li className="pl-1">
-              <span className="font-medium text-slate-900">
-                {isExternal || order.clientCompletionStatus !== "pending"
-                  ? "Potwierdź odbiór"
-                  : "Zaakceptuj zakończenie i potwierdź odbiór"}
-              </span>
-              {isExternal
-                ? " — jeśli wykonanie jest zgodne z ustaleniami."
-                : order.clientCompletionStatus === "pending"
-                  ? " — najpierw akceptacja (lub spór), przy dopłacie płaci klient."
-                  : " — wtedy zwalniamy rozliczenie zgodnie z płatnością w Helpfli."}
-            </li>
-            <li className="pl-1">
-              <span className={`font-medium ${hasClientRated ? "text-emerald-800" : "text-slate-900"}`}>
-                {hasClientRated ? "✓ Oceń wykonawcę" : "Oceń wykonawcę"}
-              </span>
-              {hasClientRated
-                ? " — Dziękujemy za opinię."
-                : " — pomaga innym wybrać dobrego specjalistę."}
-            </li>
-          </ol>
-          <div
-            className={`rounded-lg border px-3 py-2.5 text-xs leading-snug ${
-              eligible
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-amber-200 bg-amber-50 text-amber-900"
-            }`}
-          >
-            {eligible ? (
-              <span>
-                <span className="font-semibold">Helpfli Protect</span> — przy sporze lub problemie możesz skorzystać z narzędzi ochrony zgodnie z regulaminem.
-              </span>
-            ) : (
-              <span>
-                <span className="font-semibold">Bez pełnej ochrony Helpfli</span>
-                {reasons.length > 0 ? ` — ${reasons.slice(0, 3).join(" · ")}` : ""}. Sporu ani zwrotu przez platformę nie złożysz.
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="shrink-0 lg:pt-1">
-          <button
-            type="button"
-            onClick={onScrollToAction}
-            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 lg:w-auto"
-          >
-            Przejdź do potwierdzenia
-          </button>
-        </div>
-      </div>
+    <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Twoja kolej</p>
+      <h2 className="mt-0.5 text-base font-semibold text-slate-900">Domknij zlecenie po stronie klienta</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {pending
+          ? "Wykonawca zakończył prace. Zaakceptuj lub zgłoś spór — dopiero potem potwierdzenie odbioru i ocena."
+          : isExternal
+            ? "Potwierdź odbiór tylko jeśli usługa jest zgodna z ustaleniami."
+            : "Potwierdź odbiór, aby zwolnić rozliczenie w Helpfli."}
+      </p>
+      <button
+        type="button"
+        onClick={onScrollToAction}
+        className="mt-3 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 sm:w-auto"
+      >
+        Przejdź do akceptacji / potwierdzenia
+      </button>
     </div>
   );
 }
@@ -2487,6 +2444,9 @@ function OrderCompletedStageView({
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
   const showSystemCompletionReview =
     isClient && order?.status === "completed" && !isExternalPayment;
+  const awaitingClient = isProvider && isAwaitingClientAfterProviderComplete(order);
+  const disputeOpen = isOrderDisputeBlockingProgress(order);
+  const mayRate = canUserRateOrder(order, { isClient, isProvider });
 
   const handleInvoiceUpload = async (e) => {
     e.preventDefault();
@@ -2527,58 +2487,70 @@ function OrderCompletedStageView({
   };
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      {isClient && showAiHint && <div className="mb-4"><AIStepHint stage="completed" /></div>}
+      {isClient && showAiHint && !useCompletionHubLayout && (
+        <div className="mb-4">
+          <AIStepHint stage="completed" />
+        </div>
+      )}
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-          <CheckSquare className="h-4 w-4 text-emerald-600" />
+        <div
+          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            awaitingClient || disputeOpen ? "bg-blue-100" : "bg-emerald-100"
+          }`}
+        >
+          <CheckSquare
+            className={`h-4 w-4 ${awaitingClient || disputeOpen ? "text-blue-600" : "text-emerald-600"}`}
+          />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Zakończone</h2>
+          <h2 className="text-base font-semibold text-slate-900">
+            {disputeOpen ? "Sprawa reklamacyjna" : awaitingClient ? "Oczekuje na klienta" : "Zakończone"}
+          </h2>
           <p className="text-xs text-slate-500">
-            {isClient && order.status === "completed"
-              ? "Potwierdź odbiór, aby domknąć zlecenie"
-              : isProvider && order.status === "completed"
-                ? "Oczekiwanie na klienta"
-                : "Wszystko gotowe"}
+            {disputeOpen
+              ? "Rozstrzygnięcie w centrum sprawy — bez oceny do zamknięcia"
+              : awaitingClient
+                ? "Ty zakończyłeś pracę — klient musi zaakceptować lub zgłosić spór"
+                : isClient && order.status === "completed"
+                  ? "Potwierdź odbiór poniżej"
+                  : "Rozliczenie domknięte"}
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {!(useCompletionHubLayout && isClient && order.status === "completed") && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-emerald-600 text-xl">✓</span>
-              <span className="font-semibold text-emerald-900">Zlecenie zakończone pomyślnie</span>
-            </div>
-            <p className="text-sm text-emerald-800">
-              {isClient
-                ? order.status === "completed"
-                  ? "Wykonawca oznaczył realizację jako zakończoną. Jeśli wszystko jest zgodnie z ustaleniami, potwierdź odbiór poniżej — potem możesz ocenić wykonawcę."
-                  : "Zlecenie jest domknięte po Twojej stronie. Możesz ocenić wykonawcę."
-                : order.status === "completed"
-                  ? "Oczekujemy na potwierdzenie odbioru przez klienta — wtedy domkniemy rozliczenie."
-                  : "Zlecenie zostało zakończone i zaakceptowane przez klienta. Środki zostaną wypłacone po potwierdzeniu odbioru."}
+        {isProvider && awaitingClient && !disputeOpen && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">Oczekiwanie na akceptację klienta</p>
+            <p className="mt-1 text-sm text-blue-800">
+              Klient może zaakceptować zakończenie, opłacić ewentualną dopłatę albo zgłosić spór. Dopóki tego nie zrobi,
+              nie potwierdzaj u siebie „domknięcia” — ocena będzie możliwa po jego decyzji.
+            </p>
+            <p className="mt-2 text-xs text-blue-700">
+              Nie oceniaj jeszcze klienta — najpierw musi zakończyć swój krok (lub sprawa trafi do mediacji).
             </p>
           </div>
         )}
 
-        {/* Informacje o zakończeniu */}
-        {order.completionType && order.completionType !== 'simple' && (
-          <div className="p-4 bg-slate-50 rounded-lg">
-            <h3 className="font-semibold text-slate-900 mb-2">Szczegóły zakończenia</h3>
-            {order.completionType === 'with_notes' && order.completionNotes && (
-              <div className="mb-2">
-                <p className="text-xs font-medium text-slate-700 mb-1">Uwagi:</p>
-                <p className="text-sm text-slate-800">{order.completionNotes}</p>
-              </div>
-            )}
-            {order.completionType === 'with_payment' && (
-              <div className="mb-2">
-                <p className="text-xs font-medium text-amber-700 mb-1">⚠️ Dopłata:</p>
-                <p className="text-sm text-amber-800">Zgłoszono potrzebę dopłaty. Sprawdź szczegóły w czacie.</p>
-              </div>
-            )}
+        {isProvider && disputeOpen && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <p className="text-sm font-semibold text-orange-900">Trwa sprawa</p>
+            <p className="mt-1 text-sm text-orange-800">
+              Klient zgłosił spór lub zwrot. Rozliczenie i ocena są wstrzymane do rozstrzygnięcia ugody lub Helpfli.
+            </p>
+            <Link
+              to={`/orders/${orderId}/sprawa`}
+              className="mt-3 inline-flex text-sm font-semibold text-orange-900 underline"
+            >
+              Otwórz centrum sprawy
+            </Link>
+          </div>
+        )}
+
+        {order.completionType === "with_notes" && order.completionNotes && (isProvider || !showSystemCompletionReview) && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+            <span className="text-xs font-medium text-slate-600">Uwagi wykonawcy: </span>
+            <span className="text-slate-800 whitespace-pre-wrap">{order.completionNotes}</span>
           </div>
         )}
 
@@ -2625,20 +2597,14 @@ function OrderCompletedStageView({
           />
         )}
 
-        {/* Provider: oczekiwanie na potwierdzenie odbioru */}
-        {!isClient && order.status === "completed" && order.status !== "released" && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-blue-600 text-xl">⏳</span>
-              <span className="font-semibold text-blue-900">Oczekuje na potwierdzenie odbioru przez klienta</span>
-            </div>
-            <p className="text-sm text-blue-800">
-              Klient musi zaakceptować zakończenie (przy płatności w Helpfli) i potwierdzić odbiór, aby domknąć rozliczenie.
-            </p>
+        {/* Ocena — dopiero po released, nie w trakcie oczekiwania / sporu */}
+        {!mayRate && !hasMyRating && (awaitingClient || disputeOpen || order.status === "completed") && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+            {disputeOpen
+              ? "Ocena będzie dostępna po zamknięciu sprawy."
+              : "Ocena będzie dostępna po decyzji klienta i domknięciu zlecenia."}
           </div>
         )}
-
-        {/* Ocena */}
         {hasMyRating ? (
           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
@@ -2651,20 +2617,21 @@ function OrderCompletedStageView({
               Twoja ocena została zapisana i pomoże innym użytkownikom przy wyborze specjalisty.
             </p>
           </div>
-        ) : (
+        ) : mayRate ? (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h3 className="font-semibold text-amber-900 mb-2">Oceń {isClient ? 'wykonawcę' : 'klienta'}</h3>
+            <h3 className="font-semibold text-amber-900 mb-2">Oceń {isClient ? "wykonawcę" : "klienta"}</h3>
             <p className="text-sm text-amber-800 mb-3">
-              Pomóż innym użytkownikom - zostaw opinię o {isClient ? 'wykonawcy' : 'kliencie'}.
+              Zlecenie jest domknięte — możesz zostawić opinię.
             </p>
             <button
+              type="button"
               onClick={onRate}
               className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium"
             >
               Dodaj ocenę
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -4303,6 +4270,9 @@ export default function OrderDetails() {
     isClient,
     isProvider,
   });
+  const canRateOrderNow = canUserRateOrder(order, { isClient, isProvider });
+  const awaitingClientClosure = isAwaitingClientAfterProviderComplete(order);
+  const disputeBlocksRating = isOrderDisputeBlockingProgress(order);
 
   // (Debug log usunięty) – nie spamuj konsoli użytkownika
 
@@ -4791,12 +4761,6 @@ export default function OrderDetails() {
           {tab === "details" && isClient && order?.status === "completed" && (
             <ClientOrderCompletionHub
               order={order}
-              hasClientRated={userHasSubmittedOrderRating({
-                order,
-                userId: me?._id || me?.id || user?._id || user?.id,
-                isClient: true,
-                isProvider: false,
-              })}
               onScrollToAction={() =>
                 document
                   .getElementById("client-confirm-receipt")
@@ -5271,7 +5235,7 @@ export default function OrderDetails() {
                         isClient={false}
                         isProvider={true}
                         onRate={() => setOpenRate(true)}
-                        showAiHint={showStageAiHint}
+                        showAiHint={false}
                         hasMyRating={hasMyOrderRating}
                       />
                     );
@@ -5618,7 +5582,7 @@ export default function OrderDetails() {
                         isLoadingConfirmReceipt={confirmingReceipt}
                         isLoadingAcceptCompletion={acceptingCompletion}
                         isLoadingReportDispute={reportingDispute}
-                        showAiHint={showStageAiHint}
+                        showAiHint={false}
                         useCompletionHubLayout={isClient && order?.status === "completed"}
                         hasMyRating={hasMyOrderRating}
                       />
@@ -5690,16 +5654,25 @@ export default function OrderDetails() {
                         Dziękujemy — Twoja opinia jest zapisana i widoczna w profilu odbiorcy.
                       </p>
                     </div>
-                  ) : (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => setOpenRate(true)}
-                      className="w-full rounded-xl border border-amber-200 px-4 py-2 text-sm hover:bg-amber-50"
-                    >
-                      {isProvider ? "Oceń klienta" : "Oceń wykonawcę"}
-                    </button>
-                  </div>
-                  ))}
+                  ) : canRateOrderNow ? (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setOpenRate(true)}
+                        className="w-full rounded-xl border border-amber-200 px-4 py-2 text-sm hover:bg-amber-50"
+                      >
+                        {isProvider ? "Oceń klienta" : "Oceń wykonawcę"}
+                      </button>
+                    </div>
+                  ) : (awaitingClientClosure || disputeBlocksRating) ? (
+                    <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      {disputeBlocksRating
+                        ? "Ocena po zamknięciu sprawy."
+                        : isProvider
+                          ? "Ocena po decyzji klienta (akceptacja lub spór)."
+                          : "Ocena po potwierdzeniu odbioru."}
+                    </p>
+                  ) : null)}
 
                 {isProvider && (
                   <div className="mt-4">

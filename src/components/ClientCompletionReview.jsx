@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { apiUrl } from '@/lib/apiUrl';
 import { canClientConfirmReceipt, needsClientCompletionReview, isExternalOrderPayment } from '../utils/orderCompletion';
+import ClientCompletionOptionsGuide from './ClientCompletionOptionsGuide';
 
 const PROBLEM_PRESETS = [
   { id: 'not_done', label: 'Usługa nie została wykonana', reason: 'Usługa nie została wykonana lub wykonana w niewystarczającym zakresie.' },
   { id: 'partial', label: 'Wykonanie częściowe / niezgodne', reason: 'Wykonanie jest częściowe lub niezgodne z ustaleniami — proszę o rozstrzygnięcie.' },
   { id: 'quality', label: 'Niska jakość / wady', reason: 'Jakość wykonania nie odpowiada ustaleniom — proszę o weryfikację i ewentualny zwrot.' },
+  {
+    id: 'surcharge',
+    label: 'Nieuzasadniona dopłata',
+    reason: 'Nie akceptuję dopłaty — kwota lub zakres prac nie były uzgodnione z góry. Proszę o rozstrzygnięcie.',
+  },
 ];
 
 /**
@@ -81,6 +87,11 @@ export default function ClientCompletionReview({
     order.acceptedOffer?.amount || order.acceptedOffer?.price || order.budget || 0;
   const addonAmount = Number(order.additionalAmount || 0);
 
+  const disputePresets =
+    type === 'with_payment'
+      ? PROBLEM_PRESETS
+      : PROBLEM_PRESETS.filter((p) => p.id !== 'surcharge');
+
   return (
     <CompletionPanel id={sectionId}>
       <h3 className="font-semibold text-emerald-900 mb-2">Wykonawca zakończył zlecenie</h3>
@@ -114,6 +125,7 @@ export default function ClientCompletionReview({
 
       {pending && !rejected && (
         <>
+          <ClientCompletionOptionsGuide order={order} protectionTools={protectionTools} />
           <div className="mb-3">
             <label htmlFor="client-completion-notes" className="block text-xs font-semibold text-slate-800 mb-1">
               Twoje uwagi dla wykonawcy (opcjonalnie)
@@ -185,7 +197,7 @@ export default function ClientCompletionReview({
                   pozostaną w escrow do rozstrzygnięcia (mediacja, ugoda lub zwrot).
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {PROBLEM_PRESETS.map((p) => (
+                  {disputePresets.map((p) => (
                     <button
                       key={p.id}
                       type="button"

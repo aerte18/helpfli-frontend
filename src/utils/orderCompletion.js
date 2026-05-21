@@ -32,3 +32,30 @@ export function canClientConfirmReceipt(order) {
     order.clientCompletionStatus == null
   );
 }
+
+/** Trwa spór — nie domykamy ani nie oceniamy do rozstrzygnięcia. */
+export function isOrderDisputeBlockingProgress(order) {
+  if (!order) return false;
+  if (order.status === 'disputed') return true;
+  const ds = order.disputeStatus;
+  return ds === 'reported' || ds === 'refund_requested';
+}
+
+/**
+ * Wykonawca zakończył, klient jeszcze nie domknął (akceptacja / odbiór → status released).
+ */
+export function isAwaitingClientAfterProviderComplete(order) {
+  if (!order) return false;
+  if (isOrderDisputeBlockingProgress(order)) return false;
+  if (order.status === 'released' || order.status === 'rated') return false;
+  return order.status === 'completed';
+}
+
+/** Ocena dopiero po domknięciu zlecenia (released), nie w trakcie oczekiwania na klienta. */
+export function canUserRateOrder(order, { isClient = false, isProvider = false } = {}) {
+  if (!order || (!isClient && !isProvider)) return false;
+  if (isOrderDisputeBlockingProgress(order)) return false;
+  if (order.status === 'disputed') return false;
+  if (isAwaitingClientAfterProviderComplete(order)) return false;
+  return order.status === 'released' || order.status === 'rated';
+}
