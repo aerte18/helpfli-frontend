@@ -28,6 +28,7 @@ import {
   canUserRateOrder,
   hasHelpfliEscrowSettlement,
   isAwaitingClientAfterProviderComplete,
+  isDisputeResolved,
   isExternalOrderPayment,
   isOrderDisputeBlockingProgress,
 } from "../utils/orderCompletion";
@@ -2392,6 +2393,7 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
 /** Jedna karta „następne kroki” dla klienta po zakończeniu przez wykonawcę — zastępuje rozproszone banery (NextStep + gwarancja). */
 function ClientOrderCompletionHub({ order, onScrollToAction }) {
   if (!order || order.status !== "completed") return null;
+  if (isDisputeResolved(order)) return null;
   if (isExternalOrderPayment(order)) return null;
   if (order.clientCompletionStatus !== "pending") return null;
 
@@ -2439,8 +2441,9 @@ function OrderCompletedStageView({
 
   const isExternalPayment = isExternalOrderPayment(order);
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
+  const disputeResolved = isDisputeResolved(order);
   const showSystemCompletionReview =
-    isClient && order?.status === "completed" && !isExternalPayment;
+    isClient && order?.status === "completed" && !isExternalPayment && !disputeResolved;
   const awaitingClient = isProvider && isAwaitingClientAfterProviderComplete(order);
   const disputeOpen = isOrderDisputeBlockingProgress(order);
   const mayRate = canUserRateOrder(order, { isClient, isProvider });
@@ -2501,22 +2504,46 @@ function OrderCompletedStageView({
         </div>
         <div>
           <h2 className="text-base font-semibold text-slate-900">
-            {disputeOpen ? "Sprawa reklamacyjna" : awaitingClient ? "Oczekuje na klienta" : "Zakończone"}
+            {disputeResolved
+              ? "Sprawa zamknięta ugodą"
+              : disputeOpen
+                ? "Sprawa reklamacyjna"
+                : awaitingClient
+                  ? "Oczekuje na klienta"
+                  : "Zakończone"}
           </h2>
           <p className="text-xs text-slate-500">
-            {disputeOpen
-              ? "Rozstrzygnięcie w centrum sprawy — bez oceny do zamknięcia"
-              : awaitingClient
-                ? "Ty zakończyłeś pracę — klient musi zaakceptować lub zgłosić spór"
-                : isClient && order.status === "completed"
-                  ? "Potwierdź odbiór poniżej"
-                  : "Rozliczenie domknięte"}
+            {disputeResolved
+              ? "Ugoda przyjęta — zlecenie domknięte, możecie wystawić oceny"
+              : disputeOpen
+                ? "Rozstrzygnięcie w centrum sprawy — bez oceny do zamknięcia"
+                : awaitingClient
+                  ? "Ty zakończyłeś pracę — klient musi zaakceptować lub zgłosić spór"
+                  : isClient && order.status === "completed"
+                    ? "Potwierdź odbiór poniżej"
+                    : "Rozliczenie domknięte"}
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {isProvider && awaitingClient && !disputeOpen && (
+        {disputeResolved && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-semibold text-emerald-900">Ugoda zaakceptowana</p>
+            <p className="mt-1 text-sm text-emerald-800">
+              Spór został zamknięty w centrum sprawy. Nie musisz już czekać na akceptację zakończenia ani dopłaty —
+              możecie ocenić się nawzajem (jeśli jeszcze nie macie oceny).
+            </p>
+            <Link
+              to={`/orders/${orderId}/sprawa`}
+              className="mt-3 inline-flex text-sm font-semibold text-emerald-900 underline"
+            >
+              Archiwum centrum sprawy
+            </Link>
+          </div>
+        )}
+
+        {isProvider && awaitingClient && !disputeOpen && !disputeResolved && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm font-semibold text-blue-900">Oczekiwanie na akceptację klienta</p>
             <p className="mt-1 text-sm text-blue-800">
@@ -2595,7 +2622,7 @@ function OrderCompletedStageView({
         )}
 
         {/* Ocena — escrow: po released; poza Helpfli: od razu po zakończeniu */}
-        {!mayRate && !hasMyRating && !isExternalPayment && (awaitingClient || disputeOpen || order.status === "completed") && (
+        {!mayRate && !hasMyRating && !isExternalPayment && !disputeResolved && (awaitingClient || disputeOpen || order.status === "completed") && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
             {disputeOpen
               ? "Ocena będzie dostępna po zamknięciu sprawy."

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Loader2, AlertTriangle, MessageSquare } from 'lucide-react';
 import { apiUrl } from '@/lib/apiUrl';
-import { canClientConfirmReceipt, needsClientCompletionReview, isExternalOrderPayment } from '../utils/orderCompletion';
+import {
+  canClientConfirmReceipt,
+  needsClientCompletionReview,
+  isExternalOrderPayment,
+  isDisputeResolved,
+} from '../utils/orderCompletion';
 import ClientCompletionOptionsGuide from './ClientCompletionOptionsGuide';
 
 const PROBLEM_PRESETS = [
@@ -37,6 +42,7 @@ export default function ClientCompletionReview({
   const [clientNotes, setClientNotes] = useState('');
 
   if (!order || order.status !== 'completed') return null;
+  if (isDisputeResolved(order)) return null;
 
   const isExternal = isExternalOrderPayment(order);
   if (isExternal) return null;

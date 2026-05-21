@@ -38,9 +38,15 @@ export function canClientConfirmReceipt(order) {
   );
 }
 
+/** Spór zamknięty ugodą (archiwum centrum sprawy). */
+export function isDisputeResolved(order) {
+  return order?.disputeStatus === 'resolved';
+}
+
 /** Trwa spór — nie domykamy ani nie oceniamy do rozstrzygnięcia. */
 export function isOrderDisputeBlockingProgress(order) {
   if (!order) return false;
+  if (isDisputeResolved(order)) return false;
   if (order.status === 'disputed') return true;
   const ds = order.disputeStatus;
   return ds === 'reported' || ds === 'refund_requested';
@@ -52,6 +58,7 @@ export function isOrderDisputeBlockingProgress(order) {
 export function isAwaitingClientAfterProviderComplete(order) {
   if (!order) return false;
   if (isExternalOrderPayment(order)) return false;
+  if (isDisputeResolved(order)) return false;
   if (isOrderDisputeBlockingProgress(order)) return false;
   if (order.status === 'released' || order.status === 'rated') return false;
   return order.status === 'completed';
@@ -64,6 +71,9 @@ export function canUserRateOrder(order, { isClient = false, isProvider = false }
   if (order.status === 'disputed') return false;
   if (isExternalOrderPayment(order)) {
     return ['completed', 'released', 'rated'].includes(order.status);
+  }
+  if (isDisputeResolved(order)) {
+    return ['released', 'rated', 'completed'].includes(order.status);
   }
   if (isAwaitingClientAfterProviderComplete(order)) return false;
   return order.status === 'released' || order.status === 'rated';
