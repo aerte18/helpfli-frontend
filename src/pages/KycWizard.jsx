@@ -1,12 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
+import { DOC_LABELS, uploadKycDocuments } from "@/lib/kycUpload";
 import { useEffect, useMemo, useState } from 'react';
-
-const DOC_LABELS = {
-  idFront: 'Dowód – przód',
-  idBack: 'Dowód – tył',
-  selfie: 'Selfie z dokumentem',
-  companyDoc: 'Dokument firmy',
-};
 
 function getMissingDocs(kyc) {
   const docs = kyc?.docs || {};
@@ -75,23 +69,21 @@ export default function KycWizard() {
     }
     setSaving(true);
     setMessage('');
-    const fd = new FormData();
-    if (files.idFront) fd.append('idFront', files.idFront);
-    if (files.idBack) fd.append('idBack', files.idBack);
-    if (files.selfie) fd.append('selfie', files.selfie);
-    if (form.type === 'company' && files.companyDoc) fd.append('companyDoc', files.companyDoc);
-
-    const res = await fetch(apiUrl(`/api/kyc/upload`), {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    });
-    const data = await res.json();
-    setSaving(false);
-    if (!res.ok) return setMsg(data.message || 'Błąd uploadu', 'error');
-    setFiles({ idFront: null, idBack: null, selfie: null, companyDoc: null });
-    setMsg(data.missing?.length ? 'Część plików zapisana — uzupełnij brakujące dokumenty' : 'Pliki zapisane na serwerze', 'success');
-    fetchMe();
+    try {
+      const data = await uploadKycDocuments({ token, files, companyType: form.type });
+      setFiles({ idFront: null, idBack: null, selfie: null, companyDoc: null });
+      setMsg(
+        data?.missing?.length
+          ? 'Część plików zapisana — uzupełnij brakujące dokumenty'
+          : 'Pliki zapisane na serwerze',
+        'success'
+      );
+      fetchMe();
+    } catch (e) {
+      setMsg(e.message || 'Błąd uploadu', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const submit = async () => {
@@ -189,6 +181,7 @@ export default function KycWizard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-1">Krok 2: Dokumenty</h2>
             <p className="text-sm text-amber-700 mb-3">
               Po wybraniu plików kliknij <strong>Zapisz pliki</strong> — sam wybór w polu nie wysyła ich na serwer.
+              Duże zdjęcia z telefonu są automatycznie zmniejszane przed wysłaniem (każdy plik osobno).
             </p>
 
             <ul className="mb-4 space-y-1 text-sm">
