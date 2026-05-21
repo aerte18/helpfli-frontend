@@ -26,7 +26,9 @@ import ClientCompletionOptionsGuide from "../components/ClientCompletionOptionsG
 import {
   canClientConfirmReceipt,
   canUserRateOrder,
+  hasHelpfliEscrowSettlement,
   isAwaitingClientAfterProviderComplete,
+  isExternalOrderPayment,
   isOrderDisputeBlockingProgress,
 } from "../utils/orderCompletion";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -46,9 +48,9 @@ import { serviceLabel } from "../utils/serviceLabels";
 import { getClientOrderPresentation, getProviderOrderPresentation } from "../utils/orderFlowLabels";
 import { openAI } from "../ai/chat/bus";
 
-/** Spór / zwrot przez Helpfli tylko przy aktywnej ochronie (zgodnie z GET order + GuaranteeBanner). */
+/** Spór / akceptacja zakończenia — płatność w Helpfli (escrow), niezależnie od weryfikacji KYC wykonawcy. */
 function isHelpfliProtectionToolsEnabled(order) {
-  return !!(order && order.eligibleForGuarantee === true);
+  return hasHelpfliEscrowSettlement(order);
 }
 
 /** Trwa mediacja / spór (wymaga uwagi). */
@@ -2390,27 +2392,22 @@ function OrderInProgressStageView({ order, orderId, isClient, isProvider, onComp
 /** Jedna karta „następne kroki” dla klienta po zakończeniu przez wykonawcę — zastępuje rozproszone banery (NextStep + gwarancja). */
 function ClientOrderCompletionHub({ order, onScrollToAction }) {
   if (!order || order.status !== "completed") return null;
-  const isExternal =
-    order.paymentMethod === "external" || order.paymentPreference === "external";
-  const pending = !isExternal && order.clientCompletionStatus === "pending";
+  if (isExternalOrderPayment(order)) return null;
+  if (order.clientCompletionStatus !== "pending") return null;
 
   return (
     <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Twoja kolej</p>
       <h2 className="mt-0.5 text-base font-semibold text-slate-900">Domknij zlecenie po stronie klienta</h2>
       <p className="mt-1 text-sm text-slate-600">
-        {pending
-          ? "Wykonawca zakończył prace. Zaakceptuj lub zgłoś spór — dopiero potem potwierdzenie odbioru i ocena."
-          : isExternal
-            ? "Potwierdź odbiór tylko jeśli usługa jest zgodna z ustaleniami."
-            : "Potwierdź odbiór, aby zwolnić rozliczenie w Helpfli."}
+        Wykonawca zakończył prace. Zaakceptuj lub zgłoś spór — dopiero potem potwierdzenie odbioru i ocena.
       </p>
       <button
         type="button"
         onClick={onScrollToAction}
         className="mt-3 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 sm:w-auto"
       >
-        Przejdź do akceptacji / potwierdzenia
+        Przejdź do akceptacji / sporu
       </button>
     </div>
   );
@@ -2440,8 +2437,7 @@ function OrderCompletedStageView({
   const [invoiceFile, setInvoiceFile] = useState(null);
   const { push: toast } = useToast();
 
-  const isExternalPayment =
-    order?.paymentMethod === "external" || order?.paymentPreference === "external";
+  const isExternalPayment = isExternalOrderPayment(order);
   const protectionTools = isHelpfliProtectionToolsEnabled(order);
   const showSystemCompletionReview =
     isClient && order?.status === "completed" && !isExternalPayment;
@@ -2588,18 +2584,18 @@ function OrderCompletedStageView({
           />
         )}
 
-        {isClient && isExternalPayment && order.status === "completed" && order.status !== "released" && (
-          <ClientExternalCompletionPanel
-            order={order}
-            onConfirmReceipt={onConfirmReceipt}
-            onGoChat={onGoChat}
-            isLoadingConfirmReceipt={isLoadingConfirmReceipt}
-            sectionId="client-confirm-receipt"
-          />
+        {isExternalPayment && order.status === "completed" && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Płatność poza Helpfli</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Wykonawca zakończył zlecenie. Rozliczenie było poza systemem — nie ma akceptacji ani sporu w
+              platformie. Możecie od razu wystawić oceny.
+            </p>
+          </div>
         )}
 
-        {/* Ocena — dopiero po released, nie w trakcie oczekiwania / sporu */}
-        {!mayRate && !hasMyRating && (awaitingClient || disputeOpen || order.status === "completed") && (
+        {/* Ocena — escrow: po released; poza Helpfli: od razu po zakończeniu */}
+        {!mayRate && !hasMyRating && !isExternalPayment && (awaitingClient || disputeOpen || order.status === "completed") && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
             {disputeOpen
               ? "Ocena będzie dostępna po zamknięciu sprawy."
@@ -4004,8 +4000,9 @@ export default function OrderDetails() {
   const reportDispute = async (prefilledReason) => {
     if (!isHelpfliProtectionToolsEnabled(order)) {
       toast({
-        title: "Ochrona Helpfli niedostępna",
-        description: "Przy tym zleceniu sporu przez platformę nie złożysz.",
+        title: "Spór tylko przy płatności w Helpfli",
+        description:
+          "Przy rozliczeniu poza systemem sporu przez platformę nie złożysz — ustal sprawę z wykonawcą na czacie.",
         variant: "warning",
       });
       return;
@@ -5584,7 +5581,9 @@ export default function OrderDetails() {
                         isLoadingAcceptCompletion={acceptingCompletion}
                         isLoadingReportDispute={reportingDispute}
                         showAiHint={false}
-                        useCompletionHubLayout={isClient && order?.status === "completed"}
+                        useCompletionHubLayout={
+                          isClient && order?.status === "completed" && !isExternalOrderPayment(order)
+                        }
                         hasMyRating={hasMyOrderRating}
                       />
                     );
