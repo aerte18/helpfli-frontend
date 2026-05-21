@@ -6,6 +6,10 @@ import { useToast } from "./toast/ToastProvider";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { Send, Sparkles, X, Info, ChevronDown, ChevronUp, ClipboardList, Wallet, ShieldCheck } from "lucide-react";
 import { getErrorMessage } from "../utils/errorMessages";
+import {
+  getUrgencyLabel,
+  suggestCompletionLocalFromUrgency,
+} from "../utils/orderUrgency";
 
 const OFFER_FORM_AI_KEY = "offerForm_showAi";
 /** Twarda blokada: poniżej wymagane potwierdzenie „Wyślij mimo to” (zgodne z backendem). */
@@ -19,10 +23,19 @@ function toDatetimeLocalValue(date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function resolveCompletionDateValue(completionDate, isPriority, priorityDateTime) {
+function resolveCompletionDateValue(
+  completionDate,
+  isPriority,
+  priorityDateTime,
+  orderUrgency,
+  orderUrgencyTime
+) {
   if (completionDate?.trim()) return completionDate.trim();
   if (isPriority && priorityDateTime) {
     return toDatetimeLocalValue(priorityDateTime);
+  }
+  if (orderUrgency) {
+    return suggestCompletionLocalFromUrgency(orderUrgency, orderUrgencyTime);
   }
   return "";
 }
@@ -54,6 +67,8 @@ export default function OfferForm({
   onSent,
   isPriority = false,
   priorityDateTime = null,
+  orderUrgency = null,
+  orderUrgencyTime = null,
   layout = "default",
   hideBandsError = false,
   onBandsErrorChange,
@@ -160,14 +175,19 @@ export default function OfferForm({
     if (orderId) reloadBands();
   }, [orderId, token]);
 
-  // Termin klienta był tylko w value inputa — bez sync do state walidacja padała na pustym polu.
+  // Sync sugerowanego terminu do state (walidacja + edycja); priorytet: priorityDateTime > urgency.
   useEffect(() => {
     if (completionDate?.trim()) return;
     if (isPriority && priorityDateTime) {
       const local = toDatetimeLocalValue(priorityDateTime);
       if (local) setCompletionDate(local);
+      return;
     }
-  }, [orderId, isPriority, priorityDateTime]);
+    if (orderUrgency) {
+      const suggested = suggestCompletionLocalFromUrgency(orderUrgency, orderUrgencyTime);
+      if (suggested) setCompletionDate(suggested);
+    }
+  }, [orderId, isPriority, priorityDateTime, orderUrgency, orderUrgencyTime]);
 
   const clearFieldError = (field) => {
     setFieldErrors((prev) => {
@@ -316,7 +336,15 @@ export default function OfferForm({
       missing.push("Podaj cenę.");
     }
 
-    if (resolveCompletionDateValue(completionDate, isPriority, priorityDateTime)) {
+    if (
+      resolveCompletionDateValue(
+        completionDate,
+        isPriority,
+        priorityDateTime,
+        orderUrgency,
+        orderUrgencyTime
+      )
+    ) {
       score += 14;
       strengths.push("Termin realizacji jest określony.");
     } else {
@@ -490,7 +518,9 @@ export default function OfferForm({
     const effectiveCompletionDate = resolveCompletionDateValue(
       completionDate,
       isPriority,
-      priorityDateTime
+      priorityDateTime,
+      orderUrgency,
+      orderUrgencyTime
     );
     if (!effectiveCompletionDate) {
       errors.completionDate = "Wybierz termin realizacji";
@@ -549,7 +579,9 @@ export default function OfferForm({
       const finalCompletionDate = resolveCompletionDateValue(
         completionDate,
         isPriority,
-        priorityDateTime
+        priorityDateTime,
+        orderUrgency,
+        orderUrgencyTime
       );
       
       // Przygotuj informacje o cenie i kontakcie
@@ -920,11 +952,11 @@ export default function OfferForm({
             Termin realizacji <span className="text-red-600">*</span>
           </label>
           
-          {/* Informacja o terminie klienta (jeśli istnieje) */}
-          {(isPriority && priorityDateTime) && (
+          {/* Dokładny termin klienta (zlecenie priorytetowe) */}
+          {isPriority && priorityDateTime && (
             <div className="mb-2 p-3 rounded-lg border border-blue-200 bg-blue-50">
               <div className="text-xs font-medium text-blue-900 mb-1">
-                📅 Termin wybrany przez klienta:
+                📅 Termin wybrany przez klienta (dokładny):
               </div>
               <div className="text-sm text-blue-800">
                 {new Date(priorityDateTime).toLocaleString('pl-PL', {
@@ -932,20 +964,65 @@ export default function OfferForm({
                   month: '2-digit',
                   year: 'numeric',
                   hour: '2-digit',
-                  minute: '2-digit'
+                  minute: '2-digit',
                 })}
               </div>
               <div className="text-xs text-blue-700 mt-1">
-                Możesz zaproponować inny termin poniżej
+                Możesz zaproponować inny termin poniżej.
               </div>
             </div>
           )}
-          
-          {/* Pole wyboru terminu - zawsze dostępne */}
+
+          {/* Preferowany okno czasowe klienta (create-order: jutro, elastycznie…) */}
+          {orderUrgency && !(isPriority && priorityDateTime) && (
+            <div className="mb-2 p-3 rounded-lg border border-amber-200 bg-amber-50">
+              <div className="text-xs font-medium text-amber-900 mb-1">
+                {getUrgencyLabel(orderUrgency)?.emoji || '📅'} Preferowany termin klienta:
+              </div>
+              <div className="text-sm font-medium text-amber-900">
+                {getUrgencyLabel(orderUrgency)?.label || orderUrgency}
+              </div>
+              <div className="text-xs text-amber-800 mt-1">
+                Klient podał orientacyjny termin — Ty proponujesz konkretną datę i godzinę realizacji poniżej.
+                {completionDate && (
+                  <>
+                    {' '}
+                    Sugerujemy:{' '}
+                    <strong>
+                      {new Date(completionDate).toLocaleString('pl-PL', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </strong>
+                    .
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-amber-900 underline hover:text-amber-950"
+                onClick={() => {
+                  const suggested = suggestCompletionLocalFromUrgency(orderUrgency, orderUrgencyTime);
+                  if (suggested) setCompletionDate(suggested);
+                }}
+              >
+                Użyj sugerowanego terminu
+              </button>
+            </div>
+          )}
+
           <input
             id="offer-completion-date"
             type="datetime-local"
-            value={resolveCompletionDateValue(completionDate, isPriority, priorityDateTime)}
+            value={resolveCompletionDateValue(
+              completionDate,
+              isPriority,
+              priorityDateTime,
+              orderUrgency,
+              orderUrgencyTime
+            )}
             onChange={(e) => {
               setCompletionDate(e.target.value);
               clearFieldError("completionDate");
@@ -970,9 +1047,11 @@ export default function OfferForm({
           {!fieldErrors.completionDate && (
             <p className="text-xs text-slate-500">
               {isPriority && priorityDateTime
-                ? "Możesz zaproponować inny termin niż wybrał klient (lub zostawić termin klienta)."
-                : "Kiedy możesz zakończyć zlecenie? (data i godzina)"}
-              {" "}np. dzisiaj 18:00, jutro po 16:00
+                ? 'Możesz zaproponować inny termin niż wybrał klient (lub zostawić termin klienta).'
+                : orderUrgency
+                  ? `Dopasuj się do preferencji klienta (${getUrgencyLabel(orderUrgency)?.short || orderUrgency}) — podaj konkretną datę i godzinę, kiedy skończysz pracę.`
+                  : 'Kiedy możesz zakończyć zlecenie? (data i godzina)'}
+              {!isPriority && !orderUrgency && ' '}np. dzisiaj 18:00, jutro po 16:00
             </p>
           )}
         </div>

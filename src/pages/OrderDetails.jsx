@@ -4914,6 +4914,8 @@ export default function OrderDetails() {
                       }}
                       isPriority={order?.priority === "priority"}
                       priorityDateTime={order?.priorityDateTime}
+                      orderUrgency={order?.urgency}
+                      orderUrgencyTime={order?.urgencyTime}
                       orderPaymentPreference={order?.paymentPreference}
                     />
                   </div>

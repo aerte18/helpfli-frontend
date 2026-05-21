@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import ProviderPreview from "./ProviderPreview";
 import AcceptOfferModal from "./AcceptOfferModal";
 import { getProviderTrustBadges } from "../utils/providerTrustBadges";
+import { suggestCompletionDateFromUrgency } from "../utils/orderUrgency";
 
 function useAuthToken(){ try{ return localStorage.getItem("token") || ""; }catch{ return ""; } }
 
@@ -276,12 +277,23 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
     if (query.trim()) { const q = query.trim().toLowerCase(); arr = arr.filter(o => (o.message || "").toLowerCase().includes(q)); }
     const badgeRank = (b) => ({ optimal:1, fair:2, low:3, high:4 }[b] || 9);
     
-    // Funkcja pomocnicza do obliczania różnicy terminu od terminu klienta
+    const clientTargetTime = (() => {
+      if (orderData?.priorityDateTime) {
+        return new Date(orderData.priorityDateTime).getTime();
+      }
+      if (orderData?.urgency) {
+        return suggestCompletionDateFromUrgency(
+          orderData.urgency,
+          orderData.urgencyTime
+        ).getTime();
+      }
+      return null;
+    })();
+
     const getTermDiff = (offer) => {
-      if (!orderData?.priorityDateTime || !offer.completionDate) return Infinity;
-      const clientTerm = new Date(orderData.priorityDateTime).getTime();
+      if (!clientTargetTime || !offer.completionDate) return Infinity;
       const offerTerm = new Date(offer.completionDate).getTime();
-      return Math.abs(offerTerm - clientTerm);
+      return Math.abs(offerTerm - clientTargetTime);
     };
     
     if (sortBy === "smart_default") {
@@ -291,8 +303,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         const bBoosted = b.boostUntil && new Date(b.boostUntil) > new Date();
         if (aBoosted !== bBoosted) return bBoosted - aBoosted;
         
-        // 2) najbliższy termin do terminu klienta (jeśli klient wybrał termin)
-        if (orderData?.priorityDateTime) {
+        // 2) najbliższy termin do preferencji klienta (dokładny lub urgency)
+        if (clientTargetTime) {
           const aTermDiff = getTermDiff(a);
           const bTermDiff = getTermDiff(b);
           if (aTermDiff !== bTermDiff) return aTermDiff - bTermDiff;
@@ -324,15 +336,12 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
     else if (sortBy === "term_asc") {
       // Sortuj według terminu - najbliższy do terminu klienta
       arr.sort((a,b) => {
-        if (!orderData?.priorityDateTime) {
-          // Jeśli klient nie wybrał terminu, sortuj po dacie realizacji
+        if (!clientTargetTime) {
           const aDate = a.completionDate ? new Date(a.completionDate).getTime() : Infinity;
           const bDate = b.completionDate ? new Date(b.completionDate).getTime() : Infinity;
           return aDate - bDate;
         }
-        const aTermDiff = getTermDiff(a);
-        const bTermDiff = getTermDiff(b);
-        return aTermDiff - bTermDiff;
+        return getTermDiff(a) - getTermDiff(b);
       });
     }
     else arr.sort((a,b) => (badgeRank(a.pricing?.badge) - badgeRank(b.pricing?.badge)) || (a.amount - b.amount));
@@ -552,7 +561,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
               <option value="rating_desc">Ocena wykonawcy</option>
             </select>
           </div>
-          {orderData?.priorityDateTime && (
+          {(orderData?.priorityDateTime || orderData?.urgency) && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Termin</label>
               <select 
@@ -753,16 +762,24 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                           minute: '2-digit'
                         })}
                       </span>
-                      {orderData?.priorityDateTime && (() => {
-                        const clientTerm = new Date(orderData.priorityDateTime).getTime();
+                      {(() => {
+                        let clientTerm = null;
+                        if (orderData?.priorityDateTime) {
+                          clientTerm = new Date(orderData.priorityDateTime).getTime();
+                        } else if (orderData?.urgency) {
+                          clientTerm = suggestCompletionDateFromUrgency(
+                            orderData.urgency,
+                            orderData.urgencyTime
+                          ).getTime();
+                        }
+                        if (!clientTerm || !o.completionDate) return null;
                         const offerTerm = new Date(o.completionDate).getTime();
                         const diff = Math.abs(offerTerm - clientTerm);
-                        const tolerance = 60 * 60 * 1000; // 1 godzina
+                        const tolerance = 60 * 60 * 1000;
                         const isMyTerm = diff <= tolerance;
-                        
                         return isMyTerm ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            ✓ Zgodny z moim terminem
+                            ✓ Zgodny z preferowanym terminem
                           </span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">

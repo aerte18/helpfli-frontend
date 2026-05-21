@@ -1230,6 +1230,9 @@ export default function CreateOrder() {
             <option value="this_week">W tym tygodniu</option>
             <option value="flexible">Elastycznie</option>
           </select>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            To orientacyjny termin — wykonawcy w ofercie podadzą konkretną datę i godzinę realizacji.
+          </p>
           </div>
 
         {/* Preferencje kontaktu */}
