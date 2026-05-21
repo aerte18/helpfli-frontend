@@ -143,17 +143,25 @@ export default function ProviderPreview({ providerId, open, onClose, offer }) {
               </div>
             )}
 
-            <div className="flex justify-end">
-              <button
-                className="rounded-xl px-4 py-2 bg-black text-white"
-                onClick={() => {
-                  onClose();
-                  if (!offer && providerId) {
+            <div className="flex flex-wrap justify-end gap-2">
+              {providerId && (
+                <button
+                  type="button"
+                  className="rounded-xl px-4 py-2 border border-indigo-300 bg-white text-indigo-700 hover:bg-indigo-50 text-sm font-medium"
+                  onClick={() => {
+                    onClose();
                     navigate(`/provider/${providerId}`);
-                  }
-                }}
+                  }}
+                >
+                  Pełny profil wykonawcy
+                </button>
+              )}
+              <button
+                type="button"
+                className="rounded-xl px-4 py-2 bg-slate-800 text-white text-sm font-medium hover:bg-slate-900"
+                onClick={onClose}
               >
-                {offer ? 'Zamknij' : 'Wybierz'}
+                Zamknij
               </button>
             </div>
           </div>
