@@ -37,6 +37,8 @@ function refundMethodDescription(method) {
       return "Brak zarejestrowanej płatności systemowej — zwrotu w Stripe nie wykonano.";
     case "split_refund":
       return "Zwrot został rozłożony na główną płatność i dopłatę (Stripe) — szczegóły w wątku systemowym.";
+    case "zero_settlement":
+      return "Ugoda bez zwrotu pieniędzy (0 PLN) — spór zamknięty, bez operacji zwrotu w Stripe.";
     default:
       return null;
   }
@@ -85,10 +87,26 @@ export default function OrderDisputeCase() {
     }
   };
 
-  const sendOffer = async () => {
-    const n = parseFloat(String(offerAmount).replace(",", "."));
-    if (!Number.isFinite(n) || n < 1) {
-      toast({ title: "Kwota", description: "Podaj kwotę co najmniej 1 PLN.", variant: "warning" });
+  const maxRefund = data?.settlementCaps?.maxRefundPln;
+  const capsKnown = maxRefund != null && Number.isFinite(Number(maxRefund));
+
+  const sendOffer = async (presetAmount) => {
+    const raw = presetAmount != null ? String(presetAmount) : offerAmount;
+    const n = parseFloat(String(raw).replace(",", "."));
+    if (!Number.isFinite(n) || n < 0) {
+      toast({
+        title: "Kwota",
+        description: "Podaj kwotę 0 lub większą (0 = brak zwrotu dla klienta).",
+        variant: "warning",
+      });
+      return;
+    }
+    if (capsKnown && n > Number(maxRefund) + 0.005) {
+      toast({
+        title: "Kwota za wysoka",
+        description: `Maksymalny zwrot w tej sprawie: ${Number(maxRefund).toFixed(2)} PLN.`,
+        variant: "warning",
+      });
       return;
     }
     setBusy(true);
@@ -222,10 +240,11 @@ export default function OrderDisputeCase() {
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
                   <div className="text-sm font-semibold text-indigo-900">Propozycja ugody</div>
                   <p className="mt-1 text-lg font-bold text-indigo-950">
-                    {st.amountPln != null && Number.isFinite(Number(st.amountPln))
-                      ? Number(st.amountPln).toFixed(2)
-                      : "—"}{" "}
-                    PLN
+                    {st.amountPln != null && Number.isFinite(Number(st.amountPln)) && Number(st.amountPln) < 0.005
+                      ? "Brak zwrotu (0 PLN)"
+                      : st.amountPln != null && Number.isFinite(Number(st.amountPln))
+                        ? `${Number(st.amountPln).toFixed(2)} PLN zwrotu dla klienta`
+                        : "—"}
                   </p>
                   {st.offeredByName && (
                     <p className="text-xs text-indigo-700">Od: {st.offeredByName}</p>
@@ -268,7 +287,11 @@ export default function OrderDisputeCase() {
                       {st.amountPln != null && Number.isFinite(Number(st.amountPln)) && (
                         <p>
                           Kwota ugody:{" "}
-                          <span className="font-semibold">{Number(st.amountPln).toFixed(2)} PLN</span>
+                          <span className="font-semibold">
+                            {Number(st.amountPln) < 0.005
+                              ? "brak zwrotu (0 PLN)"
+                              : `${Number(st.amountPln).toFixed(2)} PLN zwrotu dla klienta`}
+                          </span>
                         </p>
                       )}
                       {st.refundAmountGrosze != null && st.refundAmountGrosze > 0 && (
@@ -325,6 +348,10 @@ export default function OrderDisputeCase() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-800">Nowa wiadomość</label>
+                <p className="text-[11px] text-slate-500">
+                  Wiadomość trafia też do <strong>czatu zlecenia</strong> — druga strona dostanie powiadomienie z
+                  linkiem do czatu (nie do tego formularza).
+                </p>
                 <textarea
                   value={msg}
                   onChange={(e) => setMsg(e.target.value)}
@@ -352,30 +379,76 @@ export default function OrderDisputeCase() {
                     </p>
                   ) : (
                     <>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Nie wyżej niż wartość zaakceptowanej oferty. Druga strona może zaakceptować lub odrzucić.
+                  <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                    Kwota to <strong>zwrot dla klienta</strong> (nie dopłata).{" "}
+                    <strong>0 PLN</strong> = brak zwrotu — wykonawca zatrzymuje wpłatę w systemie; druga strona
+                    może zaakceptować lub odrzucić. Nie chodzi o „odrzucenie” ugody — do tego służy przycisk{" "}
+                    <strong>Odrzuć</strong> przy cudzej propozycji.
+                    {capsKnown && (
+                      <>
+                        {" "}
+                        Maks. zwrot w tej sprawie: <strong>{Number(maxRefund).toFixed(2)} PLN</strong>.
+                      </>
+                    )}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={busy || pending || accepted}
+                      onClick={() => {
+                        setOfferAmount("0");
+                        setOfferNote((prev) =>
+                          prev.trim()
+                            ? prev
+                            : "Ugoda: brak zwrotu dla klienta (0 PLN) — zamknięcie sporu bez zwrotu w Stripe."
+                        );
+                      }}
+                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      0 zł — brak zwrotu
+                    </button>
+                    {capsKnown && Number(maxRefund) > 0.005 && (
+                      <button
+                        type="button"
+                        disabled={busy || pending || accepted}
+                        onClick={() => {
+                          setOfferAmount(String(Number(maxRefund).toFixed(2)));
+                          setOfferNote((prev) =>
+                            prev.trim() ? prev : "Ugoda: pełny zwrot opłaconej kwoty w systemie."
+                          );
+                        }}
+                        className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-50"
+                      >
+                        Pełny zwrot ({Number(maxRefund).toFixed(2)} zł)
+                      </button>
+                    )}
+                  </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={offerAmount}
-                      onChange={(e) => setOfferAmount(e.target.value)}
-                      placeholder="np. 150"
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    />
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                        Kwota zwrotu dla klienta (PLN)
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={offerAmount}
+                        onChange={(e) => setOfferAmount(e.target.value)}
+                        placeholder="0 = brak zwrotu"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      />
+                    </div>
                     <input
                       type="text"
                       value={offerNote}
                       onChange={(e) => setOfferNote(e.target.value)}
-                      placeholder="Krótkie uzasadnienie (opcjonalnie)"
+                      placeholder="Uzasadnienie (np. nie akceptuję dopłaty / brak zwrotu)"
                       className="rounded-lg border border-slate-200 px-3 py-2 text-sm sm:col-span-2"
                     />
                   </div>
                   <button
                     type="button"
                     disabled={busy || pending || accepted}
-                    onClick={sendOffer}
+                    onClick={() => sendOffer()}
                     className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                   >
                     Wyślij propozycję ugody

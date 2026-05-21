@@ -47,6 +47,16 @@ export function getNotificationNavigateTarget(notification) {
       const normalizedTab = tabMap[String(rawTab || "").toLowerCase()] || "details";
       target = { pathname: `/orders/${orderId}`, search: `?tab=${normalizedTab}` };
     }
+    const legacyChat = target.pathname.match(/^\/orders\/([^/]+)\/chat$/i);
+    if (legacyChat) {
+      const [, orderId] = legacyChat;
+      target = { pathname: `/orders/${orderId}`, search: "?tab=chat" };
+    }
+    const legacySprawa = target.pathname.match(/^\/orders\/([^/]+)\/sprawa$/i);
+    if (legacySprawa && notification.type === "dispute_case_message") {
+      const [, orderId] = legacySprawa;
+      target = { pathname: `/orders/${orderId}`, search: "?tab=chat" };
+    }
   }
 
   const upsertSearchParam = (search, key, value) => {
@@ -59,12 +69,27 @@ export function getNotificationNavigateTarget(notification) {
 
   if (!target && oid) {
     const type = notification.type;
-    if (type === "chat_message") {
+    if (type === "chat_message" || type === "dispute_case_message") {
       target = { pathname: `/orders/${oid}`, search: "?tab=chat" };
+    } else if (
+      type === "dispute_settlement_offer" ||
+      type === "dispute_settlement_resolved" ||
+      type === "order_disputed"
+    ) {
+      target = { pathname: `/orders/${oid}/sprawa`, search: "" };
     } else if (type === "new_offer" || type === "new_quote") {
       target = { pathname: `/orders/${oid}`, search: "?tab=offers" };
     } else {
       target = { pathname: `/orders/${oid}`, search: "" };
+    }
+  }
+
+  // Wiadomość w sprawie → czat (stare powiadomienia mogły mieć link /sprawa)
+  if (notification.type === "dispute_case_message") {
+    const fromPath = target?.pathname?.match(/^\/orders\/([^/]+)/)?.[1];
+    const orderId = oid || fromPath;
+    if (orderId) {
+      target = { pathname: `/orders/${orderId}`, search: upsertSearchParam("", "tab", "chat") };
     }
   }
 
