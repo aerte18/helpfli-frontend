@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import PageBackground, { GlassCard } from "../components/PageBackground";
 import { apiUrl } from "@/lib/apiUrl";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
+import SocialMediaLinks from "../components/SocialMediaLinks";
 
 export default function Contact() {
   const c = companyPublicInfo;
@@ -75,6 +76,10 @@ export default function Contact() {
                   Sobota: 10:00 - 14:00<br />
                   Niedziela: Zamknięte
                 </p>
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-700 mb-3">Śledź nas</h3>
+                <SocialMediaLinks variant="contact" />
               </div>
             </div>
           </GlassCard>

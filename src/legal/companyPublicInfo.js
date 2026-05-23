@@ -29,6 +29,35 @@ export const companyPublicInfo = {
   siteUrl: env.VITE_PUBLIC_SITE_URL || "https://helpfli.pl",
 };
 
+/** Profile w mediach społecznościowych (stopka, kontakt). Nadpisanie przez VITE_SOCIAL_* */
+export const companySocialLinks = [
+  {
+    id: "facebook",
+    label: "Facebook",
+    href: env.VITE_SOCIAL_FACEBOOK || "https://www.facebook.com/profile.php?id=61590230825976",
+  },
+  {
+    id: "instagram",
+    label: "Instagram",
+    href: env.VITE_SOCIAL_INSTAGRAM || "https://www.instagram.com/helpfli/",
+  },
+  {
+    id: "tiktok",
+    label: "TikTok",
+    href: env.VITE_SOCIAL_TIKTOK || "https://www.tiktok.com/@helpfli",
+  },
+  {
+    id: "youtube",
+    label: "YouTube",
+    href: env.VITE_SOCIAL_YOUTUBE || "https://www.youtube.com/channel/UCgcEFMcLXQChzBo7ws5l4Hw",
+  },
+  {
+    id: "x",
+    label: "X (Twitter)",
+    href: env.VITE_SOCIAL_X || "https://x.com/helpflipl",
+  },
+].filter((item) => item.href?.trim());
+
 /** Akapit o operatorze do regulaminu / polityki */
 export function operatorIntroParagraph() {
   const c = companyPublicInfo;
