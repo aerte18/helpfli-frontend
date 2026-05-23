@@ -185,19 +185,10 @@ function LandingHappyUserFigure({ className = "", imageClassName = "" }) {
   return (
     <div className={`relative ${className}`.trim()}>
       <img
-        src="/img/quicksy-happy-user.png"
-        alt="Użytkownik korzystający z Helpfli"
+        src="/img/jak%20to%20dzia%C5%82a.png"
+        alt="Jak działa Helpfli — od opisu problemu do wybranej oferty"
         className={`block w-full h-auto rounded-xl ${imageClassName}`.trim()}
-        style={{ mixBlendMode: "multiply" }}
       />
-      <div
-        className="absolute bottom-2 left-2 right-2 rounded-xl border bg-white p-2 shadow-lg sm:bottom-3 sm:left-3 sm:right-3 sm:rounded-2xl sm:p-2.5"
-        style={{ borderColor: "var(--border)" }}
-      >
-        <p className="text-[10px] font-medium leading-snug sm:text-xs md:text-sm" style={{ color: "var(--foreground)" }}>
-          Helpfli ogarnęło fachowca w 10 minut!
-        </p>
-      </div>
     </div>
   );
 }
@@ -418,7 +409,7 @@ export default function LandingStart() {
             <div className="hidden lg:block self-start w-full min-w-0">
               <LandingHappyUserFigure
                 className="w-full"
-                imageClassName="object-contain object-bottom max-h-none"
+                imageClassName="object-contain object-center"
               />
             </div>
 
@@ -467,8 +458,8 @@ export default function LandingStart() {
 
                 <div className="mt-1 flex gap-3 items-start lg:hidden">
                   <LandingHappyUserFigure
-                    className="shrink-0 w-[min(42%,11.5rem)] max-w-[200px]"
-                    imageClassName="max-h-[min(48vh,220px)] object-contain object-left-bottom"
+                    className="shrink-0 w-[min(48%,13rem)] max-w-[220px]"
+                    imageClassName="max-h-[min(48vh,240px)] object-contain object-left"
                   />
                   <div className="min-w-0 flex-1 flex flex-col gap-2">
                     {LANDING_HOW_IT_WORKS_STEPS.map((item) => (

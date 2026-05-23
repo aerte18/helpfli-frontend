@@ -28,6 +28,7 @@ const slides = [
     description: "Konsultacje z lekarzem, prawnikiem, psychologiem i innymi specjalistami telefonicznie lub przez wideo",
     ctaText: "Zobacz oferty",
     imageSrc: "/img/teleporady.png",
+    imageBanner: true,
     link: "/home?service=teleporada"
   },
   {
@@ -36,6 +37,7 @@ const slides = [
     description: "Znajdź specjalistę od naprawy AGD w swojej okolicy",
     ctaText: "Sprawdź ofertę",
     imageSrc: "/img/hero-agd.png",
+    imageBanner: true,
     link: "/home?service=agd_rtv"
   },
   {
@@ -52,6 +54,7 @@ const slides = [
     description: "Zarządzaj zespołem i zwiększ efektywność",
     ctaText: "Sprawdź ofertę",
     imageSrc: "/img/Business pro package.png",
+    imageBanner: true,
     link: "/account/subscriptions?audience=business"
   }
 ];
