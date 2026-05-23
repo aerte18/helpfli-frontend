@@ -9,7 +9,8 @@ const slides = [
     title: "Bonus 20 zł dla klientów",
     description: "Po pierwszym opłaconym zleceniu w Helpfli — kredyt w portfelu punktów. Polecaj znajomych i zbieraj nagrody.",
     ctaText: "Utwórz zlecenie",
-    imageSrc: "/img/helpfli-icon-200.jpg",
+    imageSrc: "/img/baner%20klient.png",
+    imageBanner: true,
     link: "/create-order"
   },
   {
@@ -17,7 +18,8 @@ const slides = [
     title: "Pierwsi wykonawcy — 0% prowizji",
     description: "Limitowana liczba miejsc: 60 dni bez prowizji, badge i 10 darmowych wyróżnień ofert",
     ctaText: "Dołącz jako wykonawca",
-    imageSrc: "/img/helpfli-icon-400.jpg",
+    imageSrc: "/img/baner%20wykonawcy.png",
+    imageBanner: true,
     link: "/register?role=provider"
   },
   {
@@ -85,6 +87,12 @@ export default function HelpfliPromoCarousel() {
   };
 
   const currentSlide = slides[currentIndex];
+  const desktopImageClass = currentSlide.imageBanner
+    ? "absolute right-0 top-0 bottom-0 h-full w-[min(52%,420px)] object-cover object-right opacity-95"
+    : "absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100";
+  const mobileImageClass = currentSlide.imageBanner
+    ? "h-28 w-36 object-cover object-right rounded-lg shrink-0"
+    : "h-24 w-24 object-contain shrink-0";
 
   return (
     <section 
@@ -166,11 +174,12 @@ export default function HelpfliPromoCarousel() {
                 <motion.img
                   src={currentSlide.imageSrc}
                   alt={currentSlide.title}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100"
-                  style={{
-                    maxWidth: '55%',
-                    objectPosition: 'right center'
-                  }}
+                  className={desktopImageClass}
+                  style={
+                    currentSlide.imageBanner
+                      ? undefined
+                      : { maxWidth: '55%', objectPosition: 'right center' }
+                  }
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
@@ -193,7 +202,7 @@ export default function HelpfliPromoCarousel() {
                   <motion.img
                     src={currentSlide.imageSrc}
                     alt={currentSlide.title}
-                    className="h-24 w-24 object-contain shrink-0"
+                    className={mobileImageClass}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}

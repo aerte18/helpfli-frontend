@@ -300,7 +300,7 @@ export default function LandingStart() {
                 </div>
               )}
               <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl" style={{ color: 'var(--foreground)' }}>
-                {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź sprawdzonego wykonawcę\nw kilka minut"}
+                {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź sprawdzoną pomoc\nw kilka minut"}
               </h1>
 
               <div
@@ -311,7 +311,7 @@ export default function LandingStart() {
                   Szybki start
                 </p>
                 <p className="text-sm sm:text-[15px] leading-snug sm:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-                  Wybierz usługę i porównaj oferty lokalnych fachowców.
+                  Wybierz usługę i porównaj oferty — znajdź pomoc w swojej okolicy.
                   <span className="font-semibold" style={{ color: 'var(--foreground)' }}> Szybko, bezpiecznie, bez dzwonienia po znajomych.</span>
                 </p>
               </div>
@@ -333,7 +333,7 @@ export default function LandingStart() {
                       <MapPin className="h-5 w-5 shrink-0" aria-hidden />
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-tight">
-                      {user?.role === "provider" || audience === "provider" ? "Przejdź do zleceń" : "Znajdź wykonawcę"}
+                      {user?.role === "provider" || audience === "provider" ? "Przejdź do zleceń" : "Znajdź pomoc"}
                     </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 opacity-85" aria-hidden />
@@ -427,7 +427,7 @@ export default function LandingStart() {
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ color: 'var(--foreground)' }}>Dlaczego Helpfli?</h2>
                 <p className="text-sm md:text-base mb-4 md:mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                  Znajdź sprawdzonego wykonawcę w swojej okolicy w kilka minut. Bezpieczne rozliczenia i ochrona płatności.
+                  Znajdź sprawdzoną pomoc w swojej okolicy w kilka minut. Bezpieczne rozliczenia i ochrona płatności.
                 </p>
                 <div className="flex sm:grid sm:grid-cols-2 gap-3 overflow-x-auto sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 snap-x snap-mandatory scrollbar-hide touch-pan-x [-webkit-overflow-scrolling:touch]">
                   <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
@@ -435,7 +435,7 @@ export default function LandingStart() {
                       <Zap className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: 'white' }} fill="white" />
                     </div>
                     <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 leading-tight" style={{ color: 'var(--foreground)' }}>Szybkość</h3>
-                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Znajdziesz wykonawcę w kilka minut</p>
+                    <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>Znajdziesz pomoc w kilka minut</p>
                   </div>
                   <div className="shrink-0 w-[min(220px,78vw)] sm:w-auto snap-start p-2.5 sm:p-3 rounded-lg" style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-3" style={{ backgroundColor: 'oklch(0.65 0.08 264)' }}>
