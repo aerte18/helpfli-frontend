@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 /** Podbij wersję po wymianie plików w public/img — omija cache przeglądarki */
-const PROMO_ASSETS_VERSION = "20260523e";
+const PROMO_ASSETS_VERSION = "20260523f";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${PROMO_ASSETS_VERSION}`;
@@ -52,7 +52,7 @@ const slides = [
     title: "Zarządzaj zespołem wykonawców",
     description: "14 dni za darmo",
     ctaText: "Sprawdź ofertę",
-    imageSrc: promoImg("Zarządzenie zespołem.png"),
+    imageSrc: promoImg("promo-zarzadzenie-zespolem.png"),
     imageBanner: true,
     link: "/register?role=provider"
   },
@@ -61,7 +61,7 @@ const slides = [
     title: "Pakiet Pro dla firm",
     description: "Zarządzaj zespołem i zwiększ efektywność",
     ctaText: "Sprawdź ofertę",
-    imageSrc: promoImg("pakiet pro dla firm.png"),
+    imageSrc: promoImg("promo-pakiet-pro-dla-firm.png"),
     imageBanner: true,
     link: "/account/subscriptions?audience=business"
   }
