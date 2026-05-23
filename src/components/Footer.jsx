@@ -20,12 +20,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/services" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Lista usĹ‚ug
+                  Lista usług
                 </Link>
               </li>
               <li>
                 <Link to="/cennik" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Cennik i opĹ‚aty
+                  Cennik i opłaty
                 </Link>
               </li>
               <li>
@@ -40,12 +40,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/prywatnosc" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  Polityka prywatnoĹ›ci
+                  Polityka prywatności
                 </Link>
               </li>
               <li>
                 <Link to="/cooperation" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
-                  WspĂłĹ‚praca
+                  Współpraca
                 </Link>
               </li>
               <li>
@@ -92,11 +92,11 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Dolna czÄ™Ĺ›Ä‡ footera */}
+        {/* Dolna część footera */}
         <div className="border-t border-gray-200 mt-8 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-500 text-sm mb-4 md:mb-0">
-              Â© 2026 Helpfli. Wszystkie prawa zastrzeĹĽone.
+              © 2026 Helpfli. Wszystkie prawa zastrzeżone.
             </div>
             <SocialMediaLinks variant="footer" />
           </div>

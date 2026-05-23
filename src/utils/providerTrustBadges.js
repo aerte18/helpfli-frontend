@@ -7,11 +7,20 @@
  */
 export function getProviderTrustBadges(meta) {
   if (!meta) return [];
+
+  const badges = [];
+
+  if (meta.isFoundingProvider || meta.foundingProvider) {
+    badges.push({
+      key: 'founding_provider',
+      label: 'Pierwszy wykonawca',
+      title: 'Program pierwszych wykonawców Helpfli — wyższa widoczność i korzyści startowe',
+    });
+  }
+
   const avg = Number(meta.ratingAvg);
   const count = Number(meta.ratingCount) || 0;
   const completed = Number(meta.completedOrders) || 0;
-
-  const badges = [];
 
   // Top oceniany: wysoka średnia i minimum 5 opinii
   if (avg >= 4.5 && count >= 5) {

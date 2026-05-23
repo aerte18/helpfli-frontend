@@ -8,6 +8,7 @@ import ExitIntentPopup from "../components/ExitIntentPopup";
 import { getPlans, getMySubscription, subscribePlan, cancelSubscription, startTrial } from "../api/subscriptions";
 import { getCompanySubscription } from "../api/companies";
 import { useAuth } from "../context/AuthContext";
+import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 
 export default function Subscriptions() {
   const { user, fetchMe } = useAuth();
@@ -252,6 +253,11 @@ export default function Subscriptions() {
           <div className="mb-8 p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 text-sm text-center max-w-2xl mx-auto">
             Brak planów w cenniku. Jeśli problem się powtarza, odśwież stronę lub skontaktuj się z pomocą — administrator
             powinien upewnić się, że baza zawiera plany subskrypcji.
+          </div>
+        )}
+        {audience === 'provider' && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <ProviderGrowthBenefitsPanel />
           </div>
         )}
         <div className="text-center mb-16 space-y-4">

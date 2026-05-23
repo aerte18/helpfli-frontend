@@ -12,6 +12,7 @@ import { Helmet } from "react-helmet-async";
 import { openAI } from "../ai/chat/bus";
 import { formatPriceHint } from "../utils/orderMode";
 import OffersOnlyListingAddons from "../components/OffersOnlyListingAddons";
+import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 
 function useQuery() {
   const { search } = useLocation();
@@ -553,6 +554,9 @@ export default function CreateOrder() {
         <meta name="description" content="Opisz, w czym potrzebujesz pomocy. Wykonawcy z Twojej okolicy złożą oferty. Szybko i bezpiecznie przez Helpfli." />
       </Helmet>
       <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-32 md:pb-8 max-w-3xl">
+        {user?.role !== 'provider' && user?.role !== 'company_owner' && (
+          <WelcomeCreditBanner variant="compact" className="mb-4" />
+        )}
         {/* Główny formularz w jednej karcie */}
         <div className="rounded-lg border p-4 sm:p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           {/* Title Section */}

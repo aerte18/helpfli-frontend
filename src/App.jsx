@@ -212,6 +212,7 @@ function App() {
           <Route path="/account/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
           <Route path="/integrations/calendar/callback" element={<PrivateRoute><CalendarCallback /></PrivateRoute>} />
           {/* Legacy redirecty */}
+          <Route path="/wallet" element={<Navigate to="/account/wallet" replace />} />
           <Route path="/billing" element={<Navigate to="/account/wallet" replace />} />
           <Route path="/subscriptions" element={<Navigate to="/account/subscriptions" replace />} />
           <Route path="/why-pro" element={<WhyPro />} />

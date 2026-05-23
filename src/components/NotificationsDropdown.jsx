@@ -129,6 +129,8 @@ export default function NotificationsDropdown({ userId, onClose }) {
       new_offer: '💼',
       new_order: '📋',
       payment_received: '💵',
+      founding_provider_expiring: '⏳',
+      founding_provider_expired: '📋',
       new_direct_order: '📋',
       subscription_expiring: '⏰',
       subscription_expired: '❌',

@@ -79,6 +79,12 @@ export function getNotificationNavigateTarget(notification) {
       target = { pathname: `/orders/${oid}/sprawa`, search: "" };
     } else if (type === "new_offer" || type === "new_quote") {
       target = { pathname: `/orders/${oid}`, search: "?tab=offers" };
+    } else if (type === "referral_reward") {
+      target = { pathname: "/account", search: "?tab=referrals" };
+    } else if (type === "founding_provider_expiring") {
+      target = { pathname: "/provider-home", search: "" };
+    } else if (type === "founding_provider_expired") {
+      target = { pathname: "/account/subscriptions", search: "?audience=provider" };
     } else {
       target = { pathname: `/orders/${oid}`, search: "" };
     }

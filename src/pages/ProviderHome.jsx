@@ -18,6 +18,8 @@ import { getMyOffers } from "../api/offers";
 import { orderServiceMatchesProvider, expandProviderServiceSlugs } from "../utils/orderServiceMatch";
 import { serviceLabel } from "../utils/serviceLabels";
 import OrderModeBadge from "../components/OrderModeBadge";
+import FoundingProviderBanner from "../components/FoundingProviderBanner";
+import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -1389,6 +1391,16 @@ export default function ProviderHome() {
               Rozumiem
             </button>
           </div>
+        </div>
+      )}
+
+      {viewMode !== "map" && (
+        <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+          <ProviderGrowthBenefitsPanel />
+          {!(
+            user?.foundingProvider &&
+            (!user?.foundingProviderExpiresAt || new Date(user.foundingProviderExpiresAt) > new Date())
+          ) && <FoundingProviderBanner variant="compact" showActivate />}
         </div>
       )}
 

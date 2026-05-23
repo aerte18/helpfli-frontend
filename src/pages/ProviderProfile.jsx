@@ -171,6 +171,9 @@ export default function ProviderProfile() {
     ratingAvg: avgRating ?? providerData?.ratingAvg,
     ratingCount: providerData?.ratingCount,
     completedOrders: providerData?.completedOrders,
+    isFoundingProvider:
+      provider?.foundingProvider ||
+      (Array.isArray(providerData?.badges) && providerData.badges.includes('founding_provider')),
   });
 
   return (
@@ -269,6 +272,7 @@ export default function ProviderProfile() {
                       title={b.title}
                       className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600"
                     >
+                      {b.key === 'founding_provider' && '✦ '}
                       {b.key === 'top_rated' && '⭐ '}
                       {b.key === 'new_provider' && '🆕 '}
                       {b.key === 'experienced' && '✓ '}

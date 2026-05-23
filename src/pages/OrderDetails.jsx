@@ -45,6 +45,7 @@ import { useTelemetry } from "../hooks/useTelemetry";
 import { Helmet } from "react-helmet-async";
 import { getVideoSessionByOrder } from "../api/video";
 import AIStepHint from "../components/AIStepHint";
+import FoundingFeeHint from "../components/FoundingFeeHint";
 import { serviceLabel } from "../utils/serviceLabels";
 import { getClientOrderPresentation, getProviderOrderPresentation } from "../utils/orderFlowLabels";
 import { openAI } from "../ai/chat/bus";
@@ -1775,8 +1776,18 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
                     </div>
                   </div>
                 ) : (
-                  <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
-                    ✓ Dla tego zlecenia nie ma dodatkowej opłaty serwisowej.
+                  <div className="mb-3 space-y-2">
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+                      ✓ Dla tego zlecenia nie ma dodatkowej opłaty serwisowej.
+                    </div>
+                    {(order.pricing?.foundingDiscountApplied || order.pricing?.feeExplanation) && (
+                      <FoundingFeeHint
+                        foundingCommissionWaived={order.pricing?.foundingDiscountApplied}
+                        feeExplanation={order.pricing?.feeExplanation}
+                        platformFeeBeforeDiscount={order.pricing?.platformFeeBeforeDiscount}
+                        platformFee={platformFee}
+                      />
+                    )}
                   </div>
                 )}
                 {!externalCommissionPaid && platformFee > 0 && (

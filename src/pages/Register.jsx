@@ -89,6 +89,7 @@ export default function Register() {
     billingCity: "",
     billingPostalCode: "",
     billingCountry: "Polska",
+    referralCode: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -101,12 +102,21 @@ export default function Register() {
   // Stany dla lokalizacji
   const [locationLoading, setLocationLoading] = useState(false);
 
-  // Ustaw rolę na podstawie parametru URL
+  // Ustaw rolę i kod polecający z parametru URL
   useEffect(() => {
     const roleFromUrl = searchParams.get('role');
-    if (roleFromUrl === 'provider') {
-      setForm(prev => ({ ...prev, role: 'provider' }));
-    }
+    const refFromUrl =
+      searchParams.get('ref') ||
+      searchParams.get('referral') ||
+      searchParams.get('referralCode') ||
+      '';
+    setForm((prev) => ({
+      ...prev,
+      ...(roleFromUrl === 'provider' ? { role: 'provider' } : {}),
+      ...(refFromUrl.trim()
+        ? { referralCode: refFromUrl.trim().toUpperCase() }
+        : {}),
+    }));
   }, [searchParams]);
 
   const score = useMemo(() => passwordScore(form.password), [form.password]);
@@ -315,6 +325,7 @@ export default function Register() {
             postalCode: snapshot.billingPostalCode.trim(),
             country: snapshot.billingCountry || "Polska",
           } : undefined,
+          referralCode: snapshot.referralCode?.trim() || undefined,
         }),
       });
 
@@ -447,6 +458,35 @@ export default function Register() {
             onChange={handleChange}
             required
           />
+          {form.referralCode ? (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-sm text-indigo-900">
+              <label htmlFor="referralCode" className="block font-medium text-indigo-950 mb-1">
+                Kod polecający
+              </label>
+              <input
+                id="referralCode"
+                type="text"
+                name="referralCode"
+                className="w-full p-2 border border-indigo-200 rounded-lg bg-white uppercase tracking-wide"
+                value={form.referralCode}
+                onChange={handleChange}
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs text-indigo-700">
+                Zarejestrujesz się z polecenia — nagrody po spełnieniu warunków programu.
+              </p>
+            </div>
+          ) : (
+            <input
+              type="text"
+              name="referralCode"
+              placeholder="Kod polecający (opcjonalnie)"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
+              value={form.referralCode}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+          )}
           <input
             type="tel"
             name="phone"

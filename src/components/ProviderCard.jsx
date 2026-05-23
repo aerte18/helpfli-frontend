@@ -13,6 +13,7 @@ import { metrics } from "../utils/metrics";
 import { useInView } from "../utils/useInView";
 import { getProviderServiceLabel } from "../utils/getProviderLabel";
 import ProviderAvatar from "./ProviderAvatar";
+import FoundingProviderBadge, { hasFoundingProviderBadge } from "./FoundingProviderBadge";
 
 const isActive = (d) => d && new Date(d) > new Date();
 
@@ -237,7 +238,8 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 {data.rating?.toFixed(1) || data.averageRating?.toFixed(1) || '0.0'}
               </span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {hasFoundingProviderBadge(data) && <FoundingProviderBadge compact />}
               {(data.verified || data.verification?.verified || (Array.isArray(data.badges) && data.badges.includes("verified"))) && (
                 <ShieldCheck className="w-4 h-4 text-green-600" title="Zweryfikowany" />
               )}

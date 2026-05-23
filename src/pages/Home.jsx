@@ -23,6 +23,7 @@ import PopularServices from "../components/PopularServices";
 import UnifiedAIConcierge from "../components/ai/UnifiedAIConcierge";
 import ProviderPreview from "../components/ProviderPreview";
 import { useAuth } from "../context/AuthContext";
+import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
 import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
@@ -669,6 +670,11 @@ export default function Home() {
         <title>Szukaj wykonawców | Quicksy</title>
         <meta name="description" content="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą." />
       </Helmet>
+      {user?.role === 'client' && viewMode !== 'map' && (
+        <div className="max-w-7xl mx-auto px-4 pt-3 md:px-6 md:pt-4">
+          <WelcomeCreditBanner variant="compact" />
+        </div>
+      )}
       {/* Pasek: dropdown kategorii (dwukolumnowy) + toolbar wyników — w /map toolbar jest w skorupie mapy */}
       {viewMode !== "map" && (
         <>

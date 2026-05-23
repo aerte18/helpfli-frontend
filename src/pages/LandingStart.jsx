@@ -18,6 +18,7 @@ import { SERVICES_CATALOG } from "../constants/servicesCatalog";
 const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarousel"));
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
 import SponsorAdBanner from "../components/SponsorAdBanner";
+import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, Bell, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -558,34 +559,10 @@ export default function LandingStart() {
         </div>
       </section>
 
-      {/* CTA dla wykonawców — niższy w pionie na mobile */}
+      {/* Program Founding Provider + CTA wykonawcy */}
       <section className="order-6 py-4 md:py-8 md:order-none">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-          <div className="rounded-xl border p-3 md:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-            <div
-              className="rounded-xl px-4 py-4 md:px-8 md:py-8"
-              style={{ background: 'linear-gradient(to right, var(--primary), oklch(from var(--primary) calc(l * 1.1) calc(c * 1.2) h))', color: 'var(--primary-foreground)' }}
-            >
-              <div className="flex flex-col gap-3 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-bold leading-snug md:text-2xl md:mb-2">Jesteś usługodawcą?</h3>
-                  <p className="mt-1 text-sm leading-snug opacity-90 md:mt-0 md:text-base lg:text-lg">
-                    Dołącz do Helpfli i pozyskuj zlecenia. Wyróżnienia, pakiety PRO i gwarancja.
-                  </p>
-                </div>
-                <div className="shrink-0 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => nav("/register?role=provider")}
-                    className="btn-helpfli-primary w-full min-h-[44px] rounded-xl px-4 py-2.5 text-sm font-semibold sm:w-auto md:px-6 md:py-3 md:text-base"
-                    style={{ backgroundColor: 'var(--primary-foreground)', color: 'var(--primary)' }}
-                  >
-                    Zarejestruj się jako wykonawca
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 space-y-4">
+          <FoundingProviderBanner variant="marketing" />
         </div>
       </section>
 
@@ -623,6 +600,24 @@ export default function LandingStart() {
                 <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Czy mogę zostać wykonawcą?</summary>
                 <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Tak! Zarejestruj się jako usługodawca, przejdź weryfikację KYC i zacznij pozyskiwać zlecenia w swojej okolicy.
+                </p>
+              </details>
+              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Co to jest program „Pierwszy wykonawca”?</summary>
+                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  Dla pierwszych 1000 wykonawców: 0% prowizji platformy przez 60 dni, badge na profilu, wyższa widoczność w wyszukiwaniu i 10 darmowych wyróżnień ofert. Program działa obok subskrypcji PRO — abonament PRO to osobna opłata za limity pakietu.
+                </p>
+              </details>
+              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Czy jako klient dostanę bonus za pierwsze zlecenie?</summary>
+                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  Tak — po potwierdzeniu odbioru pierwszego opłaconego zlecenia w Helpfli otrzymasz 20 zł w portfelu punktów (200 pkt, 1 pkt = 0,10 zł). Możesz też polecać znajomych i zbierać nagrody w programie poleceń.
+                </p>
+              </details>
+              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Jak działają polecenia?</summary>
+                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  Udostępniasz swój link lub kod z konta (zakładka Polecenia). Po rejestracji zaproszonej osoby obie strony dostają punkty, a po spełnieniu warunku (pierwsze zlecenie klienta lub ukończenie profilu wykonawcy) — dodatkowe nagrody w portfelu lub przedłużenie PRO.
                 </p>
               </details>
             </div>

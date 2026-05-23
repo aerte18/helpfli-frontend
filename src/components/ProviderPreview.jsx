@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { getProviderMini } from "../api/providers";
 import { getProviderTrustBadges } from "../utils/providerTrustBadges";
+import FoundingProviderBadge, { hasFoundingProviderBadge } from "./FoundingProviderBadge";
 
 function useAuthToken(){ try{ return localStorage.getItem("token") || ""; }catch{ return ""; } }
 
@@ -89,7 +90,10 @@ export default function ProviderPreview({ providerId, open, onClose, offer }) {
             <div className="flex items-center gap-3">
               <img src={data.avatar || "https://via.placeholder.com/64"} alt="" className="w-14 h-14 rounded-full object-cover" />
               <div>
-                <div className="font-semibold">{data.name}</div>
+                <div className="font-semibold flex flex-wrap items-center gap-2">
+                  {data.name}
+                  {hasFoundingProviderBadge(data) && <FoundingProviderBadge compact />}
+                </div>
                 <div className="text-sm opacity-70 mb-1">
                   Poziom: <b>{data.level}</b>
                   {data.providerTier && <> • Pakiet: <b className="uppercase">{data.providerTier}</b></>}

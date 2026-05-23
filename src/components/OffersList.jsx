@@ -848,7 +848,15 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                     {user?.role === 'provider' && String(o.providerId) === String(user._id) && o.status === 'submitted' && (
                       <button
                         onClick={async () => {
-                          if (!window.confirm('Boostować ofertę za 10 zł (24h)? Pakiet PRO = darmowy boost.')) return;
+                          const foundingLeft =
+                            user?.growthBenefits?.provider?.foundingProvider?.freeBoostsRemaining ??
+                            user?.freeBoostsRemaining ??
+                            0;
+                          const boostMsg =
+                            foundingLeft > 0
+                              ? `Masz ${foundingLeft} darmowych wyróżnień (program Pierwszy wykonawca). Użyć jednego na 24h?`
+                              : 'Boostować ofertę za 10 zł (24h)? Pakiet PRO / STANDARD może dać darmowy boost.';
+                          if (!window.confirm(boostMsg)) return;
                           try {
                             const data = await boostOffer({ token, offerId: o._id });
                             if (data.requiresPayment) {

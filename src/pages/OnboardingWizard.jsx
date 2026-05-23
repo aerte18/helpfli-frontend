@@ -6,6 +6,7 @@ import { User, Briefcase, CheckCircle, ArrowRight, ArrowLeft } from "lucide-reac
 import ProviderServiceCategoryPicker from "../components/ProviderServiceCategoryPicker";
 import ProviderOrderScopePicker from "../components/ProviderOrderScopePicker";
 import { resolveSelectionKeysToMongoIds } from "../utils/serviceSelectionKeys";
+import FoundingProviderBanner from "../components/FoundingProviderBanner";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -254,6 +255,21 @@ export default function OnboardingWizard() {
           }
         </p>
       </div>
+
+      {role === "provider" && (
+        <div className="max-w-lg mx-auto mb-6">
+          <FoundingProviderBanner variant="compact" showActivate />
+        </div>
+      )}
+
+      {role === "client" && (
+        <div className="max-w-lg mx-auto mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="font-semibold">Bonus powitalny 20 zł</p>
+          <p className="mt-1 text-emerald-800/90">
+            Po pierwszym ukończonym zleceniu z płatnością w Helpfli otrzymasz kredyt na kolejne usługi (punkty lojalnościowe).
+          </p>
+        </div>
+      )}
 
       <div className="max-w-md mx-auto space-y-4">
         <div>

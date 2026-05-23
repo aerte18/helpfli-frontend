@@ -5,6 +5,22 @@ import { useNavigate } from "react-router-dom";
 
 const slides = [
   {
+    id: 0,
+    title: "Bonus 20 zł dla klientów",
+    description: "Po pierwszym opłaconym zleceniu w Helpfli — kredyt w portfelu punktów. Polecaj znajomych i zbieraj nagrody.",
+    ctaText: "Utwórz zlecenie",
+    imageSrc: "/img/helpfli-icon-200.jpg",
+    link: "/create-order"
+  },
+  {
+    id: 5,
+    title: "Pierwsi wykonawcy — 0% prowizji",
+    description: "Limitowana liczba miejsc: 60 dni bez prowizji, badge i 10 darmowych wyróżnień ofert",
+    ctaText: "Dołącz jako wykonawca",
+    imageSrc: "/img/helpfli-icon-400.jpg",
+    link: "/register?role=provider"
+  },
+  {
     id: 1,
     title: "Teleporady online",
     description: "Konsultacje z lekarzem, prawnikiem, psychologiem i innymi specjalistami telefonicznie lub przez wideo",

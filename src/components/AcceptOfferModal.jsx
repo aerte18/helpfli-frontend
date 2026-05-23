@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import FoundingFeeHint from './FoundingFeeHint';
 
 export default function AcceptOfferModal({ 
   isOpen, 
@@ -58,7 +59,13 @@ export default function AcceptOfferModal({
     ? Math.round((basePlatformFee * tierDiscountPercent) / 100)
     : 0;
 
-  const platformFee = Math.max(0, basePlatformFee - tierDiscountAmount);
+  let platformFee = Math.max(0, basePlatformFee - tierDiscountAmount);
+  const providerMeta = offer?.providerMeta || {};
+  const foundingWaived = providerMeta.foundingCommissionWaived === true;
+  const platformFeeBeforeFounding = platformFee;
+  if (foundingWaived) {
+    platformFee = 0;
+  }
   const STRIPE_MIN_PLN = 2;
   const commissionChargedPln =
     paymentMethod === "external" && platformFee > 0
@@ -264,7 +271,15 @@ export default function AcceptOfferModal({
               {basePlatformFee > 0 && (
                 <div className="flex justify-between">
                   <span>Prowizja platformy (5%):</span>
-                  <span>+{basePlatformFee} zł</span>
+                  <span className={foundingWaived ? 'line-through text-slate-400' : ''}>
+                    +{basePlatformFee} zł
+                  </span>
+                </div>
+              )}
+              {foundingWaived && basePlatformFee > 0 && (
+                <div className="flex justify-between text-emerald-700 font-medium">
+                  <span>Prowizja (Pierwszy wykonawca):</span>
+                  <span>0 zł</span>
                 </div>
               )}
               {tierDiscountAmount > 0 && (
@@ -289,6 +304,15 @@ export default function AcceptOfferModal({
                 </p>
               )}
             </div>
+            {(foundingWaived || providerMeta.foundingProviderActive) && (
+              <FoundingFeeHint
+                className="mt-3"
+                foundingCommissionWaived={foundingWaived}
+                foundingExpiresAt={providerMeta.foundingExpiresAt}
+                platformFeeBeforeDiscount={platformFeeBeforeFounding}
+                platformFee={platformFee}
+              />
+            )}
           </div>
 
           {/* Informacja o poziomie lojalności */}

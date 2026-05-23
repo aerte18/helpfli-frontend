@@ -18,6 +18,8 @@ import NotificationSettings from "../components/NotificationSettings";
 import TwoFactorAuth from "../components/TwoFactorAuth";
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import OrderStatsDashboard from "../components/OrderStatsDashboard";
+import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
+import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 import {
   getClientOrderPresentation,
   getProviderOrderPresentation,
@@ -366,6 +368,10 @@ export default function Account() {
 function OverviewTab({ user, stats }) {
   return (
     <div className="space-y-4">
+      {(user?.role === 'client' || user?.role === 'provider') && (
+        <ProviderGrowthBenefitsPanel />
+      )}
+      {user?.role === 'client' && <WelcomeCreditBanner variant="compact" />}
       {/* Order Stats Dashboard */}
       <OrderStatsDashboard userRole={user?.role} userId={user?.id || user?._id} />
       
@@ -1594,8 +1600,9 @@ function BillingTab({ user }) {
 
   return (
     <div className="space-y-4">
+      {user?.role === 'client' && <WelcomeCreditBanner variant="compact" />}
       {/* Statystyki */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${user?.role === 'provider' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <Card title="Opłacone">
           <div className="text-2xl font-bold text-green-600">
             {formatAmount(billingData.stats.totalPaid)}
@@ -1620,6 +1627,19 @@ function BillingTab({ user }) {
             Zwroty i anulowania
           </div>
         </Card>
+        {user?.role === 'provider' && (billingData.stats.foundingSavingsPln > 0 || billingData.stats.foundingOrdersCount > 0) && (
+          <Card title="Oszczędność Founding">
+            <div className="text-2xl font-bold text-amber-700">
+              {formatAmount(billingData.stats.foundingSavingsPln)}
+            </div>
+            <div className="text-sm text-gray-500">
+              Prowizja niższa o {billingData.stats.foundingOrdersCount} zlec.
+            </div>
+            <p className="text-xs text-amber-800/90 mt-2 leading-snug">
+              Ulga z programu Pierwszy wykonawca (różnica między standardową prowizją a faktycznie pobraną).
+            </p>
+          </Card>
+        )}
       </div>
 
       {/* Filtry */}
@@ -1680,6 +1700,11 @@ function BillingTab({ user }) {
                   <div className="font-semibold text-lg">
                     {formatAmount(transaction.amount / 100)}
                   </div>
+                  {transaction.foundingDiscountPln > 0 && (
+                    <div className="text-xs text-amber-700 font-medium mt-0.5">
+                      Ulga Founding: −{transaction.foundingDiscountPln.toFixed(2)} zł prowizji
+                    </div>
+                  )}
                   {transaction.orderId && (
                     <Link 
                       to={`/orders/${transaction.orderId._id}`}
