@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 /** Podbij wersję po wymianie plików w public/img — omija cache przeglądarki */
-const PROMO_ASSETS_VERSION = "20260523f";
+const PROMO_ASSETS_VERSION = "20260523g";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${PROMO_ASSETS_VERSION}`;
@@ -18,6 +18,7 @@ const slides = [
     ctaText: "Utwórz zlecenie",
     imageSrc: promoImg("baner klient.png"),
     imageBanner: true,
+    imageEdgeRight: true,
     link: "/create-order"
   },
   {
@@ -27,6 +28,7 @@ const slides = [
     ctaText: "Dołącz jako wykonawca",
     imageSrc: promoImg("baner wykonawcy.png"),
     imageBanner: true,
+    imageEdgeRight: true,
     link: "/register?role=provider"
   },
   {
@@ -54,6 +56,7 @@ const slides = [
     ctaText: "Sprawdź ofertę",
     imageSrc: promoImg("promo-zarzadzenie-zespolem.png"),
     imageBanner: true,
+    imageEdgeRight: true,
     link: "/register?role=provider"
   },
   {
@@ -63,6 +66,7 @@ const slides = [
     ctaText: "Sprawdź ofertę",
     imageSrc: promoImg("promo-pakiet-pro-dla-firm.png"),
     imageBanner: true,
+    imageEdgeRight: true,
     link: "/account/subscriptions?audience=business"
   }
 ];
@@ -99,11 +103,16 @@ export default function HelpfliPromoCarousel() {
 
   const currentSlide = slides[currentIndex];
   const isBanner = !!currentSlide.imageBanner;
+  const edgeRight = !!currentSlide.imageEdgeRight;
   const desktopImageClass = isBanner
-    ? "absolute top-1/2 -translate-y-1/2 left-[38%] right-3 h-[94%] w-auto max-w-[62%] object-contain object-right pointer-events-none"
+    ? edgeRight
+      ? "absolute top-1/2 -translate-y-1/2 right-0 h-[98%] w-auto max-w-[68%] object-contain object-right pointer-events-none"
+      : "absolute top-1/2 -translate-y-1/2 left-[38%] right-3 h-[94%] w-auto max-w-[62%] object-contain object-right pointer-events-none"
     : "absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100";
   const mobileImageClass = isBanner
-    ? "h-28 w-[11rem] max-w-[45vw] object-contain object-right rounded-lg shrink-0"
+    ? edgeRight
+      ? "h-28 w-[11rem] max-w-[45vw] object-contain object-right rounded-lg shrink-0 ml-auto"
+      : "h-28 w-[11rem] max-w-[45vw] object-contain object-right rounded-lg shrink-0"
     : "h-24 w-24 object-contain shrink-0";
 
   return (
