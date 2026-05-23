@@ -3,13 +3,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+/** Podbij wersję po wymianie plików w public/img — omija cache przeglądarki */
+const PROMO_ASSETS_VERSION = "20260523b";
+
+function promoImg(fileName) {
+  return `/img/${encodeURIComponent(fileName)}?v=${PROMO_ASSETS_VERSION}`;
+}
+
 const slides = [
   {
     id: 0,
     title: "Bonus 20 zł dla klientów",
     description: "Po pierwszym opłaconym zleceniu w Helpfli — kredyt w portfelu punktów. Polecaj znajomych i zbieraj nagrody.",
     ctaText: "Utwórz zlecenie",
-    imageSrc: "/img/baner%20klient.png",
+    imageSrc: promoImg("baner klient.png"),
     imageBanner: true,
     link: "/create-order"
   },
@@ -18,7 +25,7 @@ const slides = [
     title: "Pierwsi wykonawcy — 0% prowizji",
     description: "Limitowana liczba miejsc: 60 dni bez prowizji, badge i 10 darmowych wyróżnień ofert",
     ctaText: "Dołącz jako wykonawca",
-    imageSrc: "/img/baner%20wykonawcy.png",
+    imageSrc: promoImg("baner wykonawcy.png"),
     imageBanner: true,
     link: "/register?role=provider"
   },
@@ -27,7 +34,7 @@ const slides = [
     title: "Teleporady online",
     description: "Konsultacje z lekarzem, prawnikiem, psychologiem i innymi specjalistami telefonicznie lub przez wideo",
     ctaText: "Zobacz oferty",
-    imageSrc: "/img/teleporady.png",
+    imageSrc: promoImg("teleporady.png"),
     imageBanner: true,
     link: "/home?service=teleporada"
   },
@@ -36,7 +43,7 @@ const slides = [
     title: "Szybka naprawa AGD",
     description: "Znajdź specjalistę od naprawy AGD w swojej okolicy",
     ctaText: "Sprawdź ofertę",
-    imageSrc: "/img/hero-agd.png",
+    imageSrc: promoImg("hero-agd.png"),
     imageBanner: true,
     link: "/home?service=agd_rtv"
   },
@@ -45,7 +52,7 @@ const slides = [
     title: "Zarządzaj zespołem wykonawców",
     description: "14 dni za darmo",
     ctaText: "Sprawdź ofertę",
-    imageSrc: "/img/team management.png",
+    imageSrc: promoImg("team management.png"),
     link: "/register?role=provider"
   },
   {
@@ -53,7 +60,7 @@ const slides = [
     title: "Pakiet Pro dla firm",
     description: "Zarządzaj zespołem i zwiększ efektywność",
     ctaText: "Sprawdź ofertę",
-    imageSrc: "/img/Business pro package.png",
+    imageSrc: promoImg("Business pro package.png"),
     imageBanner: true,
     link: "/account/subscriptions?audience=business"
   }
@@ -91,10 +98,10 @@ export default function HelpfliPromoCarousel() {
 
   const currentSlide = slides[currentIndex];
   const desktopImageClass = currentSlide.imageBanner
-    ? "absolute right-0 top-0 bottom-0 h-full w-[min(52%,420px)] object-cover object-right opacity-95"
+    ? "absolute inset-y-0 right-0 h-full w-[min(62%,520px)] object-cover object-center"
     : "absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100";
   const mobileImageClass = currentSlide.imageBanner
-    ? "h-28 w-36 object-cover object-right rounded-lg shrink-0"
+    ? "h-32 w-44 object-cover object-center rounded-lg shrink-0"
     : "h-24 w-24 object-contain shrink-0";
 
   return (
@@ -105,7 +112,7 @@ export default function HelpfliPromoCarousel() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
         <div 
-          className="relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 md:h-[220px]"
+          className="relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 md:h-[260px]"
           style={{
             backgroundColor: 'var(--card)',
             borderColor: 'var(--border)',
@@ -188,7 +195,13 @@ export default function HelpfliPromoCarousel() {
                   transition={{ duration: 0.3 }}
                 />
                 {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-white/20 to-transparent z-0" />
+                <div
+                  className={`absolute inset-0 z-0 ${
+                    currentSlide.imageBanner
+                      ? "bg-gradient-to-r from-white/75 via-white/25 to-transparent"
+                      : "bg-gradient-to-r from-white/60 via-white/20 to-transparent"
+                  }`}
+                />
               </div>
 
               {/* Mobile: tekst + obraz bez nakładania */}
