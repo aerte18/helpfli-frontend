@@ -2,9 +2,9 @@ const LANDING_HERO_VERSION = "20260523b";
 
 export default function HeroMapAI() {
   return (
-    <div className="hidden lg:flex relative w-full max-w-[540px] xl:max-w-[600px] ml-auto justify-end">
+    <div className="hidden lg:flex relative w-full max-w-[540px] xl:max-w-[600px]">
       <div
-        className="relative w-full rounded-3xl overflow-hidden flex items-center justify-center"
+        className="relative w-full rounded-3xl overflow-hidden flex items-center justify-start"
         style={{
           minHeight: "400px",
           height: "clamp(380px, 42vh, 480px)",
@@ -15,7 +15,8 @@ export default function HeroMapAI() {
         <img
           src={`/img/landing%20front.png?v=${LANDING_HERO_VERSION}`}
           alt="Znajdź pomoc w swojej okolicy — mapa usług Helpfli"
-          className="block w-[118%] h-[118%] max-w-none object-contain object-center select-none"
+          className="block h-full w-full max-w-none object-contain object-left select-none scale-[1.08] origin-left -translate-x-1"
+          style={{ objectPosition: "left center" }}
           draggable={false}
         />
       </div>

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 /** Podbij wersję po wymianie plików w public/img — omija cache przeglądarki */
-const PROMO_ASSETS_VERSION = "20260523b";
+const PROMO_ASSETS_VERSION = "20260523e";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${PROMO_ASSETS_VERSION}`;
@@ -52,7 +52,8 @@ const slides = [
     title: "Zarządzaj zespołem wykonawców",
     description: "14 dni za darmo",
     ctaText: "Sprawdź ofertę",
-    imageSrc: promoImg("team management.png"),
+    imageSrc: promoImg("Zarządzenie zespołem.png"),
+    imageBanner: true,
     link: "/register?role=provider"
   },
   {
@@ -60,7 +61,7 @@ const slides = [
     title: "Pakiet Pro dla firm",
     description: "Zarządzaj zespołem i zwiększ efektywność",
     ctaText: "Sprawdź ofertę",
-    imageSrc: promoImg("Business pro package.png"),
+    imageSrc: promoImg("pakiet pro dla firm.png"),
     imageBanner: true,
     link: "/account/subscriptions?audience=business"
   }
@@ -97,11 +98,12 @@ export default function HelpfliPromoCarousel() {
   };
 
   const currentSlide = slides[currentIndex];
-  const desktopImageClass = currentSlide.imageBanner
-    ? "absolute inset-y-0 right-0 h-full w-[min(62%,520px)] object-cover object-center"
+  const isBanner = !!currentSlide.imageBanner;
+  const desktopImageClass = isBanner
+    ? "absolute top-1/2 -translate-y-1/2 left-[38%] right-3 h-[94%] w-auto max-w-[62%] object-contain object-right pointer-events-none"
     : "absolute right-0 top-1/2 -translate-y-1/2 h-[55%] md:h-full max-h-[140px] md:max-h-none object-contain opacity-90 md:opacity-100";
-  const mobileImageClass = currentSlide.imageBanner
-    ? "h-32 w-44 object-cover object-center rounded-lg shrink-0"
+  const mobileImageClass = isBanner
+    ? "h-28 w-[11rem] max-w-[45vw] object-contain object-right rounded-lg shrink-0"
     : "h-24 w-24 object-contain shrink-0";
 
   return (
@@ -112,7 +114,7 @@ export default function HelpfliPromoCarousel() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
         <div 
-          className="relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 md:h-[260px]"
+          className={`relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 ${isBanner ? "md:h-[280px]" : "md:h-[260px]"}`}
           style={{
             backgroundColor: 'var(--card)',
             borderColor: 'var(--border)',
@@ -186,9 +188,9 @@ export default function HelpfliPromoCarousel() {
                   alt={currentSlide.title}
                   className={desktopImageClass}
                   style={
-                    currentSlide.imageBanner
-                      ? undefined
-                      : { maxWidth: '55%', objectPosition: 'right center' }
+                    isBanner
+                      ? { objectPosition: "right center" }
+                      : { maxWidth: "55%", objectPosition: "right center" }
                   }
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -197,8 +199,8 @@ export default function HelpfliPromoCarousel() {
                 {/* Overlay gradient */}
                 <div
                   className={`absolute inset-0 z-0 ${
-                    currentSlide.imageBanner
-                      ? "bg-gradient-to-r from-white/75 via-white/25 to-transparent"
+                    isBanner
+                      ? "bg-gradient-to-r from-white/90 via-white/40 to-transparent"
                       : "bg-gradient-to-r from-white/60 via-white/20 to-transparent"
                   }`}
                 />
@@ -234,8 +236,12 @@ export default function HelpfliPromoCarousel() {
               </div>
 
               {/* Desktop: dotychczasowy układ */}
-              <div className="relative z-10 hidden md:flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6 px-8 md:px-12 py-0 max-w-[min(100%,28rem)] md:max-w-none">
-                <div className="flex-1 min-w-0 pr-[30%] md:pr-0">
+              <div
+                className={`relative z-10 hidden md:flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-6 px-8 md:px-12 py-0 max-w-[min(100%,28rem)] ${
+                  isBanner ? "md:max-w-[44%]" : "md:max-w-none"
+                }`}
+              >
+                <div className={`flex-1 min-w-0 ${isBanner ? "" : "pr-[30%] md:pr-0"}`}>
                   <h3 className="text-lg md:text-2xl font-bold mb-2 leading-tight" style={{ color: 'var(--foreground)' }}>
                     {currentSlide.title}
                   </h3>
