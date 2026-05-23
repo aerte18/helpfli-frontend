@@ -140,6 +140,7 @@ export default function NotificationsPage() {
       subscription_expired: '❌',
       subscription_renewed: '🔄',
       referral_reward: '🎁',
+      welcome_credit: '🎁',
       system_announcement: '📢'
     };
     return icons[type] || '🔔';

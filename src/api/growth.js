@@ -1,10 +1,12 @@
 import { api } from './client';
 
+/** Brak fałszywego „1000 miejsc” — UI pokazuje komunikat o niedostępności licznika. */
 const FALLBACK_STATUS = {
-  limit: 1000,
-  used: 0,
-  remaining: 1000,
-  enabled: true,
+  limit: null,
+  used: null,
+  remaining: null,
+  enabled: false,
+  unavailable: true,
   fallback: true,
 };
 

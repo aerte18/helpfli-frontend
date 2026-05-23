@@ -1628,7 +1628,7 @@ function BillingTab({ user }) {
           </div>
         </Card>
         {user?.role === 'provider' && (billingData.stats.foundingSavingsPln > 0 || billingData.stats.foundingOrdersCount > 0) && (
-          <Card title="Oszczędność Founding">
+          <Card title="Oszczędność — Pierwszy wykonawca">
             <div className="text-2xl font-bold text-amber-700">
               {formatAmount(billingData.stats.foundingSavingsPln)}
             </div>
@@ -1702,7 +1702,7 @@ function BillingTab({ user }) {
                   </div>
                   {transaction.foundingDiscountPln > 0 && (
                     <div className="text-xs text-amber-700 font-medium mt-0.5">
-                      Ulga Founding: −{transaction.foundingDiscountPln.toFixed(2)} zł prowizji
+                      Ulga Pierwszy wykonawca: −{transaction.foundingDiscountPln.toFixed(2)} zł prowizji
                     </div>
                   )}
                   {transaction.orderId && (

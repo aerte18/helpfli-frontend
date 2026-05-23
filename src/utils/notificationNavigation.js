@@ -79,6 +79,8 @@ export function getNotificationNavigateTarget(notification) {
       target = { pathname: `/orders/${oid}/sprawa`, search: "" };
     } else if (type === "new_offer" || type === "new_quote") {
       target = { pathname: `/orders/${oid}`, search: "?tab=offers" };
+    } else if (type === "welcome_credit") {
+      target = { pathname: "/account/wallet", search: "" };
     } else if (type === "referral_reward") {
       target = { pathname: "/account", search: "?tab=referrals" };
     } else if (type === "founding_provider_expiring") {

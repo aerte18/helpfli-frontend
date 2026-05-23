@@ -1397,10 +1397,30 @@ export default function ProviderHome() {
       {viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
           <ProviderGrowthBenefitsPanel />
+          {user?.role === 'provider' &&
+            user?.foundingProviderEverActivated &&
+            !user?.foundingProvider && (
+              <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+                <p className="font-semibold text-slate-900">Program „Pierwszy wykonawca” zakończył się</p>
+                <p className="mt-1 text-slate-600">
+                  Od teraz przy zleceniach w Helpfli obowiązuje standardowa prowizja platformy. Subskrypcja PRO
+                  (limity pakietu, miesięczne wyróżnienia) działa osobno — sprawdź swój plan.
+                </p>
+                <Link
+                  to="/account/subscriptions?audience=provider"
+                  className="inline-block mt-2 font-semibold text-indigo-700 hover:underline"
+                >
+                  Zobacz pakiety PRO →
+                </Link>
+              </div>
+            )}
           {!(
             user?.foundingProvider &&
             (!user?.foundingProviderExpiresAt || new Date(user.foundingProviderExpiresAt) > new Date())
-          ) && <FoundingProviderBanner variant="compact" showActivate />}
+          ) &&
+            !user?.foundingProviderEverActivated && (
+              <FoundingProviderBanner variant="compact" showActivate />
+            )}
         </div>
       )}
 

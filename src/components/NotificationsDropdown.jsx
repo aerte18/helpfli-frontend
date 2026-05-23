@@ -136,6 +136,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
       subscription_expired: '❌',
       subscription_renewed: '🔄',
       referral_reward: '🎁',
+      welcome_credit: '🎁',
       system_announcement: '📢',
       limit_warning: '⚠️',
       limit_exceeded: '🚫',

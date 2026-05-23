@@ -22,7 +22,7 @@ export default function FoundingProviderBanner({
 }) {
   const navigate = useNavigate();
   const { user, fetchMe } = useAuth();
-  const [status, setStatus] = useState({ remaining: 1000, limit: 1000, enabled: true });
+  const [status, setStatus] = useState({ remaining: null, limit: null, enabled: false, unavailable: true });
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState('');
@@ -41,9 +41,11 @@ export default function FoundingProviderBanner({
     return () => { cancelled = true; };
   }, []);
 
-  const remaining = Number(status?.remaining ?? 1000);
-  const limit = Number(status?.limit ?? 1000);
-  const spotsLow = remaining > 0 && remaining <= 100;
+  const counterAvailable =
+    status?.remaining != null && status?.limit != null && !status?.unavailable;
+  const remaining = counterAvailable ? Number(status.remaining) : null;
+  const limit = counterAvailable ? Number(status.limit) : null;
+  const spotsLow = counterAvailable && remaining > 0 && remaining <= 100;
 
   const handleActivate = async () => {
     if (!user) {
@@ -80,7 +82,7 @@ export default function FoundingProviderBanner({
             isCompact ? 'text-amber-800 text-xs' : 'text-amber-100 text-xs md:text-sm'
           }`}
         >
-          Program startowy
+          Program Pierwszy wykonawca
         </p>
         <h3
           className={`font-bold leading-tight mt-1 ${
@@ -90,15 +92,18 @@ export default function FoundingProviderBanner({
           Dołącz do pierwszych 1000 wykonawców Helpfli
         </h3>
 
-        {!loading && status?.enabled !== false && (
+        {!loading && counterAvailable && status?.enabled !== false && (
           <p
             className={`mt-2 text-sm ${
               isCompact ? 'text-amber-900/90' : 'text-white/95'
             } ${spotsLow ? 'font-semibold' : ''}`}
           >
-            Zostało{' '}
-            <strong>{remaining}</strong> z {limit} miejsc
-            {status?.fallback ? ' (szacunek)' : ''}
+            Zostało <strong>{remaining}</strong> z {limit} miejsc
+          </p>
+        )}
+        {!loading && !counterAvailable && (
+          <p className={`mt-2 text-sm ${isCompact ? 'text-amber-900/80' : 'text-white/90'}`}>
+            Licznik wolnych miejsc chwilowo niedostępny — aktywacja w panelu sprawdzi dostępność.
           </p>
         )}
 
@@ -134,7 +139,7 @@ export default function FoundingProviderBanner({
           {showActivate &&
             user?.role === 'provider' &&
             !activated &&
-            remaining > 0 &&
+            (counterAvailable ? remaining > 0 : status?.enabled !== false) &&
             !user?.foundingProviderEverActivated &&
             !user?.foundingProvider && (
             <button
@@ -148,7 +153,7 @@ export default function FoundingProviderBanner({
               }`}
             >
               {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Aktywuj status Founding Provider
+              Aktywuj status Pierwszego wykonawcy
             </button>
           )}
           {!showActivate && (

@@ -307,6 +307,7 @@ export default function AcceptOfferModal({
             {(foundingWaived || providerMeta.foundingProviderActive) && (
               <FoundingFeeHint
                 className="mt-3"
+                forClient
                 foundingCommissionWaived={foundingWaived}
                 foundingExpiresAt={providerMeta.foundingExpiresAt}
                 platformFeeBeforeDiscount={platformFeeBeforeFounding}

@@ -90,7 +90,8 @@ export async function likePortfolioItem(itemId) {
   return res.json();
 }
 
-// ========== REFERRALS ==========
+// ========== REFERRALS (legacy — użyj api/referrals.js / program growth) ==========
+/** @deprecated Preferuj `getMyReferral` z `api/referrals.js` */
 
 export async function getMyReferralCode() {
   const res = await fetch(`${API_URL}/api/social/referrals/me`, {

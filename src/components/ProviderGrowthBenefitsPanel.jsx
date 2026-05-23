@@ -80,7 +80,7 @@ export default function ProviderGrowthBenefitsPanel({ className = '', compact = 
                   }`
                 : 'Program Pierwszy wykonawca'
             }
-            badge="Founding"
+            badge="Pierwszy"
           />
         )}
 
@@ -88,7 +88,7 @@ export default function ProviderGrowthBenefitsPanel({ className = '', compact = 
           <BenefitRow
             icon={Zap}
             title={`${founding.freeBoostsRemaining} darmowych wyróżnień ofert`}
-            detail={`Z puli startowej (${founding.freeBoostsTotal || 10} łącznie w programie Founding). Zużywasz je przy boostcie oferty — przed płatnymi i limitami PRO.`}
+            detail={`Z puli startowej (${founding.freeBoostsTotal || 10} łącznie w programie Pierwszy wykonawca). Zużywasz je przy boostcie oferty — przed płatnymi i limitami PRO.`}
           />
         )}
 

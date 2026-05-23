@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from 'react';
-import { Search, Bell, ClipboardList, Building2, X, Wrench, Plus, LogOut } from "lucide-react";
+import { Search, Bell, ClipboardList, Building2, X, Wrench, Plus, LogOut, Gift } from "lucide-react";
 import { unreadTotal } from '../services/chatApi';
 import Logo from "./Logo";
 import { UI } from "../i18n/pl_ui";
@@ -343,6 +343,14 @@ export default function Navbar() {
                     >
                       Subskrypcje
                     </Link>
+                    <Link
+                      to="/account?tab=referrals"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <Gift className="w-4 h-4 shrink-0" aria-hidden />
+                      Polecenia
+                    </Link>
                     <Link 
                       to="/inbox" 
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -648,6 +656,14 @@ export default function Navbar() {
             ) : user ? (
               <>
                 <Link to="/inbox" onClick={() => setMobileOpen(false)} className="py-2">Wiadomości {count > 0 ? `(${count})` : ''}</Link>
+                <Link
+                  to="/account?tab=referrals"
+                  onClick={() => setMobileOpen(false)}
+                  className="py-2 flex items-center gap-2"
+                >
+                  <Gift className="w-4 h-4 shrink-0" aria-hidden />
+                  Polecenia
+                </Link>
                 {(() => {
                   const isCompanyUser = user?.role === "company_owner" || 
                                       user?.role === "company_manager" ||

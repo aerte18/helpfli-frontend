@@ -1,5 +1,5 @@
 /**
- * Krótka informacja o zniżce prowizji (Founding / PRO) przy podsumowaniu płatności.
+ * Informacja o zniżce prowizji (program Pierwszy wykonawca / PRO) przy podsumowaniu płatności.
  */
 export default function FoundingFeeHint({
   foundingCommissionWaived = false,
@@ -7,6 +7,8 @@ export default function FoundingFeeHint({
   feeExplanation = null,
   platformFeeBeforeDiscount = null,
   platformFee = null,
+  /** Widok klienta przy akceptacji oferty — wyjaśnia, że to benefit wykonawcy */
+  forClient = false,
   className = '',
 }) {
   if (!feeExplanation && !foundingCommissionWaived && !(platformFeeBeforeDiscount > platformFee)) {
@@ -29,8 +31,14 @@ export default function FoundingFeeHint({
         {feeExplanation ||
           (foundingCommissionWaived
             ? `Pierwszy wykonawca Helpfli — 0% prowizji${expiresLabel ? ` do ${expiresLabel}` : ''}.`
-            : 'Zastosowano zniżkę programu Founding Provider.')}
+            : 'Zniżka z programu Pierwszy wykonawca.')}
       </p>
+      {forClient && foundingCommissionWaived && (
+        <p className="text-xs text-amber-800 mt-1 leading-snug">
+          To korzyść dzięki statusowi wykonawcy w programie „Pierwszy wykonawca” — niższa opłata
+          platformy przy tym zleceniu, nie bonus na Twoje konto.
+        </p>
+      )}
       {platformFeeBeforeDiscount > 0 && platformFee === 0 && (
         <p className="text-xs text-amber-800 mt-1">
           Standardowa prowizja {platformFeeBeforeDiscount} zł — w tej transakcji nie pobieramy.
