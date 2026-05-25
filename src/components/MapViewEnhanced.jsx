@@ -1,9 +1,17 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AvailabilityBadge from "./AvailabilityBadge";
 import ProviderAvatar from "./ProviderAvatar";
 import { metrics } from "../utils/metrics";
+import {
+  MapInitialRecenter,
+  MapLocateControl,
+  MapViewportTracker,
+  SearchThisAreaButton,
+  UserLocationLayer,
+} from "./MapUserLocation";
+import useMapUserLocation from "../hooks/useMapUserLocation";
 
 const isActive = (d) => d && new Date(d) > new Date();
 const baseIcon = (size = 25) =>
@@ -167,12 +175,11 @@ export default function MapViewEnhanced({
   onSelect,
   onQuickView,
   onCompare,
+  // Nowe (opcjonalne) propsy do obsługi „Szukaj w tym obszarze" i kropki użytkownika.
+  profileCoords = null,
+  onViewportSearch,
+  mapLoading = false,
 }) {
-  console.log("MapViewEnhanced - providers:", providers);
-  console.log("MapViewEnhanced - providers count:", providers.length);
-  console.log("MapViewEnhanced - providers with coords:", providers.filter(p => p.lat && p.lng).length);
-  console.log("MapViewEnhanced - first provider coords:", providers[0] ? { lat: providers[0].lat, lng: providers[0].lng } : "none");
-  
   // Track map opens when providers are loaded
   useEffect(() => {
     if (providers.length > 0) {
@@ -181,6 +188,39 @@ export default function MapViewEnhanced({
       });
     }
   }, [providers]);
+
+  // --- Lokalizacja użytkownika (GPS → fallback do profilu) ---
+  const { userLocation, requestLocation } = useMapUserLocation({
+    profileCoords,
+  });
+
+  // --- Stan dla „Szukaj w tym obszarze" ---
+  const [pendingViewport, setPendingViewport] = useState(null);
+  const [lastFetchedViewport, setLastFetchedViewport] = useState(null);
+
+  const handleViewportChange = useCallback((vp) => {
+    setPendingViewport(vp);
+    // Pierwszy viewport po inicjalizacji to baseline – nie pokazuj wtedy przycisku.
+    setLastFetchedViewport((prev) => prev || vp);
+  }, []);
+
+  const showSearchHereBtn = useMemo(() => {
+    if (!onViewportSearch) return false;
+    if (!pendingViewport || !lastFetchedViewport) return false;
+    if (pendingViewport === lastFetchedViewport) return false;
+    if (pendingViewport.zoom !== lastFetchedViewport.zoom) return true;
+    const dLat = Math.abs(pendingViewport.center[0] - lastFetchedViewport.center[0]);
+    const dLng = Math.abs(pendingViewport.center[1] - lastFetchedViewport.center[1]);
+    const spanLat = Math.abs(pendingViewport.bounds.neLat - pendingViewport.bounds.swLat);
+    const spanLng = Math.abs(pendingViewport.bounds.neLng - pendingViewport.bounds.swLng);
+    return dLat > spanLat * 0.2 || dLng > spanLng * 0.2;
+  }, [pendingViewport, lastFetchedViewport, onViewportSearch]);
+
+  const handleSearchThisArea = useCallback(() => {
+    if (!pendingViewport || !onViewportSearch) return;
+    onViewportSearch(pendingViewport);
+    setLastFetchedViewport(pendingViewport);
+  }, [pendingViewport, onViewportSearch]);
 
   return (
     <div
@@ -226,9 +266,29 @@ export default function MapViewEnhanced({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        {/* Niebieska kropka „ja" + przycisk centrowania */}
+        <UserLocationLayer userLocation={userLocation} />
+        <MapInitialRecenter userLocation={userLocation} />
+        <MapLocateControl
+          userLocation={userLocation}
+          onRequestLocation={requestLocation}
+        />
+
+        {/* „Szukaj w tym obszarze" — tylko jeśli rodzic przekazał handler */}
+        {onViewportSearch && (
+          <>
+            <MapViewportTracker onViewportChange={handleViewportChange} />
+            <SearchThisAreaButton
+              visible={showSearchHereBtn}
+              loading={mapLoading}
+              onClick={handleSearchThisArea}
+              label="Przeszukaj ten obszar"
+            />
+          </>
+        )}
+
         {/* Usunięto MarkerClusterGroup - pinezki widoczne od razu */}
         {providers.map((p) => {
-          console.log("Rendering marker for:", p.name, "at:", p.lat, p.lng);
           return (
           <Marker key={p.id} position={[p.lat, p.lng]} icon={providerIcon(p)}>
               <Popup className="custom-popup">

@@ -1,33 +1,96 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Award, CheckCircle2, Crown, TrendingUp, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 /**
  * Pop-up „Odbierz status Pierwszego Wykonawcy Helpfli”.
  *
+ * Treść popupu jest jednym assetem PNG (z gotową grafiką, nagłówkami i listą),
+ * a interakcję obsługują tylko dwa przezroczyste przyciski nałożone na obrazek:
+ *   - X (zamknij) – w prawym górnym rogu
+ *   - „Dołącz teraz” – nad narysowanym CTA
+ *
  * UX:
- *  - Nieagresywny: pojawia się po 25 s (w przedziale 20–30 s).
- *  - Nie pokazuje się, gdy:
- *      * użytkownik jest już wykonawcą / company_owner,
- *      * został zamknięty / klikany („Dołącz”) – pamiętane w localStorage (per-wersja).
- *  - Klik w X / poza modalem / Esc => zamknięcie (zliczone jako „dismiss”).
- *  - Klik „Dołącz teraz” => przekierowanie do /register?role=provider.
+ *  - Nieagresywny: pojawia się po ~25 s.
+ *  - Audience: niezalogowani LUB provider/company_owner bez aktywnego foundingProvider.
+ *  - Klik X / poza modalem / Esc => zamknięcie (zapisane w localStorage).
+ *  - Klik „Dołącz teraz” => /register?role=provider.
+ *  - Tryb testowy: `?popup=founding` w URL wymusza pokaz natychmiast (1 s).
  */
-const STORAGE_KEY = "helpfli.founding_popup.dismissed.v1";
+const STORAGE_KEY = "helpfli.founding_popup.dismissed.v3";
 const DELAY_MS = 25000;
+const FORCE_SHOW_DELAY_MS = 1000;
 
-const BENEFITS = [
-  "0% prowizji przez 60 dni",
-  "Większa widoczność i więcej zleceń",
-  "Status Pierwszego Wykonawcy i darmowe wyróżnienia",
-];
+// --- Geometria obrazka /img/founding-provider-popup.png ---
+// Obrazek (1024 × 683) zawiera popup + zblurowane tło strony. Przycinamy do
+// białej karty, żeby nie powstawał efekt „popup w popupie”.
+const IMG_W = 1024;
+const IMG_H = 683;
+const CARD_LEFT = 165;
+const CARD_TOP = 60;
+const CARD_W = 715;
+const CARD_H = 535;
 
-const SIDE_CARDS = [
-  { icon: TrendingUp, label: "Więcej zleceń" },
-  { icon: Award, label: "Lepsza widoczność" },
-  { icon: Crown, label: "Specjalne wyróżnienia" },
-];
+// Pozycje narysowanych elementów wewnątrz całego obrazka:
+const X_CENTER = { x: 820, y: 95 };
+const X_SIZE = 38;
+const JOIN_BTN_BOUNDS = { x: 268, y: 484, w: 168, h: 44 };
+
+// Obliczenia procentowe (relatywne do białej karty):
+const cardPct = (x, y, w = 0, h = 0) => ({
+  left: `${((x - CARD_LEFT) / CARD_W) * 100}%`,
+  top: `${((y - CARD_TOP) / CARD_H) * 100}%`,
+  width: `${(w / CARD_W) * 100}%`,
+  height: `${(h / CARD_H) * 100}%`,
+});
+
+const X_BTN_POS = cardPct(
+  X_CENTER.x - X_SIZE / 2,
+  X_CENTER.y - X_SIZE / 2,
+  X_SIZE,
+  X_SIZE
+);
+const JOIN_BTN_POS = cardPct(
+  JOIN_BTN_BOUNDS.x,
+  JOIN_BTN_BOUNDS.y,
+  JOIN_BTN_BOUNDS.w,
+  JOIN_BTN_BOUNDS.h
+);
+
+// Skalowanie obrazka wewnątrz kontenera-karty:
+// Obrazek ma być na tyle szeroki, żeby cała szerokość karty (CARD_W) odpowiadała
+// szerokości kontenera. Czyli szerokość obrazka = (IMG_W / CARD_W) * 100% kontenera.
+const IMG_WIDTH_PCT = (IMG_W / CARD_W) * 100;
+const IMG_OFFSET_LEFT_PCT = -(CARD_LEFT / CARD_W) * 100;
+// Top offset musi być wyrażony w % wysokości kontenera. Kontener jest wysoki na
+// CARD_H pikseli (w skali obrazka), więc offset CARD_TOP pikseli = -CARD_TOP/CARD_H.
+const IMG_OFFSET_TOP_PCT = -(CARD_TOP / CARD_H) * 100;
+
+function isForcedFromUrl() {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("popup") === "founding";
+  } catch (_) {
+    return false;
+  }
+}
+
+function hasActiveFoundingProvider(user) {
+  if (!user) return false;
+  if (user.foundingProviderEverActivated === true) return true;
+  const fp = user.foundingProvider;
+  if (fp === true) return true;
+  if (fp && typeof fp === "object") {
+    if (fp.active === true) return true;
+    const exp = fp.expiresAt || user.foundingProviderExpiresAt;
+    if (exp) {
+      const t = Date.parse(exp);
+      if (Number.isFinite(t) && t > Date.now()) return true;
+    }
+  }
+  return false;
+}
 
 export default function FoundingProviderPopup() {
   const navigate = useNavigate();
@@ -35,32 +98,38 @@ export default function FoundingProviderPopup() {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  const forced = useMemo(isForcedFromUrl, []);
+
   const eligible = useMemo(() => {
     if (typeof window === "undefined") return false;
+    if (forced) return true;
     try {
       if (window.localStorage.getItem(STORAGE_KEY) === "1") return false;
     } catch (_) {
       // brak localStorage – pokaż mimo wszystko
     }
-    const role = user?.role;
-    if (role === "provider" || role === "company_owner") return false;
-    if (user?.foundingProvider || user?.foundingProviderEverActivated) return false;
+    if (!user) return true;
+    const role = user.role;
+    if (role !== "provider" && role !== "company_owner") return false;
+    if (hasActiveFoundingProvider(user)) return false;
     return true;
-  }, [user]);
+  }, [user, forced]);
 
   useEffect(() => {
     if (!eligible) return undefined;
-    const t = setTimeout(() => setOpen(true), DELAY_MS);
+    const delay = forced ? FORCE_SHOW_DELAY_MS : DELAY_MS;
+    const t = setTimeout(() => setOpen(true), delay);
     return () => clearTimeout(t);
-  }, [eligible]);
+  }, [eligible, forced]);
 
   const persistDismiss = useCallback(() => {
+    if (forced) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, "1");
     } catch (_) {
       /* noop */
     }
-  }, []);
+  }, [forced]);
 
   const handleClose = useCallback(() => {
     setClosing(true);
@@ -77,7 +146,6 @@ export default function FoundingProviderPopup() {
     navigate("/register?role=provider&utm_source=popup&utm_campaign=founding_provider");
   }, [navigate, persistDismiss]);
 
-  // Esc + scroll lock
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -94,6 +162,9 @@ export default function FoundingProviderPopup() {
 
   if (!open) return null;
 
+  // Kontener-karta zachowuje proporcje białej karty z obrazka (715:535).
+  // Obrazek jest skalowany do 143% szerokości kontenera (=1024/715) i przesunięty
+  // w lewo i w górę tak, żeby widoczna była tylko sama karta.
   return (
     <div
       role="dialog"
@@ -107,114 +178,62 @@ export default function FoundingProviderPopup() {
         type="button"
         aria-label="Zamknij okno"
         onClick={handleClose}
-        className="absolute inset-0 bg-slate-900/45 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
       />
 
       <div
-        className={`relative w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5 ${
-          closing ? "qs-popOut" : "qs-popIn"
-        }`}
+        id="founding-popup-title"
+        className={`relative w-full max-w-[720px] ${closing ? "qs-popOut" : "qs-popIn"}`}
+        aria-label="Odbierz status Pierwszego Wykonawcy Helpfli"
       >
-        <div className="grid grid-cols-1 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative p-6 sm:p-8 md:p-10">
-            <div className="flex items-center gap-2 text-indigo-600">
-              <img
-                src="/img/helpfli-icon-180.jpg"
-                alt=""
-                className="h-7 w-7 rounded-md object-cover"
-                draggable={false}
-              />
-              <span className="text-base font-bold tracking-tight">Helpfli</span>
-            </div>
-
-            <h2
-              id="founding-popup-title"
-              className="mt-5 text-2xl font-extrabold leading-tight text-slate-900 sm:text-[28px]"
-            >
-              Odbierz status{" "}
-              <span className="text-indigo-600">Pierwszego</span>
-              <br className="hidden sm:block" /> Wykonawcy Helpfli
-            </h2>
-
-            <p className="mt-3 text-sm text-slate-600 sm:text-[15px]">
-              Dołącz do grona zaufanych specjalistów i zyskaj przewagę na starcie.
-            </p>
-
-            <ul className="mt-5 space-y-2.5">
-              {BENEFITS.map((b) => (
-                <li key={b} className="flex items-start gap-2.5 text-[14px] text-slate-800 sm:text-[15px]">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" aria-hidden />
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              type="button"
-              onClick={handleJoin}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-[15px] font-semibold text-white shadow-md hover:bg-indigo-700 active:scale-[0.99] sm:w-auto sm:min-w-[240px]"
-            >
-              Dołącz teraz
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </button>
-
-            <p className="mt-4 text-[12px] leading-snug text-slate-500">
-              Oferta tylko dla pierwszych wykonawców.
-              <br />
-              Liczba miejsc ograniczona.
-            </p>
-          </div>
-
-          {/* Prawa kolumna – wizualna (gradient + odznaka + 3 mini-kafle) */}
-          <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-50 via-indigo-100/70 to-white md:block">
-            <div
-              className="absolute -right-12 -top-10 h-56 w-56 rounded-full bg-indigo-200/60 blur-2xl"
-              aria-hidden
-            />
-            <div
-              className="absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl"
-              aria-hidden
-            />
-
-            {/* Odznaka „PIERWSZY WYKONAWCA” */}
-            <div className="relative mx-auto mt-12 flex h-48 w-48 items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-white/70 shadow-inner" aria-hidden />
-              <div className="relative flex h-40 w-40 flex-col items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-xl ring-4 ring-white">
-                <Crown className="h-9 w-9 text-amber-300" aria-hidden />
-                <div className="mt-1.5 text-center text-[10px] font-bold tracking-wider">
-                  PIERWSZY
-                  <br />
-                  WYKONAWCA
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-6 left-1/2 w-[88%] -translate-x-1/2 rounded-xl bg-white/95 p-3 shadow-lg ring-1 ring-slate-900/5">
-              <ul className="space-y-2">
-                {SIDE_CARDS.map(({ icon: Icon, label }) => (
-                  <li key={label} className="flex items-center gap-2.5 text-[13px] font-medium text-slate-800">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </span>
-                    {label}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label="Zamknij"
-          className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-600 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        <div
+          className="relative w-full overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-900/5"
+          style={{ aspectRatio: `${CARD_W} / ${CARD_H}` }}
         >
-          <X className="h-4 w-4" aria-hidden />
-        </button>
+          <img
+            src="/img/founding-provider-popup.png"
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="pointer-events-none absolute select-none"
+            style={{
+              width: `${IMG_WIDTH_PCT}%`,
+              height: "auto",
+              left: `${IMG_OFFSET_LEFT_PCT}%`,
+              top: `${IMG_OFFSET_TOP_PCT}%`,
+            }}
+          />
+
+          {/* Przezroczysty przycisk X — nałożony dokładnie na narysowany X w obrazku. */}
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Zamknij"
+            className="absolute z-10 cursor-pointer rounded-full transition-colors hover:bg-slate-900/5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            style={{
+              left: X_BTN_POS.left,
+              top: X_BTN_POS.top,
+              width: X_BTN_POS.width,
+              height: X_BTN_POS.height,
+            }}
+          />
+
+          {/* Przezroczysty przycisk "Dołącz teraz" — nałożony na narysowany CTA. */}
+          <button
+            type="button"
+            onClick={handleJoin}
+            aria-label="Dołącz teraz"
+            className="absolute z-10 cursor-pointer rounded-xl transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600"
+            style={{
+              left: JOIN_BTN_POS.left,
+              top: JOIN_BTN_POS.top,
+              width: JOIN_BTN_POS.width,
+              height: JOIN_BTN_POS.height,
+            }}
+          />
+        </div>
       </div>
 
-      {/* Lokalne keyframes (bez modyfikowania globalnego CSS) */}
       <style>{`
         @keyframes qsFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes qsFadeOut { from { opacity: 1; } to { opacity: 0; } }

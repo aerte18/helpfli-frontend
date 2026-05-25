@@ -162,8 +162,25 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [maxDistance, setMaxDistance] = useState(300); // km — bezpieczny domyślny zasięg
+  // bbox (prostokąt z widoku mapy) ustawiany po kliknięciu „Przeszukaj ten obszar".
+  const [mapBbox, setMapBbox] = useState(null);
+  const [mapLoading, setMapLoading] = useState(false);
   const { user } = useAuth();
   const compare = useCompare();
+
+  // Fallback dla kropki „ja" na mapie, gdy GPS odmówi.
+  const profileCoords = useMemo(() => {
+    const lat = user?.locationCoords?.lat;
+    const lng = user?.locationCoords?.lng;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    return null;
+  }, [user]);
+
+  const handleMapAreaSearch = useCallback((vp) => {
+    if (!vp?.bbox) return;
+    setMapLoading(true);
+    setMapBbox(vp.bbox);
+  }, []);
 
   // Funkcja do pobierania geolokalizacji użytkownika
   const getUserLocation = useCallback(() => {
@@ -494,6 +511,7 @@ export default function Home() {
     if (verifiedOnly) qs.set("verifiedOnly", String(verifiedOnly));
     if (availableNow) qs.set("availableNow", "true");
     if (selectedServiceSlugs.length > 0) qs.set("service", selectedServiceSlugs.join(","));
+    if (mapBbox) qs.set("bbox", String(mapBbox));
 
     (async () => {
       let res;
@@ -581,11 +599,20 @@ export default function Home() {
             proOnly;
           setProviders(import.meta.env.DEV && !strict ? DEMO_PROVIDERS : []);
         }
+      } finally {
+        // Wyłącz spinner na przycisku „Przeszukaj ten obszar" niezależnie od wyniku.
+        setMapLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs, trackClientApiError, trackSearch]);
+  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs, mapBbox, trackClientApiError, trackSearch]);
+
+  // Gdy zmieniają się filtry / wyszukiwanie tekstowe / kategorie – reset bbox,
+  // żeby nie zostać uwięzionym w starym obszarze mapy.
+  useEffect(() => {
+    setMapBbox(null);
+  }, [filters.search, selectedServiceSlugs.join(","), verifiedOnly, availableNow, b2bOnly, proOnly]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);
@@ -1016,6 +1043,9 @@ export default function Home() {
                 onCompare={(p) => {
                   compare.toggle(p);
                 }}
+                profileCoords={profileCoords}
+                onViewportSearch={handleMapAreaSearch}
+                mapLoading={mapLoading}
               />
             </div>
           </div>
@@ -1212,6 +1242,9 @@ export default function Home() {
                 onCompare={(p) => {
                   compare.toggle(p);
                 }}
+                profileCoords={profileCoords}
+                onViewportSearch={handleMapAreaSearch}
+                mapLoading={mapLoading}
               />
             </div>
           )}

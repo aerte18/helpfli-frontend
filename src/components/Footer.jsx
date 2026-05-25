@@ -61,6 +61,11 @@ export default function Footer() {
             <h3 className="text-base font-semibold text-gray-900 mb-3 md:text-lg md:mb-4">Pomoc</h3>
             <ul className="space-y-2">
               <li>
+                <Link to="/poradniki" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
+                  Poradniki AI
+                </Link>
+              </li>
+              <li>
                 <Link to="/help" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
                   Centrum pomocy
                 </Link>

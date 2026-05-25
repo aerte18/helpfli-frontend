@@ -126,6 +126,9 @@ export default function Navbar() {
               <Link to="/services" className="text-sm font-medium transition-colors" style={{ color: 'var(--foreground)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--foreground)'}>
                 Usługi
               </Link>
+              <Link to="/poradniki" className="text-sm font-medium transition-colors" style={{ color: 'var(--foreground)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--foreground)'}>
+                Poradniki
+              </Link>
               <Link 
                 to="/" 
                 onClick={(e) => {
@@ -357,6 +360,13 @@ export default function Navbar() {
                       onClick={() => setShowUserMenu(false)}
                     >
                       Chat
+                    </Link>
+                    <Link 
+                      to="/poradniki" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Poradniki
                     </Link>
                     {user?.role !== 'provider' && (
                       <Link 
@@ -705,6 +715,12 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex flex-col gap-3 mt-2">
+                <Link to="/services" onClick={() => setMobileOpen(false)} className="py-2 text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  Usługi
+                </Link>
+                <Link to="/poradniki" onClick={() => setMobileOpen(false)} className="py-2 text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  Poradniki
+                </Link>
                 <Link to="/login" onClick={() => setMobileOpen(false)} className="rounded-md px-3 py-2 text-sm font-medium text-center transition-colors border" style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}>
                   Zaloguj się
                 </Link>
