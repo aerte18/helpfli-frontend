@@ -49,6 +49,8 @@ export default function AdminLayout() {
             <NavItem active={location.pathname === '/admin/notifications'} to="/admin/notifications">Powiadomienia</NavItem>
             <NavItem active={location.pathname === '/admin/reports'} to="/admin/reports">Raporty</NavItem>
             <NavItem active={location.pathname === '/admin/disputes'} to="/admin/disputes">Spory</NavItem>
+            <NavItem active={location.pathname === '/admin/seo'} to="/admin/seo">Poradniki AI</NavItem>
+            <NavItem active={location.pathname === '/admin/seo/pseo'} to="/admin/seo/pseo">PSEO matryca</NavItem>
             <NavItem active={location.pathname === '/admin/settings'} to="/admin/settings">Ustawienia</NavItem>
           </nav>
         </aside>

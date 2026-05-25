@@ -9,6 +9,7 @@ import ServiceCategoryDropdown from "../components/ServiceCategoryDropdown";
 import { CATEGORY_ICONS } from "../components/icons/HelpfliCategoryIcons";
 import OriginalLogoIcon from "../components/icons/OriginalLogoIcon";
 import Footer from "../components/Footer";
+import FoundingProviderPopup from "../components/FoundingProviderPopup";
 import AskAIButton from "../components/ui/AskAIButton";
 import AIBubble from "../components/chat/AIBubble";
 const LiveCameraAI = lazy(() => import("../components/LiveCameraAI"));
@@ -705,6 +706,9 @@ export default function LandingStart() {
           }}
         />
       </Suspense>
+
+      {/* Pop-up "Pierwszy Wykonawca" – po ~25 s, niezarejestrowanym / klientom */}
+      <FoundingProviderPopup />
     </div>
   );
 }

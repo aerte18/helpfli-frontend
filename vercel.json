@@ -10,9 +10,10 @@
     { "source": "/orders/:orderId/tab-details", "destination": "/orders/:orderId?tab=details", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://api.helpfli.pl/sitemap.xml" },
+    { "source": "/robots.txt", "destination": "https://api.helpfli.pl/robots.txt" },
+    { "source": "/:key(\\w{8,128}).txt", "destination": "https://api.helpfli.pl/:key.txt" },
     { "source": "/api/(.*)", "destination": "https://api.helpfli.pl/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-
-

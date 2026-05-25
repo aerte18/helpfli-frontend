@@ -6,6 +6,8 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
   MapLocateControl,
+  MapViewportTracker,
+  SearchThisAreaButton,
   UserLocationLayer,
 } from "../components/MapUserLocation";
 import L from "leaflet";
@@ -718,26 +720,48 @@ export default function ProviderHome() {
     fetchServices();
   }, []);
 
-  // Funkcja do pobierania geolokalizacji użytkownika
+  // Funkcja do pobierania geolokalizacji użytkownika.
+  // Priorytet źródeł:
+  //   1) GPS (świeży fix przeglądarki) – source: 'gps'
+  //   2) Profil użytkownika (user.locationCoords) – source: 'profile'
+  //   3) Twarda wartość fallback (środek PL) – source: 'fallback'
   const getUserLocation = useCallback(() => {
+    const profileLat = user?.locationCoords?.lat;
+    const profileLng = user?.locationCoords?.lng;
+    const hasProfileCoords =
+      Number.isFinite(profileLat) && Number.isFinite(profileLng);
+
     if (!navigator.geolocation) {
       setLocationError('Geolokalizacja nie jest obsługiwana przez przeglądarkę');
+      if (hasProfileCoords) {
+        setUserLocation({ lat: profileLat, lng: profileLng, source: 'profile' });
+      } else {
+        setUserLocation({ lat: 52.2297, lng: 21.0122, source: 'fallback' });
+      }
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const location = {
+        setUserLocation({
           lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        setUserLocation(location);
+          lng: position.coords.longitude,
+          source: 'gps',
+        });
         setLocationError(null);
       },
       (error) => {
-        setLocationError('Nie udało się pobrać lokalizacji');
-        // Fallback do Warszawy dla testów
-        setUserLocation({ lat: 52.2297, lng: 21.0122 });
+        const blocked = error && error.code === 1;
+        setLocationError(
+          blocked
+            ? 'Lokalizacja zablokowana — pokazujemy przybliżoną pozycję z Twojego profilu.'
+            : 'Nie udało się pobrać lokalizacji — pokazujemy przybliżoną pozycję.'
+        );
+        if (hasProfileCoords) {
+          setUserLocation({ lat: profileLat, lng: profileLng, source: 'profile' });
+        } else {
+          setUserLocation({ lat: 52.2297, lng: 21.0122, source: 'fallback' });
+        }
       },
       {
         enableHighAccuracy: true,
@@ -745,7 +769,7 @@ export default function ProviderHome() {
         maximumAge: 300000 // 5 minut
       }
     );
-  }, []);
+  }, [user?.locationCoords?.lat, user?.locationCoords?.lng]);
 
   // Pobierz geolokalizację przy załadowaniu komponentu
   useEffect(() => {
@@ -768,7 +792,7 @@ export default function ProviderHome() {
   // Usunięto problematyczny useEffect który powodował przekierowanie do /home
 
   // Pobieranie zleceń z API
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async ({ bbox = null } = {}) => {
     let requestUrl = "";
     const requestSeq = ++openFetchSeqRef.current;
     try {
@@ -779,17 +803,23 @@ export default function ProviderHome() {
     try {
       setDemandLoading(true);
       const token = localStorage.getItem('token');
-      
+
       // Buduj parametry zapytania
       const params = new URLSearchParams();
       // W trybie "wszystkie zlecenia" nie przepuszczaj ewentualnego starego filtra `service`.
       if (!showAllServices && filters.service && filters.service !== 'any') params.append('service', filters.service);
-      // Tryb "Wszystkie zlecenia" = pełny rynek (bez filtra dystansu).
-      const effectiveMaxDistance = showAllServices ? null : (Number(filters.maxDistance) || 300);
-      if (effectiveMaxDistance) params.append('maxDistance', effectiveMaxDistance);
-      if (!showAllServices && userLocation) {
-        params.append('lat', userLocation.lat);
-        params.append('lng', userLocation.lng);
+
+      if (bbox) {
+        // Mapa: szukaj w widocznym prostokącie zamiast po promieniu od użytkownika
+        params.append('bbox', bbox);
+      } else {
+        // Tryb "Wszystkie zlecenia" = pełny rynek (bez filtra dystansu).
+        const effectiveMaxDistance = showAllServices ? null : (Number(filters.maxDistance) || 300);
+        if (effectiveMaxDistance) params.append('maxDistance', effectiveMaxDistance);
+        if (!showAllServices && userLocation) {
+          params.append('lat', userLocation.lat);
+          params.append('lng', userLocation.lng);
+        }
       }
       if (filters.budgetMin) params.append('budgetMin', filters.budgetMin);
       if (filters.budgetMax) params.append('budgetMax', filters.budgetMax);
@@ -852,6 +882,32 @@ export default function ProviderHome() {
       fetchOrders();
     }
   }, [fetchOrders, user]);
+
+  // --- Stan dla „Szukaj w tym obszarze" na mapie zleceń ---
+  const [mapPendingBbox, setMapPendingBbox] = useState(null);
+  const [mapLastFetchedBbox, setMapLastFetchedBbox] = useState(null);
+
+  const handleMapViewportChange = useCallback((vp) => {
+    setMapPendingBbox(vp);
+    setMapLastFetchedBbox((prev) => prev || vp);
+  }, []);
+
+  const handleSearchMapArea = useCallback(() => {
+    if (!mapPendingBbox?.bbox) return;
+    fetchOrders({ bbox: mapPendingBbox.bbox });
+    setMapLastFetchedBbox(mapPendingBbox);
+  }, [mapPendingBbox, fetchOrders]);
+
+  const showSearchHereBtn = useMemo(() => {
+    if (!mapPendingBbox || !mapLastFetchedBbox) return false;
+    if (mapPendingBbox === mapLastFetchedBbox) return false;
+    if (mapPendingBbox.zoom !== mapLastFetchedBbox.zoom) return true;
+    const dLat = Math.abs(mapPendingBbox.center[0] - mapLastFetchedBbox.center[0]);
+    const dLng = Math.abs(mapPendingBbox.center[1] - mapLastFetchedBbox.center[1]);
+    const spanLat = Math.abs(mapPendingBbox.bounds.neLat - mapPendingBbox.bounds.swLat);
+    const spanLng = Math.abs(mapPendingBbox.bounds.neLng - mapPendingBbox.bounds.swLng);
+    return dLat > spanLat * 0.2 || dLng > spanLng * 0.2;
+  }, [mapPendingBbox, mapLastFetchedBbox]);
 
   useEffect(() => {
     return () => {
@@ -1981,6 +2037,13 @@ export default function ProviderHome() {
                   <MapInitialRecenter userLocation={userLocation} />
                   <UserLocationLayer userLocation={userLocation} />
                   <MapLocateControl userLocation={userLocation} onRequestLocation={getUserLocation} />
+                  <MapViewportTracker onViewportChange={handleMapViewportChange} />
+                  <SearchThisAreaButton
+                    visible={showSearchHereBtn}
+                    loading={demandLoading}
+                    onClick={handleSearchMapArea}
+                    label="Szukaj zleceń tutaj"
+                  />
                   {listSafe.map((o, idx) => {
                     let lat = o.lat || o.locationLat;
                     let lng = o.lng || o.locationLng;
@@ -2359,6 +2422,13 @@ export default function ProviderHome() {
               <MapLocateControl
                 userLocation={userLocation}
                 onRequestLocation={getUserLocation}
+              />
+              <MapViewportTracker onViewportChange={handleMapViewportChange} />
+              <SearchThisAreaButton
+                visible={showSearchHereBtn}
+                loading={demandLoading}
+                onClick={handleSearchMapArea}
+                label="Szukaj zleceń tutaj"
               />
               {listSafe.map((o, idx) => {
                 // Sprawdź czy zlecenie ma prawidłowe współrzędne

@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Filter, X } from "lucide-react";
 import Header from "../components/Header";
@@ -13,16 +13,27 @@ import HowItWorks from "../components/HowItWorks";
 import useCompare from "../hooks/useCompare";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import Footer from "../components/Footer";
+import { useAuth } from "../context/AuthContext";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const query = searchParams.get('query') || '';
   const service = searchParams.get('service') || '';
-  
+
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mapLoading, setMapLoading] = useState(false);
   const [error, setError] = useState(null);
+  const fetchAbortRef = useRef(null);
+
+  const profileLocation = useMemo(() => {
+    const lat = user?.locationCoords?.lat;
+    const lng = user?.locationCoords?.lng;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    return null;
+  }, [user]);
   const [filters, setFilters] = useState({
     level: "all",
     rating: 0,
@@ -49,99 +60,122 @@ export default function SearchPage() {
     return n;
   }, [filters]);
 
-  useEffect(() => {
-    const fetchProviders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Użyj query i service do filtrowania po stronie serwera
-        const params = new URLSearchParams();
-        if (query) params.append('q', query);
-        if (service) params.append('service', service);
-        const url = params.toString()
-          ? apiUrl(`/api/providers?${params.toString()}`)
-          : apiUrl("/api/providers");
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const json = await response.json();
-
-        // Ustal tablicę wyników niezależnie od kształtu odpowiedzi
-        const rawProviders = Array.isArray(json?.items)
-          ? json.items
-          : Array.isArray(json?.providers)
-            ? json.providers
-            : Array.isArray(json)
-              ? json
-              : [];
-
-        // Transformuj dane z backendu na format oczekiwany przez komponenty – defensywnie
-        const transformedProviders = rawProviders.map((provider) => {
-          if (!provider) return null;
-          const name = typeof provider.name === "string" && provider.name.trim().length
-            ? provider.name
-            : "Wykonawca";
-
-          const priceBase = typeof provider.price === "number" ? provider.price : 100;
-          const priceTo = priceBase + 50;
-
-          const lat = provider.locationCoords?.lat ?? provider.location?.lat ?? provider.lat;
-          const lng = provider.locationCoords?.lng ?? provider.location?.lng ?? provider.lng;
-          const hasCoords = isFinite(lat) && isFinite(lng);
-
-          return {
-            id: provider._id || provider.id || name,
-            initials: name
-              .split(" ")
-              .filter(Boolean)
-              .map((n) => n[0])
-              .join("")
-              .substring(0, 2)
-              .toUpperCase(),
-            name,
-            service: provider.service || "Usługa",
-            level: provider.level || "standard",
-            rating: typeof provider.rating === "number" ? provider.rating : 4.5,
-            priceFrom: priceBase,
-            priceTo,
-            eta: provider.eta || "30–45 min",
-            distanceKm: typeof provider.distanceKm === "number" ? provider.distanceKm : 3.2,
-            quality: typeof provider.quality === "number" ? provider.quality : 85,
-            verified: provider.verified === true,
-            b2b: provider.b2b === true,
-            badges: Array.isArray(provider.badges) ? provider.badges : ["Gwarancja Helpfli"],
-            coords: hasCoords ? [lat, lng] : null,
-            online: provider.online === true,
-            avatar: provider.avatar || null,
-          };
-        }).filter(Boolean);
-
-        setProviders(transformedProviders);
-      } catch (error) {
-        console.error('Błąd pobierania providerów:', error);
-        setError('Nie udało się pobrać danych providerów');
-        // Produkcja: brak sztucznych kart — tylko dev pokazuje przykładową listę przy błędzie API
-        if (import.meta.env.DEV) {
-          const demo = [
-            { id:"1", initials:"WA", name:"Wykonawca A", service:"Hydraulik", level:"pro", rating:4.9, priceFrom:150, priceTo:260, eta:"30–45 min", distanceKm:3.2, quality:92, verified:true, b2b:true, badges:["Gwarancja Helpfli"], coords:[52.2297,21.0122], online:true },
-            { id:"2", initials:"WB", name:"Wykonawca B", service:"Elektryk", level:"standard", rating:4.7, priceFrom:100, priceTo:180, eta:"dzisiaj wieczór", distanceKm:5.8, quality:86, verified:true, b2b:false, badges:["Szybkie wyceny"], coords:[52.24,21.01], online:false },
-            { id:"3", initials:"WC", name:"Wykonawca C", service:"Złota rączka", level:"basic", rating:4.4, priceFrom:80, priceTo:120, eta:"jutro rano", distanceKm:7.3, quality:78, verified:false, b2b:true, badges:[], coords:[52.235,21.04], online:true },
-          ];
-          const filteredDemo = query ? demo.filter(p =>
-            p.service.toLowerCase().includes(query.toLowerCase()) ||
-            p.name.toLowerCase().includes(query.toLowerCase())
-          ) : demo;
-          setProviders(filteredDemo);
-        } else {
-          setProviders([]);
-        }
-      } finally {
-        setLoading(false);
+  const fetchProviders = useCallback(async ({ bbox = null, isMapRefetch = false } = {}) => {
+    try {
+      if (fetchAbortRef.current) {
+        try { fetchAbortRef.current.abort(); } catch (_) {}
       }
-    };
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
 
-    fetchProviders();
+      if (isMapRefetch) {
+        setMapLoading(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      const params = new URLSearchParams();
+      if (query) params.append('q', query);
+      if (service) params.append('service', service);
+      if (bbox) {
+        // bbox może być obiektem z toString() (z MapViewportTracker) lub stringiem.
+        const bboxStr =
+          typeof bbox === 'string'
+            ? bbox
+            : typeof bbox?.toString === 'function'
+              ? bbox.toString()
+              : `${bbox.swLat},${bbox.swLng},${bbox.neLat},${bbox.neLng}`;
+        if (bboxStr) params.append('bbox', bboxStr);
+      }
+      const url = params.toString()
+        ? apiUrl(`/api/providers?${params.toString()}`)
+        : apiUrl("/api/providers");
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const json = await response.json();
+
+      const rawProviders = Array.isArray(json?.items)
+        ? json.items
+        : Array.isArray(json?.providers)
+          ? json.providers
+          : Array.isArray(json)
+            ? json
+            : [];
+
+      const transformedProviders = rawProviders.map((provider) => {
+        if (!provider) return null;
+        const name = typeof provider.name === "string" && provider.name.trim().length
+          ? provider.name
+          : "Wykonawca";
+
+        const priceBase = typeof provider.price === "number" ? provider.price : 100;
+        const priceTo = priceBase + 50;
+
+        const lat = provider.locationCoords?.lat ?? provider.location?.lat ?? provider.lat;
+        const lng = provider.locationCoords?.lng ?? provider.location?.lng ?? provider.lng;
+        const hasCoords = isFinite(lat) && isFinite(lng);
+
+        return {
+          id: provider._id || provider.id || name,
+          initials: name
+            .split(" ")
+            .filter(Boolean)
+            .map((n) => n[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase(),
+          name,
+          service: provider.service || "Usługa",
+          level: provider.level || "standard",
+          rating: typeof provider.rating === "number" ? provider.rating : 4.5,
+          priceFrom: priceBase,
+          priceTo,
+          eta: provider.eta || "30–45 min",
+          distanceKm: typeof provider.distanceKm === "number" ? provider.distanceKm : 3.2,
+          quality: typeof provider.quality === "number" ? provider.quality : 85,
+          verified: provider.verified === true,
+          b2b: provider.b2b === true,
+          badges: Array.isArray(provider.badges) ? provider.badges : ["Gwarancja Helpfli"],
+          coords: hasCoords ? [lat, lng] : null,
+          online: provider.online === true,
+          avatar: provider.avatar || null,
+        };
+      }).filter(Boolean);
+
+      setProviders(transformedProviders);
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      console.error('Błąd pobierania providerów:', err);
+      setError('Nie udało się pobrać danych providerów');
+      if (import.meta.env.DEV && !bbox) {
+        const demo = [
+          { id:"1", initials:"WA", name:"Wykonawca A", service:"Hydraulik", level:"pro", rating:4.9, priceFrom:150, priceTo:260, eta:"30–45 min", distanceKm:3.2, quality:92, verified:true, b2b:true, badges:["Gwarancja Helpfli"], coords:[52.2297,21.0122], online:true },
+          { id:"2", initials:"WB", name:"Wykonawca B", service:"Elektryk", level:"standard", rating:4.7, priceFrom:100, priceTo:180, eta:"dzisiaj wieczór", distanceKm:5.8, quality:86, verified:true, b2b:false, badges:["Szybkie wyceny"], coords:[52.24,21.01], online:false },
+          { id:"3", initials:"WC", name:"Wykonawca C", service:"Złota rączka", level:"basic", rating:4.4, priceFrom:80, priceTo:120, eta:"jutro rano", distanceKm:7.3, quality:78, verified:false, b2b:true, badges:[], coords:[52.235,21.04], online:true },
+        ];
+        const filteredDemo = query ? demo.filter(p =>
+          p.service.toLowerCase().includes(query.toLowerCase()) ||
+          p.name.toLowerCase().includes(query.toLowerCase())
+        ) : demo;
+        setProviders(filteredDemo);
+      } else if (!bbox) {
+        setProviders([]);
+      }
+    } finally {
+      setLoading(false);
+      setMapLoading(false);
+    }
   }, [query, service]);
+
+  useEffect(() => {
+    fetchProviders();
+  }, [fetchProviders]);
+
+  const handleSearchArea = useCallback((vp) => {
+    if (!vp?.bbox) return;
+    fetchProviders({ bbox: vp.bbox, isMapRefetch: true });
+  }, [fetchProviders]);
 
   const filtered = providers
     .filter(p => (filters.level === "all" ? true : p.level === filters.level))
@@ -298,15 +332,16 @@ export default function SearchPage() {
         </div>
 
         {/* Mapa */}
-        {filtered.length > 0 && (
-          <div className="mt-8">
-            <MapPanel
-              providers={filtered}
-              onSelect={openProviderProfile}
-              onQuickView={openProviderProfile}
-            />
-          </div>
-        )}
+        <div className="mt-8">
+          <MapPanel
+            providers={filtered}
+            onSelect={openProviderProfile}
+            onQuickView={openProviderProfile}
+            onViewportSearch={handleSearchArea}
+            loading={mapLoading}
+            profileCoords={profileLocation}
+          />
+        </div>
 
         {/* Porównanie */}
         {compareItems.length > 0 && (

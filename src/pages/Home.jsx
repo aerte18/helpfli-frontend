@@ -19,6 +19,7 @@ import ResultsToolbar from "../components/ResultsToolbar";
 import FilterChips from "../components/FilterChips";
 import AdvancedFilters from "../components/AdvancedFilters";
 import Footer from "../components/Footer";
+import FoundingProviderPopup from "../components/FoundingProviderPopup";
 import PopularServices from "../components/PopularServices";
 import UnifiedAIConcierge from "../components/ai/UnifiedAIConcierge";
 import ProviderPreview from "../components/ProviderPreview";
@@ -1396,6 +1397,9 @@ export default function Home() {
         open={providerPreview.open}
         onClose={() => setProviderPreview({ open: false, providerId: null })}
       />
+
+      {/* Pop-up "Pierwszy Wykonawca" – po ~25 s, niezarejestrowanym / klientom */}
+      <FoundingProviderPopup />
 
       {/* Mobilny przełącznik widoku - styl app (Google Maps/Uber) */}
       {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (

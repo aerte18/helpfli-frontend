@@ -98,6 +98,13 @@ import AdminInvoices from "./pages/admin/AdminInvoices";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminLayout from "./components/admin/AdminLayout";
+import AdminSeoArticles from "./pages/admin/AdminSeoArticles";
+import AdminSeoLocalPages from "./pages/admin/AdminSeoLocalPages";
+
+// AI SEO Engine — publiczne poradniki (Google indeksuje)
+import SeoArticlePage from "./pages/SeoArticlePage";
+import PoradnikiList from "./pages/PoradnikiList";
+import SeoLocalPage from "./pages/SeoLocalPage";
 
 // Komponenty KYC
 import KycWizard from "./pages/KycWizard";
@@ -230,6 +237,12 @@ function App() {
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/help" element={<HelpCenter />} />
 
+          {/* AI SEO Engine – publiczne poradniki */}
+          <Route path="/poradniki" element={<PoradnikiList />} />
+          <Route path="/poradnik/:slug" element={<SeoArticlePage />} />
+          {/* PSEO – landing pages miasto×usługa */}
+          <Route path="/wykonawcy/:service/:city" element={<SeoLocalPage />} />
+
         {/* Wymaga logowania */}
         <Route element={<PrivateRoute />}>
           <Route path="/create-order" element={<CreateOrder />} />
@@ -300,6 +313,8 @@ function App() {
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/reports" element={<AdminReportHistory />} />
             <Route path="/admin/disputes" element={<AdminDisputes />} />
+            <Route path="/admin/seo" element={<AdminSeoArticles />} />
+            <Route path="/admin/seo/pseo" element={<AdminSeoLocalPages />} />
             <Route path="/admin/invoices" element={<AdminInvoices />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
