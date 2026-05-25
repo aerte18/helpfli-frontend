@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 /**
- * Informacje o operatorze serwisu â€” przejrzystoĹ›Ä‡ dla uĹĽytkownikĂłw i operatorĂłw pĹ‚atnoĹ›ci.
+ * Informacje o operatorze serwisu — przejrzystość dla użytkowników i operatorów płatności.
  */
 export default function DaneFirmy() {
   const c = companyPublicInfo;
@@ -14,10 +14,10 @@ export default function DaneFirmy() {
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-2">Informacje o operatorze</h1>
         <p className="text-gray-600 mb-8">
-          PoniĹĽsze dane identyfikujÄ… operatora serwisu{" "}
+          Poniższe dane identyfikują operatora serwisu{" "}
           <strong>{c.siteUrl.replace(/^https?:\/\//, "")}</strong> (marka <strong>{c.brand}</strong>) w kontaktach
-          prawnych, reklamacjach dotyczÄ…cych dziaĹ‚ania platformy oraz przy pĹ‚atnoĹ›ciach obsĹ‚ugiwanych przez
-          zewnÄ™trznych operatorĂłw (np. Stripe, Przelewy24).
+          prawnych, reklamacjach dotyczących działania platformy oraz przy płatnościach obsługiwanych przez
+          zewnętrznych operatorów (np. Stripe, Przelewy24).
         </p>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4 mb-8">
@@ -91,12 +91,12 @@ export default function DaneFirmy() {
           </li>
           <li>
             <Link to="/prywatnosc" className="text-indigo-600 hover:underline">
-              Polityka prywatnoĹ›ci
+              Polityka prywatności
             </Link>
           </li>
           <li>
             <Link to="/cennik" className="text-indigo-600 hover:underline">
-              Cennik i model opĹ‚at
+              Cennik i model opłat
             </Link>
           </li>
         </ul>
@@ -105,5 +105,3 @@ export default function DaneFirmy() {
     </div>
   );
 }
-
-

@@ -67,19 +67,34 @@ export default function LiveCameraAI({ open, onClose, onAnalyzeComplete }) {
   const recognitionRef = useRef(null);
   const lastAnalysisRef = useRef(null);
 
-  // Geolokalizacja
+  // Geolokacja — pobieramy tylko jeśli user już wcześniej dał zgodę.
+  // LiveCameraAI sam w sobie odpala się świadomą akcją (klik "Włącz kamerę"),
+  // więc nie chcemy doklejać kolejnego natywnego promptu na otwarcie modalu.
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserLocation({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude
-          });
-        },
-        () => console.warn('Geolocation not available')
-      );
-    }
+    let cancelled = false;
+    (async () => {
+      if (!navigator.geolocation) return;
+      try {
+        const { queryNativePermission } = await import("../utils/permissionManager");
+        const native = await queryNativePermission("geolocation");
+        if (cancelled || native !== "granted") return;
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (cancelled) return;
+            setUserLocation({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+            });
+          },
+          () => console.warn("Geolocation not available")
+        );
+      } catch {
+        /* permissionManager unavailable */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Nie uruchamiamy kamery automatycznie – przeglądarki wymagają gestu użytkownika (kliknięcia) dla getUserMedia.

@@ -4,6 +4,7 @@ import MapView from './MapView';
 import { Link } from 'react-router-dom';
 import { UI } from "../i18n/pl_ui";
 import ServicePicker from './ServicePicker';
+import { queryNativePermission, requestPermission } from '../utils/permissionManager';
 
 export default function NearbyProviders() {
   const [providers, setProviders] = useState([]);
@@ -19,27 +20,58 @@ export default function NearbyProviders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // MVP: Pobierz geolokację użytkownika
+  // Geolokacja: tylko gdy user już wcześniej dał zgodę. W przeciwnym razie
+  // czekamy na akcję usera (przycisk w UI) albo soft-ask z permissionManager —
+  // nigdy nie odpalamy natywnego promptu na load. Bez fixa: fallback Warszawa.
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLat(position.coords.latitude);
-          setLng(position.coords.longitude);
-        },
-        (err) => {
-          console.warn('Geolokacja nieudana:', err);
-          // Fallback do Warszawy
+    let cancelled = false;
+    (async () => {
+      if (!navigator.geolocation) {
+        if (!cancelled) {
           setLat(52.2297);
           setLng(21.0122);
         }
-      );
-    } else {
-      // Fallback do Warszawy
+        return;
+      }
+      const native = await queryNativePermission('geolocation');
+      if (cancelled) return;
+
+      if (native === 'granted') {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (cancelled) return;
+            setLat(position.coords.latitude);
+            setLng(position.coords.longitude);
+          },
+          () => {
+            if (cancelled) return;
+            setLat(52.2297);
+            setLng(21.0122);
+          }
+        );
+        return;
+      }
+
+      // 'prompt' / 'denied' / 'unknown' — startuj z fallbackiem Warszawy,
+      // user może świadomie kliknąć "Użyj mojej lokalizacji" (poniżej).
       setLat(52.2297);
       setLng(21.0122);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const handleUseMyLocation = async () => {
+    const result = await requestPermission('geolocation', {
+      reason: 'find-nearby',
+      priority: 70,
+    });
+    if (result.granted && result.position) {
+      setLat(result.position.coords.latitude);
+      setLng(result.position.coords.longitude);
+    }
+  };
 
   const fetchProviders = async () => {
     try {
@@ -202,6 +234,14 @@ export default function NearbyProviders() {
             />
             <span className="text-sm font-medium">Dostępny teraz</span>
           </label>
+
+          <button
+            type="button"
+            onClick={handleUseMyLocation}
+            className="ml-auto rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+          >
+            Użyj mojej lokalizacji
+          </button>
         </div>
         <p className="text-sm text-blue-600 mt-2">Filtry są aktywne - {filteredProviders.length} wyników</p>
       </div>

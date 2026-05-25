@@ -54,19 +54,35 @@ export default function AIConcierge({ token, onCreateOrder, defaultText = "" }) 
     setCompletedSteps(newCompleted);
   };
 
-  // Pobierz geolokację (opcjonalnie)
+  // Geolokacja — opcjonalna, używamy tylko jeśli user już wcześniej dał zgodę
+  // (nie odpalamy natywnego promptu na load; pełny soft-ask wystąpi gdy user
+  // sam o to poprosi pisząc np. "u mnie w okolicy").
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeo({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          city: null, // Jeśli masz reverse geocoding — tu uzupełnisz
-        });
-      },
-      () => {}
-    );
+    let cancelled = false;
+    (async () => {
+      if (!navigator.geolocation) return;
+      try {
+        const { queryNativePermission } = await import("../utils/permissionManager");
+        const native = await queryNativePermission("geolocation");
+        if (cancelled || native !== "granted") return;
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (cancelled) return;
+            setGeo({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              city: null,
+            });
+          },
+          () => {}
+        );
+      } catch {
+        /* permissionManager unavailable */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Follow-up timer po 15 minutach

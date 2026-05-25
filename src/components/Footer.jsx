@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 import SocialMediaLinks from "./SocialMediaLinks";
+import { openPrivacySettings } from "../utils/consent";
 
 export default function Footer() {
   const c = companyPublicInfo;
@@ -42,6 +43,15 @@ export default function Footer() {
                 <Link to="/prywatnosc" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">
                   Polityka prywatności
                 </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={openPrivacySettings}
+                  className="text-left text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Ustawienia prywatności
+                </button>
               </li>
               <li>
                 <Link to="/cooperation" className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors">

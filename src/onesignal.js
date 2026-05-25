@@ -25,12 +25,14 @@ export function initOneSignal(user) {
     
     // powiąż subskrypcję z Twoim userId w bazie
     window.OneSignal.setExternalUserId(String(user._id || user.id));
-    
-    // proponuj subskrypcję po wejściu (tylko jeśli mamy prawdziwy App ID)
-    if (appId && appId !== "demo-app-id") {
-      window.OneSignal.showSlidedownPrompt();
-    }
-    
+
+    // UWAGA: nie wywołujemy showSlidedownPrompt() przy starcie. Zgoda na
+    // powiadomienia idzie przez nasz SoftAskNotifications (permissionManager),
+    // który najpierw pyta delikatnie ("po co"), a dopiero potem odpala
+    // natywny prompt przeglądarki. Dzięki temu nie marnujemy jedynej szansy
+    // na "Allow" w przeglądarce — jeśli user kliknie Block raz, nie da się
+    // już zapytać ponownie bez resetu uprawnień ręcznie przez usera.
+
     isInitialized = true;
   });
 }

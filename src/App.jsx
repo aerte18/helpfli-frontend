@@ -6,8 +6,7 @@ import { initOneSignal } from "./onesignal";
 import AiWidget from "./components/AiWidget";
 import ProviderAIWidget from "./components/ProviderAIWidget";
 import UnifiedAIConcierge from "./components/ai/UnifiedAIConcierge";
-import CookieConsentBanner from "./components/CookieConsentBanner";
-import { useAuth } from "./context/AuthContext";
+import PermissionQueueManager from "./components/consent/PermissionQueueManager";
 
 
 import L from 'leaflet';
@@ -147,7 +146,6 @@ function LegacyOrderTabRedirect() {
 }
 
 function App() {
-  const { user } = useAuth();
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
 
@@ -347,7 +345,11 @@ function App() {
         {/* Floating Asystent AI - dla providerów z pakietem Standard/PRO */}
         {!isAdminRoute && <ProviderAIWidget />}
 
-        {!user && <CookieConsentBanner />}
+        {/* Globalny dyrygent popupów zgodowych:
+            - banner cookies (RODO) — zawsze do pierwszej decyzji,
+            - kolejka soft-asks (geolokacja, powiadomienia) — jeden naraz,
+            - nasłuch 'qs-open-privacy-settings' (z Footera). */}
+        <PermissionQueueManager />
       </ErrorBoundary>
     </HelmetProvider>
   );

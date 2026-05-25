@@ -20,7 +20,7 @@ const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarous
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
 import SponsorAdBanner from "../components/SponsorAdBanner";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
-import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, Bell, ChevronRight } from "lucide-react";
+import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 function useDebouncedValue(value, delay = 200) {
@@ -618,65 +618,9 @@ export default function LandingStart() {
       </section>
       </div>
 
-      {/* Popup powiadomień */}
-      {(() => {
-        // Sprawdź czy użytkownik już podjął decyzję
-        const hasUserDecided = localStorage.getItem('notification-preference');
-        
-        // Jeśli użytkownik już podjął decyzję, nie pokazuj popupu
-        if (hasUserDecided) return null;
-        
-        return (
-          <div className="fixed top-20 right-4 z-50 max-w-sm">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 animate-fade-in">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-white" aria-hidden />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Powiadomienia</h4>
-                  <p className="text-sm text-gray-500">Włącz powiadomienia</p>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-4">
-                Otrzymuj powiadomienia o nowych ofertach, akceptacjach i ważnych aktualizacjach.
-              </p>
-              
-              <button 
-                onClick={() => {
-                  // Zapisz wybór użytkownika
-                  localStorage.setItem('notification-preference', 'enabled');
-                  
-                  // Tutaj można dodać logikę włączania powiadomień
-                  const notification = document.querySelector('.fixed.top-20.right-4');
-                  if (notification) {
-                    notification.style.display = 'none';
-                  }
-                }}
-                className="w-full bg-indigo-600 text-white rounded-xl px-4 py-3 font-medium hover:bg-indigo-700 transition-colors"
-              >
-                Włącz powiadomienia
-              </button>
-              
-              <button 
-                onClick={() => {
-                  // Zapisz wybór użytkownika
-                  localStorage.setItem('notification-preference', 'later');
-                  
-                  const notification = document.querySelector('.fixed.top-20.right-4');
-                  if (notification) {
-                    notification.style.display = 'none';
-                  }
-                }}
-                className="w-full mt-2 text-gray-500 text-sm hover:text-gray-700 transition-colors"
-              >
-                Później
-              </button>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Powiadomienia są obsługiwane przez globalny PermissionQueueManager
+          (SoftAskNotifications) — pojawiają się dopiero gdy user zaakceptował
+          cookies i kontekst tego wymaga (np. po stworzeniu zlecenia). */}
 
       <Footer />
 

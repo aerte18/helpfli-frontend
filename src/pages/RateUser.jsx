@@ -9,7 +9,7 @@ function RateUser() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState(searchParams.get("orderId") || "");
-  const [heading, setHeading] = useState("OceĹ„ wykonawcÄ™");
+  const [heading, setHeading] = useState("Oceń wykonawcę");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -31,12 +31,12 @@ function RateUser() {
         const data = await res.json();
         if (data.eligible && data.orderId) {
           setOrderId(data.orderId);
-          setHeading(data.heading || "OceĹ„ wykonawcÄ™");
+          setHeading(data.heading || "Oceń wykonawcę");
         } else {
-          setError("MoĹĽesz oceniÄ‡ uĹĽytkownika dopiero po zakoĹ„czeniu wspĂłlnego zlecenia.");
+          setError("Możesz ocenić użytkownika dopiero po zakończeniu wspólnego zlecenia.");
         }
       } catch {
-        setError("Nie udaĹ‚o siÄ™ sprawdziÄ‡ uprawnieĹ„ do oceny.");
+        setError("Nie udało się sprawdzić uprawnień do oceny.");
       } finally {
         setLoading(false);
       }
@@ -47,7 +47,7 @@ function RateUser() {
     e.preventDefault();
     const token = localStorage.getItem("token");
     if (!orderId) {
-      setError("Brak powiÄ…zanego zlecenia â€” oceĹ„ uĹĽytkownika ze szczegĂłĹ‚Ăłw zakoĹ„czonego zlecenia.");
+      setError("Brak powiązanego zlecenia — oceń użytkownika ze szczegółów zakończonego zlecenia.");
       return;
     }
 
@@ -68,10 +68,10 @@ function RateUser() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "BĹ‚Ä…d wystawiania oceny");
+        throw new Error(data.message || "Błąd wystawiania oceny");
       }
 
-      alert("DziÄ™kujemy za ocenÄ™!");
+      alert("Dziękujemy za ocenę!");
       navigate("/my-orders");
     } catch (err) {
       setError(err.message);
@@ -81,7 +81,7 @@ function RateUser() {
   if (loading) {
     return (
       <div className="max-w-md mx-auto mt-10 p-6 text-center text-gray-600">
-        Sprawdzanie uprawnieĹ„â€¦
+        Sprawdzanie uprawnień…
       </div>
     );
   }
@@ -93,7 +93,7 @@ function RateUser() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block mb-1">Ocena (1â€“5):</label>
+          <label className="block mb-1">Ocena (1–5):</label>
           <input
             type="number"
             min={1}
@@ -120,7 +120,7 @@ function RateUser() {
           disabled={!orderId}
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          WyĹ›lij ocenÄ™
+          Wyślij ocenę
         </button>
       </form>
     </div>
@@ -128,4 +128,3 @@ function RateUser() {
 }
 
 export default RateUser;
-

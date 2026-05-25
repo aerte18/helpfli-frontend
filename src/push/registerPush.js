@@ -1,7 +1,20 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { urlBase64ToUint8Array } from "../utils/push";
+import { queryNativePermission, requestPermission } from "../utils/permissionManager";
 
-export async function registerPush({ token, vapidPublicKey }) {
+/**
+ * Rejestruje Web Push:
+ *  1. Service Worker
+ *  2. Zgoda na powiadomienia — przez nasz SoftAskNotifications,
+ *     chyba że natywne już 'granted' (wtedy pomijamy modal).
+ *  3. Subskrypcja PushManager + zapis w backend.
+ *
+ * Opcje:
+ *  - silent: bool — jeśli true, NIE pokazuje soft-ask gdy native jest 'default'
+ *                   (używane przy auto-reconnect po loginie).
+ *  - reason: string — kontekst dla SoftAskNotifications.
+ */
+export async function registerPush({ token, vapidPublicKey, silent = false, reason } = {}) {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, reason: "unsupported" };
   }
@@ -9,9 +22,23 @@ export async function registerPush({ token, vapidPublicKey }) {
   try {
     const reg = await navigator.serviceWorker.register("/sw.js");
 
-    const perm = await Notification.requestPermission();
-    if (perm !== "granted") {
+    const native = await queryNativePermission("notifications");
+
+    if (native === "denied") {
       return { ok: false, reason: "denied" };
+    }
+
+    if (native !== "granted") {
+      if (silent) {
+        return { ok: false, reason: "no_permission" };
+      }
+      const result = await requestPermission("notifications", {
+        reason: reason || "order-update",
+        priority: 50,
+      });
+      if (!result.granted) {
+        return { ok: false, reason: result.reason || "denied" };
+      }
     }
 
     const vapid =
