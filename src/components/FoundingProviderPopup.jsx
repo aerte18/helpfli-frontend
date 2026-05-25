@@ -47,7 +47,7 @@ function hasActiveFoundingProvider(user) {
 const BENEFITS = [
   { icon: "⭐", title: "Wyższa widoczność", text: "Pierwsze miejsca w wynikach Helpfli przez 6 miesięcy." },
   { icon: "💰", title: "0% prowizji", text: "Bez prowizji od pierwszych zleceń — wszystko zostaje u Ciebie." },
-  { icon: "🏆", title: "Specjalna odznaka", text: "Złoty badge „Pierwszy Wykonawca Helpfli" w profilu." }
+  { icon: "🏆", title: "Specjalna odznaka", text: "Złoty badge „Pierwszy Wykonawca Helpfli” w profilu." }
 ];
 
 export default function FoundingProviderPopup() {
