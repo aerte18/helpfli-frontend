@@ -25,25 +25,20 @@ const DELAY_MS = 20000;
 const FORCE_SHOW_DELAY_MS = 1000;
 const REAPPEAR_AFTER_MS = 24 * 60 * 60 * 1000; // 24 h
 
-// --- Geometria obrazka /img/founding-provider-popup.png ---
-// Obrazek (1024 × 683) zawiera popup + zblurowane tło strony. Przycinamy do
-// białej karty, żeby nie powstawał efekt „popup w popupie".
-const IMG_W = 1024;
-const IMG_H = 683;
-const CARD_LEFT = 165;
-const CARD_TOP = 60;
-const CARD_W = 715;
-const CARD_H = 535;
+// --- Geometria obrazka /img/founding-provider-popup-card.png ---
+// Już przycięty asset (685 × 565), zawiera tylko białą kartę popupu.
+const CARD_W = 685;
+const CARD_H = 565;
 
-// Pozycje narysowanych elementów wewnątrz CAŁEGO obrazka (piksele).
-const X_CENTER = { x: 820, y: 95 };
-const X_SIZE = 38;
-const JOIN_BTN_BOUNDS = { x: 268, y: 484, w: 168, h: 44 };
+// Pozycje narysowanych elementów wewnątrz obrazka karty (piksele, oryginalne 1:1).
+const X_CENTER = { x: 630, y: 43 };
+const X_SIZE = 44;
+const JOIN_BTN_BOUNDS = { x: 33, y: 428, w: 250, h: 50 };
 
-// Pozycja przycisku w % karty (jak ustawiany jest absolutny element wewnątrz kontenera).
+// Pozycje w % karty (potem przeskalują się ze zmianą rozmiaru modalu).
 const cardPct = (x, y, w, h) => ({
-  left: `${((x - CARD_LEFT) / CARD_W) * 100}%`,
-  top: `${((y - CARD_TOP) / CARD_H) * 100}%`,
+  left: `${(x / CARD_W) * 100}%`,
+  top: `${(y / CARD_H) * 100}%`,
   width: `${(w / CARD_W) * 100}%`,
   height: `${(h / CARD_H) * 100}%`,
 });
@@ -60,13 +55,6 @@ const JOIN_BTN_POS = cardPct(
   JOIN_BTN_BOUNDS.w,
   JOIN_BTN_BOUNDS.h
 );
-
-// Skalowanie obrazka wewnątrz kontenera-karty.
-// Kontener ma rozmiar białej karty z obrazka (CARD_W × CARD_H proporcjonalnie).
-// Cały obrazek jest skalowany tak, żeby ta sama karta wypełniała kontener.
-const IMG_WIDTH_PCT = (IMG_W / CARD_W) * 100;
-const IMG_OFFSET_LEFT_PCT = -(CARD_LEFT / CARD_W) * 100;
-const IMG_OFFSET_TOP_PCT = -(CARD_TOP / CARD_H) * 100;
 
 function isForcedFromUrl() {
   if (typeof window === "undefined") return false;
@@ -228,26 +216,18 @@ export default function FoundingProviderPopup() {
         className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
       />
 
-      {/* Karta popupu – cały obrazek + dwa przezroczyste przyciski. */}
+      {/* Karta popupu – cały obrazek + dwa przezroczyste przyciski.
+          Obrazek jest już przycięty do białej karty, więc używamy go 1:1. */}
       <div
-        className={`relative w-full max-w-[760px] ${closing ? "qs-popOut" : "qs-popIn"}`}
+        className={`relative w-full max-w-[640px] ${closing ? "qs-popOut" : "qs-popIn"}`}
       >
-        <div
-          className="relative w-full overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-900/10"
-          style={{ aspectRatio: `${CARD_W} / ${CARD_H}` }}
-        >
+        <div className="relative overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-900/10">
           <img
-            src="/img/founding-provider-popup.png"
+            src="/img/founding-provider-popup-card.png"
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="pointer-events-none absolute select-none"
-            style={{
-              width: `${IMG_WIDTH_PCT}%`,
-              height: "auto",
-              left: `${IMG_OFFSET_LEFT_PCT}%`,
-              top: `${IMG_OFFSET_TOP_PCT}%`,
-            }}
+            className="block w-full h-auto select-none"
           />
 
           {/* Przezroczysty przycisk X – nałożony dokładnie na narysowany X. */}
@@ -255,7 +235,7 @@ export default function FoundingProviderPopup() {
             type="button"
             onClick={handleClose}
             aria-label="Zamknij"
-            className="absolute z-10 cursor-pointer rounded-full transition-colors hover:bg-slate-900/5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="absolute z-10 cursor-pointer rounded-full transition-colors hover:bg-slate-900/10 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             style={{
               left: X_BTN_POS.left,
               top: X_BTN_POS.top,
