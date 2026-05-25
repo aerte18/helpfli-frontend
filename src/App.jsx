@@ -100,6 +100,7 @@ import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminSeoArticles from "./pages/admin/AdminSeoArticles";
 import AdminSeoLocalPages from "./pages/admin/AdminSeoLocalPages";
+import AdminContent from "./pages/admin/AdminContent";
 
 // AI SEO Engine — publiczne poradniki (Google indeksuje)
 import SeoArticlePage from "./pages/SeoArticlePage";
@@ -315,6 +316,7 @@ function App() {
             <Route path="/admin/disputes" element={<AdminDisputes />} />
             <Route path="/admin/seo" element={<AdminSeoArticles />} />
             <Route path="/admin/seo/pseo" element={<AdminSeoLocalPages />} />
+            <Route path="/admin/content" element={<AdminContent />} />
             <Route path="/admin/invoices" element={<AdminInvoices />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
           </Route>
