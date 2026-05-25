@@ -3,75 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 /**
- * Pop-up „Odbierz status Pierwszego Wykonawcy Helpfli”.
+ * Pop-up „Odbierz status Pierwszego Wykonawcy Helpfli".
  *
- * Treść popupu jest jednym assetem PNG (z gotową grafiką, nagłówkami i listą),
- * a interakcję obsługują tylko dwa przezroczyste przyciski nałożone na obrazek:
- *   - X (zamknij) – w prawym górnym rogu
- *   - „Dołącz teraz” – nad narysowanym CTA
+ * Czysty popup z prawdziwym UI:
+ *  - po lewej: tytuł, lista benefitów, CTA „Dołącz teraz" → /register?role=provider
+ *  - po prawej: ilustracja /img/founding-provider-illustration.png
+ *  - X w prawym górnym rogu zamyka popup (z zapisem w localStorage)
+ *  - klik poza popupem / Esc też zamyka
  *
- * UX:
- *  - Nieagresywny: pojawia się po ~25 s.
- *  - Audience: niezalogowani LUB provider/company_owner bez aktywnego foundingProvider.
- *  - Klik X / poza modalem / Esc => zamknięcie (zapisane w localStorage).
- *  - Klik „Dołącz teraz” => /register?role=provider.
- *  - Tryb testowy: `?popup=founding` w URL wymusza pokaz natychmiast (1 s).
+ * Audience: niezalogowani LUB provider/company_owner bez aktywnego foundingProvider.
+ * Pojawia się po ~25 s (lub natychmiast z `?popup=founding`).
  */
-const STORAGE_KEY = "helpfli.founding_popup.dismissed.v3";
+const STORAGE_KEY = "helpfli.founding_popup.dismissed.v4";
 const DELAY_MS = 25000;
 const FORCE_SHOW_DELAY_MS = 1000;
-
-// --- Geometria obrazka /img/founding-provider-popup.png ---
-// Obrazek (1024 × 683) zawiera popup + zblurowane tło strony. Przycinamy do
-// białej karty, żeby nie powstawał efekt „popup w popupie”.
-const IMG_W = 1024;
-const IMG_H = 683;
-const CARD_LEFT = 165;
-const CARD_TOP = 60;
-const CARD_W = 715;
-const CARD_H = 535;
-
-// Pozycje narysowanych elementów wewnątrz całego obrazka:
-const X_CENTER = { x: 820, y: 95 };
-const X_SIZE = 38;
-const JOIN_BTN_BOUNDS = { x: 268, y: 484, w: 168, h: 44 };
-
-// Obliczenia procentowe (relatywne do białej karty):
-const cardPct = (x, y, w = 0, h = 0) => ({
-  left: `${((x - CARD_LEFT) / CARD_W) * 100}%`,
-  top: `${((y - CARD_TOP) / CARD_H) * 100}%`,
-  width: `${(w / CARD_W) * 100}%`,
-  height: `${(h / CARD_H) * 100}%`,
-});
-
-const X_BTN_POS = cardPct(
-  X_CENTER.x - X_SIZE / 2,
-  X_CENTER.y - X_SIZE / 2,
-  X_SIZE,
-  X_SIZE
-);
-const JOIN_BTN_POS = cardPct(
-  JOIN_BTN_BOUNDS.x,
-  JOIN_BTN_BOUNDS.y,
-  JOIN_BTN_BOUNDS.w,
-  JOIN_BTN_BOUNDS.h
-);
-
-// Skalowanie obrazka wewnątrz kontenera-karty:
-// Obrazek ma być na tyle szeroki, żeby cała szerokość karty (CARD_W) odpowiadała
-// szerokości kontenera. Czyli szerokość obrazka = (IMG_W / CARD_W) * 100% kontenera.
-const IMG_WIDTH_PCT = (IMG_W / CARD_W) * 100;
-const IMG_OFFSET_LEFT_PCT = -(CARD_LEFT / CARD_W) * 100;
-// Top offset musi być wyrażony w % wysokości kontenera. Kontener jest wysoki na
-// CARD_H pikseli (w skali obrazka), więc offset CARD_TOP pikseli = -CARD_TOP/CARD_H.
-const IMG_OFFSET_TOP_PCT = -(CARD_TOP / CARD_H) * 100;
 
 function isForcedFromUrl() {
   if (typeof window === "undefined") return false;
   try {
     const params = new URLSearchParams(window.location.search);
     return params.get("popup") === "founding";
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -92,6 +44,12 @@ function hasActiveFoundingProvider(user) {
   return false;
 }
 
+const BENEFITS = [
+  { icon: "⭐", title: "Wyższa widoczność", text: "Pierwsze miejsca w wynikach Helpfli przez 6 miesięcy." },
+  { icon: "💰", title: "0% prowizji", text: "Bez prowizji od pierwszych zleceń — wszystko zostaje u Ciebie." },
+  { icon: "🏆", title: "Specjalna odznaka", text: "Złoty badge „Pierwszy Wykonawca Helpfli" w profilu." }
+];
+
 export default function FoundingProviderPopup() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -105,8 +63,8 @@ export default function FoundingProviderPopup() {
     if (forced) return true;
     try {
       if (window.localStorage.getItem(STORAGE_KEY) === "1") return false;
-    } catch (_) {
-      // brak localStorage – pokaż mimo wszystko
+    } catch {
+      /* brak localStorage – pokaż mimo wszystko */
     }
     if (!user) return true;
     const role = user.role;
@@ -126,7 +84,7 @@ export default function FoundingProviderPopup() {
     if (forced) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, "1");
-    } catch (_) {
+    } catch {
       /* noop */
     }
   }, [forced]);
@@ -162,9 +120,6 @@ export default function FoundingProviderPopup() {
 
   if (!open) return null;
 
-  // Kontener-karta zachowuje proporcje białej karty z obrazka (715:535).
-  // Obrazek jest skalowany do 143% szerokości kontenera (=1024/715) i przesunięty
-  // w lewo i w górę tak, żeby widoczna była tylko sama karta.
   return (
     <div
       role="dialog"
@@ -174,6 +129,7 @@ export default function FoundingProviderPopup() {
         closing ? "qs-fadeOut" : "qs-fadeIn"
       }`}
     >
+      {/* Backdrop */}
       <button
         type="button"
         aria-label="Zamknij okno"
@@ -181,56 +137,90 @@ export default function FoundingProviderPopup() {
         className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
       />
 
+      {/* Karta popupu */}
       <div
-        id="founding-popup-title"
-        className={`relative w-full max-w-[720px] ${closing ? "qs-popOut" : "qs-popIn"}`}
-        aria-label="Odbierz status Pierwszego Wykonawcy Helpfli"
+        className={`relative w-full max-w-[760px] ${closing ? "qs-popOut" : "qs-popIn"}`}
       >
-        <div
-          className="relative w-full overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-900/5"
-          style={{ aspectRatio: `${CARD_W} / ${CARD_H}` }}
-        >
-          <img
-            src="/img/founding-provider-popup.png"
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="pointer-events-none absolute select-none"
-            style={{
-              width: `${IMG_WIDTH_PCT}%`,
-              height: "auto",
-              left: `${IMG_OFFSET_LEFT_PCT}%`,
-              top: `${IMG_OFFSET_TOP_PCT}%`,
-            }}
-          />
-
-          {/* Przezroczysty przycisk X — nałożony dokładnie na narysowany X w obrazku. */}
+        <div className="relative overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-900/10">
+          {/* X – zamknij */}
           <button
             type="button"
             onClick={handleClose}
             aria-label="Zamknij"
-            className="absolute z-10 cursor-pointer rounded-full transition-colors hover:bg-slate-900/5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            style={{
-              left: X_BTN_POS.left,
-              top: X_BTN_POS.top,
-              width: X_BTN_POS.width,
-              height: X_BTN_POS.height,
-            }}
-          />
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/90 backdrop-blur shadow-sm hover:bg-white hover:shadow flex items-center justify-center text-slate-600 hover:text-slate-900 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
 
-          {/* Przezroczysty przycisk "Dołącz teraz" — nałożony na narysowany CTA. */}
-          <button
-            type="button"
-            onClick={handleJoin}
-            aria-label="Dołącz teraz"
-            className="absolute z-10 cursor-pointer rounded-xl transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600"
-            style={{
-              left: JOIN_BTN_POS.left,
-              top: JOIN_BTN_POS.top,
-              width: JOIN_BTN_POS.width,
-              height: JOIN_BTN_POS.height,
-            }}
-          />
+          <div className="flex flex-col md:flex-row">
+            {/* Lewa kolumna — treść */}
+            <div className="flex-1 p-6 sm:p-8 md:p-10">
+              <div className="inline-flex items-center gap-1.5 mb-3 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold uppercase tracking-wider">
+                <span aria-hidden>🏆</span>
+                Limitowana oferta
+              </div>
+
+              <h2
+                id="founding-popup-title"
+                className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight mb-2"
+              >
+                Odbierz status<br />
+                <span className="text-indigo-600">Pierwszego Wykonawcy</span><br />
+                Helpfli
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-600 mb-5">
+                Dołącz do grona pierwszych specjalistów Helpfli i przejmij prowadzenie na starcie.
+              </p>
+
+              <ul className="space-y-3 mb-6">
+                {BENEFITS.map((b, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="shrink-0 w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-base" aria-hidden>
+                      {b.icon}
+                    </span>
+                    <div>
+                      <div className="font-semibold text-sm text-slate-900">{b.title}</div>
+                      <div className="text-xs sm:text-sm text-slate-600">{b.text}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                type="button"
+                onClick={handleJoin}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-base shadow-lg shadow-indigo-600/20 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Dołącz teraz
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </button>
+
+              <div className="mt-3 text-xs text-slate-400">
+                Bez zobowiązań · Rejestracja zajmuje minutę
+              </div>
+            </div>
+
+            {/* Prawa kolumna — ilustracja */}
+            <div className="hidden md:flex md:w-[280px] lg:w-[320px] shrink-0 bg-gradient-to-br from-indigo-50 via-violet-50 to-fuchsia-50 items-end justify-center p-6 relative">
+              <img
+                src="/img/founding-provider-illustration.png"
+                alt="Pierwszy wykonawca Helpfli"
+                className="max-h-[340px] w-auto object-contain drop-shadow-xl"
+                draggable={false}
+              />
+              {/* Dekoracyjna gwiazdka */}
+              <div className="absolute top-4 right-4 text-5xl rotate-12 opacity-30 select-none" aria-hidden>
+                ⭐
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
