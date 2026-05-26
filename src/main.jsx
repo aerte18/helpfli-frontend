@@ -9,6 +9,8 @@ import './index.css'
 import { initSentry } from './sentry'
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 import { hasAnalyticsConsent } from './utils/consent';
+import { initGoogleAnalytics } from './lib/googleAnalytics';
+import { initMicrosoftClarity } from './lib/microsoftClarity';
 
 function normalizeLegacyOrderTabUrl() {
   const { pathname, search } = window.location;
@@ -34,6 +36,14 @@ normalizeLegacyOrderTabUrl();
 // Init Sentry (if DSN provided)
 initSentry();
 window.addEventListener("qs-consent-changed", () => initSentry());
+
+// Init Google Analytics 4 z Consent Mode v2 (default denied → update po zgodzie).
+// Sam moduł nasłuchuje 'qs-consent-changed' wewnętrznie.
+initGoogleAnalytics();
+
+// Init Microsoft Clarity (heatmapy + nagrania) — skrypt ładuje się dopiero
+// po zgodzie na analitykę. Inaczej niż GA, Clarity nie ma trybu modelowanego.
+initMicrosoftClarity();
 
 // Web Vitals monitoring
 function sendToAnalytics(metric) {
