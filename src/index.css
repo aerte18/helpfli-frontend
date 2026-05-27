@@ -258,9 +258,22 @@ body {
   }
 }
 
-/* Odstęp pod fixed tab bar (mobile, zalogowany użytkownik) */
+/* Odstęp pod fixed tab bar (mobile). Bez vv-offset — pasek sam jedzie translateY(var(--qs-vv-bottom-offset)). */
 body.has-mobile-tab {
-  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Wypełnienie ewentualnej szczeliny pod paskiem (subpiksele / Safari) */
+nav[data-qs-mobile-app-tab-bar]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--qs-vv-bottom-offset, 0px);
+  background-color: var(--card);
+  border-color: var(--border);
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
@@ -269,9 +282,9 @@ body.has-mobile-tab {
   }
 }
 
-/* Dolny inset layout↔visual (Safari). Używane m.in. przez padding body — nie nakładaj na sam tab bar (bottom:0). */
+/* Dolny inset layout↔visual (Safari) — elementy fixed nad dolną krawędzią ekranu. */
 .qs-fixed-bottom-visual {
-  bottom: var(--qs-vv-bottom-offset, 0px);
+  transform: translate3d(0, var(--qs-vv-bottom-offset, 0px), 0);
 }
 
 /* Elementy fixed nad tab barem — ten sam offset co przy pasku (FAB AI: .qs-fixed-above-mobile-tab + ~3rem wysokości) */

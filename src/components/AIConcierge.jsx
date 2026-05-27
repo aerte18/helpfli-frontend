@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAIConcierge } from "../hooks/useAIConcierge";
 import { useAIPricing } from "../hooks/useAIPricing";
+import { isGuestAiSession, guestSignupPath } from "../utils/guestAi";
 
 // Jeśli masz własny ProviderCard, użyj go; tu jest prosty fallback:
 function MiniProviderCard({ p, onSelect }) {
@@ -122,19 +123,6 @@ export default function AIConcierge({ token, onCreateOrder, defaultText = "" }) 
   async function handleDiagnose() {
     if (!problemText?.trim()) return;
     
-    // Sprawdź czy użytkownik jest zalogowany
-    if (!token) {
-      const proceed = confirm(
-        'Aby użyć Asystenta AI, musisz się zalogować.\n\n' +
-        '📌 Zarejestruj się za darmo i otrzymaj 50 darmowych zapytań do AI!\n\n' +
-        'Czy chcesz się zalogować teraz?'
-      );
-      if (proceed) {
-        window.location.href = "/login?next=" + encodeURIComponent("/concierge");
-      }
-      return;
-    }
-    
     // Dodaj język do requestu
     const language = navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'pl';
     await run(problemText.trim(), geo, { language });
@@ -142,6 +130,10 @@ export default function AIConcierge({ token, onCreateOrder, defaultText = "" }) 
   }
 
   async function handleCreateOrder() {
+    if (!token) {
+      window.location.href = guestSignupPath();
+      return;
+    }
     if (!order) return;
     // Zgrabne payload — dostosuj do swojej trasy /api/orders (OPEN / DIRECT)
     const payload = {
@@ -168,6 +160,10 @@ export default function AIConcierge({ token, onCreateOrder, defaultText = "" }) 
 
 
   function selectProviderAndCreate(p) {
+    if (!token) {
+      window.location.href = guestSignupPath();
+      return;
+    }
     if (!order) return;
     const payload = {
       service: order.service,

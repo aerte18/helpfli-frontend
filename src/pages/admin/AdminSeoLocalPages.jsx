@@ -39,6 +39,11 @@ export default function AdminSeoLocalPages() {
       setItems(data.items || []);
     } catch (e) {
       console.warn(e);
+      const msg =
+        e?.data?.message ||
+        e?.message ||
+        'Nie udało się pobrać listy PSEO.';
+      setBuildSummary(`Błąd listy: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -47,7 +52,10 @@ export default function AdminSeoLocalPages() {
   useEffect(() => {
     fetchSeoCities()
       .then((d) => setCities(d.cities || []))
-      .catch(() => {});
+      .catch((e) => {
+        const msg = e?.data?.message || e?.message || 'Nie udało się pobrać listy miast.';
+        setBuildSummary(`Błąd miast: ${msg}`);
+      });
     reload();
   }, [reload]);
 

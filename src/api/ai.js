@@ -1,16 +1,47 @@
 import { apiUrl } from "@/lib/apiUrl";
+import { buildAiAuthHeaders } from "@/utils/guestAi";
+
 // src/api/ai.js
 export async function postConcierge({ token, problemText, location }) {
-  const res = await fetch(apiUrl("/api/ai/concierge/analyze"), {
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : buildAiAuthHeaders();
+  const res = await fetch(apiUrl("/api/ai/concierge/v2"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeaders,
     },
-    body: JSON.stringify({ description: problemText, location }),
+    body: JSON.stringify({
+      messages: [{ role: "user", content: problemText }],
+      userContext: location
+        ? { location: { text: location.city, lat: location.lat, lng: location.lng } }
+        : {},
+    }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Błąd AI Concierge");
+  if (!res.ok) {
+    const err = new Error(data.message || "Błąd AI Concierge");
+    err.code = data.code;
+    err.requiresAuth = data.requiresAuth;
+    err.usage = data.usage;
+    throw err;
+  }
+  if (data.result || data.reply) {
+    const result = data.result || {};
+    const agents = data.agents || {};
+    return {
+      ...data,
+      serviceCandidate: data.serviceCandidate || (result.detectedService
+        ? { code: result.detectedService, name: result.detectedService }
+        : null),
+      urgency: data.urgency || result.urgency,
+      dangerFlags: result.safety?.flag ? [result.safety.reason] : [],
+      diySteps: agents.diy?.steps || result.diySteps || [],
+      priceHints: agents.pricing || null,
+      location: result.extracted?.location,
+      reply: data.reply || result.reply,
+      guestUsage: data.guestUsage,
+    };
+  }
   return data;
 }
 

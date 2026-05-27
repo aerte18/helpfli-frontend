@@ -36,7 +36,7 @@ export default function MobileAppTabBar() {
     return () => document.body.classList.remove("has-mobile-tab");
   }, [visible]);
 
-  /** Ustawia --qs-vv-bottom-offset (padding body, mapy itd.). Sam pasek: bottom:0 — offset na nav powodował „dziurę” przy scrollu w Safari. */
+  /** --qs-vv-bottom-offset: odstęp layout↔visual (Safari). Pasek: translateY (nie bottom:X — to przesuwa w górę). */
   const vvRaf = useRef(0);
   useEffect(() => {
     const root = document.documentElement;
@@ -65,7 +65,7 @@ export default function MobileAppTabBar() {
           return;
         }
         const raw = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
-        const gap = Math.min(raw, MAX_VV_BOTTOM_GAP_PX);
+        const gap = raw < 2 ? 0 : Math.min(raw, MAX_VV_BOTTOM_GAP_PX);
         root.style.setProperty("--qs-vv-bottom-offset", `${gap}px`);
       });
     };
@@ -76,6 +76,8 @@ export default function MobileAppTabBar() {
     mq.addEventListener("change", sync);
     window.addEventListener("resize", sync);
     window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("orientationchange", sync);
+    document.addEventListener("touchend", sync, { passive: true });
 
     return () => {
       if (vvRaf.current) cancelAnimationFrame(vvRaf.current);
@@ -85,6 +87,8 @@ export default function MobileAppTabBar() {
       mq.removeEventListener("change", sync);
       window.removeEventListener("resize", sync);
       window.removeEventListener("scroll", sync);
+      window.removeEventListener("orientationchange", sync);
+      document.removeEventListener("touchend", sync);
       clearOffset();
     };
   }, [visible]);
@@ -112,11 +116,13 @@ export default function MobileAppTabBar() {
   return (
     <nav
       data-qs-mobile-app-tab-bar
-      className="md:hidden fixed bottom-0 left-0 right-0 z-[45] border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)] [transform:translateZ(0)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[45] border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)] will-change-transform"
       style={{
         backgroundColor: "var(--card)",
         borderColor: "var(--border)",
         paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+        transform: "translate3d(0, var(--qs-vv-bottom-offset, 0px), 0)",
+        WebkitTransform: "translate3d(0, var(--qs-vv-bottom-offset, 0px), 0)",
       }}
       aria-label="Nawigacja aplikacji"
     >

@@ -28,6 +28,12 @@ import {
   ConciergeSafetyHint,
   ConciergeDiagnosticHint,
 } from "./ConciergeInlineHints";
+import {
+  buildAiAuthHeaders,
+  fetchGuestAiUsage,
+  guestSignupPath,
+  isGuestAiSession,
+} from "../../utils/guestAi";
 
 const CLIENT_START_PROMPTS = [
   {
@@ -218,6 +224,25 @@ export default function UnifiedAIConcierge({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [chosenPath, setChosenPath] = useState(() => getStoredChosenPath());
+  const [guestUsage, setGuestUsage] = useState(null);
+  const [showGuestSignupModal, setShowGuestSignupModal] = useState(false);
+
+  const isGuestMode = !user && isGuestAiSession();
+
+  const promptGuestSignup = () => {
+    setShowGuestSignupModal(true);
+  };
+
+  const refreshGuestUsage = async () => {
+    if (!isGuestAiSession() || user) return;
+    const usage = await fetchGuestAiUsage();
+    if (usage) setGuestUsage(usage);
+  };
+
+  useEffect(() => {
+    if (!open || user) return;
+    refreshGuestUsage();
+  }, [open, user]);
 
   // Dla użytkownika firmy: pobierz companyId (żeby pokazać Asystenta dla firmy zamiast klienta)
   useEffect(() => {
@@ -339,7 +364,9 @@ export default function UnifiedAIConcierge({
   }, [open]);
 
   // Inicjalizacja AI – powitalna wiadomość zależna od roli (firma vs klient)
-  const clientWelcome = "Cześć! 👋 W czym mogę pomóc? Opisz swój problem, a znajdę najlepszego wykonawcę w Twojej okolicy.";
+  const clientWelcome = isGuestMode
+    ? "Cześć! 👋 Masz 10 darmowych zapytań do AI bez konta — opisz problem, a pomogę dobrać usługę i wykonawcę. Po rejestracji otrzymasz 50 zapytań miesięcznie."
+    : "Cześć! 👋 W czym mogę pomóc? Opisz swój problem, a znajdę najlepszego wykonawcę w Twojej okolicy.";
   const companyWelcome = "Cześć! 👋 Jestem Asystentem AI dla Twojej firmy. Mogę podsumować zespół i obciążenie, podpowiedzieć komu przypisać zlecenie, wskazać gdzie są faktury i ustawienia. O co chcesz zapytać?";
   useEffect(() => {
     if (!open || msgs.length !== 0) return;
@@ -398,6 +425,10 @@ export default function UnifiedAIConcierge({
 
   const uploadFiles = async (files) => {
     if (!files || files.length === 0) return;
+    if (isGuestMode) {
+      promptGuestSignup();
+      return;
+    }
     setUploading(true);
     try {
       const formData = new FormData();
@@ -513,12 +544,9 @@ export default function UnifiedAIConcierge({
     const q = typeof overrideText === 'string' ? overrideText.trim() : input.trim();
     if (!q && attachedFiles.length === 0) return;
     
-    const token = localStorage.getItem('token');
-    if (!token) {
-      const proceed = confirm('Aby użyć Asystenta AI, musisz się zalogować.\n\n📌 Zarejestruj się za darmo i otrzymaj 50 darmowych zapytań do AI!\n\nCzy chcesz się zalogować teraz?');
-      if (proceed) {
-        navigate("/login?next=" + encodeURIComponent("/concierge"));
-      }
+    const authHeaders = buildAiAuthHeaders();
+    if (isProviderUser && !authHeaders.Authorization) {
+      navigate("/login?next=" + encodeURIComponent("/concierge"));
       return;
     }
     
@@ -640,9 +668,9 @@ export default function UnifiedAIConcierge({
       
       let res = await fetch(endpoint, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
+          ...authHeaders,
         },
         body: JSON.stringify(requestBody),
       });
@@ -659,7 +687,7 @@ export default function UnifiedAIConcierge({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            ...authHeaders,
           },
           body: JSON.stringify({
             description: lastUserContent,
@@ -677,6 +705,23 @@ export default function UnifiedAIConcierge({
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error('Asystent AI HTTP', res.status, endpoint, errorData);
+        if (
+          errorData.code === 'GUEST_AI_LIMIT_EXCEEDED' ||
+          errorData.requiresAuth
+        ) {
+          if (errorData.usage) setGuestUsage(errorData.usage);
+          setShowGuestSignupModal(true);
+          setMsgs((m) => [
+            ...m.filter((msg) => !msg.transient),
+            {
+              role: 'assistant',
+              text:
+                errorData.message ||
+                'Wykorzystałeś darmowe zapytania. Załóż konto, aby kontynuować rozmowę.',
+            },
+          ]);
+          return;
+        }
         throw new Error(
           errorData.message ||
             (res.status === 404
@@ -686,7 +731,9 @@ export default function UnifiedAIConcierge({
       }
       
       const data = await res.json();
-      
+      if (data.guestUsage) setGuestUsage(data.guestUsage);
+      else if (isGuestMode) refreshGuestUsage();
+
       // Obsługa odpowiedzi V2 (nowy format)
       if (USE_V2 && !usedV1Fallback && (data.result || data.reply)) {
         const result = data.result || data;
@@ -974,6 +1021,41 @@ export default function UnifiedAIConcierge({
 
   const content = (
     <div className={`${cardClass} relative`} style={{ pointerEvents: 'auto' }}>
+      {showGuestSignupModal && (
+        <div className="absolute inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900">Kontynuuj z kontem Helpfli</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Wykorzystałeś {guestUsage?.limit ?? 10} darmowych zapytań bez rejestracji.
+              Załóż konto, aby dalej korzystać z AI i utworzyć zlecenie — otrzymasz{" "}
+              {guestUsage?.registeredFreeLimit ?? 50} zapytań miesięcznie.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(guestSignupPath())}
+                className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                Załóż darmowe konto
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`)}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Mam już konto — zaloguj się
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGuestSignupModal(false)}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Zamknij
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConciergeHistoryPanel
         open={showHistory}
         onClose={() => setShowHistory(false)}
@@ -991,10 +1073,16 @@ export default function UnifiedAIConcierge({
           <div className="min-w-0">
             <div className="font-semibold text-white text-base md:text-lg truncate">Asystent AI</div>
             <div className="text-[11px] md:text-xs text-white/80 truncate">{busy ? "Piszę odpowiedź…" : headerStepLine || (companyId ? "Asystent dla firmy" : "Asystent Helpfli")}</div>
+            {isGuestMode && guestUsage && (
+              <div className="text-[10px] md:text-[11px] text-amber-100 mt-0.5">
+                Darmowe zapytania: {guestUsage.remaining}/{guestUsage.limit}
+                {guestUsage.showWarning ? " — zostało mało, załóż konto" : ""}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {!companyId && (
+          {!companyId && !isGuestMode && (
             <button
               type="button"
               onClick={openHistory}
@@ -1892,12 +1980,16 @@ export default function UnifiedAIConcierge({
                         <button
                           type="button"
                           onClick={() => {
+                            if (isGuestMode) {
+                              promptGuestSignup();
+                              return;
+                            }
                             navigate('/create-order', { state: buildCreateOrderState(analysisResult.orderDraft) });
                             if (mode === 'modal' && onClose) onClose();
                           }}
                           className="mt-3 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
                         >
-                          Wezwij fachowca pilnie
+                          {isGuestMode ? "Załóż konto, aby wezwać fachowca" : "Wezwij fachowca pilnie"}
                         </button>
                       </div>
                     </div>
@@ -1951,6 +2043,10 @@ export default function UnifiedAIConcierge({
                   <div className="mt-3">
                     <button
                       onClick={() => {
+                        if (isGuestMode) {
+                          promptGuestSignup();
+                          return;
+                        }
                         if (onCreateOrder) {
                           onCreateOrder({
                             description: input || 'Problem wykryty przez Asystenta AI',
