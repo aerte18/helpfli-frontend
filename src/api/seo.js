@@ -126,6 +126,18 @@ export async function adminListLocalPages({ page = 1, limit = 50, service = '', 
   return jsonOrThrow(res);
 }
 
+export async function adminSuggestLocalPages({ serviceLimit = 8, cityLimit = 10, days = 90 } = {}) {
+  const params = new URLSearchParams({
+    serviceLimit: String(serviceLimit),
+    cityLimit: String(cityLimit),
+    days: String(days),
+  });
+  const res = await fetch(apiUrl(`/api/seo/admin/local/suggest?${params.toString()}`), {
+    headers: { ...getAuthHeader() }
+  });
+  return jsonOrThrow(res);
+}
+
 export async function adminDeleteLocalPage(id) {
   const res = await fetch(apiUrl(`/api/seo/admin/local/${encodeURIComponent(id)}`), {
     method: 'DELETE',

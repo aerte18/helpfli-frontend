@@ -4,9 +4,29 @@ import {
   fetchPseoServices,
   adminListLocalPages,
   adminRebuildLocalPage,
-  adminBulkBuildLocalPages,
+  adminSuggestLocalPages,
   adminDeleteLocalPage
 } from '@/api/seo';
+import { PSEO_STARTER_SLUGS } from '@/constants/pseoStarterSlugs';
+
+function normalizeSlugKey(raw = '') {
+  return String(raw).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function resolveServiceSlug(input, services) {
+  const q = String(input || '').trim().toLowerCase();
+  if (!q || !services?.length) return q || null;
+  const exact = services.find((s) => s.slug === q);
+  if (exact) return exact.slug;
+  const key = normalizeSlugKey(q);
+  const byNorm = services.find((s) => normalizeSlugKey(s.slug) === key);
+  if (byNorm) return byNorm.slug;
+  const byPrefix =
+    services.find((s) => s.slug.startsWith(q)) ||
+    services.find((s) => q.length >= 8 && s.slug.includes(q)) ||
+    services.find((s) => s.name.toLowerCase().includes(q));
+  return byPrefix?.slug || q;
+}
 
 /**
  * /admin/seo/pseo – panel zarządzania Programmatic SEO (matryca miasto×usługa).
@@ -23,6 +43,7 @@ export default function AdminSeoLocalPages() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [buildSummary, setBuildSummary] = useState(null);
 
   // Form state
@@ -30,7 +51,7 @@ export default function AdminSeoLocalPages() {
   const [singleCity, setSingleCity] = useState('warszawa');
   const [singleForce, setSingleForce] = useState(false);
 
-  const [bulkServices, setBulkServices] = useState('hydraulik\nelektryk\nklimatyzacja');
+  const [bulkServices, setBulkServices] = useState(PSEO_STARTER_SLUGS.slice(0, 6).join('\n'));
   const serviceMap = new Map(services.map((s) => [s.slug, s]));
   const normalizeTokens = (raw = '') =>
     raw
@@ -39,10 +60,20 @@ export default function AdminSeoLocalPages() {
       .filter(Boolean);
   const unique = (arr) => [...new Set(arr)];
   const bulkServiceTokens = unique(normalizeTokens(bulkServices));
-  const invalidBulkServices = bulkServiceTokens.filter((slug) => !serviceMap.has(slug));
-  const knownBulkServices = bulkServiceTokens.filter((slug) => serviceMap.has(slug));
+  const resolvedBulkSlugs = bulkServiceTokens.map((t) => resolveServiceSlug(t, services));
+  const invalidBulkServices = bulkServiceTokens.filter(
+    (slug, i) => !serviceMap.has(slug) && resolvedBulkSlugs[i] === slug
+  );
+  const correctedBulkMap = bulkServiceTokens
+    .map((slug, i) => ({ input: slug, resolved: resolvedBulkSlugs[i] }))
+    .filter(({ input, resolved }) => input !== resolved);
+  const knownBulkServices = unique(resolvedBulkSlugs);
   const normalizedSingleService = (singleService || '').trim().toLowerCase();
-  const isSingleServiceValid = !normalizedSingleService || serviceMap.has(normalizedSingleService);
+  const resolvedSingleService = resolveServiceSlug(normalizedSingleService, services);
+  const isSingleServiceValid =
+    !normalizedSingleService ||
+    serviceMap.has(normalizedSingleService) ||
+    resolvedSingleService !== normalizedSingleService;
   const suggestService = (input) => {
     const q = String(input || '').trim().toLowerCase();
     if (!q || services.length === 0) return null;
@@ -97,7 +128,7 @@ export default function AdminSeoLocalPages() {
     const city = overrides?.city ?? singleCity;
     const force = overrides?.force ?? singleForce;
     if (!service || !city) return;
-    const normalizedService = String(service).trim().toLowerCase();
+    const normalizedService = resolveServiceSlug(service, services);
     if (services.length > 0 && !serviceMap.has(normalizedService)) {
       const hint = suggestService(normalizedService);
       setBuildSummary(
@@ -123,36 +154,97 @@ export default function AdminSeoLocalPages() {
     }
   }
 
+  function insertStarterSlugs() {
+    setBulkServices(PSEO_STARTER_SLUGS.join('\n'));
+  }
+
+  function autoCorrectBulkSlugs() {
+    if (!bulkServiceTokens.length) return;
+    setBulkServices(unique(resolvedBulkSlugs).join('\n'));
+    setBuildSummary('Poprawiono slugi wg katalogu usług.');
+  }
+
   async function handleBulkBuild() {
-    const servicesToBuild = knownBulkServices.length ? knownBulkServices : bulkServiceTokens;
+    const servicesToBuild = knownBulkServices;
     if (!servicesToBuild.length || !bulkCities.length) {
       setBuildSummary('Wybierz co najmniej 1 usługę i 1 miasto.');
       return;
     }
     if (invalidBulkServices.length) {
-      const preview = invalidBulkServices.slice(0, 6).join(', ');
-      setBuildSummary(
-        `Uwaga: część slugów nie ma dokładnego matcha (${preview}${invalidBulkServices.length > 6 ? '…' : ''}). ` +
-        `Backend spróbuje je dopasować.`
-      );
+      const preview = invalidBulkServices.slice(0, 4).join(', ');
+      if (
+        !confirm(
+          `Część slugów może być nieznana (${preview}${invalidBulkServices.length > 4 ? '…' : ''}). ` +
+            'Backend spróbuje dopasować. Kontynuować?'
+        )
+      ) {
+        return;
+      }
     }
-    const total = servicesToBuild.length * bulkCities.length;
-    if (!confirm(`Zbudujesz ${total} stron PSEO. Każda = 1 wywołanie LLM. Kontynuować?`)) return;
+    const pairs = [];
+    for (const svc of servicesToBuild) {
+      for (const city of bulkCities) {
+        pairs.push({ service: svc, city });
+      }
+    }
+    const total = pairs.length;
+    if (
+      !confirm(
+        `Zbudujesz ${total} stron (${servicesToBuild.length} usług × ${bulkCities.length} miast). ` +
+          'Każda strona = osobne żądanie (bez limitu czasu proxy). Kontynuować?'
+      )
+    ) {
+      return;
+    }
     setBuilding(true);
-    setBuildSummary(`Buduję ${total} stron…`);
+    let okCount = 0;
+    const errors = [];
     try {
-      const out = await adminBulkBuildLocalPages({
-        services: servicesToBuild,
-        cities: bulkCities,
-        force: bulkForce
-      });
-      const okCount = out.results.filter((r) => r.ok).length;
-      setBuildSummary(`Zbudowano ${okCount} / ${out.total} stron.`);
+      for (let i = 0; i < pairs.length; i++) {
+        const { service, city } = pairs[i];
+        setBuildSummary(`Buduję ${i + 1}/${total}: ${service} × ${city}…`);
+        try {
+          const out = await adminRebuildLocalPage({
+            service,
+            city,
+            force: bulkForce
+          });
+          if (out.ok) okCount += 1;
+          else errors.push(`${service}×${city}: ${out.message || 'błąd'}`);
+        } catch (err) {
+          errors.push(`${service}×${city}: ${err.message}`);
+        }
+        if (i < pairs.length - 1) {
+          await new Promise((r) => setTimeout(r, 350));
+        }
+      }
+      const errPreview = errors.length ? ` Błędy (${errors.length}): ${errors.slice(0, 3).join('; ')}` : '';
+      setBuildSummary(`Gotowe: ${okCount} / ${total} stron.${errPreview}`);
       reload();
-    } catch (err) {
-      setBuildSummary(`Błąd bulk-build: ${err.message}`);
     } finally {
       setBuilding(false);
+    }
+  }
+
+  async function handleSuggestBestPseo() {
+    setSuggesting(true);
+    try {
+      const out = await adminSuggestLocalPages({ serviceLimit: 8, cityLimit: 10, days: 90 });
+      const serviceSlugs = (out.services || []).map((s) => s.slug).filter(Boolean);
+      const citySlugs = (out.cities || []).map((c) => c.slug).filter(Boolean);
+      if (!serviceSlugs.length || !citySlugs.length) {
+        setBuildSummary('AI nie znalazło wystarczających danych do propozycji.');
+        return;
+      }
+      setBulkServices(serviceSlugs.join('\n'));
+      setBulkCities(citySlugs);
+      setBuildSummary(
+        `AI uzupełniło listę: ${serviceSlugs.length} usług × ${citySlugs.length} miast (${out.strategy || 'ranking popytu'}).`
+      );
+    } catch (err) {
+      setBuildSummary(`Błąd AI propozycji: ${err.message}`);
+    } finally {
+      setSuggesting(false);
     }
   }
 
@@ -171,8 +263,9 @@ export default function AdminSeoLocalPages() {
       <header>
         <h1 className="text-2xl font-semibold">Programmatic SEO – matryca miasto × usługa</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Każda strona = unikalna landing page typu „hydraulik warszawa". Generowane przez AI na bazie
-          REALNYCH danych marketplace (liczba wykonawców, mediana ceny).
+          Każda strona = landing „usługa × miasto”. Bulk-build wysyła po jednej stronie na żądanie (bez
+          timeoutu 504 na dużej macierzy). Używaj pełnych slugów z katalogu (np.{' '}
+          <code className="text-xs">hydraulika-naprawa-wycieku</code>).
         </p>
       </header>
 
@@ -189,11 +282,47 @@ export default function AdminSeoLocalPages() {
               value={bulkServices}
               onChange={(e) => setBulkServices(e.target.value)}
               className="w-full rounded-lg border p-2 font-mono text-sm"
-              placeholder="hydraulik&#10;elektryk&#10;klimatyzacja"
+              placeholder="hydraulika-naprawa-wycieku&#10;elektryka-montaz-gniazdek-w-acznikow-oswietlenia-led"
             />
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                className="text-indigo-600 underline"
+                onClick={handleSuggestBestPseo}
+                disabled={suggesting || building}
+              >
+                {suggesting ? 'AI liczy…' : 'AI: zaproponuj najlepsze PSEO'}
+              </button>
+              <button
+                type="button"
+                className="text-indigo-600 underline"
+                onClick={insertStarterSlugs}
+              >
+                Wstaw TOP slugi
+              </button>
+              {correctedBulkMap.length > 0 && (
+                <button
+                  type="button"
+                  className="text-indigo-600 underline"
+                  onClick={autoCorrectBulkSlugs}
+                >
+                  Auto-popraw slugi ({correctedBulkMap.length})
+                </button>
+              )}
+            </div>
+            {!!correctedBulkMap.length && (
+              <div className="mt-1 text-xs text-amber-700">
+                Sugestie:{' '}
+                {correctedBulkMap
+                  .slice(0, 4)
+                  .map(({ input, resolved }) => `${input} → ${resolved}`)
+                  .join('; ')}
+                {correctedBulkMap.length > 4 ? '…' : ''}
+              </div>
+            )}
             {!!invalidBulkServices.length && (
               <div className="mt-1 text-xs text-rose-600">
-                Nieznane slugi: {invalidBulkServices.join(', ')}
+                Nieznane slugi (backend może dopasować): {invalidBulkServices.join(', ')}
               </div>
             )}
           </div>
@@ -263,7 +392,7 @@ export default function AdminSeoLocalPages() {
           <input
             value={singleService}
             onChange={(e) => setSingleService(e.target.value)}
-            placeholder="slug usługi (np. hydraulik)"
+            placeholder="slug usługi (np. hydraulika-naprawa-wycieku)"
             className={`flex-1 rounded-lg border p-2 text-sm ${isSingleServiceValid ? '' : 'border-rose-400'}`}
             list="pseo-services-list"
           />

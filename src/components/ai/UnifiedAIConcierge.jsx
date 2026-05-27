@@ -228,6 +228,7 @@ export default function UnifiedAIConcierge({
   const [showGuestSignupModal, setShowGuestSignupModal] = useState(false);
 
   const isGuestMode = !user && isGuestAiSession();
+  const guestUsageView = guestUsage || (isGuestMode ? { remaining: 10, limit: 10, showWarning: false } : null);
 
   const promptGuestSignup = () => {
     setShowGuestSignupModal(true);
@@ -1073,10 +1074,10 @@ export default function UnifiedAIConcierge({
           <div className="min-w-0">
             <div className="font-semibold text-white text-base md:text-lg truncate">Asystent AI</div>
             <div className="text-[11px] md:text-xs text-white/80 truncate">{busy ? "Piszę odpowiedź…" : headerStepLine || (companyId ? "Asystent dla firmy" : "Asystent Helpfli")}</div>
-            {isGuestMode && guestUsage && (
+            {isGuestMode && guestUsageView && (
               <div className="text-[10px] md:text-[11px] text-amber-100 mt-0.5">
-                Darmowe zapytania: {guestUsage.remaining}/{guestUsage.limit}
-                {guestUsage.showWarning ? " — zostało mało, załóż konto" : ""}
+                Darmowe zapytania: {guestUsageView.remaining}/{guestUsageView.limit}
+                {guestUsageView.showWarning ? " — zostało mało, załóż konto" : ""}
               </div>
             )}
           </div>
