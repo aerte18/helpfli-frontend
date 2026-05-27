@@ -6,8 +6,11 @@ import { useAuth } from "../context/AuthContext";
 import { getMySubscription } from "../api/subscriptions";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
 import { apiUrl } from "../lib/apiUrl";
+import { useLocation } from "react-router-dom";
+import { isChatContextRoute } from "../utils/chatMobileChrome";
 
 export default function ProviderAIWidget() {
+  const location = useLocation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -193,6 +196,10 @@ export default function ProviderAIWidget() {
 
   // Ukryj widget jeśli nie jest providerem
   if (loading || user?.role !== 'provider') {
+    return null;
+  }
+
+  if (isChatContextRoute(location)) {
     return null;
   }
 

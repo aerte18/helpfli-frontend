@@ -8,6 +8,10 @@ import EmojiPicker from "./chat/EmojiPicker";
 import MessageSearch from "./chat/MessageSearch";
 import { groupMessages, addDateSeparators } from "../utils/groupMessages";
 import { Paperclip, Send, X, MessageSquare } from "lucide-react";
+import {
+  syncMobileKeyboardInset,
+  clearMobileKeyboardInset,
+} from "../utils/chatMobileChrome";
 
 export default function ChatBox({ conversationId, currentUser, participants = [], order, onVideoCall, onPhoneCall, onMobileBack }) {
   const {
@@ -111,6 +115,46 @@ export default function ChatBox({ conversationId, currentUser, participants = []
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const isMobileChat = Boolean(onMobileBack);
+
+  useEffect(() => {
+    if (!isMobileChat) return undefined;
+    document.body.classList.add("qs-inbox-chat-active");
+
+    const vv = window.visualViewport;
+    const sync = () => syncMobileKeyboardInset();
+    sync();
+
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+
+    return () => {
+      document.body.classList.remove("qs-inbox-chat-active");
+      document.body.classList.remove("qs-chat-composer-focused");
+      clearMobileKeyboardInset();
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [isMobileChat]);
+
+  const onComposerFocus = () => {
+    if (!isMobileChat) return;
+    document.body.classList.add("qs-chat-composer-focused");
+    syncMobileKeyboardInset();
+  };
+
+  const onComposerBlur = () => {
+    if (!isMobileChat) return;
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active?.closest?.("[data-qs-chat-composer]")) return;
+      document.body.classList.remove("qs-chat-composer-focused");
+      syncMobileKeyboardInset();
+    }, 150);
+  };
 
   const handleSelectSearchResult = (message) => {
     setHighlightedMessageId(message._id);
@@ -265,7 +309,15 @@ export default function ChatBox({ conversationId, currentUser, participants = []
       )}
 
       {/* Input */}
-      <form onSubmit={onSend} className="p-3 border-t border-gray-200 bg-white">
+      <form
+        onSubmit={onSend}
+        data-qs-chat-composer
+        className={
+          isMobileChat
+            ? "sticky bottom-0 z-30 shrink-0 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+            : "p-3 border-t border-gray-200 bg-white"
+        }
+      >
         <div className="flex items-end gap-2">
           <button
             type="button"
@@ -287,6 +339,8 @@ export default function ChatBox({ conversationId, currentUser, participants = []
           <div className="flex-1 relative">
             <textarea
               value={text}
+              onFocus={onComposerFocus}
+              onBlur={onComposerBlur}
               onChange={(e) => {
                 setText(e.target.value);
                 if (typingRef.current) clearTimeout(typingRef.current);

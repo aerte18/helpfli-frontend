@@ -324,6 +324,29 @@ nav[data-qs-mobile-app-tab-bar]::after {
   body.has-mobile-tab .qs-mobile-inbox-stack {
     bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
   }
+
+  /* Czat /inbox: klawiatura — pełna wysokość nad klawiaturą, bez tab bara */
+  body.qs-keyboard-open.has-mobile-tab .qs-mobile-inbox-stack,
+  body.qs-chat-composer-focused.has-mobile-tab .qs-mobile-inbox-stack {
+    bottom: var(--qs-keyboard-inset, 0px);
+  }
+
+  body.qs-keyboard-open nav[data-qs-mobile-app-tab-bar],
+  body.qs-chat-composer-focused nav[data-qs-mobile-app-tab-bar] {
+    transform: translate3d(0, calc(110% + var(--qs-vv-bottom-offset, 0px)), 0) !important;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  body.qs-keyboard-open.has-mobile-tab,
+  body.qs-chat-composer-focused.has-mobile-tab {
+    padding-bottom: 0 !important;
+  }
+
+  body.qs-inbox-chat-active button[data-testid="ai-fab"],
+  body.qs-inbox-chat-active button[data-testid="provider-ai-fab"] {
+    display: none !important;
+  }
 }
 
 /* Blokada przewijania całej strony w widoku mapy (Home / Provider) — bez „pustego” tła pod sticky nav */

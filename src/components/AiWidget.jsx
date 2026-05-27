@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UnifiedAIConcierge from "./ai/UnifiedAIConcierge";
 import { useAuth } from "../context/AuthContext";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
 import { onAI } from "../ai/chat/bus";
+import { isChatContextRoute } from "../utils/chatMobileChrome";
 
 export default function AiWidget() {
   const { user } = useAuth();
   const isMdUp = useBreakpointMd();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   /** Globalny modal z busa (App → UnifiedAIConcierge attachBus) — ten sam co FAB, więc chowamy gwiazdkę */
   const [busAiOpen, setBusAiOpen] = useState(false);
@@ -26,8 +29,16 @@ export default function AiWidget() {
     ? "qs-fixed-above-mobile-tab"
     : "qs-fixed-soft-bottom";
 
+  // Na mobile w widokach czatu FAB nachodzi na przycisk "Wyślij" (prawy-dół).
+  // Ukrywamy więc launcher Asystenta AI na ekranach rozmów.
+  const hideOnChat = isChatContextRoute(location);
+
   // Ukryj widget dla providerów - Asystent AI jest tylko dla klientów
   if (user?.role === 'provider') {
+    return null;
+  }
+
+  if (hideOnChat) {
     return null;
   }
 
