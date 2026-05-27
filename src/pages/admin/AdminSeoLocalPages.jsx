@@ -102,10 +102,9 @@ export default function AdminSeoLocalPages() {
       const hint = suggestService(normalizedService);
       setBuildSummary(
         hint
-          ? `Nieznana usługa "${service}". Czy chodziło o "${hint.slug}" (${hint.name})?`
-          : `Nieznana usługa "${service}". Wybierz usługę z listy.`
+          ? `Uwaga: nie znaleziono dokładnego slugu "${service}". Spróbuję dopasować po stronie backendu (sugestia: "${hint.slug}").`
+          : `Uwaga: nie znaleziono dokładnego slugu "${service}". Spróbuję dopasować po stronie backendu.`
       );
-      return;
     }
     setBuilding(true);
     setBuildSummary(null);
@@ -132,8 +131,10 @@ export default function AdminSeoLocalPages() {
     }
     if (invalidBulkServices.length) {
       const preview = invalidBulkServices.slice(0, 6).join(', ');
-      setBuildSummary(`Nieznane slugi usług: ${preview}${invalidBulkServices.length > 6 ? '…' : ''}.`);
-      return;
+      setBuildSummary(
+        `Uwaga: część slugów nie ma dokładnego matcha (${preview}${invalidBulkServices.length > 6 ? '…' : ''}). ` +
+        `Backend spróbuje je dopasować.`
+      );
     }
     const total = servicesToBuild.length * bulkCities.length;
     if (!confirm(`Zbudujesz ${total} stron PSEO. Każda = 1 wywołanie LLM. Kontynuować?`)) return;
@@ -299,8 +300,8 @@ export default function AdminSeoLocalPages() {
           </button>
         </form>
         {!isSingleServiceValid && (
-          <div className="mt-2 text-xs text-rose-600">
-            Nieznana usługa.
+        <div className="mt-2 text-xs text-amber-700">
+          Brak dokładnego matcha slugu.
             {singleSuggestion ? (
               <>
                 {' '}Czy chodziło o{' '}
