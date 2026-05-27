@@ -62,6 +62,25 @@ export async function fetchSeoCities() {
   return jsonOrThrow(res);
 }
 
+export async function fetchPseoServices() {
+  const res = await fetch(apiUrl('/api/services?limit=5000'));
+  const data = await jsonOrThrow(res);
+  const items = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+      ? data.items
+      : [];
+  return {
+    ok: true,
+    services: items
+      .map((s) => ({
+        slug: String(s?.slug || s?.code || '').toLowerCase().trim(),
+        name: String(s?.name_pl || s?.name || s?.slug || s?.code || '').trim(),
+      }))
+      .filter((s) => s.slug),
+  };
+}
+
 // ===== PSEO – landing pages miasto×usługa =====
 
 export async function fetchSeoLocalPage(serviceSlug, citySlug) {

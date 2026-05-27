@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   fetchSeoCities,
+  fetchPseoServices,
   adminListLocalPages,
   adminRebuildLocalPage,
   adminBulkBuildLocalPages,
@@ -19,6 +20,7 @@ import {
 export default function AdminSeoLocalPages() {
   const [cities, setCities] = useState([]);
   const [items, setItems] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [buildSummary, setBuildSummary] = useState(null);
@@ -29,6 +31,30 @@ export default function AdminSeoLocalPages() {
   const [singleForce, setSingleForce] = useState(false);
 
   const [bulkServices, setBulkServices] = useState('hydraulik\nelektryk\nklimatyzacja');
+  const serviceMap = new Map(services.map((s) => [s.slug, s]));
+  const normalizeTokens = (raw = '') =>
+    raw
+      .split(/[\n,]/)
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+  const unique = (arr) => [...new Set(arr)];
+  const bulkServiceTokens = unique(normalizeTokens(bulkServices));
+  const invalidBulkServices = bulkServiceTokens.filter((slug) => !serviceMap.has(slug));
+  const knownBulkServices = bulkServiceTokens.filter((slug) => serviceMap.has(slug));
+  const normalizedSingleService = (singleService || '').trim().toLowerCase();
+  const isSingleServiceValid = !normalizedSingleService || serviceMap.has(normalizedSingleService);
+  const suggestService = (input) => {
+    const q = String(input || '').trim().toLowerCase();
+    if (!q || services.length === 0) return null;
+    return (
+      services.find((s) => s.slug.startsWith(q)) ||
+      services.find((s) => s.name.toLowerCase().startsWith(q)) ||
+      services.find((s) => s.slug.includes(q)) ||
+      null
+    );
+  };
+  const singleSuggestion = !isSingleServiceValid ? suggestService(normalizedSingleService) : null;
+
   const [bulkCities, setBulkCities] = useState([]);
   const [bulkForce, setBulkForce] = useState(false);
 
@@ -56,19 +82,38 @@ export default function AdminSeoLocalPages() {
         const msg = e?.data?.message || e?.message || 'Nie udało się pobrać listy miast.';
         setBuildSummary(`Błąd miast: ${msg}`);
       });
+    fetchPseoServices()
+      .then((d) => setServices(d.services || []))
+      .catch((e) => {
+        const msg = e?.data?.message || e?.message || 'Nie udało się pobrać listy usług.';
+        setBuildSummary((prev) => prev || `Błąd usług: ${msg}`);
+      });
     reload();
   }, [reload]);
 
-  async function handleSingleBuild(e) {
+  async function handleSingleBuild(e, overrides = null) {
     e?.preventDefault();
-    if (!singleService || !singleCity) return;
+    const service = overrides?.service ?? singleService;
+    const city = overrides?.city ?? singleCity;
+    const force = overrides?.force ?? singleForce;
+    if (!service || !city) return;
+    const normalizedService = String(service).trim().toLowerCase();
+    if (services.length > 0 && !serviceMap.has(normalizedService)) {
+      const hint = suggestService(normalizedService);
+      setBuildSummary(
+        hint
+          ? `Nieznana usługa "${service}". Czy chodziło o "${hint.slug}" (${hint.name})?`
+          : `Nieznana usługa "${service}". Wybierz usługę z listy.`
+      );
+      return;
+    }
     setBuilding(true);
     setBuildSummary(null);
     try {
       const out = await adminRebuildLocalPage({
-        service: singleService.trim(),
-        city: singleCity.trim(),
-        force: singleForce
+        service: normalizedService,
+        city: city.trim(),
+        force
       });
       setBuildSummary(out.ok ? `OK: /wykonawcy/${out.page.serviceSlug}/${out.page.citySlug}` : `BŁĄD: ${out.message}`);
       reload();
@@ -80,21 +125,23 @@ export default function AdminSeoLocalPages() {
   }
 
   async function handleBulkBuild() {
-    const services = bulkServices
-      .split(/[\n,]/)
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    if (!services.length || !bulkCities.length) {
+    const servicesToBuild = knownBulkServices.length ? knownBulkServices : bulkServiceTokens;
+    if (!servicesToBuild.length || !bulkCities.length) {
       setBuildSummary('Wybierz co najmniej 1 usługę i 1 miasto.');
       return;
     }
-    const total = services.length * bulkCities.length;
+    if (invalidBulkServices.length) {
+      const preview = invalidBulkServices.slice(0, 6).join(', ');
+      setBuildSummary(`Nieznane slugi usług: ${preview}${invalidBulkServices.length > 6 ? '…' : ''}.`);
+      return;
+    }
+    const total = servicesToBuild.length * bulkCities.length;
     if (!confirm(`Zbudujesz ${total} stron PSEO. Każda = 1 wywołanie LLM. Kontynuować?`)) return;
     setBuilding(true);
     setBuildSummary(`Buduję ${total} stron…`);
     try {
       const out = await adminBulkBuildLocalPages({
-        services,
+        services: servicesToBuild,
         cities: bulkCities,
         force: bulkForce
       });
@@ -134,7 +181,7 @@ export default function AdminSeoLocalPages() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs uppercase tracking-wider text-slate-500 mb-1 block">
-              Slug usług (po przecinku lub po enterze)
+              Slug usług (po przecinku lub po enterze) — {services.length} dostępnych
             </label>
             <textarea
               rows={6}
@@ -143,6 +190,11 @@ export default function AdminSeoLocalPages() {
               className="w-full rounded-lg border p-2 font-mono text-sm"
               placeholder="hydraulik&#10;elektryk&#10;klimatyzacja"
             />
+            {!!invalidBulkServices.length && (
+              <div className="mt-1 text-xs text-rose-600">
+                Nieznane slugi: {invalidBulkServices.join(', ')}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs uppercase tracking-wider text-slate-500 mb-1 block">
@@ -211,8 +263,16 @@ export default function AdminSeoLocalPages() {
             value={singleService}
             onChange={(e) => setSingleService(e.target.value)}
             placeholder="slug usługi (np. hydraulik)"
-            className="flex-1 rounded-lg border p-2 text-sm"
+            className={`flex-1 rounded-lg border p-2 text-sm ${isSingleServiceValid ? '' : 'border-rose-400'}`}
+            list="pseo-services-list"
           />
+          <datalist id="pseo-services-list">
+            {services.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.name}
+              </option>
+            ))}
+          </datalist>
           <select
             value={singleCity}
             onChange={(e) => setSingleCity(e.target.value)}
@@ -238,6 +298,24 @@ export default function AdminSeoLocalPages() {
             Zbuduj
           </button>
         </form>
+        {!isSingleServiceValid && (
+          <div className="mt-2 text-xs text-rose-600">
+            Nieznana usługa.
+            {singleSuggestion ? (
+              <>
+                {' '}Czy chodziło o{' '}
+                <button
+                  type="button"
+                  className="underline text-indigo-600"
+                  onClick={() => setSingleService(singleSuggestion.slug)}
+                >
+                  {singleSuggestion.slug}
+                </button>
+                {' '}({singleSuggestion.name})?
+              </>
+            ) : null}
+          </div>
+        )}
       </section>
 
       {/* Lista */}
@@ -293,7 +371,11 @@ export default function AdminSeoLocalPages() {
                           setSingleService(p.serviceSlug);
                           setSingleCity(p.citySlug);
                           setSingleForce(true);
-                          handleSingleBuild();
+                          handleSingleBuild(null, {
+                            service: p.serviceSlug,
+                            city: p.citySlug,
+                            force: true
+                          });
                         }}
                         className="text-xs text-indigo-600 hover:underline"
                       >

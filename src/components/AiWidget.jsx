@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
@@ -16,6 +16,14 @@ export default function AiWidget() {
   /** Globalny modal z busa (App → UnifiedAIConcierge attachBus) — ten sam co FAB, więc chowamy gwiazdkę */
   const [busAiOpen, setBusAiOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMapMobileMode, setIsMapMobileMode] = useState(false);
+  const [mapDragOffsetY, setMapDragOffsetY] = useState(0);
+  const dragRef = useRef({
+    active: false,
+    moved: false,
+    startY: 0,
+    startOffsetY: 0,
+  });
 
   useEffect(() => {
     return onAI((evt) => {
@@ -23,6 +31,37 @@ export default function AiWidget() {
       if (evt.type === "close") setBusAiOpen(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (isMdUp) {
+      setIsMapMobileMode(false);
+      setMapDragOffsetY(0);
+      return undefined;
+    }
+
+    const isMapCandidateRoute =
+      location.pathname === "/home" || location.pathname === "/search";
+    if (!isMapCandidateRoute) {
+      setIsMapMobileMode(false);
+      setMapDragOffsetY(0);
+      return undefined;
+    }
+
+    const detectMapMode = () => {
+      const hasHomeMapShell = Boolean(document.querySelector(".qs-home-map-shell"));
+      const hasMapToggle = Boolean(document.querySelector("[data-qs-map-immersive-toggle]"));
+      setIsMapMobileMode(hasHomeMapShell && hasMapToggle);
+    };
+
+    detectMapMode();
+    const observer = new MutationObserver(detectMapMode);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    window.addEventListener("resize", detectMapMode);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", detectMapMode);
+    };
+  }, [location.pathname, isMdUp]);
 
   const fabHidden = open || busAiOpen;
   const mobileBottomClass = user
@@ -41,6 +80,39 @@ export default function AiWidget() {
   if (hideOnChat) {
     return null;
   }
+
+  const clampDragY = (value) => {
+    const max = Math.max(160, window.innerHeight * 0.28);
+    const min = -Math.max(220, window.innerHeight * 0.35);
+    return Math.min(max, Math.max(min, value));
+  };
+
+  const handlePointerDown = (e) => {
+    if (!isMapMobileMode) return;
+    dragRef.current.active = true;
+    dragRef.current.moved = false;
+    dragRef.current.startY = e.clientY;
+    dragRef.current.startOffsetY = mapDragOffsetY;
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isMapMobileMode || !dragRef.current.active) return;
+    const deltaY = e.clientY - dragRef.current.startY;
+    if (Math.abs(deltaY) > 4) dragRef.current.moved = true;
+    setMapDragOffsetY(clampDragY(dragRef.current.startOffsetY + deltaY));
+  };
+
+  const handlePointerUp = () => {
+    dragRef.current.active = false;
+  };
+
+  const handleOpen = () => {
+    if (isMapMobileMode && dragRef.current.moved) {
+      dragRef.current.moved = false;
+      return;
+    }
+    setOpen(true);
+  };
 
   const glowVariants = {
     idle: {
@@ -90,27 +162,35 @@ export default function AiWidget() {
           <motion.button
             key="ai-fab"
             initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1, y: [0, -5, 0] }}
+            animate={
+              isMapMobileMode
+                ? { opacity: 1, scale: 1, y: mapDragOffsetY }
+                : { opacity: 1, scale: 1, y: [0, -5, 0] }
+            }
             exit={{ opacity: 0, scale: 0.85 }}
             transition={{
               opacity: { duration: 0.2 },
               scale: { duration: 0.2 },
-              y: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+              y: isMapMobileMode
+                ? { duration: 0.12, ease: "easeOut" }
+                : { repeat: Infinity, duration: 3, ease: "easeInOut" },
             }}
-            onClick={() => {
-              setOpen(true);
-            }}
+            onClick={handleOpen}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             whileTap={{ scale: 0.95 }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`fixed z-[50] rounded-full shadow-2xl right-3 ${mobileBottomClass}
+            className={`fixed z-[50] rounded-full shadow-2xl ${isMapMobileMode ? "right-[-10px] rounded-l-full rounded-r-none" : "right-3"} ${mobileBottomClass}
                        md:bottom-6 md:right-6
                        bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700
                        border-2 border-indigo-400/30 backdrop-blur-sm
                        hover:shadow-3xl transition-all duration-300 overflow-hidden`}
             style={{
               padding: isHovered && isMdUp ? "12px 20px" : isMdUp ? "16px" : "12px",
-              width: isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
+              width: isMapMobileMode ? "52px" : isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
               height: isHovered && isMdUp ? "64px" : isMdUp ? "64px" : "48px",
             }}
             aria-label="Otwórz Asystenta AI"
