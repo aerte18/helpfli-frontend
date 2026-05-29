@@ -5,6 +5,7 @@ import {
   adminListLocalPages,
   adminRebuildLocalPage,
   adminSuggestLocalPages,
+  adminGetPseoTraffic,
   adminDeleteLocalPage
 } from '@/api/seo';
 import { PSEO_STARTER_SLUGS } from '@/constants/pseoStarterSlugs';
@@ -44,6 +45,9 @@ export default function AdminSeoLocalPages() {
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
+  const [traffic, setTraffic] = useState(null);
+  const [trafficDays, setTrafficDays] = useState(30);
+  const [trafficLoading, setTrafficLoading] = useState(true);
   const [buildSummary, setBuildSummary] = useState(null);
 
   // Form state
@@ -106,6 +110,19 @@ export default function AdminSeoLocalPages() {
     }
   }, []);
 
+  const loadTraffic = useCallback(async () => {
+    setTrafficLoading(true);
+    try {
+      const data = await adminGetPseoTraffic({ days: trafficDays });
+      setTraffic(data);
+    } catch (e) {
+      console.warn(e);
+      setTraffic(null);
+    } finally {
+      setTrafficLoading(false);
+    }
+  }, [trafficDays]);
+
   useEffect(() => {
     fetchSeoCities()
       .then((d) => setCities(d.cities || []))
@@ -120,7 +137,8 @@ export default function AdminSeoLocalPages() {
         setBuildSummary((prev) => prev || `Błąd usług: ${msg}`);
       });
     reload();
-  }, [reload]);
+    loadTraffic();
+  }, [reload, loadTraffic]);
 
   async function handleSingleBuild(e, overrides = null) {
     e?.preventDefault();
@@ -268,6 +286,84 @@ export default function AdminSeoLocalPages() {
           <code className="text-xs">hydraulika-naprawa-wycieku</code>).
         </p>
       </header>
+
+      {/* Ruch / odwiedziny */}
+      <section className="bg-white rounded-2xl border p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 className="font-semibold text-slate-900">Ruch na stronach SEO</h2>
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-slate-600">
+              Okres
+              <select
+                value={trafficDays}
+                onChange={(e) => setTrafficDays(Number(e.target.value))}
+                className="ml-1 rounded border px-2 py-1"
+              >
+                <option value={7}>7 dni</option>
+                <option value={30}>30 dni</option>
+                <option value={90}>90 dni</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={loadTraffic}
+              disabled={trafficLoading}
+              className="text-indigo-600 hover:underline"
+            >
+              {trafficLoading ? 'Ładuję…' : 'Odśwież'}
+            </button>
+          </div>
+        </div>
+        {trafficLoading && !traffic ? (
+          <p className="text-sm text-slate-500">Ładowanie statystyk ruchu…</p>
+        ) : traffic?.summary ? (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+              <TrafficKpi label="Wszystkie odsłony" value={traffic.summary.totalPageViews} />
+              <TrafficKpi label="Landingi PSEO" value={traffic.summary.pseoPageViews} />
+              <TrafficKpi label="Poradniki" value={traffic.summary.poradnikPageViews} />
+              <TrafficKpi label="Sesje (szac.)" value={traffic.summary.distinctSessions} />
+              <TrafficKpi label="Zalogowani" value={traffic.summary.loggedInVisitors} />
+            </div>
+            {traffic.topPseoPaths?.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                  Top strony PSEO (telemetria)
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="text-xs text-slate-500 border-b">
+                      <tr>
+                        <th className="text-left py-1 pr-3">URL</th>
+                        <th className="text-right py-1 pr-3">Odsłony</th>
+                        <th className="text-right py-1">Sesje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {traffic.topPseoPaths.slice(0, 10).map((row) => (
+                        <tr key={row.path} className="border-b last:border-b-0">
+                          <td className="py-1.5 pr-3 font-mono text-xs text-indigo-700">{row.path}</td>
+                          <td className="py-1.5 pr-3 text-right">{row.views}</td>
+                          <td className="py-1.5 text-right">{row.sessions}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-slate-500">{traffic.note}</p>
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Brak danych ruchu. Pełna analityka:{' '}
+            <a href="/admin/analytics" className="text-indigo-600 underline">
+              Admin → Analityka
+            </a>
+            .
+          </p>
+        )}
+      </section>
 
       {/* Bulk-build */}
       <section className="bg-white rounded-2xl border p-5 shadow-sm">
@@ -470,6 +566,7 @@ export default function AdminSeoLocalPages() {
                 <tr>
                   <th className="text-left py-2 pr-3">Usługa × Miasto</th>
                   <th className="text-left py-2 pr-3">Wykonawcy</th>
+                  <th className="text-left py-2 pr-3">Odsłony</th>
                   <th className="text-left py-2 pr-3">Mediana</th>
                   <th className="text-left py-2 pr-3">Build</th>
                   <th className="text-right py-2">Akcje</th>
@@ -490,6 +587,9 @@ export default function AdminSeoLocalPages() {
                       <div className="text-xs text-slate-400">/wykonawcy/{p.serviceSlug}/{p.citySlug}</div>
                     </td>
                     <td className="py-2 pr-3">{p.statsSnapshot?.providerCount ?? '—'}</td>
+                    <td className="py-2 pr-3 text-xs">
+                      <div>DB: {p.views ?? 0}</div>
+                    </td>
                     <td className="py-2 pr-3">{p.statsSnapshot?.medianPrice ? `${p.statsSnapshot.medianPrice} zł` : '—'}</td>
                     <td className="py-2 pr-3 text-xs text-slate-500">
                       {p.lastBuiltAt ? new Date(p.lastBuiltAt).toLocaleDateString('pl-PL') : '—'}
@@ -526,6 +626,15 @@ export default function AdminSeoLocalPages() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function TrafficKpi({ label, value }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="text-xl font-semibold text-slate-900">{Number(value || 0).toLocaleString('pl-PL')}</div>
     </div>
   );
 }
