@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
@@ -14,6 +14,15 @@ export default function ProviderAIWidget() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMapMobileMode, setIsMapMobileMode] = useState(false);
+  const [isMapImmersive, setIsMapImmersive] = useState(false);
+  const [mapDragOffsetY, setMapDragOffsetY] = useState(0);
+  const dragRef = useRef({
+    active: false,
+    moved: false,
+    startY: 0,
+    startOffsetY: 0,
+  });
   const [packageType, setPackageType] = useState('PROV_FREE');
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
@@ -22,6 +31,36 @@ export default function ProviderAIWidget() {
   const [usage, setUsage] = useState({ used: 0, limit: 20, remaining: 20 });
   const messagesEndRef = React.useRef(null);
   const isMdUp = useBreakpointMd();
+
+  useEffect(() => {
+    if (isMdUp) {
+      setIsMapMobileMode(false);
+      setMapDragOffsetY(0);
+      return undefined;
+    }
+
+    if (location.pathname !== "/provider-home") {
+      setIsMapMobileMode(false);
+      setMapDragOffsetY(0);
+      return undefined;
+    }
+
+    const detectMapMode = () => {
+      const hasProviderMap = Boolean(document.querySelector(".qs-provider-map-stack"));
+      const hasMapToggle = Boolean(document.querySelector("[data-qs-map-immersive-toggle]"));
+      setIsMapMobileMode(hasProviderMap && hasMapToggle);
+      setIsMapImmersive(document.body.classList.contains("qs-map-immersive"));
+    };
+
+    detectMapMode();
+    const observer = new MutationObserver(detectMapMode);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    window.addEventListener("resize", detectMapMode);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", detectMapMode);
+    };
+  }, [location.pathname, isMdUp]);
 
   // Otwórz widget z zewnątrz (np. z Konta → Moje oferty)
   useEffect(() => {
@@ -203,10 +242,46 @@ export default function ProviderAIWidget() {
     return null;
   }
 
+  const isAccountRoute = location.pathname.startsWith("/account");
+  const hideFloatingFab = isAccountRoute && !open;
+
   const isFree = packageType === 'PROV_FREE';
   const isStandard = packageType === 'PROV_STD';
   const isPro = packageType === 'PROV_PRO';
   const hasUnlimited = isStandard || isPro;
+
+  const clampDragY = (value) => {
+    const max = Math.max(160, window.innerHeight * 0.28);
+    const min = -Math.max(220, window.innerHeight * 0.35);
+    return Math.min(max, Math.max(min, value));
+  };
+
+  const handlePointerDown = (e) => {
+    if (!isMapMobileMode) return;
+    dragRef.current.active = true;
+    dragRef.current.moved = false;
+    dragRef.current.startY = e.clientY;
+    dragRef.current.startOffsetY = mapDragOffsetY;
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isMapMobileMode || !dragRef.current.active) return;
+    const deltaY = e.clientY - dragRef.current.startY;
+    if (Math.abs(deltaY) > 4) dragRef.current.moved = true;
+    setMapDragOffsetY(clampDragY(dragRef.current.startOffsetY + deltaY));
+  };
+
+  const handlePointerUp = () => {
+    dragRef.current.active = false;
+  };
+
+  const handleOpen = () => {
+    if (isMapMobileMode && dragRef.current.moved) {
+      dragRef.current.moved = false;
+      return;
+    }
+    setOpen(true);
+  };
 
   const glowVariants = {
     idle: {
@@ -230,27 +305,35 @@ export default function ProviderAIWidget() {
 
   return (
     <>
-      {!open && (
+      {!open && !isMapImmersive && !hideFloatingFab && (
       <motion.button
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         whileTap={{ scale: 0.95 }}
-        animate={{ 
-          y: [0, -5, 0]
-        }}
-        transition={{ 
-          y: { repeat: Infinity, duration: 3, ease: "easeInOut" }
+        animate={
+          isMapMobileMode
+            ? { y: mapDragOffsetY }
+            : { y: [0, -5, 0] }
+        }
+        transition={{
+          y: isMapMobileMode
+            ? { duration: 0.12, ease: "easeOut" }
+            : { repeat: Infinity, duration: 3, ease: "easeInOut" },
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="fixed z-[50] rounded-full shadow-2xl
-                   qs-fixed-above-mobile-tab right-3
+        className={`fixed z-[50] shadow-2xl qs-fixed-above-mobile-tab
                    md:bottom-6 md:right-6
                    bg-gradient-to-br from-purple-600 via-pink-600 to-purple-700
                    border-2 border-purple-400/30 backdrop-blur-sm
-                   hover:shadow-3xl transition-all duration-300 overflow-hidden"
+                   hover:shadow-3xl transition-all duration-300 overflow-hidden
+                   ${isMapMobileMode ? "right-[-10px] rounded-l-full rounded-r-none" : "right-3 rounded-full"}`}
         style={{
           padding: isHovered && isMdUp ? "12px 20px" : isMdUp ? "16px" : "12px",
-          width: isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
+          width: isMapMobileMode ? "52px" : isHovered && isMdUp ? "auto" : isMdUp ? "64px" : "48px",
           height: isHovered && isMdUp ? "64px" : isMdUp ? "64px" : "48px",
         }}
         aria-label="Otwórz Asystent AI"

@@ -373,7 +373,7 @@ function OverviewTab({ user, stats }) {
   return (
     <div className="space-y-4">
       {(user?.role === 'client' || user?.role === 'provider') && (
-        <ProviderGrowthBenefitsPanel />
+        <ProviderGrowthBenefitsPanel storageKey="account:growthBenefitsCollapsed" />
       )}
       {user?.role === 'client' && <WelcomeCreditBanner variant="compact" />}
       {/* Order Stats Dashboard */}
@@ -1907,6 +1907,8 @@ function ProfileTab({ user, fetchMe }) {
   const [headline, setHeadline] = useState(user?.headline || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [priceNote, setPriceNote] = useState(user?.priceNote || '');
+  const [priceMin, setPriceMin] = useState(user?.priceMin ?? user?.price ?? '');
+  const [priceMax, setPriceMax] = useState(user?.priceMax ?? '');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -1919,7 +1921,9 @@ function ProfileTab({ user, fetchMe }) {
     setHeadline(user?.headline || '');
     setBio(user?.bio || '');
     setPriceNote(user?.priceNote || '');
-  }, [user?.headline, user?.bio, user?.priceNote]);
+    setPriceMin(user?.priceMin ?? user?.price ?? '');
+    setPriceMax(user?.priceMax ?? '');
+  }, [user?.headline, user?.bio, user?.priceNote, user?.priceMin, user?.priceMax, user?.price]);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -1933,7 +1937,13 @@ function ProfileTab({ user, fetchMe }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ headline, bio, priceNote }),
+        body: JSON.stringify({
+          headline,
+          bio,
+          priceNote,
+          priceMin: priceMin === '' ? null : Number(priceMin),
+          priceMax: priceMax === '' ? null : Number(priceMax),
+        }),
       });
       if (res.ok) {
         setProfileSaved(true);
@@ -2059,7 +2069,40 @@ function ProfileTab({ user, fetchMe }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Informacja o cenach</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Widełki cenowe (zł)</label>
+              <p className="text-xs text-gray-500 mb-2">
+                Domyślny zakres dla usług bez osobnych widełek (ustawiasz je w zakładce Usługi).
+                Klienci filtrują po cenie wybranej kategorii.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Od</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    placeholder="np. 80"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Do</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    placeholder="np. 200"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dodatkowa informacja o cenach</label>
               <textarea
                 rows={2}
                 value={priceNote}

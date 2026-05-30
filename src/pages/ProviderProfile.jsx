@@ -471,19 +471,69 @@ export default function ProviderProfile() {
                 <Banknote className="h-5 w-5 text-primary" />
                 <h2 className="text-xl font-semibold text-foreground">Zakres cen</h2>
               </div>
-              {provider.priceNote ? (
-                <div className="space-y-2">
-                  <p className="text-muted-foreground">{provider.priceNote}</p>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Banknote className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Brak danych o cenach.</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Zapytaj o indywidualną wycenę dla swojego projektu.
-                  </p>
-                </div>
-              )}
+              {(() => {
+                const services = Array.isArray(provider.services) ? provider.services : [];
+                const priceRows = Array.isArray(provider.servicePrices) ? provider.servicePrices : [];
+                const pricedServices = services
+                  .map((svc) => {
+                    const sid = String(svc._id || svc);
+                    const row = priceRows.find((p) => String(p.service) === sid);
+                    if (!row || row.min == null) return null;
+                    const name = svc.name_pl || svc.name || svc.name_en || 'Usługa';
+                    const to = row.max ?? row.min;
+                    return { name, label: row.min === to ? `${row.min} zł` : `${row.min}–${to} zł` };
+                  })
+                  .filter(Boolean);
+
+                if (pricedServices.length > 0) {
+                  return (
+                    <div className="space-y-3">
+                      {pricedServices.map((item) => (
+                        <div key={item.name} className="flex items-center justify-between gap-4 border-b border-border pb-2 last:border-0 last:pb-0">
+                          <span className="text-foreground">{item.name}</span>
+                          <span className="font-semibold text-foreground whitespace-nowrap">{item.label}</span>
+                        </div>
+                      ))}
+                      {provider.priceNote ? (
+                        <p className="text-sm text-muted-foreground pt-2">{provider.priceNote}</p>
+                      ) : null}
+                    </div>
+                  );
+                }
+
+                if (provider.priceMin != null || provider.priceMax != null || provider.priceFrom || provider.price) {
+                  const from = provider.priceMin ?? provider.priceFrom ?? provider.price;
+                  const to = provider.priceMax ?? provider.priceTo ?? from;
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-lg font-semibold text-foreground">
+                        {from != null && to != null && from !== to ? `${from}–${to} zł` : from != null ? `od ${from} zł` : null}
+                      </p>
+                      {provider.priceNote ? (
+                        <p className="text-muted-foreground">{provider.priceNote}</p>
+                      ) : null}
+                    </div>
+                  );
+                }
+
+                if (provider.priceNote) {
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-muted-foreground">{provider.priceNote}</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="text-center py-8">
+                    <Banknote className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-muted-foreground">Brak danych o cenach.</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Zapytaj o indywidualną wycenę dla swojego projektu.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Reviews */}

@@ -13,12 +13,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { getGrowthMe } from '../api/growth';
 import { useEffect, useMemo, useState } from 'react';
+import { useBreakpointMd } from '../hooks/useBreakpointMd';
 
 /**
  * Panel aktywnych benefitów growth — prowizja, boosty, subskrypcja (osobno).
  *
  * Props:
- * - collapsible: gdy true, panel renderuje się jako zwijany (mała belka + chevron).
+ * - collapsible: wymusza zwijanie na wszystkich szerokościach.
+ * - collapseOnMobileOnly: na mobile (< md) panel jest zwijany (domyślnie true).
  * - defaultCollapsed: stan startowy, gdy nic nie ma w localStorage.
  * - storageKey: klucz pod jakim trzymamy stan zwinięcia (per-strona).
  */
@@ -26,14 +28,17 @@ export default function ProviderGrowthBenefitsPanel({
   className = '',
   compact = false,
   collapsible = false,
+  collapseOnMobileOnly = true,
   defaultCollapsed = true,
   storageKey = 'providerGrowthBenefitsPanel:collapsed',
 }) {
   const { user } = useAuth();
+  const isMdUp = useBreakpointMd();
+  const isCollapsible = collapsible || (collapseOnMobileOnly && !isMdUp);
   const [benefits, setBenefits] = useState(user?.growthBenefits || null);
 
   const [collapsed, setCollapsed] = useState(() => {
-    if (!collapsible) return false;
+    if (!isCollapsible) return false;
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw === '0') return false;
@@ -43,11 +48,14 @@ export default function ProviderGrowthBenefitsPanel({
   });
 
   useEffect(() => {
-    if (!collapsible) return;
+    if (!isCollapsible) {
+      setCollapsed(false);
+      return;
+    }
     try {
       localStorage.setItem(storageKey, collapsed ? '1' : '0');
     } catch (_) {}
-  }, [collapsed, collapsible, storageKey]);
+  }, [collapsed, isCollapsible, storageKey]);
 
   useEffect(() => {
     if (user?.role !== 'provider') return;
@@ -106,7 +114,7 @@ export default function ProviderGrowthBenefitsPanel({
 
   if (compact && !foundingActive) return null;
 
-  const headerInteractive = collapsible;
+  const headerInteractive = isCollapsible;
 
   return (
     <div className={`rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden ${className}`}>
@@ -121,8 +129,8 @@ export default function ProviderGrowthBenefitsPanel({
         <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-amber-700 shrink-0" aria-hidden />
         <h3 className="font-semibold text-amber-950 text-sm shrink-0">Twoje aktywne korzyści</h3>
 
-        {collapsible && collapsed && chips.length > 0 && (
-          <div className="hidden sm:flex items-center gap-1.5 min-w-0 ml-1 overflow-hidden">
+        {isCollapsible && collapsed && chips.length > 0 && (
+          <div className="flex items-center gap-1 min-w-0 ml-1 overflow-hidden flex-1">
             {chips.slice(0, 2).map((c, i) => (
               <span
                 key={i}
@@ -137,9 +145,9 @@ export default function ProviderGrowthBenefitsPanel({
           </div>
         )}
 
-        {collapsible && (
-          <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-amber-800">
-            <span className="hidden md:inline">{collapsed ? 'Pokaż' : 'Zwiń'}</span>
+        {isCollapsible && (
+          <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-medium text-amber-800">
+            <span className="hidden sm:inline">{collapsed ? 'Pokaż' : 'Zwiń'}</span>
             {collapsed ? (
               <ChevronDown className="w-4 h-4" aria-hidden />
             ) : (
@@ -149,7 +157,7 @@ export default function ProviderGrowthBenefitsPanel({
         )}
       </button>
 
-      {!(collapsible && collapsed) && (
+      {!(isCollapsible && collapsed) && (
         <div className="p-4 space-y-4">
           {foundingActive && (
             <BenefitRow
@@ -207,7 +215,7 @@ export default function ProviderGrowthBenefitsPanel({
             <Link to="/account?tab=referrals" className="text-xs font-semibold text-amber-800 hover:text-amber-950 underline">
               Program poleceń
             </Link>
-            {collapsible && (
+            {isCollapsible && (
               <>
                 <span className="text-amber-400">·</span>
                 <Link to="/account" className="text-xs font-semibold text-amber-800 hover:text-amber-950 underline">

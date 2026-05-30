@@ -11,6 +11,7 @@ import {
   DollarSign,
   Users
 } from 'lucide-react';
+import CollapsiblePanel from './CollapsiblePanel';
 
 export default function OrderStatsDashboard({ userRole, userId }) {
   const [stats, setStats] = useState(null);
@@ -46,14 +47,16 @@ export default function OrderStatsDashboard({ userRole, userId }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Statystyki jako Klient */}
       {userRole === 'client' && stats.client && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-indigo-600" />
-            Moje zlecenia jako Klient
-          </h2>
+        <CollapsiblePanel
+          title="Moje zlecenia jako Klient"
+          icon={Package}
+          storageKey="orderStats:client"
+          summary={`${stats.client.total} zleceń · ${stats.client.inProgress} w realizacji`}
+          bodyClassName="pt-4"
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={<Package className="w-5 h-5" />}
@@ -113,16 +116,18 @@ export default function OrderStatsDashboard({ userRole, userId }) {
               color="indigo"
             />
           </div>
-        </div>
+        </CollapsiblePanel>
       )}
 
       {/* Statystyki jako Provider */}
       {userRole === 'provider' && stats.provider && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
-            Moje zlecenia jako Wykonawca
-          </h2>
+        <CollapsiblePanel
+          title="Moje zlecenia jako Wykonawca"
+          icon={Users}
+          storageKey="orderStats:provider"
+          summary={`${stats.provider.total} zleceń · ${stats.provider.accepted} zaakceptowanych · ${stats.provider.inProgress} w realizacji`}
+          bodyClassName="pt-4"
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={<Package className="w-5 h-5" />}
@@ -182,16 +187,18 @@ export default function OrderStatsDashboard({ userRole, userId }) {
               color="indigo"
             />
           </div>
-        </div>
+        </CollapsiblePanel>
       )}
 
       {/* Statystyki firmy */}
       {stats.company && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
-            Statystyki firmy
-          </h2>
+        <CollapsiblePanel
+          title="Statystyki firmy"
+          icon={Users}
+          storageKey="orderStats:company"
+          summary={`${stats.company.total} zleceń firmowych`}
+          bodyClassName="pt-4"
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={<Package className="w-5 h-5" />}
@@ -230,7 +237,7 @@ export default function OrderStatsDashboard({ userRole, userId }) {
               color="indigo"
             />
           </div>
-        </div>
+        </CollapsiblePanel>
       )}
     </div>
   );

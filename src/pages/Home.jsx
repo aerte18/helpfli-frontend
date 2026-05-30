@@ -437,7 +437,8 @@ export default function Home() {
       if (filters.level && filters.level !== "any" && p.level !== filters.level) return false;
       if (filters.minRating && (p.rating ?? 0) < filters.minRating) return false;
       if (filters.budgetMin || filters.budgetMax) {
-        const [min, max] = (p.priceRange || "0–0").split("–").map(Number);
+        const min = Number(p.priceFrom ?? p.price ?? 0);
+        const max = Number(p.priceTo ?? p.priceFrom ?? p.price ?? 99999);
         const lo = Number(filters.budgetMin || 0);
         const hi = Number(filters.budgetMax || 99999);
         if (max < lo || min > hi) return false;

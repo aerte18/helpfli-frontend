@@ -2013,7 +2013,7 @@ export default function ProviderHome() {
               right: "max(0.75rem, env(safe-area-inset-right, 0px))",
               bottom: mapMobileImmersive
                 ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
-                : "calc(4.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
+                : "calc(4.75rem + 5.25rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
             }}
             aria-pressed={mapMobileImmersive}
             aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}

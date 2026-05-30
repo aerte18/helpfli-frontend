@@ -202,32 +202,36 @@ export default function ProviderServiceCategoryPicker({
               key={category._id}
               className="border border-slate-200 rounded-xl p-4 bg-white hover:border-slate-300 transition-colors"
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center flex-1 gap-3 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = isPartial;
-                    }}
-                    onChange={() => handleMainCategoryToggle(category.slug)}
-                    className="h-5 w-5 shrink-0 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer"
-                  />
-                  <label
-                    className="text-base font-semibold text-slate-900 cursor-pointer flex-1 min-w-0 truncate hover:text-indigo-600"
-                    onClick={() => toggleCategoryExpand(category.slug)}
-                  >
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = isPartial;
+                  }}
+                  onChange={() => handleMainCategoryToggle(category.slug)}
+                  className="h-5 w-5 shrink-0 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 cursor-pointer"
+                />
+                <button
+                  type="button"
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() => toggleCategoryExpand(category.slug)}
+                >
+                  <span className="text-base font-semibold text-slate-900 leading-snug hover:text-indigo-600">
                     {category.name_pl}
-                  </label>
-                  <span className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-full shrink-0">
+                  </span>
+                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className="text-[11px] tabular-nums text-slate-600 bg-slate-100 px-2 py-1 rounded-full whitespace-nowrap min-w-[2.5rem] text-center">
                     {categorySubs.length}
                   </span>
                   {categorySubs.length > 0 && (
                     <button
                       type="button"
                       onClick={() => toggleCategoryExpand(category.slug)}
-                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+                      className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
                       aria-label={isExpanded ? "Zwiń" : "Rozwiń"}
+                      aria-expanded={isExpanded}
                     >
                       <svg
                         className={`w-5 h-5 text-slate-600 transition-transform duration-200 ${
@@ -236,6 +240,7 @@ export default function ProviderServiceCategoryPicker({
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        aria-hidden
                       >
                         <path
                           strokeLinecap="round"

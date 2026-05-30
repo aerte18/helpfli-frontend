@@ -9,6 +9,7 @@ import { getPlans, getMySubscription, subscribePlan, cancelSubscription, startTr
 import { getCompanySubscription } from "../api/companies";
 import { useAuth } from "../context/AuthContext";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
+import CollapsiblePanel from "../components/CollapsiblePanel";
 
 export default function Subscriptions() {
   const { user, fetchMe } = useAuth();
@@ -256,8 +257,26 @@ export default function Subscriptions() {
           </div>
         )}
         {audience === 'provider' && (
-          <div className="max-w-2xl mx-auto mb-8">
-            <ProviderGrowthBenefitsPanel />
+          <div className="max-w-2xl mx-auto mb-8 space-y-4">
+            <ProviderGrowthBenefitsPanel storageKey="subscriptions:growthBenefitsCollapsed" />
+            {user?.growthBenefits?.provider?.foundingProvider?.active &&
+              mine &&
+              (mine.isImplicit || mine.planKey === 'PROV_FREE') && (
+                <CollapsiblePanel
+                  title="Program Pierwszy wykonawca ≠ pakiet PRO"
+                  storageKey="subscriptions:foundingVsProNote"
+                  defaultCollapsed
+                  summary="Promocja startowa to nie subskrypcja PRO"
+                  className="border-amber-200 bg-amber-50/90 shadow-none"
+                  headerClassName="bg-amber-50/90"
+                  bodyClassName="pt-2 text-sm text-amber-950 leading-relaxed"
+                >
+                  <strong>Program Pierwszy wykonawca</strong> (0% prowizji, darmowe boosty na ok. 60 dni)
+                  to promocja startowa — <strong>to nie jest pakiet PRO</strong>. Twój abonament to{' '}
+                  <strong>{mine.planName || 'FREE (usługodawca)'}</strong>. Pakiet PRO to osobna opłata
+                  miesięczna (nielimitowane odpowiedzi, badge PRO, priorytet w wynikach).
+                </CollapsiblePanel>
+              )}
           </div>
         )}
         <div className="text-center mb-16 space-y-4">
@@ -294,10 +313,20 @@ export default function Subscriptions() {
             <div>
               <div className="text-sm text-gray-600 mb-1">Twój aktualny plan</div>
               <div className="text-base font-semibold text-gray-900">
-                {mine.planKey}
+                {mine.planName || mine.planKey}
+                {mine.isTrial ? (
+                  <span className="ml-2 text-xs font-bold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                    Trial
+                  </span>
+                ) : null}
               </div>
               <div className="text-xs text-gray-500">
-                Ważny do: {new Date(mine.validUntil).toLocaleDateString()} • Darmowe ekspresy: {mine.freeExpressLeft}
+                {mine.isImplicit
+                  ? 'Pakiet podstawowy w cenie konta — bez dodatkowej opłaty'
+                  : mine.validUntil
+                    ? `Ważny do: ${new Date(mine.validUntil).toLocaleDateString('pl-PL')}`
+                    : 'Bezterminowo'}
+                {!mine.isImplicit && mine.freeExpressLeft != null ? ` • Darmowe ekspresy: ${mine.freeExpressLeft}` : ''}
               </div>
               {(audience === "provider" || audience === "business") &&
                 user?.monthlyOffersLimit != null && (
@@ -312,7 +341,7 @@ export default function Subscriptions() {
                   </div>
                 )}
             </div>
-            {!mine.renews ? null : (
+            {!mine.renews || mine.isImplicit ? null : (
               <button className="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm hover:bg-rose-700 transition-colors" onClick={onCancel}>
                 Anuluj auto-odnowienie
               </button>

@@ -589,12 +589,19 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 						{isCurrentPlan(p) ? (
 							<div
 								className={`w-full bg-green-500 text-white font-semibold py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center gap-2 text-center leading-snug ${
-									isFreePlan(p) ? "text-sm" : ""
+									isFreePlan(p) || currentSubscription?.isTrial ? "text-sm" : ""
 								}`}
 							>
 								<Check className="w-4 h-4 shrink-0" />
 								{isFreePlan(p) ? (
 									<span>Korzystasz z tego pakietu — wersja podstawowa w cenie konta</span>
+								) : currentSubscription?.isTrial ? (
+									<span>
+										Trial aktywny
+										{currentSubscription.validUntil
+											? ` do ${new Date(currentSubscription.validUntil).toLocaleDateString('pl-PL')}`
+											: ''}
+									</span>
 								) : (
 									<span>AKTYWNY</span>
 								)}
@@ -619,7 +626,7 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 									checked={requestInvoice}
 									onChange={setRequestInvoice}
 								/>
-								{isProPlan(p) && onStartTrial && !currentSubscription?.isTrial && (
+								{isProPlan(p) && onStartTrial && !currentSubscription?.isTrial && !isCurrentPlan(p) && (
 									<button 
 										onClick={() => onStartTrial(p.key)} 
 										className={`w-full text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 ${
