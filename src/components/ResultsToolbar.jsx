@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, Users, Star, Zap, List, Map, LayoutGrid } from 'lucide-react';
+import { ShieldCheck, Users, Star, List, Map, LayoutGrid } from 'lucide-react';
 
 export default function ResultsToolbar({ 
   searchQuery, 
@@ -13,8 +13,6 @@ export default function ResultsToolbar({
   onB2bOnlyChange,
   proOnly,
   onProOnlyChange,
-  availableNow,
-  onAvailableNowChange,
   viewMode,
   onViewModeChange,
   categorySelector,
@@ -118,7 +116,7 @@ export default function ResultsToolbar({
                 }`}
               >
                 <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Firma
+                Faktura VAT
               </button>
               <button
                 type="button"
@@ -130,19 +128,6 @@ export default function ResultsToolbar({
                 <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 TOP
               </button>
-              {onAvailableNowChange && (
-                <button
-                  type="button"
-                  onClick={() => onAvailableNowChange(!availableNow)}
-                  title="Pokaż tylko wykonawców dostępnych w tej chwili"
-                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
-                    availableNow ? 'font-medium text-emerald-700' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  Dostępny teraz
-                </button>
-              )}
             </div>
 
             {/* Sort / widok / Wszystkie filtry — zawsze mieści się w szerokości viewport */}

@@ -18,20 +18,8 @@ import FoundingProviderBadge, { hasFoundingProviderBadge } from "./FoundingProvi
 const isActive = (d) => d && new Date(d) > new Date();
 
 const getStatusInfo = (providerStatus) => {
-  // Najpierw sprawdź dostępność "teraz" z harmonogramu (jeśli jest)
-  // availableNow jest obliczane przez backend na podstawie harmonogramu + isOnline
-  if (providerStatus?.availableNow === true || providerStatus?.isOnline === true) {
+  if (providerStatus?.isOnline === true) {
     return { dot: "bg-emerald-500", text: UI.providerCanHelpNow };
-  } else if (providerStatus?.isOnline === false && providerStatus?.availableNow === false) {
-    return { dot: "bg-slate-400", text: UI.providerOffline };
-  } else if (providerStatus?.lastSeenAt) {
-    // Fallback: sprawdź czy ostatnio widziany w ciągu 5 minut
-    const lastSeen = new Date(providerStatus.lastSeenAt);
-    const now = new Date();
-    const diffMinutes = (now - lastSeen) / (1000 * 60);
-    if (diffMinutes <= 5) {
-      return { dot: "bg-emerald-500", text: UI.providerCanHelpNow };
-    }
   }
   return { dot: "bg-slate-400", text: UI.providerOffline };
 };
@@ -247,7 +235,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 <span className="px-1.5 py-0.5 text-xs font-bold bg-orange-500 text-white rounded" title="TOP Provider">TOP</span>
               )}
               {data.b2b && (
-                <Building2 className="w-4 h-4 text-purple-600" title="Firma" />
+                <Building2 className="w-4 h-4 text-purple-600" title="Wystawia fakturę VAT" />
               )}
             </div>
           </div>
@@ -481,7 +469,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 )}
                 {/* Faktura - budynek */}
                 {data.b2b && (
-                  <div className="flex items-center" title="Firma">
+                  <div className="flex items-center" title="Wystawia fakturę VAT">
                     <Building2 className="w-4 h-4 text-purple-600" />
                   </div>
                 )}

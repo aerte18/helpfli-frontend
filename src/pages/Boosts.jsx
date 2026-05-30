@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { getBoostOptions, buyBoost } from "../api/subscriptions";
+import PlatformInvoiceCheckbox from "../components/PlatformInvoiceCheckbox";
+import { isPlatformInvoicingEnabled } from "../utils/platformInvoicing";
 
 export default function Boosts() {
   const [options, setOptions] = useState([]);
@@ -11,7 +13,7 @@ export default function Boosts() {
 
   const onBuy = async (code) => {
     try {
-      await buyBoost(code, requestInvoice);
+      await buyBoost(code, isPlatformInvoicingEnabled() ? requestInvoice : false);
       alert("Aktywowano wyróżnienie / boost.");
       setRequestInvoice(false); // Reset checkbox
     } catch (e) {
@@ -33,15 +35,7 @@ export default function Boosts() {
               <div className="text-2xl font-bold">{o.pricePLN} zł</div>
             </div>
             <div className="mt-4 space-y-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={requestInvoice}
-                  onChange={(e) => setRequestInvoice(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span>Chcę fakturę VAT</span>
-              </label>
+              <PlatformInvoiceCheckbox checked={requestInvoice} onChange={setRequestInvoice} />
               <button onClick={() => onBuy(o.code)} className="w-full rounded-xl py-2 font-semibold bg-violet-600 text-white hover:bg-violet-700">Kup</button>
             </div>
           </div>

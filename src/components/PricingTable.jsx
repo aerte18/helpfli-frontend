@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Check, X, Infinity as InfinityIcon } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
+import PlatformInvoiceCheckbox from "./PlatformInvoiceCheckbox";
+import { isPlatformInvoicingEnabled } from "../utils/platformInvoicing";
 import {
 	formatOfferLimitShort,
 	getLargeProjectSlotLabel,
@@ -613,15 +615,10 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 							)
 						) : (
 							<div className="space-y-2">
-								<label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-									<input
-										type="checkbox"
-										checked={requestInvoice}
-										onChange={(e) => setRequestInvoice(e.target.checked)}
-										className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-									/>
-									<span>Chcę fakturę VAT</span>
-								</label>
+								<PlatformInvoiceCheckbox
+									checked={requestInvoice}
+									onChange={setRequestInvoice}
+								/>
 								{isProPlan(p) && onStartTrial && !currentSubscription?.isTrial && (
 									<button 
 										onClick={() => onStartTrial(p.key)} 
@@ -633,7 +630,7 @@ export default function PricingTable({ plans = [], onSelect, currentSubscription
 									</button>
 								)}
 								<button 
-									onClick={() => onSelect(p, requestInvoice)} 
+									onClick={() => onSelect(p, isPlatformInvoicingEnabled() ? requestInvoice : false)} 
 									className={`w-full text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 ${
 										isPro ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
 									}`}

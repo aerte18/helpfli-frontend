@@ -95,7 +95,6 @@ export default function MapPanel({
   loading = false,
   resetFitSignal = 0,
 }) {
-  const [onlyNow, setOnlyNow] = useState(false);
   const [autoSearch, setAutoSearch] = useState(false);
   const [pendingViewport, setPendingViewport] = useState(null);
   const [lastFetchedViewport, setLastFetchedViewport] = useState(null);
@@ -113,9 +112,7 @@ export default function MapPanel({
     })
     .filter(Boolean);
 
-  const mapProviders = validProviders.filter(
-    (p) => !onlyNow || p.provider_status?.isOnline === true
-  );
+  const mapProviders = validProviders;
 
   const initialCenter = userLocation
     ? [userLocation.lat, userLocation.lng]
@@ -178,15 +175,6 @@ export default function MapPanel({
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h4 className="font-semibold">Mapa dostępnych wykonawców</h4>
           <div className="flex items-center gap-3 text-sm">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={onlyNow}
-                onChange={(e) => setOnlyNow(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              Dostępni teraz
-            </label>
             <label
               className="inline-flex select-none items-center gap-1.5 text-[12px] font-medium text-slate-700"
               title="Szukaj automatycznie po przesunięciu mapy"

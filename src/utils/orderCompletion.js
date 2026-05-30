@@ -1,6 +1,10 @@
 /** Płatność poza Helpfli — bez escrow, bez akceptacji/sporu w platformie. */
 export function isExternalOrderPayment(order) {
-  return order?.paymentPreference === 'external';
+  return (
+    order?.paymentPreference === 'external' ||
+    order?.paymentMethod === 'external' ||
+    order?.orderMode === 'offers_only'
+  );
 }
 
 /** Spór i akceptacja zakończenia — tylko przy płatności w Helpfli (escrow). */
@@ -77,4 +81,22 @@ export function canUserRateOrder(order, { isClient = false, isProvider = false }
   }
   if (isAwaitingClientAfterProviderComplete(order)) return false;
   return order.status === 'released' || order.status === 'rated';
+}
+
+/** Faktura od wykonawcy (PDF) — tylko płatność przez Helpfli, po rozliczeniu zlecenia. */
+export function canProviderUploadOrderInvoice(order) {
+  if (!order?.requestInvoice) return false;
+  if (isExternalOrderPayment(order)) return false;
+  if (order.invoice?.url) return false;
+  const settled = ['completed', 'rated', 'released'].includes(order.status);
+  if (!settled) return false;
+  const paidViaHelpfli =
+    order.paidInSystem ||
+    order.paymentStatus === 'succeeded' ||
+    ['funded', 'paid', 'released'].includes(order.status);
+  return paidViaHelpfli;
+}
+
+export function isOrderInvoiceRelevant(order) {
+  return !isExternalOrderPayment(order);
 }

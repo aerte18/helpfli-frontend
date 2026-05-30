@@ -27,7 +27,7 @@ import { useAuth } from "../context/AuthContext";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Zap, Layers, Users, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Layers, Users, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -120,7 +120,6 @@ export default function Home() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [b2bOnly, setB2bOnly] = useState(false);
   const [proOnly, setProOnly] = useState(false);
-  const [availableNow, setAvailableNow] = useState(false);
   const [sortBy, setSortBy] = useState('default');
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
   const navigate = useNavigate();
@@ -137,13 +136,14 @@ export default function Home() {
     const newActiveFilters = [];
     
     if (verifiedOnly) newActiveFilters.push('Zweryfikowani');
-    if (b2bOnly) newActiveFilters.push('Firma');
+    if (b2bOnly) newActiveFilters.push('Faktura VAT');
     if (proOnly) newActiveFilters.push('PRO');
-    if (availableNow) newActiveFilters.push('Dostępny teraz');
     if (filters.search) newActiveFilters.push(`"${filters.search}"`);
     if (filters.level && filters.level !== 'any') newActiveFilters.push(filters.level);
     if (filters.minRating) newActiveFilters.push(`Ocena ≥ ${filters.minRating}`);
-    if (filters.available && filters.available !== 'any') newActiveFilters.push(filters.available);
+    if (viewMode === "list" && maxDistance !== 50) {
+      newActiveFilters.push(`Promień ${maxDistance} km`);
+    }
     if (filters.budgetMin || filters.budgetMax) {
       const min = filters.budgetMin || 0;
       const max = filters.budgetMax || '∞';
@@ -158,10 +158,10 @@ export default function Home() {
     });
     
     setActiveFilters(newActiveFilters);
-  }, [verifiedOnly, b2bOnly, proOnly, availableNow, filters, selectedServices]);
+  }, [verifiedOnly, b2bOnly, proOnly, filters, selectedServices, viewMode, maxDistance]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [maxDistance, setMaxDistance] = useState(300); // km — bezpieczny domyślny zasięg
+  const [maxDistance, setMaxDistance] = useState(50); // km — promień w widoku listy
   // bbox (prostokąt z widoku mapy) ustawiany po kliknięciu „Przeszukaj ten obszar".
   const [mapBbox, setMapBbox] = useState(null);
   const [mapLoading, setMapLoading] = useState(false);
@@ -181,6 +181,16 @@ export default function Home() {
     setMapLoading(true);
     setMapBbox(vp.bbox);
   }, []);
+
+  const geoUsesBbox = (viewMode === "map" || viewMode === "split") && !!mapBbox;
+  const geoUsesRadius = viewMode === "list" || ((viewMode === "map" || viewMode === "split") && !mapBbox);
+
+  // Widok listy = promień; widok mapy = bbox (bez mieszania obu naraz).
+  useEffect(() => {
+    if (viewMode === "list") {
+      setMapBbox(null);
+    }
+  }, [viewMode]);
 
   // Funkcja do pobierania geolokalizacji użytkownika
   const getUserLocation = useCallback(() => {
@@ -233,7 +243,6 @@ export default function Home() {
   useEffect(() => {
     const searchQuery = searchParams.get('search');
     const serviceSlug = searchParams.get('service');
-    const availableNowParam = searchParams.get('availableNow');
     if (searchQuery) {
       // Ustaw filtr wyszukiwania
       setFilters(prev => ({ ...prev, search: searchQuery }));
@@ -241,9 +250,6 @@ export default function Home() {
     if (serviceSlug) {
       setSelectedServiceSlugs(prev => Array.from(new Set([...(prev || []), serviceSlug])));
       setSelectedServices(prev => Array.from(new Set([...(prev||[]), serviceSlug])));
-    }
-    if (availableNowParam === 'true') {
-      setAvailableNow(true);
     }
   }, [searchParams]);
 
@@ -418,9 +424,6 @@ export default function Home() {
 
   // PRZYKŁADOWA filtracja po stronie frontu (docelowo backend /api/search)
   const list = useMemo(() => {
-    const effectiveMaxDistance = isMobileViewport
-      ? Math.max(Number(maxDistance) || 0, 600)
-      : Number(maxDistance) || 0;
     const filtered = providers.filter((p) => {
       // Filtrowanie po wyszukiwanym tekście
       if (filters.search) {
@@ -433,7 +436,6 @@ export default function Home() {
       
       if (filters.level && filters.level !== "any" && p.level !== filters.level) return false;
       if (filters.minRating && (p.rating ?? 0) < filters.minRating) return false;
-      if (filters.available && filters.available !== "any" && p.available !== filters.available) return false;
       if (filters.budgetMin || filters.budgetMax) {
         const [min, max] = (p.priceRange || "0–0").split("–").map(Number);
         const lo = Number(filters.budgetMin || 0);
@@ -441,16 +443,25 @@ export default function Home() {
         if (max < lo || min > hi) return false;
       }
       
-      // Filtrowanie po odległości
-      if (userLocation && p.lat && p.lng) {
+      // Promień tylko w widoku listy (mapa używa bbox z API).
+      if (geoUsesRadius && userLocation && p.lat && p.lng) {
         const distance = calculateDistance(
           userLocation.lat, 
           userLocation.lng, 
           p.lat, 
           p.lng
         );
-        p.distanceKm = Math.round(distance * 10) / 10; // Zaokrąglij do 1 miejsca po przecinku
-        if (effectiveMaxDistance && distance > effectiveMaxDistance) return false;
+        p.distanceKm = Math.round(distance * 10) / 10;
+        const radiusKm = Number(maxDistance) || 50;
+        if (radiusKm > 0 && distance > radiusKm) return false;
+      } else if (userLocation && p.lat && p.lng) {
+        const distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          p.lat,
+          p.lng
+        );
+        p.distanceKm = Math.round(distance * 10) / 10;
       }
       
       // Filtry z ResultsToolbar
@@ -458,8 +469,6 @@ export default function Home() {
       if (b2bOnly && !p.b2b) return false;
       // PRO: sprawdź providerTier (nowy system) lub level (stary system) dla kompatybilności
       if (proOnly && !(p.providerTier === 'pro' || p.level === 'pro')) return false;
-      // Teraz: użyj availableNow jeśli dostępne, w przeciwnym razie isOnline
-      if (availableNow && !(p.provider_status?.availableNow === true || p.provider_status?.isOnline === true)) return false;
       
       // quick filter – tu możesz mapować quick->service id i zapytać backend
       return true;
@@ -493,7 +502,7 @@ export default function Home() {
       return sorted;
     }
     return filtered;
-  }, [providers, filters, quick, userLocation, maxDistance, isMobileViewport, calculateDistance, verifiedOnly, b2bOnly, proOnly, availableNow, selectedServices, selectedServiceSlugs, sortBy]);
+  }, [providers, filters, quick, userLocation, maxDistance, geoUsesRadius, calculateDistance, verifiedOnly, b2bOnly, proOnly, selectedServices, selectedServiceSlugs, sortBy]);
 
   // Podłączone do /api/search z filtrami
   useEffect(() => {
@@ -503,15 +512,19 @@ export default function Home() {
     if (filters.search) qs.set("q", String(filters.search));
     if (filters.level && filters.level !== "any") qs.set("level", String(filters.level));
     if (filters.minRating) qs.set("minRating", String(filters.minRating));
-    if (filters.available && filters.available !== "any") qs.set("available", String(filters.available));
     if (filters.budgetMin) qs.set("budgetMin", String(filters.budgetMin));
     if (filters.budgetMax) qs.set("budgetMax", String(filters.budgetMax));
     if (filters.paymentType && filters.paymentType !== 'any') qs.set("paymentType", String(filters.paymentType));
     if (quick) qs.set("quick", String(quick));
     if (verifiedOnly) qs.set("verifiedOnly", String(verifiedOnly));
-    if (availableNow) qs.set("availableNow", "true");
     if (selectedServiceSlugs.length > 0) qs.set("service", selectedServiceSlugs.join(","));
-    if (mapBbox) qs.set("bbox", String(mapBbox));
+    if (geoUsesBbox && mapBbox) {
+      qs.set("bbox", String(mapBbox));
+    } else if (geoUsesRadius && userLocation?.lat != null && userLocation?.lng != null) {
+      qs.set("lat", String(userLocation.lat));
+      qs.set("lng", String(userLocation.lng));
+      qs.set("radius", String(maxDistance || 50));
+    }
 
     (async () => {
       let res;
@@ -534,7 +547,6 @@ export default function Home() {
         trackSearch(filters.search || '', {
           level: filters.level,
           minRating: filters.minRating,
-          available: filters.available,
           budgetMin: filters.budgetMin,
           budgetMax: filters.budgetMax,
           quick,
@@ -573,7 +585,6 @@ export default function Home() {
           selectedServiceSlugs.length > 0 ||
           !!(filters?.search && String(filters.search).trim()) ||
           verifiedOnly ||
-          availableNow ||
           b2bOnly ||
           proOnly;
         const allowDemoFallback =
@@ -594,7 +605,6 @@ export default function Home() {
             selectedServiceSlugs.length > 0 ||
             !!(filters?.search && String(filters.search).trim()) ||
             verifiedOnly ||
-            availableNow ||
             b2bOnly ||
             proOnly;
           setProviders(import.meta.env.DEV && !strict ? DEMO_PROVIDERS : []);
@@ -606,13 +616,13 @@ export default function Home() {
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly, availableNow, b2bOnly, proOnly, selectedServiceSlugs, mapBbox, trackClientApiError, trackSearch]);
+  }, [filters, quick, verifiedOnly, b2bOnly, proOnly, selectedServiceSlugs, mapBbox, geoUsesBbox, geoUsesRadius, maxDistance, userLocation, viewMode, trackClientApiError, trackSearch]);
 
   // Gdy zmieniają się filtry / wyszukiwanie tekstowe / kategorie – reset bbox,
   // żeby nie zostać uwięzionym w starym obszarze mapy.
   useEffect(() => {
     setMapBbox(null);
-  }, [filters.search, selectedServiceSlugs.join(","), verifiedOnly, availableNow, b2bOnly, proOnly]);
+  }, [filters.search, selectedServiceSlugs.join(","), verifiedOnly, b2bOnly, proOnly, viewMode, maxDistance]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);
@@ -718,8 +728,6 @@ export default function Home() {
             b2bOnly={b2bOnly}
             onB2bOnlyChange={setB2bOnly}
             proOnly={proOnly}
-            availableNow={availableNow}
-            onAvailableNowChange={setAvailableNow}
             onProOnlyChange={setProOnly}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -746,7 +754,7 @@ export default function Home() {
               setVerifiedOnly(false);
               setB2bOnly(false);
               setProOnly(false);
-              setAvailableNow(false);
+              setMaxDistance(50);
               setSelectedServices([]);
               setSelectedServiceSlugs([]);
               updateFilters({});
@@ -764,6 +772,32 @@ export default function Home() {
               </button>
             }
           />
+          {viewMode === "list" && (
+            <div className="border-b border-slate-200/80 bg-slate-50/90">
+              <div className="max-w-6xl mx-auto flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-sm">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                  <span className="shrink-0 text-slate-600">Promień wyszukiwania</span>
+                  <input
+                    type="range"
+                    min={5}
+                    max={100}
+                    step={5}
+                    value={maxDistance}
+                    onChange={(e) => setMaxDistance(Number(e.target.value))}
+                    className="min-w-[8rem] flex-1 max-w-xs"
+                    aria-label="Promień wyszukiwania w kilometrach"
+                  />
+                  <span className="shrink-0 font-semibold text-slate-800 tabular-nums">{maxDistance} km</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {userLocation
+                    ? "Wykonawcy w promieniu od Twojej lokalizacji."
+                    : "Ustalamy lokalizację — wyniki mogą być przybliżone."}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="max-w-6xl mx-auto px-4 pt-4">
           <div className="flex flex-col gap-4 items-stretch">
 
@@ -807,6 +841,7 @@ export default function Home() {
         userLocation={userLocation}
         locationError={locationError}
         onRequestLocation={getUserLocation}
+        showDistanceFilter={viewMode === "list"}
         onApply={() => {
           setShowAdvancedFilters(false);
         }}
@@ -814,6 +849,7 @@ export default function Home() {
           setVerifiedOnly(false);
           setB2bOnly(false);
           setProOnly(false);
+          setMaxDistance(50);
           setSelectedServices([]);
           setSelectedServiceSlugs([]);
           updateFilters({});
@@ -911,8 +947,6 @@ export default function Home() {
                       b2bOnly={b2bOnly}
                       onB2bOnlyChange={setB2bOnly}
                       proOnly={proOnly}
-                      availableNow={availableNow}
-                      onAvailableNowChange={setAvailableNow}
                       onProOnlyChange={setProOnly}
                       viewMode={viewMode}
                       onViewModeChange={setViewMode}
@@ -938,7 +972,7 @@ export default function Home() {
                         setVerifiedOnly(false);
                         setB2bOnly(false);
                         setProOnly(false);
-                        setAvailableNow(false);
+                        setMaxDistance(50);
                         setSelectedServices([]);
                         setSelectedServiceSlugs([]);
                         updateFilters({});
@@ -975,8 +1009,6 @@ export default function Home() {
                   b2bOnly={b2bOnly}
                   onB2bOnlyChange={setB2bOnly}
                   proOnly={proOnly}
-                  availableNow={availableNow}
-                  onAvailableNowChange={setAvailableNow}
                   onProOnlyChange={setProOnly}
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
@@ -1002,7 +1034,7 @@ export default function Home() {
                     setVerifiedOnly(false);
                     setB2bOnly(false);
                     setProOnly(false);
-                    setAvailableNow(false);
+                    setMaxDistance(50);
                     setSelectedServices([]);
                     setSelectedServiceSlugs([]);
                     updateFilters({});
@@ -1343,15 +1375,20 @@ export default function Home() {
                   {/* Status dostępności */}
                   <div
                     className={`text-[10px] flex items-center gap-1 ${
-                      (p.provider_status?.availableNow === true || p.provider_status?.isOnline === true)
+                      p.provider_status?.isOnline === true
                         ? "text-emerald-600"
                         : "text-slate-500"
                     }`}
                   >
-                    <Zap className="w-3 h-3 shrink-0" aria-hidden />
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        p.provider_status?.isOnline === true ? "bg-emerald-500" : "bg-slate-400"
+                      }`}
+                      aria-hidden
+                    />
                     <span>
-                      {(p.provider_status?.availableNow === true || p.provider_status?.isOnline === true)
-                        ? "Może pomóc teraz"
+                      {p.provider_status?.isOnline === true
+                        ? "Dostępny"
                         : "Offline"}
                     </span>
                   </div>

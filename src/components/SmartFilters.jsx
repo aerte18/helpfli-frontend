@@ -60,11 +60,7 @@ export default function SmartFilters({ value, onChange, variant = "sidebar" }) {
 
           <label className="flex items-center gap-3 text-sm min-h-[44px]">
             <input type="checkbox" className="w-5 h-5 rounded" checked={value.b2b} onChange={(e) => set({ b2b: e.target.checked })} />
-            <span>Firma</span>
-          </label>
-          <label className="flex items-center gap-3 text-sm min-h-[44px]">
-            <input type="checkbox" className="w-5 h-5 rounded" checked={value.availableNow} onChange={(e) => set({ availableNow: e.target.checked })} />
-            <span>Dostępny teraz</span>
+            <span>Wystawia fakturę VAT</span>
           </label>
 
           <div className="flex flex-col gap-3 pt-3 border-t border-slate-200">
@@ -87,7 +83,6 @@ export default function SmartFilters({ value, onChange, variant = "sidebar" }) {
                   budgetMax: 1000,
                   eta: "any",
                   b2b: false,
-                  availableNow: false,
                 })
               }
             >
@@ -136,11 +131,7 @@ export default function SmartFilters({ value, onChange, variant = "sidebar" }) {
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={value.b2b} onChange={(e) => set({ b2b: e.target.checked })} />
-          <span>Firma</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={value.availableNow} onChange={(e) => set({ availableNow: e.target.checked })} />
-          <span>Dostępny teraz</span>
+          <span>Wystawia fakturę VAT</span>
         </label>
 
         <div className="ml-auto flex gap-2">
@@ -162,7 +153,6 @@ export default function SmartFilters({ value, onChange, variant = "sidebar" }) {
                 budgetMax: 1000,
                 eta: "any",
                 b2b: false,
-                availableNow: false,
               })
             }
           >

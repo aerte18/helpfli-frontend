@@ -85,6 +85,7 @@ export default function CreateOrder() {
   const [urgency, setUrgency] = useState(preFilled.urgency || ""); // pilność
   const [contactPreference, setContactPreference] = useState(""); // preferencje kontaktu
   const [paymentPreference, setPaymentPreference] = useState("system"); // preferencje płatności: "system" | "external"
+  const [requestInvoice, setRequestInvoice] = useState(false); // klient prosi o fakturę VAT od wykonawcy
   const [orderMode, setOrderMode] = useState(
     preFilled.orderMode || (preFilled.suggestOffersOnly ? 'offers_only' : 'standard')
   );
@@ -137,6 +138,12 @@ export default function CreateOrder() {
       setPaymentPreference('external');
     }
   }, [orderMode]);
+
+  useEffect(() => {
+    if (orderMode === 'offers_only' || paymentPreference === 'external') {
+      setRequestInvoice(false);
+    }
+  }, [orderMode, paymentPreference]);
 
   const isImageAttachment = (attachment) => {
     const mime = String(attachment?.mimeType || attachment?.type || '').toLowerCase();
@@ -365,6 +372,10 @@ export default function CreateOrder() {
       } else if (paymentPreference) {
         payload.paymentPreference = paymentPreference;
       }
+      payload.requestInvoice =
+        orderMode !== 'offers_only' && paymentPreference !== 'external'
+          ? !!requestInvoice
+          : false;
       if (selectedCategory?.subcategorySlug) {
         payload.service = selectedCategory.subcategorySlug;
       }
@@ -1207,6 +1218,30 @@ export default function CreateOrder() {
           </div>
         </div>
         </>
+        )}
+
+        {/* Faktura VAT — tylko przy płatności przez Helpfli */}
+        {orderMode !== 'offers_only' && paymentPreference !== 'external' && (
+        <div className="rounded-lg border p-4 space-y-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={requestInvoice}
+              onChange={(e) => setRequestInvoice(e.target.checked)}
+            />
+            <div>
+              <div className="font-medium flex items-center gap-2 text-sm" style={{ color: 'var(--foreground)' }}>
+                <FileText className="w-4 h-4 shrink-0 text-purple-600" aria-hidden />
+                Potrzebuję faktury VAT od wykonawcy
+              </div>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                Dotyczy zleceń rozliczanych przez Helpfli. Po zakończeniu pracy wykonawca może załączyć fakturę PDF do zlecenia.
+                Wybierz wykonawcę z oznaczeniem „Faktura VAT” w wyszukiwarce.
+              </p>
+            </div>
+          </label>
+        </div>
         )}
 
         {/* Pilność */}

@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Wifi, WifiOff, CalendarDays, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -450,8 +450,6 @@ export default function ProviderHome() {
     );
   }
 
-  // Status wykonawcy (lokalnie; podepnij PATCH /api/providers/me/status)
-  const [status, setStatus] = useState("online"); // online | offline
 
   // Sprawdź czy użytkownik jest w firmie wieloosobowej (przenieś przed fetchOrders)
   const isInCompany = user?.company && (user?.roleInCompany === 'owner' || user?.roleInCompany === 'manager' || user?.roleInCompany === 'provider');
@@ -462,7 +460,7 @@ export default function ProviderHome() {
   // Filtry
   const [filters, setFilters] = useState({
     service: "any",
-    maxDistance: 300,
+    maxDistance: 50,
     budgetMin: "",
     budgetMax: "",
     providerId: "any",
@@ -484,6 +482,10 @@ export default function ProviderHome() {
   // Stan dla pokazywania wszystkich usług
   // false = tylko zlecenia pasujące do usług z profilu; true = pełny rynek (jak checkbox „Pokaż wszystkie”)
   const [showAllServices, setShowAllServices] = useState(false);
+
+  // Mapa: bbox z „Szukaj w tym obszarze” (osobno od promienia w widoku listy).
+  const [mapPendingBbox, setMapPendingBbox] = useState(null);
+  const [mapLastFetchedBbox, setMapLastFetchedBbox] = useState(null);
 
   // Widok mapy: sm | lg | full - synchronizacja z App.jsx
   // System widoków: 'list' | 'map' | 'split'
@@ -696,11 +698,13 @@ export default function ProviderHome() {
   // Ten sam zasięg co effectiveMaxDistance w fetchOrders — inaczej API zwraca wężej/szerzej niż filtr lokalny.
   // Tryb "Wszystkie zlecenia" ma pokazywać pełny rynek, więc nie filtrujemy po dystansie.
   const clientMaxDistance = useMemo(
-    () =>
-      showAllServices
-        ? null
-        : Number(filters.maxDistance) || 300,
-    [showAllServices, filters.maxDistance]
+    () => {
+      if (showAllServices) return null;
+      // Mapa / podział z aktywnym bbox — promień nie filtruje (obszar z mapy).
+      if (viewMode !== "list" && mapLastFetchedBbox?.bbox) return null;
+      return Number(filters.maxDistance) || 50;
+    },
+    [showAllServices, filters.maxDistance, viewMode, mapLastFetchedBbox]
   );
 
   // Pobierz wszystkie usługi dla getProviderLabel
@@ -792,7 +796,7 @@ export default function ProviderHome() {
   // Usunięto problematyczny useEffect który powodował przekierowanie do /home
 
   // Pobieranie zleceń z API
-  const fetchOrders = useCallback(async ({ bbox = null } = {}) => {
+  const fetchOrders = useCallback(async ({ bbox: bboxOverride = null } = {}) => {
     let requestUrl = "";
     const requestSeq = ++openFetchSeqRef.current;
     try {
@@ -804,19 +808,19 @@ export default function ProviderHome() {
       setDemandLoading(true);
       const token = localStorage.getItem('token');
 
-      // Buduj parametry zapytania
       const params = new URLSearchParams();
-      // W trybie "wszystkie zlecenia" nie przepuszczaj ewentualnego starego filtra `service`.
       if (!showAllServices && filters.service && filters.service !== 'any') params.append('service', filters.service);
 
-      if (bbox) {
-        // Mapa: szukaj w widocznym prostokącie zamiast po promieniu od użytkownika
-        params.append('bbox', bbox);
-      } else {
-        // Tryb "Wszystkie zlecenia" = pełny rynek (bez filtra dystansu).
-        const effectiveMaxDistance = showAllServices ? null : (Number(filters.maxDistance) || 300);
-        if (effectiveMaxDistance) params.append('maxDistance', effectiveMaxDistance);
-        if (!showAllServices && userLocation) {
+      const activeBbox =
+        bboxOverride ??
+        (viewMode !== "list" && mapLastFetchedBbox?.bbox ? mapLastFetchedBbox.bbox : null);
+
+      if (activeBbox) {
+        params.append('bbox', activeBbox);
+      } else if (!showAllServices) {
+        const effectiveMaxDistance = Number(filters.maxDistance) || 50;
+        params.append('maxDistance', effectiveMaxDistance);
+        if (userLocation) {
           params.append('lat', userLocation.lat);
           params.append('lng', userLocation.lng);
         }
@@ -875,17 +879,20 @@ export default function ProviderHome() {
     } finally {
       if (requestSeq === openFetchSeqRef.current) setDemandLoading(false);
     }
-  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs, allServices?.length]);
+  }, [filters, userLocation, showAllServices, user?.services, user?.company, user?.roleInCompany, user?.role, isInCompany, isCompanyOwner, isCompanyManager, providerServiceSlugs, allServices?.length, viewMode, mapLastFetchedBbox]);
+
+  useEffect(() => {
+    if (viewMode === "list") {
+      setMapPendingBbox(null);
+      setMapLastFetchedBbox(null);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     if (user) {
       fetchOrders();
     }
   }, [fetchOrders, user]);
-
-  // --- Stan dla „Szukaj w tym obszarze" na mapie zleceń ---
-  const [mapPendingBbox, setMapPendingBbox] = useState(null);
-  const [mapLastFetchedBbox, setMapLastFetchedBbox] = useState(null);
 
   const handleMapViewportChange = useCallback((vp) => {
     setMapPendingBbox(vp);
@@ -1274,7 +1281,7 @@ export default function ProviderHome() {
     const d = filters;
     return (
       (d.sortBy !== "default" && d.sortBy !== "created_desc") ||
-      d.maxDistance !== 300 ||
+      d.maxDistance !== 50 ||
       (d.budgetMin !== "" && d.budgetMin != null) ||
       (d.budgetMax !== "" && d.budgetMax != null) ||
       d.paymentType !== "any" ||
@@ -1342,21 +1349,6 @@ export default function ProviderHome() {
     const query = tab ? `?tab=${tab}` : "";
     navigate(`/orders/${orderId}${query}`);
   };
-
-  const handleStatusChange = async (next) => {
-    setStatus(next);
-    try {
-      const token = localStorage.getItem("token");
-      await fetch(apiUrl("/api/providers/me/status"), { 
-        method: "PATCH", 
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: next }) 
-      });
-    } catch (error) {
-      console.error("Błąd aktualizacji statusu:", error);
-    }
-  };
-
 
   // Pobierz listę providerów z firmy (dla właściciela/manager)
   useEffect(() => {
@@ -1431,7 +1423,7 @@ export default function ProviderHome() {
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-indigo-900 mb-2">Witaj w panelu wykonawcy – krótki start</h3>
               <ol className="text-sm text-indigo-800 space-y-1 list-decimal list-inside">
-                <li>Ustaw status na <strong>Online</strong>, aby klienci widzieli Cię w wynikach</li>
+                <li>Gdy jesteś zalogowany, klienci widzą Cię jako dostępnego online</li>
                 <li>Sprawdź dostępne zlecenia w Twojej okolicy (lista lub mapa)</li>
                 <li>Złóż pierwszą ofertę – przyciskiem „AI podpowie cenę” możesz uzyskać sugestię</li>
               </ol>
@@ -1732,44 +1724,12 @@ export default function ProviderHome() {
         className={`left-0 right-0 z-[42] ${viewMode === "map" ? "fixed top-[calc(var(--app-nav-sticky-offset)+var(--app-breadcrumb-bar-height))]" : "sticky top-0"} ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}
       >
         <div
-          className={`max-w-7xl mx-auto px-3 sm:px-4 ${
-            isMobileViewport
-              ? "flex flex-col gap-2"
-              : "flex items-center justify-between gap-2 sm:gap-3"
-          } ${viewMode === "map" && isMobileViewport ? "py-2" : isMobileViewport ? "py-2.5" : "py-3"}`}
+          className={`max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-end gap-2 sm:gap-3 ${
+            viewMode === "map" && isMobileViewport ? "py-2" : isMobileViewport ? "py-2.5" : "py-3"
+          }`}
         >
           {isMobileViewport ? (
               <div className="flex items-center gap-1 w-full min-w-0">
-                <div
-                  className="inline-flex shrink-0 rounded-full border border-slate-200/90 bg-white/95 p-0.5 shadow-sm"
-                  role="group"
-                  aria-label="Status wykonawcy"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("online")}
-                    title="Online"
-                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
-                      status === "online"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-slate-600 active:bg-slate-100"
-                    }`}
-                  >
-                    <Wifi className="w-4 h-4" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("offline")}
-                    title="Offline"
-                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
-                      status === "offline"
-                        ? "bg-slate-700 text-white shadow-sm"
-                        : "text-slate-600 active:bg-slate-100"
-                    }`}
-                  >
-                    <WifiOff className="w-4 h-4" aria-hidden />
-                  </button>
-                </div>
                 <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto pb-0.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <span
                     className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-700"
@@ -1821,47 +1781,8 @@ export default function ProviderHome() {
                     <Sparkles className={`h-4 w-4 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
                   </button>
                 </div>
-                <Link
-                  to="/account?tab=schedule"
-                  title="Harmonogram dostępności"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]"
-                  aria-label="Harmonogram dostępności"
-                >
-                  <CalendarDays className="w-4 h-4" aria-hidden />
-                </Link>
               </div>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
-              <span className="text-slate-700 font-medium text-sm shrink-0">Mój status:</span>
-              <div className="flex flex-wrap gap-2">
-                <StatusPill
-                  active={status === "online"}
-                  onClick={() => handleStatusChange("online")}
-                  color="emerald"
-                >
-                  Online
-                </StatusPill>
-                <StatusPill
-                  active={status === "offline"}
-                  onClick={() => handleStatusChange("offline")}
-                  color="slate"
-                >
-                  Offline
-                </StatusPill>
-              </div>
-              {status === "offline" && (
-                <p className="text-xs text-slate-600 max-w-xs">
-                  Gdy jesteś offline, nadal jesteś widoczny w wynikach wyszukiwania, ale klienci widzą status Offline. Przełącz na Online, aby zwiększyć szansę na szybki kontakt.
-                </p>
-              )}
-              <Link
-                to="/account?tab=schedule"
-                className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 shrink-0"
-              >
-                📅 Harmonogram dostępności
-              </Link>
-            </div>
-          )}
+          ) : null}
 
           {!isMobileViewport && (
           <div
@@ -1950,7 +1871,7 @@ export default function ProviderHome() {
                   onClick={() => {
                     setFilters({
                       service: "any",
-                      maxDistance: 300,
+                      maxDistance: 50,
                       budgetMin: "",
                       budgetMax: "",
                       providerId: "any",
@@ -1982,7 +1903,7 @@ export default function ProviderHome() {
                   onClick={() => {
                     setFilters({
                       service: "any",
-                      maxDistance: 300,
+                      maxDistance: 50,
                       budgetMin: "",
                       budgetMax: "",
                       providerId: "any",
@@ -2121,7 +2042,7 @@ export default function ProviderHome() {
                 isMobileViewport ? "flex-col items-stretch" : "items-end justify-between flex-wrap"
               }`}
             >
-              {!isMobileViewport && (
+              {!isMobileViewport && viewMode === "split" && (
               <div className="flex items-end gap-4 flex-wrap">
                 <Select
                   compact
@@ -2138,14 +2059,6 @@ export default function ProviderHome() {
                     { label: "Budżet: najmniejszy", value: "budget_asc" },
                   ]}
                 />
-                <Range
-                  compact
-                  label="Maks. dystans (km)"
-                  value={filters.maxDistance}
-                  onChange={(v) => setFilters((s) => ({ ...s, maxDistance: v }))}
-                  min={1}
-                  max={600}
-                />
               </div>
               )}
               <div
@@ -2159,7 +2072,7 @@ export default function ProviderHome() {
                     onClick={() => {
                       setFilters({
                         service: "any",
-                        maxDistance: 300,
+                        maxDistance: 50,
                         budgetMin: "",
                         budgetMax: "",
                         providerId: "any",
@@ -2240,7 +2153,7 @@ export default function ProviderHome() {
                 onClick={() => {
                   setFilters({
                     service: "any",
-                    maxDistance: 300,
+                    maxDistance: 50,
                     budgetMin: "",
                     budgetMax: "",
                     providerId: "any",
@@ -2271,12 +2184,16 @@ export default function ProviderHome() {
                 ]}
               />
               <Range
-                label="Maks. dystans (km)"
+                label="Promień wyszukiwania (km)"
                 value={filters.maxDistance}
                 onChange={(v) => setFilters((s) => ({ ...s, maxDistance: v }))}
-                min={1}
-                max={600}
+                min={5}
+                max={100}
+                step={5}
               />
+              <p className="text-xs text-slate-500">
+                Zlecenia w promieniu od Twojej lokalizacji. Na mapie użyj „Szukaj w tym obszarze”.
+              </p>
               <Select
                 label="Płatność"
                 value={filters.paymentType}
@@ -2682,6 +2599,7 @@ export default function ProviderHome() {
         canManageCompany={canManageCompany}
         companyProviders={companyProviders}
         mapViewMobile={isMobileViewport && viewMode === "map"}
+        showDistanceFilter={viewMode === "list"}
       />
 
     </div>
@@ -2689,20 +2607,6 @@ export default function ProviderHome() {
 }
 
 /** --- Mini komponenty --- */
-function StatusPill({ active, onClick, color = "slate", children }) {
-  const base = "px-3 py-1.5 rounded-xl text-sm border transition";
-  const activeCls =
-    color === "emerald"
-      ? "bg-emerald-600 text-white border-emerald-700"
-      : "bg-slate-600 text-white border-slate-700";
-  const idleCls = "bg-white text-slate-700 border-slate-200 hover:bg-slate-50";
-  return (
-    <button className={`${base} ${active ? activeCls : idleCls}`} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
-
 function Select({ label, value, onChange, options, compact }) {
   return (
     <label className={compact ? "text-xs" : "text-sm"}>
@@ -2720,7 +2624,7 @@ function Select({ label, value, onChange, options, compact }) {
   );
 }
 
-function Range({ label, value, onChange, min, max, compact }) {
+function Range({ label, value, onChange, min, max, step = 1, compact }) {
   return (
     <label className={compact ? "text-xs" : "text-sm"}>
       <div className={`text-slate-600 ${compact ? "mb-0.5" : "mb-1"}`}>{label}: <span className="font-medium">{value} km</span></div>
@@ -2728,6 +2632,7 @@ function Range({ label, value, onChange, min, max, compact }) {
         type="range"
         min={min}
         max={max}
+        step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className={compact ? "w-32" : "w-56"}

@@ -79,7 +79,7 @@ export default function CompareModal({ open, onClose, items = [] }) {
                   <td key={i.id}>
                     <div className="space-y-1.5">
                       {i.verified && <div className="qs-badge qs-badge-success text-xs">✓ Zweryfikowany</div>}
-                      {i.b2b && <div className="qs-badge qs-badge-info text-xs">✓ Firma</div>}
+                      {(i.b2b || i.issuesInvoice) && <div className="qs-badge qs-badge-info text-xs">📄 Faktura VAT</div>}
                       {i.online && <div className="qs-badge qs-badge-success text-xs">● Online</div>}
                     </div>
                   </td>

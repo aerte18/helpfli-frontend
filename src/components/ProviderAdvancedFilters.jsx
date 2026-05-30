@@ -11,7 +11,7 @@ const SORT_OPTIONS = [
 
 const DEFAULT_FILTERS = {
   service: "any",
-  maxDistance: 25,
+  maxDistance: 50,
   budgetMin: "",
   budgetMax: "",
   providerId: "any",
@@ -29,6 +29,7 @@ export default function ProviderAdvancedFilters({
   onClear,
   canManageCompany,
   companyProviders = [],
+  showDistanceFilter = true,
   mapViewMobile = false,
 }) {
   const [localFilters, setLocalFilters] = useState(filters || DEFAULT_FILTERS);
@@ -109,24 +110,35 @@ export default function ProviderAdvancedFilters({
             </select>
           </div>
 
-          {/* Maks. dystans */}
+          {showDistanceFilter && (
           <div>
-            <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-2">
-              Maks. dystans (km): {localFilters.maxDistance ?? 25}
+            <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-1">
+              Promień wyszukiwania (km): {localFilters.maxDistance ?? 50}
             </label>
+            <p className="text-xs text-[var(--qs-color-muted)] mb-2">
+              Zlecenia w promieniu od Twojej lokalizacji (widok listy).
+            </p>
             <input
               type="range"
-              min={1}
-              max={50}
-              value={localFilters.maxDistance ?? 25}
+              min={5}
+              max={100}
+              step={5}
+              value={localFilters.maxDistance ?? 50}
               onChange={(e) => handleChange("maxDistance", Number(e.target.value))}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-[var(--qs-color-muted)] mt-1">
-              <span>1 km</span>
-              <span>50 km</span>
+              <span>5 km</span>
+              <span>100 km</span>
             </div>
           </div>
+          )}
+
+          {mapViewMobile && (
+          <p className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-900">
+            Na mapie przesuń widok i użyj „Szukaj w tym obszarze” — promień nie dotyczy widoku mapy.
+          </p>
+          )}
 
           {/* Płatność */}
           <div>

@@ -42,7 +42,6 @@ export default function SearchPage() {
     budgetMax: 1000,
     eta: "any",
     b2b: false,
-    availableNow: false,
   });
   const { items: compareItems, toggle, clear } = useCompare();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -55,7 +54,6 @@ export default function SearchPage() {
     if (filters.eta !== "any") n += 1;
     if (filters.budgetMin > 0 || filters.budgetMax < 1000) n += 1;
     if (filters.b2b) n += 1;
-    if (filters.availableNow) n += 1;
     if (filters.sort !== "quality") n += 1;
     return n;
   }, [filters]);
@@ -181,7 +179,6 @@ export default function SearchPage() {
     .filter(p => (filters.level === "all" ? true : p.level === filters.level))
     .filter(p => p.rating >= filters.rating)
     .filter(p => (filters.b2b ? p.b2b : true))
-    .filter(p => (filters.availableNow ? p.online : true))
     .filter(p => (filters.budgetMin === 0 ? true : p.priceFrom >= filters.budgetMin))
     .filter(p => (filters.budgetMax === 1000 ? true : p.priceTo <= filters.budgetMax))
     .filter(p => (filters.eta === "any" ? true : p.eta === filters.eta))

@@ -1,9 +1,12 @@
 import { apiUrl } from "@/lib/apiUrl";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 // Proste ikony zastępujące Heroicons
 
 const CreateCompany = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     nip: '',
@@ -23,7 +26,12 @@ const CreateCompany = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === 'provider' && !user?.company) {
+      navigate('/company/join', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

@@ -264,9 +264,11 @@ export default function OfferForm({
   hideBandsError = false,
   onBandsErrorChange,
   orderPaymentPreference = null, // Preferencja płatności z zlecenia klienta
+  orderRequestInvoice = false, // Klient prosi o fakturę VAT
 }) {
   const token = useAuthToken();
   const { user } = useAuth();
+  const providerIssuesInvoice = !!(user?.isB2B || user?.b2b);
   const [bands, setBands] = useState(null);
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
@@ -856,6 +858,31 @@ export default function OfferForm({
 
   return (
     <div className="space-y-4">
+      {(orderRequestInvoice || providerIssuesInvoice) && (
+        <div className={`rounded-xl border p-4 text-sm ${
+          orderRequestInvoice && !providerIssuesInvoice
+            ? 'border-amber-200 bg-amber-50 text-amber-900'
+            : 'border-purple-200 bg-purple-50 text-purple-900'
+        }`}>
+          <div className="font-semibold flex items-center gap-2 mb-1">
+            <span>📄</span> Faktura VAT
+          </div>
+          {orderRequestInvoice && (
+            <p className={orderRequestInvoice ? '' : ''}>Klient <strong>prosi o fakturę VAT</strong> (płatność przez Helpfli — możesz załączyć PDF po rozliczeniu).</p>
+          )}
+          {providerIssuesInvoice ? (
+            <p className={orderRequestInvoice ? 'mt-1' : ''}>
+              W Twoim profilu masz włączone <strong>„Wystawiam faktury”</strong> — klient to zobaczy przy Twojej ofercie.
+            </p>
+          ) : (
+            <p className="mt-1">
+              Nie masz włączonego wystawiania faktur w ustawieniach konta (Rozliczenia).
+              {orderRequestInvoice && ' Klient prosi o fakturę — rozważ włączenie tej opcji lub ustal szczegóły poza platformą.'}
+            </p>
+          )}
+        </div>
+      )}
+
       <p className="text-sm text-slate-600">
         Wypełnij <strong className="text-slate-900">cenę</strong>, <strong className="text-slate-900">termin</strong> i opcjonalnie <strong className="text-slate-900">opis</strong>, potem wyślij ofertę.
       </p>

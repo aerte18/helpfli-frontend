@@ -831,6 +831,11 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
                           {b.label}
                         </span>
                       ))}
+                      {(o.issuesInvoice || o.providerMeta?.issuesInvoice) && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                          📄 Faktura VAT
+                        </span>
+                      )}
                     </div>
                     
                     {o.providerMeta?.ratingAvg && (

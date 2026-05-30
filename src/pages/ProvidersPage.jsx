@@ -115,15 +115,6 @@ function ProvidersFiltersFields({ filters, updateFilter }) {
         <label className="flex items-center gap-3 min-h-[44px]">
           <input
             type="checkbox"
-            checked={filters.availableNow}
-            onChange={(e) => updateFilter('availableNow', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
-          />
-          <span className="text-sm text-gray-700">Dostępny teraz</span>
-        </label>
-        <label className="flex items-center gap-3 min-h-[44px]">
-          <input
-            type="checkbox"
             checked={filters.verified}
             onChange={(e) => updateFilter('verified', e.target.checked)}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
@@ -268,7 +259,6 @@ const ProvidersPage = () => {
       city: searchParams.get('city') || searchParams.get('location') || '',
       location: searchParams.get('location') || searchParams.get('city') || '',
       radius: parseInt(searchParams.get('radius')) || 50,
-      availableNow: searchParams.get('availableNow') === 'true',
       verified: searchParams.get('verified') === 'true' || searchParams.get('verifiedOnly') === 'true',
       verifiedOnly: searchParams.get('verifiedOnly') === 'true' || searchParams.get('verified') === 'true',
       b2b: searchParams.get('b2b') === 'true',
@@ -396,9 +386,8 @@ const ProvidersPage = () => {
     if (filters.service) active.push(`Usługa: ${filters.service}`);
     if (filters.city) active.push(`Miasto: ${filters.city}`);
     if (filters.radius !== 50) active.push(`Promień: ${filters.radius}km`);
-    if (filters.availableNow) active.push('Dostępny teraz');
     if (filters.verified) active.push('Verified');
-    if (filters.b2b) active.push('Firma');
+    if (filters.b2b) active.push('Faktura VAT');
     if (filters.tier !== 'all') active.push(`Poziom: ${filters.tier}`);
     if (filters.minRating > 0) active.push(`Min. ocena: ${filters.minRating}★`);
     if (filters.minPrice > 0) active.push(`Min. cena: ${filters.minPrice} zł`);
@@ -471,9 +460,6 @@ const ProvidersPage = () => {
       }
       if (filters.b2b) {
         searchParams.set('b2b', 'true');
-      }
-      if (filters.availableNow) {
-        searchParams.set('availableNow', 'true');
       }
       // maxTime nie jest używany w Home, ale możemy go dodać
       if (filters.maxTime && filters.maxTime > 0) {
@@ -622,9 +608,6 @@ const ProvidersPage = () => {
     if (filters.b2b) {
       params.set('b2b', 'true');
     }
-    if (filters.availableNow) {
-      params.set('availableNow', 'true');
-    }
     if (filters.maxTime && filters.maxTime > 0) {
       params.set('maxTime', String(filters.maxTime));
     }
@@ -673,7 +656,6 @@ const ProvidersPage = () => {
       service: '',
       city: '',
       radius: 50,
-      availableNow: false,
       verified: false,
       b2b: false,
       tier: 'all',
@@ -692,10 +674,9 @@ const ProvidersPage = () => {
     if (filterText.includes('Usługa:')) updateFilter('service', '');
     else if (filterText.includes('Miasto:')) updateFilter('city', '');
     else if (filterText.includes('Promień:')) updateFilter('radius', 50);
-    else if (filterText.includes('Dostępny teraz')) updateFilter('availableNow', false);
     else if (filterText.includes('Verified')) updateFilter('verified', false);
     else if (filterText === 'Firma (VAT)') updateFilter('vatInvoice', false);
-    else if (filterText === 'Firma') updateFilter('b2b', false);
+    else if (filterText === 'Faktura VAT') updateFilter('b2b', false);
     else if (filterText.includes('Poziom:')) updateFilter('tier', 'all');
     else if (filterText.includes('Min. ocena:')) updateFilter('minRating', 0);
     else if (filterText.includes('Min. cena:')) updateFilter('minPrice', 0);

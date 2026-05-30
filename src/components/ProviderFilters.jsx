@@ -1,5 +1,5 @@
 // src/components/ProviderFilters.jsx
-import React, { useState } from 'react';
+import React from 'react';
 
 const ProviderFilters = ({ filters, setFilters }) => {
   const handleLevelChange = (e) => {
@@ -12,10 +12,6 @@ const ProviderFilters = ({ filters, setFilters }) => {
 
   const handleMaxPriceChange = (e) => {
     setFilters({ ...filters, maxPrice: e.target.value });
-  };
-
-  const handleAvailabilityChange = (e) => {
-    setFilters({ ...filters, availability: e.target.value });
   };
 
   return (
@@ -36,7 +32,7 @@ const ProviderFilters = ({ filters, setFilters }) => {
         </select>
       </div>
 
-      <div className="mb-4">
+      <div>
         <label className="block text-sm font-medium">Zakres ceny</label>
         <div className="flex gap-2 mt-1">
           <input
@@ -54,19 +50,6 @@ const ProviderFilters = ({ filters, setFilters }) => {
             className="w-full border rounded p-2"
           />
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Dostępność</label>
-        <select
-          value={filters.availability}
-          onChange={handleAvailabilityChange}
-          className="mt-1 block w-full border rounded p-2"
-        >
-          <option value="">Wszyscy</option>
-          <option value="now">Dostępny teraz</option>
-          <option value="today">Wolny dzisiaj</option>
-        </select>
       </div>
     </div>
   );

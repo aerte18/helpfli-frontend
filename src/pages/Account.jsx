@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Calendar, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock, Trash2 } from "lucide-react";
+import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock, Trash2 } from "lucide-react";
 import { registerPush } from "../push/registerPush";
 import { api } from "../api/client";
 import KycBadge from "../components/KycBadge";
@@ -12,7 +12,6 @@ import Referrals from "./Referrals";
 import CalendarIntegrations from "./integrations/CalendarIntegrations";
 import CrmIntegrations from "./integrations/CrmIntegrations";
 import { getMyOffers } from "../api/offers";
-import ProviderSchedule from "../components/ProviderSchedule";
 import CompanyTab from "./CompanyTab";
 import NotificationSettings from "../components/NotificationSettings";
 import TwoFactorAuth from "../components/TwoFactorAuth";
@@ -96,6 +95,13 @@ export default function Account() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabFromUrl = params.get('tab');
+    if (tabFromUrl === 'schedule') {
+      const q = new URLSearchParams(location.search);
+      q.set('tab', 'overview');
+      navigate({ search: q.toString() }, { replace: true });
+      setActiveTab('overview');
+      return;
+    }
     if (tabFromUrl === 'notifications') {
       const q = new URLSearchParams(location.search);
       q.set('tab', 'settings');
@@ -148,8 +154,7 @@ export default function Account() {
     { id: "profile", label: "Profil", icon: User },
     { id: "ratings", label: "Oceny", icon: Star },
     { id: "stats", label: "Statystyki", icon: TrendingUp },
-    { id: "schedule", label: "Harmonogram", icon: Calendar },
-    { id: "company", label: "Firma", icon: Building2 },
+    { id: "company", label: "Zespół", icon: Building2 },
     { id: "referrals", label: "Polecenia", icon: Gift },
     { id: "integrations", label: "Integracje", icon: Link2 },
     { id: "payments", label: "Płatności", icon: CreditCard },
@@ -332,7 +337,6 @@ export default function Account() {
           {activeTab === "history" && user?.role === 'client' && <HistoryTab user={user} />}
           {activeTab === "profile" && user?.role === 'provider' && <ProfileTab user={user} fetchMe={fetchMe} />}
           {activeTab === "stats" && user?.role === 'provider' && <StatsTab stats={stats} />}
-          {activeTab === "schedule" && user?.role === 'provider' && <ProviderSchedule />}
           {activeTab === "company" && user?.role === 'provider' && <CompanyTab user={user} />}
           {activeTab === "referrals" && <Referrals />}
           {activeTab === "integrations" && user?.role === 'provider' && (
@@ -424,16 +428,10 @@ function OverviewTab({ user, stats }) {
               </Link>
             )}
             {user?.role === 'provider' && !user?.company && (
-              <>
-                <Link to="/company/create" className="block w-full p-3 text-left bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
-                  <div className="font-medium flex items-center gap-2"><Building2 className="w-4 h-4 shrink-0" aria-hidden /> Zarejestruj firmę</div>
-                  <div className="text-sm text-gray-600">Zarządzaj zespołem wykonawców</div>
-                </Link>
-                <Link to="/account?tab=company" className="block w-full p-3 text-left bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                  <div className="font-medium flex items-center gap-2"><Users className="w-4 h-4 shrink-0" aria-hidden /> Dołącz do firmy</div>
-                  <div className="text-sm text-gray-600">Dołącz do istniejącej firmy</div>
-                </Link>
-              </>
+              <Link to="/company/join" className="block w-full p-3 text-left bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+                <div className="font-medium flex items-center gap-2"><Users className="w-4 h-4 shrink-0" aria-hidden /> Dołącz do zespołu</div>
+                <div className="text-sm text-gray-600">Wyślij prośbę do firmy wieloosobowej lub poczekaj na zaproszenie</div>
+              </Link>
             )}
           </div>
         </Card>
@@ -1905,8 +1903,6 @@ function HistoryTab({ user }) {
 // Profile Tab (Provider only)
 function ProfileTab({ user, fetchMe }) {
   const API = import.meta.env.VITE_API_URL || '';
-  const isIndividual = !user?.isB2B && !user?.b2b && !user?.company && user?.kyc?.type !== 'company';
-  const canCreateCompany = isIndividual && user?.role === 'provider';
 
   const [headline, setHeadline] = useState(user?.headline || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -2022,8 +2018,8 @@ function ProfileTab({ user, fetchMe }) {
                 {user?.level === 'pro' && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">PRO</span>
                 )}
-                {user?.b2b && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Firma</span>
+                {(user?.b2b || user?.isB2B) && (
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Faktura VAT</span>
                 )}
                 {user?.company && (
                   <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">Firma</span>
@@ -2035,6 +2031,11 @@ function ProfileTab({ user, fetchMe }) {
           {/* Formularz opisu profilu – widoczny dla klienta na stronie profilu */}
           <form onSubmit={handleSaveProfile} className="space-y-4 border-t pt-4">
             <h4 className="font-medium text-gray-900">Opis profilu (widoczny dla klientów)</h4>
+            <p className="text-sm text-gray-600 -mt-2">
+              Ustawienie „Wystawiam faktury VAT” znajdziesz w zakładce{' '}
+              <Link to="/account?tab=billing" className="text-indigo-600 hover:underline font-medium">Rozliczenia</Link>
+              {' '}— klienci widzą to w wyszukiwarce i przy ofercie.
+            </p>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nagłówek (max 60 znaków)</label>
               <input
@@ -2081,28 +2082,6 @@ function ProfileTab({ user, fetchMe }) {
             </div>
           </form>
 
-          {/* Informacja dla osoby fizycznej o możliwości założenia firmy */}
-          {canCreateCompany && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <div className="flex items-start gap-3">
-                <div className="text-blue-600 text-xl">💼</div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-blue-900 mb-1">Załóż firmę (działalność gospodarczą)</h4>
-                  <p className="text-sm text-blue-800 mb-3">
-                    Jako osoba fizyczna nie możesz wystawiać faktur VAT. Założenie firmy pozwoli Ci wystawiać faktury
-                    i po rozliczeniu załączać je do zleceń przez platformę.
-                  </p>
-                  <Link
-                    to="/company/create"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Building2 className="w-4 h-4 shrink-0" aria-hidden />
-                    <span>Zarejestruj firmę</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -3037,7 +3016,7 @@ function SettingsTab({ user, pushStatus, enablePush, showChangePasswordModal, se
           </label>
           {!wystawiamFaktury && (
             <p className="text-sm text-gray-600 mt-2">
-              Odznaczono. Nie będziesz widoczny w filtrach „Firma” i nie wystawisz faktur. Możesz włączyć ponownie w dowolnym momencie.
+              Odznaczono. Nie będziesz widoczny w filtrze „Faktura VAT”. Możesz włączyć ponownie w dowolnym momencie.
             </p>
           )}
           {savingB2B && <p className="text-sm text-gray-500 mt-2">Zapisywanie...</p>}

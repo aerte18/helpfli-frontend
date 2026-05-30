@@ -145,20 +145,34 @@ export default function CompanyAccount() {
   }
 
   if (!company) {
+    const isProvider = user?.role === 'provider';
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto">
+        <div className="text-center max-w-md mx-auto px-4">
           <div className="h-16 w-16 text-gray-400 mx-auto mb-4 text-6xl">🏢</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Nie należysz do żadnej firmy</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {isProvider ? 'Nie należysz do żadnego zespołu' : 'Nie należysz do żadnej firmy'}
+          </h2>
           <p className="text-gray-600 mb-6">
-            Aby zarządzać zespołem wykonawców, musisz najpierw utworzyć lub dołączyć do firmy.
+            {isProvider
+              ? 'Jako wykonawca możesz dołączyć do firmy wieloosobowej — wyślij prośbę lub poczekaj na zaproszenie od właściciela.'
+              : 'Aby zarządzać zespołem wykonawców, musisz najpierw utworzyć firmę wieloosobową.'}
           </p>
-          <button 
-            onClick={() => navigate('/company/create')}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-medium"
-          >
-            Utwórz firmę
-          </button>
+          {isProvider ? (
+            <button
+              onClick={() => navigate('/company/join')}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-medium"
+            >
+              Dołącz do zespołu
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/company/create')}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-medium"
+            >
+              Utwórz firmę wieloosobową
+            </button>
+          )}
         </div>
       </div>
     );

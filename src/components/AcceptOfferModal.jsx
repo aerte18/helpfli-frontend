@@ -17,7 +17,13 @@ export default function AcceptOfferModal({
   const paymentPreference = order?.paymentPreference || 'system';
   const [paymentMethod, setPaymentMethod] = useState(paymentPreference); // Metoda płatności (system | external)
   const [includeGuarantee, setIncludeGuarantee] = useState(paymentPreference === 'system'); // Czy doliczyć gwarancję
-  const [requestInvoice, setRequestInvoice] = useState(false); // Chcę fakturę VAT
+  const [requestInvoice, setRequestInvoice] = useState(!!order?.requestInvoice); // Chcę fakturę VAT
+
+  useEffect(() => {
+    if (isOpen) {
+      setRequestInvoice(!!order?.requestInvoice);
+    }
+  }, [isOpen, order?.requestInvoice]);
   
   // Sprawdź, czy klient ma pakiet PRO (subskrypcja)
   const clientPlanKey = order?.client?.subscription?.planKey || null;
@@ -247,7 +253,7 @@ export default function AcceptOfferModal({
                     📄 Chcę fakturę VAT
                   </div>
                   <div className="text-sm text-gray-600">
-                    Faktura zostanie wystawiona po zakończeniu płatności
+                    Faktura od wykonawcy — załączysz PDF po rozliczeniu zlecenia opłaconego przez Helpfli
                   </div>
                 </div>
               </label>

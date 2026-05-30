@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
+import { isPlatformInvoicingEnabled } from '../utils/platformInvoicing';
 
 export default function PromotePage() {
   const API = import.meta.env.VITE_API_URL || '';
@@ -78,7 +79,11 @@ export default function PromotePage() {
       const res = await fetch(apiUrl(`/api/promote/create-intent`), {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ planId, couponCode: couponCode || undefined, requestInvoice }),
+        body: JSON.stringify({
+          planId,
+          couponCode: couponCode || undefined,
+          requestInvoice: isPlatformInvoicingEnabled() ? requestInvoice : false,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Błąd płatności');

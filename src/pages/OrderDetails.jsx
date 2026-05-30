@@ -26,11 +26,13 @@ import ClientCompletionOptionsGuide from "../components/ClientCompletionOptionsG
 import {
   canClientConfirmReceipt,
   canUserRateOrder,
+  canProviderUploadOrderInvoice,
   hasHelpfliEscrowSettlement,
   isAwaitingClientAfterProviderComplete,
   isDisputeResolved,
   isExternalOrderPayment,
   isOrderDisputeBlockingProgress,
+  isOrderInvoiceRelevant,
 } from "../utils/orderCompletion";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { createChangeRequest, acceptChangeRequest, rejectChangeRequest, getChangeRequests } from "../api/changeRequests";
@@ -1087,6 +1089,27 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Faktura VAT — tylko płatność przez Helpfli */}
+            {isOrderInvoiceRelevant(order) && (
+            <div>
+              <div className="text-sm font-medium text-gray-700">Faktura VAT</div>
+              <div className="mt-1">
+                {order.requestInvoice ? (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="font-semibold text-purple-900 flex items-center gap-2">
+                      <span>📄</span> Klient prosi o fakturę VAT
+                    </div>
+                    <div className="text-xs text-purple-700 mt-0.5">
+                      Po rozliczeniu przez Helpfli wykonawca może załączyć fakturę PDF do zlecenia.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-600">Klient nie zaznaczył potrzeby faktury VAT.</div>
+                )}
+              </div>
+            </div>
             )}
 
             {/* Kiedy ma nastąpić pomoc */}
@@ -2667,6 +2690,30 @@ function OrderCompletedStageView({
             </button>
           </div>
         ) : null}
+
+        {isProvider && canProviderUploadOrderInvoice(order) && (
+          <div className="rounded-xl border border-purple-200 bg-purple-50 p-4">
+            <p className="text-sm font-semibold text-purple-900 mb-1">Załącz fakturę VAT dla klienta</p>
+            <p className="text-xs text-purple-800 mb-3">
+              Zlecenie opłacone przez Helpfli — wrzuć PDF faktury. Klient dostanie powiadomienie e-mailem.
+            </p>
+            <form onSubmit={handleInvoiceUpload} className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+                className="flex-1 text-sm file:mr-2 file:rounded-lg file:border-0 file:bg-purple-600 file:px-3 file:py-2 file:text-white file:text-sm"
+              />
+              <button
+                type="submit"
+                disabled={uploadingInvoice || !invoiceFile}
+                className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
+              >
+                {uploadingInvoice ? 'Wysyłanie…' : 'Wyślij fakturę'}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4921,6 +4968,7 @@ export default function OrderDetails() {
                       orderUrgency={order?.urgency}
                       orderUrgencyTime={order?.urgencyTime}
                       orderPaymentPreference={order?.paymentPreference}
+                      orderRequestInvoice={!!order?.requestInvoice}
                     />
                   </div>
                 </div>

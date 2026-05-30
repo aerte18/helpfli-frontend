@@ -49,9 +49,9 @@ export default function ProviderQuickView({ open, onClose, provider, onChoose, o
               <b>✓ Zweryfikowany</b>
             </div>
           )}
-          {provider.b2b && (
-            <div className="text-blue-600">
-              <b>✓ Firma</b>
+          {(provider.b2b || provider.isB2B) && (
+            <div className="text-purple-700">
+              <b>📄 Wystawia fakturę VAT</b>
             </div>
           )}
         </div>

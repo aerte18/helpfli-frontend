@@ -134,10 +134,11 @@ export default function JoinCompany() {
             ← Wróć
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Dołącz do firmy
+            Dołącz do firmy wieloosobowej
           </h1>
           <p className="text-gray-600">
-            Wyszukaj firmę, do której chcesz dołączyć, i wyślij prośbę o dołączenie.
+            Wyszukaj firmę wieloosobową, do której chcesz dołączyć jako członek zespołu, i wyślij prośbę.
+            Możesz też poczekać na zaproszenie od właściciela firmy.
           </p>
         </div>
 

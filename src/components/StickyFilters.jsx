@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Funnel, Filter, BadgeCheck, Clock, Wallet } from "lucide-react";
+import { Funnel, Filter, BadgeCheck, Wallet } from "lucide-react";
 
 export default function StickyFilters({ filters: externalFilters, onChange, verifiedOnly, onVerifiedOnlyChange, onClearSearch }) {
   const [filters, setFilters] = useState({
     level: "any",       // basic|standard|pro|any
     minRating: 0,       // 0..5
-    available: "any",   // now|today|tomorrow|offline|any
     b2b: false,
     budgetMin: "",
     budgetMax: "",
@@ -98,7 +97,7 @@ export default function StickyFilters({ filters: externalFilters, onChange, veri
               onChange={(e) => set("b2b", e.target.checked)}
               className="accent-blue-600"
             />
-            Firma
+            Faktura VAT
           </label>
 
           <label className="inline-flex items-center gap-2 text-sm flex-shrink-0">
@@ -111,21 +110,6 @@ export default function StickyFilters({ filters: externalFilters, onChange, veri
             />
             Tylko Verified
           </label>
-
-          <div className="flex items-center gap-2 text-sm flex-shrink-0">
-            <Clock className="w-4 h-4" />
-            <select
-              value={filters.available}
-              onChange={(e) => set("available", e.target.value)}
-              className="px-2 py-1 rounded-lg border border-slate-200"
-            >
-              <option value="any">Dostępność</option>
-              <option value="now">Teraz</option>
-              <option value="today">Dziś</option>
-              <option value="tomorrow">Jutro</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
 
           <div className="flex items-center gap-2 text-sm flex-shrink-0">
             <Wallet className="w-4 h-4" />

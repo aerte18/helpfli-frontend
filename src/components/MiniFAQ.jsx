@@ -3,7 +3,7 @@ import { useState } from "react";
 
 const FAQ_ITEMS = [
   { q: "Czy Helpfli jest darmowe dla klientów?", a: "Tak, przeglądanie ofert i zapytań jest bezpłatne. Płacisz tylko za wykonaną usługę." },
-  { q: "Czy mogę dostać fakturę?", a: "Użyj filtra „Firma” i wybierz wykonawcę z oznaczeniem Firma. Informacja jest widoczna w profilu." },
+  { q: "Czy mogę dostać fakturę?", a: "Przy zleceniu opłacanym przez Helpfli zaznacz „Potrzebuję faktury VAT”. Po rozliczeniu wykonawca może załączyć fakturę PDF. Przy płatności poza systemem ustal fakturę bezpośrednio z wykonawcą." },
   { q: "Jak działa gwarancja?", a: "Przy płatności w systemie środki są blokowane i zwalniane dopiero po akceptacji wykonania." }
 ];
 

@@ -11,6 +11,7 @@ export default function AdvancedFilters({
   userLocation,
   locationError,
   onRequestLocation,
+  showDistanceFilter = false,
   onApply, 
   onClear 
 }) {
@@ -158,51 +159,27 @@ export default function AdvancedFilters({
               </div>
             </div>
 
-            {/* Dostępność */}
+            {showDistanceFilter && (
             <div>
-              <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Dostępność</h3>
-              <div className="space-y-2">
-                {[
-                  { value: 'now', label: 'Dostępny teraz' },
-                  { value: 'today', label: 'Dziś' },
-                  { value: 'tomorrow', label: 'Jutro' },
-                  { value: 'offline', label: 'Niedostępny' }
-                ].map((option) => (
-                  <label key={option.value} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="availability"
-                      value={option.value}
-                      checked={localFilters.available === option.value}
-                      onChange={(e) => handleFilterChange('available', e.target.value)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-[var(--qs-color-text)]">{option.label}</span>
-                  </label>
-                ))}
-                <p className="text-xs text-[var(--qs-color-muted)] mt-2">
-                  Opcje "Dziś" i "Jutro" pokazują tylko wykonawców korzystających z harmonogramu (kalendarza).
-                </p>
-              </div>
-            </div>
-
-            {/* Zasięg */}
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Zasięg</h3>
+              <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-1">Zasięg wyszukiwania</h3>
+              <p className="text-xs text-[var(--qs-color-muted)] mb-3">
+                Wykonawcy w promieniu od Twojej lokalizacji (widok listy).
+              </p>
               <div>
-                <label className="block text-xs text-[var(--qs-color-muted)] mb-1.5 font-medium">Maksymalna odległość (km)</label>
+                <label className="block text-xs text-[var(--qs-color-muted)] mb-1.5 font-medium">Promień (km)</label>
                 <input
                   type="range"
-                  min="1"
-                  max="50"
-                  value={maxDistance || 10}
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={maxDistance || 50}
                   onChange={(e) => onMaxDistanceChange(parseInt(e.target.value))}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-[var(--qs-color-muted)] mt-1.5">
-                  <span>1 km</span>
-                  <span className="font-semibold text-[var(--qs-color-text)]">{maxDistance || 10} km</span>
-                  <span>50 km</span>
+                  <span>5 km</span>
+                  <span className="font-semibold text-[var(--qs-color-text)]">{maxDistance || 50} km</span>
+                  <span>100 km</span>
                 </div>
                 
                 {/* Status geolokalizacji */}
@@ -232,6 +209,7 @@ export default function AdvancedFilters({
                 </div>
               </div>
             </div>
+            )}
 
             {/* Metoda płatności */}
             <div>
@@ -267,7 +245,7 @@ export default function AdvancedFilters({
               <div className="space-y-2">
                 {[
                   { value: false, label: 'Osoba prywatna' },
-                  { value: true, label: 'Firma' },
+                  { value: true, label: 'Wystawia fakturę VAT' },
                   { value: null, label: 'Oba typy' }
                 ].map((option) => (
                   <label key={String(option.value)} className="flex items-center">

@@ -279,6 +279,18 @@ export default function ProviderProfile() {
                       {b.label}
                     </span>
                   ))}
+                  {(providerData?.issuesInvoice || providerData?.b2b || provider?.b2b || provider?.isB2B) && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                      📄 Wystawia fakturę VAT
+                    </span>
+                  )}
+                </div>
+              )}
+              {trustBadges.length === 0 && (providerData?.issuesInvoice || providerData?.b2b || provider?.b2b || provider?.isB2B) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                    📄 Wystawia fakturę VAT
+                  </span>
                 </div>
               )}
             </div>

@@ -13,7 +13,6 @@ export default function NearbyProviders() {
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState('relevance'); // MVP: domyślne sortowanie
   const [serviceId, setServiceId] = useState('');
-  const [availableNow, setAvailableNow] = useState(false); // MVP: nowy filtr
   const [lat, setLat] = useState(null); // MVP: geo search
   const [lng, setLng] = useState(null);
   const [radius, setRadius] = useState(50); // MVP: radius search
@@ -90,7 +89,6 @@ export default function NearbyProviders() {
       }
       if (level && level !== 'all') qs.set("level", level);
       if (minRating > 0) qs.set("minRating", minRating.toString());
-      if (availableNow) qs.set("availableNow", "true");
       if (sortBy && sortBy !== 'relevance') qs.set("sort", sortBy);
       
       console.log("Fetching providers from API /api/search...", qs.toString());
@@ -118,7 +116,7 @@ export default function NearbyProviders() {
         ratingCount: provider.ratingCount || 0,
         avatar: provider.avatar,
         matchedServiceName: provider.matchedServiceName,
-        provider_status: provider.provider_status || { isOnline: false, availableNow: false }
+        provider_status: provider.provider_status || { isOnline: false }
       }));
       
       console.log("Transformed providers:", transformedProviders);
@@ -141,7 +139,6 @@ export default function NearbyProviders() {
     // Filtrowanie po stronie frontu (gdy backend nie filtruje)
     if (level && level !== 'all') results = results.filter((p) => p.level === level);
     if (minRating > 0) results = results.filter((p) => p.averageRating >= minRating);
-    if (availableNow) results = results.filter((p) => p.provider_status?.availableNow || p.provider_status?.isOnline);
 
     // Sortowanie po stronie frontu (gdy backend nie sortuje)
     if (sortBy === 'price') {
@@ -153,12 +150,12 @@ export default function NearbyProviders() {
     }
 
     setFilteredProviders(results);
-  }, [providers, level, minRating, sortBy, availableNow]);
+  }, [providers, level, minRating, sortBy]);
 
   // MVP: Odśwież gdy zmienią się filtry MVP
   useEffect(() => {
     fetchProviders();
-  }, [serviceId, level, minRating, availableNow, sortBy, lat, lng, radius]);
+  }, [serviceId, level, minRating, sortBy, lat, lng, radius]);
 
   if (loading) {
     return (
@@ -224,17 +221,6 @@ export default function NearbyProviders() {
             <option value="rating">Ocena malejąco</option>
           </select>
 
-          {/* MVP: Filtr "Dostępny teraz" */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={availableNow}
-              onChange={(e) => setAvailableNow(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-medium">Dostępny teraz</span>
-          </label>
-
           <button
             type="button"
             onClick={handleUseMyLocation}
@@ -288,12 +274,6 @@ export default function NearbyProviders() {
           <p className="text-xs text-gray-500">
             {p.eta ? `~ ${p.eta} min` : p.time ? `~ ${p.time} h` : '-'}
           </p>
-          {/* MVP: Badge "Dostępny teraz" */}
-          {p.provider_status?.availableNow && (
-            <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-              ✓ Teraz
-            </span>
-          )}
         </div>
       </li>
     </Link>
