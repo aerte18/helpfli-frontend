@@ -33,40 +33,41 @@ function normalizeLegacyOrderTabUrl() {
 
 normalizeLegacyOrderTabUrl();
 
-// Init Sentry (if DSN provided)
-initSentry();
-window.addEventListener("qs-consent-changed", () => initSentry());
-
-// Init Google Analytics 4 z Consent Mode v2 (default denied → update po zgodzie).
-// Sam moduł nasłuchuje 'qs-consent-changed' wewnętrznie.
-initGoogleAnalytics();
-
-// Init Microsoft Clarity (heatmapy + nagrania) — skrypt ładuje się dopiero
-// po zgodzie na analitykę. Inaczej niż GA, Clarity nie ma trybu modelowanego.
-initMicrosoftClarity();
-
-// Web Vitals monitoring
 function sendToAnalytics(metric) {
   if (!hasAnalyticsConsent()) return;
-  // Send to your analytics service
-  console.log('Web Vital:', metric);
-  
-  // Send to Sentry if available
+  console.log("Web Vital:", metric);
+
   if (window.Sentry) {
     window.Sentry.addBreadcrumb({
-      category: 'web-vitals',
+      category: "web-vitals",
       message: `${metric.name}: ${metric.value}`,
-      level: 'info'
+      level: "info",
     });
   }
 }
 
-// Measure Core Web Vitals
-onCLS(sendToAnalytics);
-onINP(sendToAnalytics);
-onFCP(sendToAnalytics);
-onLCP(sendToAnalytics);
-onTTFB(sendToAnalytics);
+// Init Sentry / analityka — po starcie, nie blokuje pierwszego paintu
+function scheduleIdle(fn) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(fn, { timeout: 4000 });
+  } else {
+    window.setTimeout(fn, 1);
+  }
+}
+
+scheduleIdle(() => {
+  initSentry();
+  initGoogleAnalytics();
+  initMicrosoftClarity();
+
+  onCLS(sendToAnalytics);
+  onINP(sendToAnalytics);
+  onFCP(sendToAnalytics);
+  onLCP(sendToAnalytics);
+  onTTFB(sendToAnalytics);
+});
+
+window.addEventListener("qs-consent-changed", () => initSentry());
 
 async function recoverFromStaleChunk() {
   const key = "qs_chunk_reload_once";
@@ -105,21 +106,12 @@ window.addEventListener("unhandledrejection", (event) => {
   }
 });
 
-// Service Worker handling
-if ('serviceWorker' in navigator) {
-  if (import.meta && import.meta.env && import.meta.env.DEV) {
-    // DEV: całkowicie wyłącz SW i wyrejestruj istniejące
-    navigator.serviceWorker.getRegistrations?.()
-      .then((regs) => Promise.all(regs.map((r) => r.unregister().catch(() => {}))))
-      .then(() => console.log('🧹 SW unregistered in DEV'));
-  } else {
-    // PROD: tymczasowo wyłącz SW, aby uniknąć stale-cache/chunk issues
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.getRegistrations?.()
-        .then((regs) => Promise.all(regs.map((r) => r.unregister().catch(() => {}))))
-        .then(() => console.log('🧹 SW unregistered in PROD'));
-    });
-  }
+// Service Worker handling — DEV: wyrejestruj; PROD: index.html czyści przed bundle
+if ("serviceWorker" in navigator && import.meta?.env?.DEV) {
+  navigator.serviceWorker
+    .getRegistrations?.()
+    .then((regs) => Promise.all(regs.map((r) => r.unregister().catch(() => {}))))
+    .then(() => console.log("🧹 SW unregistered in DEV"));
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

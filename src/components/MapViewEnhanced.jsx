@@ -1,4 +1,5 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AvailabilityBadge from "./AvailabilityBadge";

@@ -23,15 +23,21 @@
     <meta name="twitter:description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi." />
     <meta name="twitter:image" content="/icons/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
-    
-    <!-- OneSignal SDK -->
-    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" defer></script>
 
-    <!-- Dodany link do fontu Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     
     <!-- Structured Data for SEO -->
     <script type="application/ld+json">
@@ -84,7 +90,7 @@
         try {
           if (!("serviceWorker" in navigator)) return;
           var marker = "qs_sw_cleanup_v1";
-          if (sessionStorage.getItem(marker)) return;
+          if (sessionStorage.getItem(marker) || /[?&]_sw=/.test(location.search)) return;
           navigator.serviceWorker.getRegistrations().then(function (regs) {
             if (!regs.length) return;
             sessionStorage.setItem(marker, "1");
