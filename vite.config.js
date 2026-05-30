@@ -30,25 +30,5 @@ export default defineConfig({
         secure: false
       }
     }
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) {
-            if (id.includes("/pages/admin/") || id.includes("/components/admin/")) return "admin";
-            if (id.includes("/pages/ProviderHome") || id.includes("MapView")) return "maps";
-            return undefined;
-          }
-          if (id.includes("leaflet") || id.includes("react-leaflet")) return "leaflet";
-          if (id.includes("recharts")) return "recharts";
-          if (id.includes("@sentry")) return "sentry";
-          if (id.includes("framer-motion")) return "motion";
-          if (id.includes("socket.io")) return "socket";
-          if (id.includes("@stripe")) return "stripe";
-          if (id.includes("react-dom") || id.includes("react-router")) return "react-vendor";
-        },
-      },
-    },
-  },
+  }
 })
