@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { UI } from "../i18n/pl_ui";
@@ -27,7 +27,8 @@ import { useAuth } from "../context/AuthContext";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Layers, Users, ChevronUp, ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, ChevronUp, ChevronDown } from "lucide-react";
+import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -299,12 +300,10 @@ export default function Home() {
   const [isProviderListExpanded, setIsProviderListExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
-  const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
-  /** Mobile /map: domyślnie zwinięte — więcej mapy; panel „szkło” pod sticky breadcrumbs */
+  /** Mobile: domyślnie zwinięte — więcej mapy / listy */
   const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(true);
   /** Mobile /map: pełny ekran mapy (ukrywa nav, okruszki, filtry, tab bar) */
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
-  const mobileViewMenuRef = useRef(null);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -331,7 +330,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isMobileViewport && viewMode === "split") {
-      setViewMode("map");
+      setViewMode("list");
     }
   }, [isMobileViewport, viewMode]);
 
@@ -361,7 +360,6 @@ export default function Home() {
 
   useEffect(() => {
     if (viewMode !== "map" || showAdvancedFilters) {
-      setIsMobileViewMenuOpen(false);
       setIsProviderListExpanded(false);
       setMapFiltersCollapsed(true);
       setMapMobileImmersive(false);
@@ -398,19 +396,6 @@ export default function Home() {
   }, [viewMode, isMobileViewport]);
 
   useEffect(() => {
-    if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
-  }, [mapMobileImmersive]);
-
-  useEffect(() => {
-    if (!mapMobileImmersive) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") setMapMobileImmersive(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [mapMobileImmersive]);
-
-  useEffect(() => {
     if (compare.items.length > 0) {
       document.body.classList.add("qs-compare-bar-visible");
     } else {
@@ -420,16 +405,13 @@ export default function Home() {
   }, [compare.items.length]);
 
   useEffect(() => {
-    if (!isMobileViewMenuOpen) return;
-    const onPointerDown = (e) => {
-      if (!mobileViewMenuRef.current) return;
-      if (!mobileViewMenuRef.current.contains(e.target)) {
-        setIsMobileViewMenuOpen(false);
-      }
+    if (!mapMobileImmersive) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMapMobileImmersive(false);
     };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [isMobileViewMenuOpen]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapMobileImmersive]);
 
   // PRZYKŁADOWA filtracja po stronie frontu (docelowo backend /api/search)
   const list = useMemo(() => {
@@ -706,6 +688,168 @@ export default function Home() {
     setAiConciergeOpen(false);
   }, [navigate]);
 
+  const clearHomeFilters = useCallback(() => {
+    setVerifiedOnly(false);
+    setB2bOnly(false);
+    setProOnly(false);
+    setMaxDistance(50);
+    setSelectedServices([]);
+    setSelectedServiceSlugs([]);
+    updateFilters({});
+    setActiveFilters([]);
+    setClearCategoryTrigger((prev) => prev + 1);
+  }, [updateFilters]);
+
+  const mobileCollapsibleToolbar = (
+    <div
+      data-qs-home-mobile-toolbar
+      className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl"
+    >
+      <div className="flex items-center gap-2 px-2 py-1.5">
+        <MobileViewModeToggle
+          viewMode={viewMode}
+          ariaLabel="Widok wyszukiwania"
+          onChange={(mode) => {
+            setViewMode(mode);
+            setMapFiltersCollapsed(true);
+          }}
+        />
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
+          {mapFiltersCollapsed ? (
+            <>
+              <span className="font-semibold">{list.length}</span>{" "}
+              {list.length === 1 ? "wykonawca" : list.length < 5 ? "wykonawców" : "wykonawców"}
+              <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
+              {activeFilters.length > 0 && <span className="text-indigo-600"> · filtry</span>}
+            </>
+          ) : (
+            "Filtry wyszukiwania"
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => setMapFiltersCollapsed((v) => !v)}
+          className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
+          aria-expanded={!mapFiltersCollapsed}
+        >
+          {mapFiltersCollapsed ? (
+            <>
+              <ChevronDown className="h-4 w-4" aria-hidden />
+              Rozwiń
+            </>
+          ) : (
+            <>
+              <ChevronUp className="h-4 w-4" aria-hidden />
+              Zwiń
+            </>
+          )}
+        </button>
+      </div>
+      {!mapFiltersCollapsed && (
+        <div className="space-y-2 border-t border-white/25 px-2 py-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
+              aria-label={`${list.length} wykonawców w wynikach`}
+            >
+              <Users className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
+              {list.length} wykonawców
+            </span>
+            <button
+              type="button"
+              aria-label={verifiedOnly ? "Tylko zweryfikowani: włączone" : "Tylko zweryfikowani"}
+              onClick={() => setVerifiedOnly((v) => !v)}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                verifiedOnly
+                  ? "border-emerald-300 bg-emerald-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700"
+              }`}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Zweryf.
+            </button>
+            <button
+              type="button"
+              aria-label={b2bOnly ? "Faktura VAT: włączone" : "Tylko z fakturą VAT"}
+              onClick={() => setB2bOnly((v) => !v)}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                b2bOnly
+                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700"
+              }`}
+            >
+              <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              VAT
+            </button>
+            <button
+              type="button"
+              aria-label={proOnly ? "Tylko PRO: włączone" : "Tylko wykonawcy PRO"}
+              onClick={() => setProOnly((v) => !v)}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                proOnly
+                  ? "border-amber-300 bg-amber-500 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700"
+              }`}
+            >
+              <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              PRO
+            </button>
+          </div>
+          {viewMode === "list" && (
+            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200/80 bg-white/80 px-2 py-1.5">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+              <input
+                type="range"
+                min={5}
+                max={100}
+                step={5}
+                value={maxDistance}
+                onChange={(e) => setMaxDistance(Number(e.target.value))}
+                className="min-w-0 flex-1"
+                aria-label="Promień wyszukiwania w kilometrach"
+              />
+              <span className="shrink-0 text-[10px] font-semibold tabular-nums text-slate-800">{maxDistance} km</span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <ServiceCategoryDropdown
+              className="w-full"
+              placeholder="Kategoria"
+              clearTrigger={clearCategoryTrigger}
+              onCategorySelect={(sel) => {
+                setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+                const slug = sel.subcategorySlug || sel.categorySlug;
+                if (slug) {
+                  setSelectedServiceSlugs((prev) =>
+                    Array.from(new Set([...(prev || []), String(slug)]))
+                  );
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {activeFilters.length > 0 && (
+              <button
+                type="button"
+                onClick={clearHomeFilters}
+                className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
+              >
+                Wyczyść
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters(true)}
+              className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
+            >
+              Filtry
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
       className={
@@ -718,13 +862,13 @@ export default function Home() {
         <title>Szukaj wykonawców | Quicksy</title>
         <meta name="description" content="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą." />
       </Helmet>
-      {user?.role === 'client' && viewMode !== 'map' && (
+      {user?.role === 'client' && viewMode !== 'map' && !isMobileViewport && (
         <div className="max-w-7xl mx-auto px-4 pt-3 md:px-6 md:pt-4">
           <WelcomeCreditBanner variant="compact" />
         </div>
       )}
       {/* Pasek: dropdown kategorii (dwukolumnowy) + toolbar wyników — w /map toolbar jest w skorupie mapy */}
-      {viewMode !== "map" && (
+      {viewMode !== "map" && !isMobileViewport && (
         <>
           {/* Toolbar - poza flex container, aby sticky działało poprawnie */}
           <ResultsToolbar
@@ -760,17 +904,7 @@ export default function Home() {
             }
             showLeftInfo={false}
             hasActiveFilters={activeFilters.length > 0}
-            onClearFilters={() => {
-              setVerifiedOnly(false);
-              setB2bOnly(false);
-              setProOnly(false);
-              setMaxDistance(50);
-              setSelectedServices([]);
-              setSelectedServiceSlugs([]);
-              updateFilters({});
-              setActiveFilters([]);
-              setClearCategoryTrigger((prev) => prev + 1);
-            }}
+            onClearFilters={clearHomeFilters}
             rightExtra={
               <button
                 type="button"
@@ -855,15 +989,7 @@ export default function Home() {
         onApply={() => {
           setShowAdvancedFilters(false);
         }}
-        onClear={() => {
-          setVerifiedOnly(false);
-          setB2bOnly(false);
-          setProOnly(false);
-          setMaxDistance(50);
-          setSelectedServices([]);
-          setSelectedServiceSlugs([]);
-          updateFilters({});
-        }}
+        onClear={clearHomeFilters}
       />
 
       {/* Usunięto sekcję rekomendacji pod aktywnymi filtrami */}
@@ -918,94 +1044,7 @@ export default function Home() {
         <>
         {/* Tryb mapy: jedna skorupa (navbar → dół / tab bar) — toolbar nad mapą, bez skakania i bez szczelin 100dvh */}
         <div className="qs-home-map-shell">
-          {isMobileViewport ? (
-            <div className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
-              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-                <span className="truncate text-xs font-medium text-slate-800">
-                  {mapFiltersCollapsed ? "Filtry — stuknij Rozwiń" : "Filtry nad mapą"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setMapFiltersCollapsed((v) => !v)}
-                  className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
-                  aria-expanded={!mapFiltersCollapsed}
-                >
-                  {mapFiltersCollapsed ? (
-                    <>
-                      <ChevronDown className="h-4 w-4" aria-hidden />
-                      Rozwiń
-                    </>
-                  ) : (
-                    <>
-                      <ChevronUp className="h-4 w-4" aria-hidden />
-                      Zwiń
-                    </>
-                  )}
-                </button>
-              </div>
-              {!mapFiltersCollapsed && (
-                <div className="max-h-[min(24vh,9.75rem)] overflow-y-auto border-t border-white/25 px-2 py-1.5">
-                  <div className="mx-auto min-w-0 max-w-6xl">
-                    <ResultsToolbar
-                      searchQuery={filters.search}
-                      resultsCount={list.length}
-                      location="Warszawa"
-                      sortBy={sortBy}
-                      onSortChange={setSortBy}
-                      verifiedOnly={verifiedOnly}
-                      onVerifiedOnlyChange={setVerifiedOnly}
-                      b2bOnly={b2bOnly}
-                      onB2bOnlyChange={setB2bOnly}
-                      proOnly={proOnly}
-                      onProOnlyChange={setProOnly}
-                      viewMode={viewMode}
-                      onViewModeChange={setViewMode}
-                      categorySelector={
-                        <ServiceCategoryDropdown
-                          className="w-full sm:w-64"
-                          placeholder="Kategoria"
-                          clearTrigger={clearCategoryTrigger}
-                          onCategorySelect={(sel) => {
-                            setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-                            const slug = sel.subcategorySlug || sel.categorySlug;
-                            if (slug) {
-                              setSelectedServiceSlugs((prev) =>
-                                Array.from(new Set([...(prev || []), String(slug)]))
-                              );
-                            }
-                          }}
-                        />
-                      }
-                      showLeftInfo={false}
-                      hasActiveFilters={activeFilters.length > 0}
-                      onClearFilters={() => {
-                        setVerifiedOnly(false);
-                        setB2bOnly(false);
-                        setProOnly(false);
-                        setMaxDistance(50);
-                        setSelectedServices([]);
-                        setSelectedServiceSlugs([]);
-                        updateFilters({});
-                        setActiveFilters([]);
-                        setClearCategoryTrigger((prev) => prev + 1);
-                      }}
-                      rightExtra={
-                        <button
-                          type="button"
-                          onClick={() => setShowAdvancedFilters(true)}
-                          className="whitespace-nowrap rounded-lg border border-slate-300/80 bg-white/70 px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/90 sm:px-3 sm:py-2 sm:text-sm"
-                        >
-                          <span className="sm:hidden">Filtry</span>
-                          <span className="hidden sm:inline">Wszystkie filtry</span>
-                        </button>
-                      }
-                      hideViewSwitcher
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
+          {isMobileViewport ? mobileCollapsibleToolbar : (
             <div className="qs-home-map-shell-interactive shrink-0 overflow-visible border-b border-slate-200/35 bg-white/78 backdrop-blur-md">
               <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
                 <ResultsToolbar
@@ -1088,41 +1127,19 @@ export default function Home() {
                 profileCoords={profileCoords}
                 onViewportSearch={handleMapAreaSearch}
                 mapLoading={mapLoading}
+                showImmersiveControl={isMobileViewport && !showAdvancedFilters}
+                mapImmersive={mapMobileImmersive}
+                onToggleMapImmersive={() => {
+                  setMapMobileImmersive((v) => {
+                    const next = !v;
+                    if (next) setMapFiltersCollapsed(true);
+                    return next;
+                  });
+                }}
               />
             </div>
           </div>
         </div>
-        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-          <button
-            type="button"
-            data-qs-map-immersive-toggle
-            onClick={() => {
-              setMapMobileImmersive((v) => {
-                const next = !v;
-                if (next) setMapFiltersCollapsed(true);
-                return next;
-              });
-            }}
-            className="pointer-events-auto fixed z-[50] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
-            style={
-              mapMobileImmersive
-                ? {
-                    right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-                    bottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
-                  }
-                : undefined
-            }
-            aria-pressed={mapMobileImmersive}
-            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
-            title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
-          >
-            {mapMobileImmersive ? (
-              <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
-            ) : (
-              <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
-            )}
-          </button>
-        )}
         {!isMobileViewport && (
         <div
           className="pointer-events-auto flex fixed right-3 z-[100] items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/80 p-1.5"
@@ -1153,7 +1170,12 @@ export default function Home() {
         </>
       ) : (
         <>
-          {/* Przełącznik widoku – w widoku lista nad listą, w prawym rogu (jak u providera) */}
+          {isMobileViewport && (
+            <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42]">
+              {mobileCollapsibleToolbar}
+            </div>
+          )}
+          {/* Przełącznik widoku – w widoku lista nad listą, w prawym rogu (desktop) */}
           {viewMode === "list" && !isMobileViewport && (
             <div className="max-w-6xl mx-auto px-4 pt-8 pb-2 flex justify-end">
               <div className="flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit">
@@ -1190,7 +1212,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className={`max-w-6xl mx-auto px-4 grid ${gridClass} gap-6 mt-4`}>
+          <div className={`max-w-6xl mx-auto px-4 grid ${gridClass} gap-6 ${isMobileViewport ? "mt-2 pb-24" : "mt-4"}`}>
           {/* Lista */}
           {viewMode !== "map" && (
             <div className={`space-y-3 ${isCompactMobileSplit ? "order-2" : ""}`}>
@@ -1478,58 +1500,6 @@ export default function Home() {
 
       {/* Pop-up "Pierwszy Wykonawca" – po ~25 s, niezarejestrowanym / klientom */}
       <FoundingProviderPopup />
-
-      {/* Mobilny przełącznik widoku - styl app (Google Maps/Uber) */}
-      {!showAdvancedFilters && isMobileViewport && (viewMode === "map" || viewMode === "list") && (
-        <div
-          ref={mobileViewMenuRef}
-          data-qs-home-mobile-dock
-          className={`fixed z-[35] left-3 ${
-            viewMode === "list"
-              ? (user
-                  ? "qs-fixed-above-mobile-tab"
-                  : "qs-fixed-soft-bottom")
-              : (user
-                  ? "qs-fixed-above-mobile-tab-xl"
-                  : "qs-fixed-above-mobile-tab-md")
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setIsMobileViewMenuOpen((v) => !v)}
-            className={`w-11 h-11 rounded-full bg-white border border-slate-200 qs-floating-dock qs-transition-soft flex items-center justify-center ${
-              isMobileViewMenuOpen ? "scale-105" : "scale-100"
-            }`}
-            title="Zmień widok"
-          >
-            <Layers className="w-5 h-5 text-slate-700" />
-          </button>
-          {isMobileViewMenuOpen && (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white qs-surface-sheet p-1.5 flex flex-col gap-1 origin-top-right qs-transition-soft opacity-100 translate-y-0 scale-100">
-              <button
-                onClick={() => {
-                  setViewMode("list");
-                  setIsMobileViewMenuOpen(false);
-                }}
-                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
-                title="Lista"
-              >
-                <List className="w-4 h-4" aria-hidden /> Lista
-              </button>
-              <button
-                onClick={() => {
-                  setViewMode("map");
-                  setIsMobileViewMenuOpen(false);
-                }}
-                className="px-2 py-2 text-sm rounded-lg transition-colors text-left flex items-center gap-2 text-slate-700 hover:bg-slate-100 qs-tap-target"
-                title="Mapa"
-              >
-                <Map className="w-4 h-4" aria-hidden /> Mapa
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

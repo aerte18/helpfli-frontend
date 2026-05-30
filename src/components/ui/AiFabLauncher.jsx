@@ -33,13 +33,14 @@ export default function AiFabLauncher({
 
     const detectMapContext = () => {
       const onProviderHome = location.pathname === "/provider-home";
+      const onClientHome = location.pathname === "/home";
       const onMapUi = Boolean(
         document.querySelector(".qs-provider-map-stack") ||
           document.querySelector(".qs-home-map-shell") ||
           document.querySelector("[data-qs-map-immersive-toggle]")
       );
-      setEdgeDock(onProviderHome || onMapUi);
-      if (!onProviderHome && !onMapUi) setExpanded(false);
+      setEdgeDock(onProviderHome || onClientHome || onMapUi);
+      if (!onProviderHome && !onClientHome && !onMapUi) setExpanded(false);
     };
 
     detectMapContext();

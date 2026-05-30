@@ -1,9 +1,10 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Sparkles, Briefcase, Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Sparkles, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
+  MapFloatingControls,
   MapInitialRecenter,
   MapLocateControl,
   MapViewportTracker,
@@ -23,6 +24,7 @@ import OrderModeBadge from "../components/OrderModeBadge";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 import ProviderMobileAiNudge, { buildAiPrefill } from "../components/provider/ProviderMobileAiNudge";
+import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -40,39 +42,6 @@ function formatTimeAgo(date) {
   if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'godzinę' : diffHours < 5 ? 'godziny' : 'godzin'} temu`;
   if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'dzień' : 'dni'} temu`;
   return past.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
-}
-
-function MobileViewModeToggle({ viewMode, onChange }) {
-  return (
-    <div
-      className="inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-100 p-0.5"
-      role="tablist"
-      aria-label="Widok zleceń"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={viewMode === "list"}
-        onClick={() => onChange("list")}
-        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition qs-tap-target ${
-          viewMode === "list" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"
-        }`}
-      >
-        Lista
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={viewMode === "map"}
-        onClick={() => onChange("map")}
-        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition qs-tap-target ${
-          viewMode === "map" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"
-        }`}
-      >
-        Mapa
-      </button>
-    </div>
-  );
 }
 
 function getExpiryInfo(x) {
@@ -1483,6 +1452,7 @@ export default function ProviderHome() {
       <div className="flex items-center gap-2 px-2 py-1.5">
         <MobileViewModeToggle
           viewMode={viewMode}
+          ariaLabel="Widok zleceń"
           onChange={(mode) => {
             setViewMode(mode);
             setMapToolbarCollapsed(true);
@@ -2137,7 +2107,20 @@ export default function ProviderHome() {
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <MapInitialRecenter userLocation={userLocation} />
                   <UserLocationLayer userLocation={userLocation} />
-                  <MapLocateControl userLocation={userLocation} onRequestLocation={getUserLocation} />
+                  <MapFloatingControls
+                    userLocation={userLocation}
+                    onRequestLocation={getUserLocation}
+                    showImmersive={isMobileViewport && !showAdvancedFilters}
+                    immersive={mapMobileImmersive}
+                    onToggleImmersive={() => {
+                      setMapMobileImmersive((v) => {
+                        const next = !v;
+                        if (next) setMapToolbarCollapsed(true);
+                        return next;
+                      });
+                    }}
+                    placement="top-right"
+                  />
                   <MapViewportTracker onViewportChange={handleMapViewportChange} />
                   <SearchThisAreaButton
                     visible={showSearchHereBtn}
@@ -2178,33 +2161,6 @@ export default function ProviderHome() {
             </div>
           </div>
         </div>
-        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-          <button
-            type="button"
-            data-qs-map-immersive-toggle
-            title={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
-            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
-            aria-pressed={mapMobileImmersive}
-            onClick={() => {
-              setMapMobileImmersive((v) => !v);
-            }}
-            className="pointer-events-auto fixed z-[50] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
-            style={
-              mapMobileImmersive
-                ? {
-                    right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-                    bottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
-                  }
-                : undefined
-            }
-          >
-            {mapMobileImmersive ? (
-              <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
-            ) : (
-              <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
-            )}
-          </button>
-        )}
         </>
       ) : isMobileViewport ? (
         <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42]">

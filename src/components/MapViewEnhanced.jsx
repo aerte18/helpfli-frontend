@@ -7,6 +7,7 @@ import ProviderAvatar from "./ProviderAvatar";
 import { metrics } from "../utils/metrics";
 import {
   MapInitialRecenter,
+  MapFloatingControls,
   MapLocateControl,
   MapViewportTracker,
   SearchThisAreaButton,
@@ -180,6 +181,9 @@ export default function MapViewEnhanced({
   profileCoords = null,
   onViewportSearch,
   mapLoading = false,
+  showImmersiveControl = false,
+  mapImmersive = false,
+  onToggleMapImmersive,
 }) {
   // Track map opens when providers are loaded
   useEffect(() => {
@@ -270,9 +274,13 @@ export default function MapViewEnhanced({
         {/* Niebieska kropka „ja" + przycisk centrowania */}
         <UserLocationLayer userLocation={userLocation} />
         <MapInitialRecenter userLocation={userLocation} />
-        <MapLocateControl
+        <MapFloatingControls
           userLocation={userLocation}
           onRequestLocation={requestLocation}
+          showImmersive={showImmersiveControl}
+          immersive={mapImmersive}
+          onToggleImmersive={onToggleMapImmersive}
+          placement={height === "h-full" ? "top-right" : "bottom-right"}
         />
 
         {/* „Szukaj w tym obszarze" — tylko jeśli rodzic przekazał handler */}

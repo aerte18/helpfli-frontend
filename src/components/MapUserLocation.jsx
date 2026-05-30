@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleMarker, useMap, useMapEvents } from "react-leaflet";
-import { LocateFixed, Search } from "lucide-react";
+import { LocateFixed, Search, Maximize2, Minimize2 } from "lucide-react";
 
 /**
  * Niebieska kropka + delikatna poświata (jak „moja lokalizacja” w mapach).
@@ -64,25 +64,31 @@ export function MapInitialRecenter({ userLocation }) {
 }
 
 /**
- * Przycisk w rogu mapy: centruje na użytkowniku; jeśli brak fixa — woła onRequestLocation (np. getCurrentPosition).
+ * Kompaktowy stos akcji mapy (pełny ekran + moja lokalizacja) — prawy górny róg.
+ * Wzorowany na mapach mobilnych (Google Maps, Uber).
  */
-export function MapLocateControl({ userLocation, onRequestLocation }) {
+export function MapFloatingControls({
+  userLocation,
+  onRequestLocation,
+  showImmersive = false,
+  immersive = false,
+  onToggleImmersive,
+  placement = "top-right",
+}) {
   const map = useMap();
   const [host, setHost] = useState(null);
   const pendingFly = useRef(false);
 
   useEffect(() => {
     const wrap = document.createElement("div");
-    wrap.className = "qs-map-locate-control";
-    wrap.style.cssText =
-      "position:absolute;bottom:16px;right:16px;z-index:1000;pointer-events:auto";
+    wrap.className = `qs-map-floating-controls qs-map-floating-controls--${placement}`;
     const container = map.getContainer();
     container.appendChild(wrap);
     setHost(wrap);
     return () => {
       if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
     };
-  }, [map]);
+  }, [map, placement]);
 
   useEffect(() => {
     if (!pendingFly.current || userLocation?.lat == null || userLocation?.lng == null) return;
@@ -92,7 +98,7 @@ export function MapLocateControl({ userLocation, onRequestLocation }) {
     pendingFly.current = false;
   }, [userLocation, map]);
 
-  const handleClick = () => {
+  const handleLocate = () => {
     if (userLocation?.lat != null && userLocation?.lng != null) {
       map.flyTo([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 13), {
         duration: 0.75,
@@ -105,18 +111,45 @@ export function MapLocateControl({ userLocation, onRequestLocation }) {
 
   if (!host) return null;
 
+  const btnClass =
+    "qs-map-floating-controls__btn flex h-10 w-10 items-center justify-center text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 qs-tap-target";
+
   return createPortal(
-    <button
-      type="button"
-      onClick={handleClick}
-      title="Moja lokalizacja"
-      aria-label="Pokaż moją lokalizację na mapie"
-      className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg border border-slate-200/90 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2"
-    >
-      <LocateFixed className="w-5 h-5" strokeWidth={2.25} aria-hidden />
-    </button>,
+    <div className="qs-map-floating-controls__stack" role="toolbar" aria-label="Sterowanie mapą">
+      {showImmersive && (
+        <button
+          type="button"
+          data-qs-map-immersive-toggle
+          onClick={onToggleImmersive}
+          className={btnClass}
+          aria-pressed={immersive}
+          aria-label={immersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
+          title={immersive ? "Wyjdź z pełnego ekranu" : "Pełny ekran"}
+        >
+          {immersive ? (
+            <Minimize2 className="h-[1.125rem] w-[1.125rem]" strokeWidth={2.25} aria-hidden />
+          ) : (
+            <Maximize2 className="h-[1.125rem] w-[1.125rem]" strokeWidth={2.25} aria-hidden />
+          )}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={handleLocate}
+        className={`${btnClass}${showImmersive ? " border-t border-slate-200/90" : ""}`}
+        title="Moja lokalizacja"
+        aria-label="Pokaż moją lokalizację na mapie"
+      >
+        <LocateFixed className="h-[1.125rem] w-[1.125rem] text-indigo-600" strokeWidth={2.25} aria-hidden />
+      </button>
+    </div>,
     host
   );
+}
+
+/** @deprecated alias — użyj MapFloatingControls */
+export function MapLocateControl(props) {
+  return <MapFloatingControls {...props} placement={props.placement || "bottom-right"} />;
 }
 
 /**
