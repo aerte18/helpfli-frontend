@@ -497,8 +497,30 @@ html.qs-map-route-scroll-lock body {
 
 /* Launcher AI + przycisk pełnego ekranu mapy — jeden pionowy stos po prawej */
 .qs-ai-fab {
-  right: max(0.75rem, env(safe-area-inset-right, 0px));
   bottom: calc(var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra));
+}
+@media (max-width: 767px) {
+  /* Mapa: wysuwany tab z prawej — widoczny pasek, reszta schowana poza ekranem */
+  .qs-ai-fab.qs-ai-fab-edge {
+    right: 0;
+    transform: translateX(calc(100% - 1.125rem));
+    box-shadow: -3px 4px 16px rgba(15, 23, 42, 0.18);
+  }
+  .qs-ai-fab.qs-ai-fab-edge.qs-ai-fab-edge--expanded,
+  .qs-ai-fab.qs-ai-fab-edge:focus-visible {
+    transform: translateX(0);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  }
+}
+@media (min-width: 768px) {
+  .qs-ai-fab {
+    right: 1.5rem;
+  }
+}
+@media (max-width: 767px) {
+  .qs-ai-fab:not(.qs-ai-fab-edge) {
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
 }
 [data-qs-map-immersive-toggle] {
   bottom: calc(

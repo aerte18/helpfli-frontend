@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Sparkles, Briefcase, Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Sparkles, Briefcase, Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -40,6 +40,39 @@ function formatTimeAgo(date) {
   if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'godzinę' : diffHours < 5 ? 'godziny' : 'godzin'} temu`;
   if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'dzień' : 'dni'} temu`;
   return past.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+}
+
+function MobileViewModeToggle({ viewMode, onChange }) {
+  return (
+    <div
+      className="inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-100 p-0.5"
+      role="tablist"
+      aria-label="Widok zleceń"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "list"}
+        onClick={() => onChange("list")}
+        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition qs-tap-target ${
+          viewMode === "list" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"
+        }`}
+      >
+        Lista
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={viewMode === "map"}
+        onClick={() => onChange("map")}
+        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition qs-tap-target ${
+          viewMode === "map" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"
+        }`}
+      >
+        Mapa
+      </button>
+    </div>
+  );
 }
 
 function getExpiryInfo(x) {
@@ -491,8 +524,13 @@ export default function ProviderHome() {
   // Widok mapy: sm | lg | full - synchronizacja z App.jsx
   // System widoków: 'list' | 'map' | 'split'
   const [viewMode, setViewMode] = useState(() => {
-    const saved = localStorage.getItem('providerHome_viewMode');
-    return saved || 'split';
+    const saved = localStorage.getItem("providerHome_viewMode");
+    const isMobile =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+    if (isMobile) {
+      return saved === "map" ? "map" : "list";
+    }
+    return saved || "split";
   });
   const [isMobileViewport, setIsMobileViewport] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -502,8 +540,6 @@ export default function ProviderHome() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 1023px)").matches && window.innerWidth > window.innerHeight;
   });
-  const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
-  const mobileViewMenuRef = useRef(null);
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
   /** Mobile / map: zwinięty pasek filtrów — więcej miejsca na mapę */
   const [mapToolbarCollapsed, setMapToolbarCollapsed] = useState(true);
@@ -537,7 +573,7 @@ export default function ProviderHome() {
   // Synchronizacja viewMode z mapSize
   useEffect(() => {
     if (isMobileViewport && viewMode === "split") {
-      setViewMode("map");
+      setViewMode("list");
       return;
     }
     if (viewMode === 'list') {
@@ -579,20 +615,7 @@ export default function ProviderHome() {
   }, []);
 
   useEffect(() => {
-    if (!isMobileViewMenuOpen) return undefined;
-    const onPointerDown = (event) => {
-      if (!mobileViewMenuRef.current) return;
-      if (!mobileViewMenuRef.current.contains(event.target)) {
-        setIsMobileViewMenuOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [isMobileViewMenuOpen]);
-
-  useEffect(() => {
     if (viewMode !== "map" || showAdvancedFilters) {
-      setIsMobileViewMenuOpen(false);
       setIsOrderListExpanded(false);
       setMapToolbarCollapsed(true);
       setMapMobileImmersive(false);
@@ -626,10 +649,6 @@ export default function ProviderHome() {
       document.documentElement.classList.remove("qs-map-route-scroll-lock");
     };
   }, [viewMode, isMobileViewport]);
-
-  useEffect(() => {
-    if (mapMobileImmersive) setIsMobileViewMenuOpen(false);
-  }, [mapMobileImmersive]);
 
   useEffect(() => {
     if (!mapMobileImmersive) return undefined;
@@ -1773,7 +1792,8 @@ export default function ProviderHome() {
           }`}
         >
           {isMobileViewport ? (
-              <div className="flex items-center gap-1 w-full min-w-0">
+              <div className="flex items-center gap-2 w-full min-w-0">
+                <MobileViewModeToggle viewMode={viewMode} onChange={setViewMode} />
                 <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto pb-0.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <span
                     className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-700"
@@ -1909,7 +1929,14 @@ export default function ProviderHome() {
         >
           {isMobileViewport && (
             <div className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
-              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+              <div className="flex items-center gap-2 px-2 py-1.5">
+                <MobileViewModeToggle
+                  viewMode={viewMode}
+                  onChange={(mode) => {
+                    setViewMode(mode);
+                    if (mode === "map") setMapToolbarCollapsed(true);
+                  }}
+                />
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
                   {mapToolbarCollapsed ? (
                     <>
@@ -2284,7 +2311,7 @@ export default function ProviderHome() {
 
       {/* Lista + Mapa */}
       {viewMode !== "map" && (
-      <div className={`max-w-7xl mx-auto px-4 grid ${gridClass} gap-6 mt-4`}>
+      <div className={`max-w-7xl mx-auto px-4 grid ${gridClass} gap-6 mt-4 ${isMobileViewport ? "pb-24" : ""}`}>
         {/* Filtry po lewej — desktop; na mobile ten sam zestaw jest w drawerze „Wszystkie filtry” */}
         {viewMode === "list" && !isMobileViewport && (
           <div className={`
@@ -2567,70 +2594,6 @@ export default function ProviderHome() {
           >
             <MapIcon className="w-4 h-4" aria-hidden />
           </button>
-        </div>
-      )}
-
-      {isMobileViewport && !showAdvancedFilters && (viewMode === "map" || viewMode === "list") && (
-        <div
-          ref={mobileViewMenuRef}
-          data-qs-provider-mobile-dock
-          className={`fixed z-[35] left-3 ${
-            viewMode === "list"
-              ? "qs-fixed-above-mobile-tab"
-              : mapToolbarCollapsed
-                ? "qs-fixed-above-mobile-tab"
-                : "qs-fixed-above-mobile-tab-lg"
-          }`}
-        >
-          <button
-            type="button"
-            title="Zmień widok: lista lub mapa"
-            aria-label="Zmień widok"
-            aria-expanded={isMobileViewMenuOpen}
-            onClick={() => setIsMobileViewMenuOpen((v) => !v)}
-            className="flex flex-col items-center gap-0.5 qs-tap-target"
-          >
-            <span
-              className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 shadow-lg backdrop-blur transition-transform duration-150 ${
-                isMobileViewMenuOpen ? "scale-105 border-indigo-200" : "scale-100"
-              }`}
-            >
-              <Layers className="w-5 h-5 text-slate-700" aria-hidden />
-            </span>
-            <span className="text-[9px] font-semibold text-slate-600 drop-shadow-sm">Widok</span>
-          </button>
-          {isMobileViewMenuOpen && (
-            <div
-              className="absolute left-0 bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("list");
-                  setIsMobileViewMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm ${
-                  viewMode === "list" ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <List className="w-4 h-4" />
-                Lista
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("map");
-                  setIsMobileViewMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm ${
-                  viewMode === "map" ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <MapIcon className="w-4 h-4" />
-                Mapa
-              </button>
-            </div>
-          )}
         </div>
       )}
 
