@@ -5,31 +5,53 @@ import { setConsent } from "../utils/consent";
 
 const AuthContext = createContext(null);
 
+function readCachedUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readToken() {
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);       // { _id, name, role: 'provider'|'client' }
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => readCachedUser());
+  const [loading, setLoading] = useState(() => !!readToken());
 
   const fetchMe = async () => {
-    let t = null;
-    try {
-      t = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    } catch (error) {
-      console.warn("AuthContext - localStorage access blocked:", error);
-      // Tracking Prevention może blokować localStorage
+    const t = readToken();
+    if (!t) {
+      setUser(null);
+      setLoading(false);
+      return;
     }
-    console.log("AuthContext - fetchMe - token:", t ? "EXISTS" : "NULL");
-    if (!t) { setUser(null); setLoading(false); return; }
+
+    const cached = readCachedUser();
+    if (cached) {
+      setUser(cached);
+      setLoading(false);
+    }
+
     try {
-      console.log("AuthContext - fetchMe - calling /api/auth/me");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(apiUrl("/api/auth/me"), {
-        headers: { Authorization: `Bearer ${t}` }
+        headers: { Authorization: `Bearer ${t}` },
+        signal: controller.signal,
       });
-      console.log("AuthContext - fetchMe - response status:", res.status);
+      clearTimeout(timeout);
+
       if (!res.ok) throw new Error("unauthorized");
       const data = await res.json();
-      console.log("AuthContext - fetchMe - user data:", data);
-      console.log("AuthContext - fetchMe - setting user and loading false");
-      setUser(data); // upewnij się, że backend zwraca np. { _id, name, role }
+      setUser(data);
       if (data?.consents) {
         setConsent({
           analytics: !!data.consents.analytics,
@@ -37,62 +59,64 @@ export function AuthProvider({ children }) {
           marketing: !!data.marketingConsent,
         });
       }
-      setLoading(false); // WAŻNE: ustaw loading na false po pomyślnym pobraniu danych
-      console.log("AuthContext - fetchMe - user set, loading set to false");
-      console.log("AuthContext - fetchMe - user role:", data?.role);
-      console.log("AuthContext - fetchMe - user onboardingCompleted:", data?.onboardingCompleted);
-      
-      // Zapisz usera do localStorage dla PrivateRoute
       try {
         localStorage.setItem("user", JSON.stringify(data));
       } catch (error) {
         console.warn("AuthContext - localStorage write blocked:", error);
       }
-      
-      // Subscribe to push notifications after successful login (nie blokuj loading)
-      // Wywołaj asynchronicznie, żeby nie blokować loading state
       subscribePush().catch(() => {});
     } catch (error) {
-      console.error("AuthContext - fetchMe - error:", error);
-      setUser(null);
-      setLoading(false); // Ustaw loading na false nawet przy błędzie
-      try {
-        localStorage.removeItem("token");
-      } catch (e) {
-        console.warn("AuthContext - localStorage remove blocked:", e);
+      if (error?.name !== "AbortError") {
+        console.error("AuthContext - fetchMe - error:", error);
       }
+      if (!cached) {
+        setUser(null);
+        try {
+          localStorage.removeItem("token");
+        } catch (e) {
+          console.warn("AuthContext - localStorage remove blocked:", e);
+        }
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => { fetchMe(); /* on mount */ }, []);
+  useEffect(() => {
+    fetchMe();
+  }, []);
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = readToken();
       if (token) {
         await fetch(apiUrl("/api/auth/logout"), {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
     } catch (error) {
       console.error("Błąd wylogowania:", error);
     } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      } catch {}
       setUser(null);
       window.location.href = "/";
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      fetchMe, 
-      logout,
-      token: typeof window !== "undefined" ? localStorage.getItem("token") : null
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        fetchMe,
+        logout,
+        token: readToken(),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

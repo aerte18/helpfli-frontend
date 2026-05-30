@@ -8,18 +8,16 @@ import SeasonalBanner from "../components/SeasonalBanner";
 import ServiceCategoryDropdown from "../components/ServiceCategoryDropdown";
 import { CATEGORY_ICONS } from "../components/icons/HelpfliCategoryIcons";
 import OriginalLogoIcon from "../components/icons/OriginalLogoIcon";
-import Footer from "../components/Footer";
-import FoundingProviderPopup from "../components/FoundingProviderPopup";
-import AskAIButton from "../components/ui/AskAIButton";
 import AIBubble from "../components/chat/AIBubble";
 const LiveCameraAI = lazy(() => import("../components/LiveCameraAI"));
 const UnifiedAIConcierge = lazy(() => import("../components/ai/UnifiedAIConcierge"));
 const FeaturedAnnouncements = lazy(() => import("../components/FeaturedAnnouncements"));
-import { SERVICES_CATALOG } from "../constants/servicesCatalog";
 const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarousel"));
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
-import SponsorAdBanner from "../components/SponsorAdBanner";
-import FoundingProviderBanner from "../components/FoundingProviderBanner";
+const Footer = lazy(() => import("../components/Footer"));
+const FoundingProviderPopup = lazy(() => import("../components/FoundingProviderPopup"));
+const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
+const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -531,11 +529,13 @@ export default function LandingStart() {
       {/* Banner reklamowy */}
       <section className="order-4 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <SponsorAdBanner 
-            position="banner" 
-            page="landing_page_banner" 
-            limit={3}
-          />
+          <Suspense fallback={null}>
+            <SponsorAdBanner
+              position="banner"
+              page="landing_page_banner"
+              limit={3}
+            />
+          </Suspense>
         </div>
       </section>
 
@@ -554,7 +554,9 @@ export default function LandingStart() {
       {/* Program Founding Provider + CTA wykonawcy */}
       <section className="order-6 py-4 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 space-y-4">
-          <FoundingProviderBanner variant="marketing" />
+          <Suspense fallback={null}>
+            <FoundingProviderBanner variant="marketing" />
+          </Suspense>
         </div>
       </section>
 
@@ -622,7 +624,9 @@ export default function LandingStart() {
           (SoftAskNotifications) — pojawiają się dopiero gdy user zaakceptował
           cookies i kontekst tego wymaga (np. po stworzeniu zlecenia). */}
 
-      <Footer />
+      <Suspense fallback={null}>
+        <Footer />
+      </Suspense>
 
       {/* Asystent AI - modal */}
       <Suspense fallback={null}>
@@ -652,7 +656,9 @@ export default function LandingStart() {
       </Suspense>
 
       {/* Pop-up "Pierwszy Wykonawca" – po ~25 s, niezarejestrowanym / klientom */}
-      <FoundingProviderPopup />
+      <Suspense fallback={null}>
+        <FoundingProviderPopup />
+      </Suspense>
     </div>
   );
 }

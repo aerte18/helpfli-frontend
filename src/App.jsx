@@ -41,12 +41,14 @@ const AvailableOrders = lazy(() => import("./pages/AvailableOrders"));
 
 // Komponent nawigacji
 import Navbar from "./components/Navbar";
-import Breadcrumbs from "./components/Breadcrumbs";
-import MobileAppTabBar from "./components/MobileAppTabBar";
-
-// Komponenty ochronne
 import PrivateRoute from "./components/PrivateRoute";
 import RoleRoute from "./components/RoleRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
+import SkipLinks from "./components/SkipLinks";
+import TelemetryRouteListener from "./components/TelemetryRouteListener";
+
+const Breadcrumbs = lazy(() => import("./components/Breadcrumbs"));
+const MobileAppTabBar = lazy(() => import("./components/MobileAppTabBar"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const WhyPro = lazy(() => import("./pages/WhyPro"));
 const Boosts = lazy(() => import("./pages/Boosts"));
@@ -91,9 +93,6 @@ const StripeProvider = lazy(() => import("./payment/StripeProvider"));
 const CheckoutPage = lazy(() => import("./payment/CheckoutPage"));
 const PaymentResult = lazy(() => import("./payment/PaymentResult"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-import ErrorBoundary from "./components/ErrorBoundary";
-import SkipLinks from "./components/SkipLinks";
-import TelemetryRouteListener from "./components/TelemetryRouteListener";
 
 const ProviderHome = lazy(() => import("./pages/ProviderHome"));
 const ProviderSponsored = lazy(() => import("./pages/ProviderSponsored"));
@@ -167,8 +166,12 @@ function App() {
         {/* Navbar */}
         <Navbar />
         {!isAdminRoute && <TelemetryRouteListener />}
-        {!isAdminRoute && <Breadcrumbs />}
-        {!isAdminRoute && <MobileAppTabBar />}
+        {!isAdminRoute && (
+          <Suspense fallback={null}>
+            <Breadcrumbs />
+            <MobileAppTabBar />
+          </Suspense>
+        )}
 
         {/* Router */}
         <Suspense fallback={<LoadingSpinner />}>
