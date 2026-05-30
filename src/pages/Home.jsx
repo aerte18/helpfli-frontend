@@ -27,7 +27,7 @@ import { useAuth } from "../context/AuthContext";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Building2, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { ShieldCheck, Star, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, ChevronUp, ChevronDown } from "lucide-react";
 import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
@@ -119,7 +119,6 @@ export default function Home() {
   const [compareModalOpen, setCompareModalOpen] = useState(false);
   const [providerPreview, setProviderPreview] = useState({ open: false, providerId: null });
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [b2bOnly, setB2bOnly] = useState(false);
   const [proOnly, setProOnly] = useState(false);
   const [sortBy, setSortBy] = useState('default');
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
@@ -138,7 +137,6 @@ export default function Home() {
     const newActiveFilters = [];
     
     if (verifiedOnly) newActiveFilters.push('Zweryfikowani');
-    if (b2bOnly) newActiveFilters.push('Faktura VAT');
     if (proOnly) newActiveFilters.push('PRO');
     if (filters.search) newActiveFilters.push(`"${filters.search}"`);
     if (filters.level && filters.level !== 'any') newActiveFilters.push(filters.level);
@@ -160,7 +158,7 @@ export default function Home() {
     });
     
     setActiveFilters(newActiveFilters);
-  }, [verifiedOnly, b2bOnly, proOnly, filters, selectedServices, viewMode, maxDistance]);
+  }, [verifiedOnly, proOnly, filters, selectedServices, viewMode, maxDistance]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   // bbox (prostokąt z widoku mapy) ustawiany po kliknięciu „Przeszukaj ten obszar".
@@ -458,7 +456,6 @@ export default function Home() {
       
       // Filtry z ResultsToolbar
       if (verifiedOnly && !p.verified) return false;
-      if (b2bOnly && !p.b2b) return false;
       // PRO: sprawdź providerTier (nowy system) lub level (stary system) dla kompatybilności
       if (proOnly && !(p.providerTier === 'pro' || p.level === 'pro')) return false;
       
@@ -494,7 +491,7 @@ export default function Home() {
       return sorted;
     }
     return filtered;
-  }, [providers, filters, quick, userLocation, maxDistance, geoUsesRadius, calculateDistance, verifiedOnly, b2bOnly, proOnly, selectedServices, selectedServiceSlugs, sortBy]);
+  }, [providers, filters, quick, userLocation, maxDistance, geoUsesRadius, calculateDistance, verifiedOnly, proOnly, selectedServices, selectedServiceSlugs, sortBy]);
 
   // Podłączone do /api/search z filtrami
   useEffect(() => {
@@ -543,7 +540,6 @@ export default function Home() {
           budgetMax: filters.budgetMax,
           quick,
           verifiedOnly,
-          b2bOnly,
           proOnly
         }, items.length);
         
@@ -577,7 +573,6 @@ export default function Home() {
           selectedServiceSlugs.length > 0 ||
           !!(filters?.search && String(filters.search).trim()) ||
           verifiedOnly ||
-          b2bOnly ||
           proOnly;
         const allowDemoFallback =
           import.meta.env.DEV && !strictFiltersActive;
@@ -597,7 +592,6 @@ export default function Home() {
             selectedServiceSlugs.length > 0 ||
             !!(filters?.search && String(filters.search).trim()) ||
             verifiedOnly ||
-            b2bOnly ||
             proOnly;
           setProviders(import.meta.env.DEV && !strict ? DEMO_PROVIDERS : []);
         }
@@ -608,13 +602,13 @@ export default function Home() {
     })();
 
     return () => controller.abort();
-  }, [filters, quick, verifiedOnly, b2bOnly, proOnly, selectedServiceSlugs, mapBbox, geoUsesBbox, geoUsesRadius, maxDistance, userLocation, viewMode, trackClientApiError, trackSearch]);
+  }, [filters, quick, verifiedOnly, proOnly, selectedServiceSlugs, mapBbox, geoUsesBbox, geoUsesRadius, maxDistance, userLocation, viewMode, trackClientApiError, trackSearch]);
 
   // Gdy zmieniają się filtry / wyszukiwanie tekstowe / kategorie – reset bbox,
   // żeby nie zostać uwięzionym w starym obszarze mapy.
   useEffect(() => {
     setMapBbox(null);
-  }, [filters.search, selectedServiceSlugs.join(","), verifiedOnly, b2bOnly, proOnly, viewMode, maxDistance]);
+  }, [filters.search, selectedServiceSlugs.join(","), verifiedOnly, proOnly, viewMode, maxDistance]);
 
   const handleSelect = (provider) => {
     navigate(`/provider/${provider.id || provider._id}`);
@@ -690,7 +684,6 @@ export default function Home() {
 
   const clearHomeFilters = useCallback(() => {
     setVerifiedOnly(false);
-    setB2bOnly(false);
     setProOnly(false);
     setMaxDistance(50);
     setSelectedServices([]);
@@ -767,19 +760,6 @@ export default function Home() {
             >
               <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Zweryf.
-            </button>
-            <button
-              type="button"
-              aria-label={b2bOnly ? "Faktura VAT: włączone" : "Tylko z fakturą VAT"}
-              onClick={() => setB2bOnly((v) => !v)}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                b2bOnly
-                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-700"
-              }`}
-            >
-              <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              VAT
             </button>
             <button
               type="button"
@@ -879,8 +859,6 @@ export default function Home() {
             onSortChange={setSortBy}
             verifiedOnly={verifiedOnly}
             onVerifiedOnlyChange={setVerifiedOnly}
-            b2bOnly={b2bOnly}
-            onB2bOnlyChange={setB2bOnly}
             proOnly={proOnly}
             onProOnlyChange={setProOnly}
             viewMode={viewMode}
@@ -1055,8 +1033,6 @@ export default function Home() {
                   onSortChange={setSortBy}
                   verifiedOnly={verifiedOnly}
                   onVerifiedOnlyChange={setVerifiedOnly}
-                  b2bOnly={b2bOnly}
-                  onB2bOnlyChange={setB2bOnly}
                   proOnly={proOnly}
                   onProOnlyChange={setProOnly}
                   viewMode={viewMode}
@@ -1081,7 +1057,6 @@ export default function Home() {
                   hasActiveFilters={activeFilters.length > 0}
                   onClearFilters={() => {
                     setVerifiedOnly(false);
-                    setB2bOnly(false);
                     setProOnly(false);
                     setMaxDistance(50);
                     setSelectedServices([]);

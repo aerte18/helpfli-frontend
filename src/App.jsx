@@ -49,6 +49,7 @@ import TelemetryRouteListener from "./components/TelemetryRouteListener";
 
 const Breadcrumbs = lazy(() => import("./components/Breadcrumbs"));
 const MobileAppTabBar = lazy(() => import("./components/MobileAppTabBar"));
+const MobileLandscapeChrome = lazy(() => import("./components/MobileLandscapeChrome"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const WhyPro = lazy(() => import("./pages/WhyPro"));
 const Boosts = lazy(() => import("./pages/Boosts"));
@@ -170,6 +171,7 @@ function App() {
           <Suspense fallback={null}>
             <Breadcrumbs />
             <MobileAppTabBar />
+            <MobileLandscapeChrome />
           </Suspense>
         )}
 

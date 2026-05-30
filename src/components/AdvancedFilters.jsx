@@ -239,33 +239,6 @@ export default function AdvancedFilters({
               </div>
             </div>
 
-            {/* Rodzaj usługodawcy */}
-            <div>
-              <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Rodzaj usługodawcy</h3>
-              <div className="space-y-2">
-                {[
-                  { value: false, label: 'Osoba prywatna' },
-                  { value: true, label: 'Wystawia fakturę VAT' },
-                  { value: null, label: 'Oba typy' }
-                ].map((option) => (
-                  <label key={String(option.value)} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="clientType"
-                      value={String(option.value)}
-                      checked={localFilters.b2b === option.value}
-                      onChange={(e) => {
-                        const val = e.target.value === 'true' ? true : e.target.value === 'false' ? false : null;
-                        handleFilterChange('b2b', val);
-                      }}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-[var(--qs-color-text)]">{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             {/* Dodatkowe opcje */}
             <div>
               <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Dodatkowe opcje</h3>

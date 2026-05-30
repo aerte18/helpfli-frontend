@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheck, Users, Star, List, Map, LayoutGrid } from 'lucide-react';
+import { ShieldCheck, Star, List, Map, LayoutGrid } from 'lucide-react';
 
 export default function ResultsToolbar({ 
   searchQuery, 
@@ -9,8 +9,6 @@ export default function ResultsToolbar({
   onSortChange,
   verifiedOnly,
   onVerifiedOnlyChange,
-  b2bOnly,
-  onB2bOnlyChange,
   proOnly,
   onProOnlyChange,
   viewMode,
@@ -107,16 +105,6 @@ export default function ResultsToolbar({
               >
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Verified
-              </button>
-              <button
-                type="button"
-                onClick={() => onB2bOnlyChange(!b2bOnly)}
-                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors sm:px-3 ${
-                  b2bOnly ? 'font-medium text-purple-700' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Faktura VAT
               </button>
               <button
                 type="button"
