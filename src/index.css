@@ -347,6 +347,21 @@ nav[data-qs-mobile-app-tab-bar]::after {
   body.qs-inbox-chat-active button[data-testid="provider-ai-fab"] {
     display: none !important;
   }
+
+  /* Asystent AI — pełnoekranowy modal nad navbarem; ukryj kontrolki mapy pod spodem */
+  body.qs-ai-modal-open {
+    overflow: hidden;
+  }
+  body.qs-ai-modal-open [data-qs-map-immersive-toggle],
+  body.qs-ai-modal-open [data-qs-provider-mobile-dock],
+  body.qs-ai-modal-open [data-qs-home-mobile-dock],
+  body.qs-ai-modal-open [data-qs-provider-ai-nudge],
+  body.qs-ai-modal-open button[data-testid="ai-fab"],
+  body.qs-ai-modal-open button[data-testid="provider-ai-fab"],
+  body.qs-ai-modal-open .qs-map-locate-control {
+    display: none !important;
+    pointer-events: none !important;
+  }
 }
 
 /* Blokada przewijania całej strony w widoku mapy (Home / Provider) — bez „pustego” tła pod sticky nav */
@@ -450,14 +465,49 @@ html.qs-map-route-scroll-lock body {
   --app-nav-sticky-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem);
   /* Breadcrumbs: py-2 + jeden wiersz text-sm — zsynchronizowane z .qs-app-breadcrumb-tray */
   --app-breadcrumb-bar-height: 2.75rem;
-  /* /search: Navbar + dodatkowy Header ze strony */
   --search-page-sticky-bar-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 3rem);
+  /* Mapa mobile — stos akcji po prawej (AI + pełny ekran) */
+  --qs-mobile-tab-height: 3.75rem;
+  --qs-map-action-size: 2.75rem;
+  --qs-map-action-gap: 0.5rem;
+  --qs-map-action-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+  --qs-map-action-stack-extra: 0px;
   --qs-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --qs-duration-fast: 160ms;
   --qs-duration-normal: 220ms;
   --qs-radius-sheet: 1rem;
   --qs-radius-dock: 0.875rem;
   --qs-shadow-floating: 0 10px 28px rgba(15, 23, 42, 0.14);
+}
+
+/* Mobile app shell — bez okruszków (tab bar wystarczy), więcej miejsca na mapę */
+@media (max-width: 1023px) {
+  :root {
+    --app-breadcrumb-bar-height: 0px;
+  }
+  nav.qs-app-breadcrumb-tray {
+    display: none !important;
+  }
+  body.has-mobile-tab {
+    --qs-map-action-bottom: calc(
+      var(--qs-mobile-tab-height) + 0.625rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px)
+    );
+  }
+}
+
+/* Launcher AI + przycisk pełnego ekranu mapy — jeden pionowy stos po prawej */
+.qs-ai-fab {
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra));
+}
+[data-qs-map-immersive-toggle] {
+  bottom: calc(
+    var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra) + var(--qs-map-action-size) + var(--qs-map-action-gap)
+  ) !important;
+  right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+}
+body.qs-compare-bar-visible {
+  --qs-map-action-stack-extra: 3.25rem;
 }
 
 @keyframes qs-shimmer {

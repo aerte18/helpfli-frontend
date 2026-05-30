@@ -411,6 +411,15 @@ export default function Home() {
   }, [mapMobileImmersive]);
 
   useEffect(() => {
+    if (compare.items.length > 0) {
+      document.body.classList.add("qs-compare-bar-visible");
+    } else {
+      document.body.classList.remove("qs-compare-bar-visible");
+    }
+    return () => document.body.classList.remove("qs-compare-bar-visible");
+  }, [compare.items.length]);
+
+  useEffect(() => {
     if (!isMobileViewMenuOpen) return;
     const onPointerDown = (e) => {
       if (!mobileViewMenuRef.current) return;
@@ -1094,17 +1103,15 @@ export default function Home() {
                 return next;
               });
             }}
-            className="pointer-events-auto fixed z-[1200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
-            style={{
-              right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-              bottom: mapMobileImmersive
-                ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
-                : !user
-                  ? "calc(0.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))"
-                  : compare.items.length
-                    ? "calc(4.75rem + 3.375rem + 5.5rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))"
-                    : "calc(4.75rem + 3.375rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
-            }}
+            className="pointer-events-auto fixed z-[50] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            style={
+              mapMobileImmersive
+                ? {
+                    right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+                    bottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+                  }
+                : undefined
+            }
             aria-pressed={mapMobileImmersive}
             aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
             title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}

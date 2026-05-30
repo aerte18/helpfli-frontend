@@ -296,6 +296,12 @@ export default function UnifiedAIConcierge({
   }, [attachBus, onClose]);
 
   useEffect(() => {
+    if (mode !== "modal" || !open) return undefined;
+    document.body.classList.add("qs-ai-modal-open");
+    return () => document.body.classList.remove("qs-ai-modal-open");
+  }, [mode, open]);
+
+  useEffect(() => {
     if (seedQuery && open) setInput(seedQuery);
   }, [seedQuery, open]);
 
@@ -962,7 +968,7 @@ export default function UnifiedAIConcierge({
 
   // Style w zależności od trybu
   const containerClass = mode === 'modal'
-    ? 'fixed inset-0 z-[60] flex min-h-0 w-full flex-col overflow-hidden md:items-center md:justify-center md:p-4'
+    ? 'fixed inset-0 z-[1300] flex min-h-0 w-full flex-col overflow-hidden md:items-center md:justify-center md:p-4'
     : mode === 'inline'
     ? 'w-full'
     : 'min-h-screen bg-gray-50';
@@ -1066,7 +1072,9 @@ export default function UnifiedAIConcierge({
         onSelectSession={loadSession}
       />
       {/* Header - profesjonalny */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between md:px-6 md:py-4">
+      <div className={`sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between md:px-6 md:py-4 ${
+        mode === 'modal' ? 'px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]' : 'px-4 py-3'
+      }`}>
         <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
           <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center">
             <Sparkles className="w-[18px] h-[18px] md:w-5 md:h-5 text-white" />
@@ -1117,8 +1125,8 @@ export default function UnifiedAIConcierge({
                 onClose();
               }
             }}
-            className="p-2 rounded-lg hover:bg-white/20 transition-colors"
-            aria-label="Zamknij"
+            className="p-2.5 rounded-lg hover:bg-white/20 transition-colors qs-tap-target"
+            aria-label="Zamknij asystenta AI"
           >
             <X className="w-5 h-5 text-white" />
           </button>

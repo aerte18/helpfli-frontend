@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Sparkles, Briefcase, Maximize2, Minimize2 } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Layers, Sparkles, Briefcase, Maximize2, Minimize2, ChevronDown, ChevronUp } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapInitialRecenter,
@@ -22,7 +22,6 @@ import { serviceLabel } from "../utils/serviceLabels";
 import OrderModeBadge from "../components/OrderModeBadge";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
-import { MobileTapHint } from "../components/ui/MobileHintProvider";
 import ProviderMobileAiNudge, { buildAiPrefill } from "../components/provider/ProviderMobileAiNudge";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
@@ -506,6 +505,8 @@ export default function ProviderHome() {
   const [isMobileViewMenuOpen, setIsMobileViewMenuOpen] = useState(false);
   const mobileViewMenuRef = useRef(null);
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
+  /** Mobile / map: zwinięty pasek filtrów — więcej miejsca na mapę */
+  const [mapToolbarCollapsed, setMapToolbarCollapsed] = useState(true);
 
   const [mapSize, setMapSize] = useState(() => {
     return localStorage.getItem('mapSize') || 'lg';
@@ -593,6 +594,7 @@ export default function ProviderHome() {
     if (viewMode !== "map" || showAdvancedFilters) {
       setIsMobileViewMenuOpen(false);
       setIsOrderListExpanded(false);
+      setMapToolbarCollapsed(true);
       setMapMobileImmersive(false);
     }
   }, [viewMode, showAdvancedFilters]);
@@ -1759,7 +1761,8 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {/* Pasek statusu wykonawcy */}
+      {/* Pasek statusu wykonawcy — na mobile w mapie przeniesiony do zwijanego panelu nad mapą */}
+      {!(isMobileViewport && viewMode === "map") && (
       <div
         data-qs-provider-map-status-strip
         className={`left-0 right-0 z-[42] ${viewMode === "map" ? "fixed top-[calc(var(--app-nav-sticky-offset)+var(--app-breadcrumb-bar-height))]" : "sticky top-0"} ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}
@@ -1772,61 +1775,59 @@ export default function ProviderHome() {
           {isMobileViewport ? (
               <div className="flex items-center gap-1 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto pb-0.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <MobileTapHint
-                    as="span"
-                    hintOnly
-                    label="Zlecenia w filtrze"
-                    description="Liczba otwartych zleceń pasujących do aktualnych filtrów."
-                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-700 cursor-default"
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-700"
+                    aria-label={`${list.length} zleceń w filtrze`}
                   >
-                    <ClipboardList className="h-3.5 w-3.5 text-slate-600" aria-hidden />
-                    {list.length}
-                  </MobileTapHint>
+                    <ClipboardList className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
+                    {list.length} zleceń
+                  </span>
                   {freeRepliesLeft != null && (
-                    <MobileTapHint
-                      as="span"
-                      hintOnly
-                      label="Darmowe wyceny"
-                      description="Pozostałe bezpłatne odpowiedzi na zlecenia w tym okresie rozliczeniowym."
-                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold text-emerald-800 cursor-default"
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
+                      aria-label={`${freeRepliesLeft} darmowych wycen`}
                     >
-                      <Wallet className="h-3.5 w-3.5" aria-hidden />
-                      {freeRepliesLeft}
-                    </MobileTapHint>
+                      <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {freeRepliesLeft} wycen
+                    </span>
                   )}
-                  <MobileTapHint
-                    label={!showAllServices ? "Tylko moje usługi" : "Pełny rynek zleceń"}
-                    description={
-                      !showAllServices
-                        ? "Widzisz zlecenia zgodne z usługami w profilu. Tapnij ponownie, aby zobaczyć wszystkie."
-                        : "Widzisz wszystkie otwarte zlecenia. Tapnij ponownie, aby ograniczyć do swoich usług."
+                  <button
+                    type="button"
+                    title={
+                      showAllServices
+                        ? "Widzisz wszystkie zlecenia. Kliknij, aby ograniczyć do usług z profilu."
+                        : "Widzisz tylko swoje usługi. Kliknij, aby zobaczyć pełny rynek."
                     }
+                    aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
                     onClick={() => {
                       const next = !showAllServices;
                       setShowAllServices(next);
                       setFilters((s) => ({ ...s, service: "any" }));
                     }}
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
                       !showAllServices
                         ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600"
+                        : "border-slate-200 bg-white text-slate-700"
                     }`}
                   >
-                    <Briefcase className="h-4 w-4" aria-hidden />
-                  </MobileTapHint>
-                  <MobileTapHint
-                    label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
-                    description="Pokazuje zlecenia, które AI uznało za najlepiej dopasowane do Twojego profilu."
+                    <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {showAllServices ? "Rynek" : "Moje"}
+                  </button>
+                  <button
+                    type="button"
+                    title="Pokaż tylko zlecenia rekomendowane przez AI"
+                    aria-label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
                     onClick={() => setRecommendedOnly((v) => !v)}
                     disabled={recommendedLoading}
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
                       recommendedOnly
                         ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600"
+                        : "border-slate-200 bg-white text-slate-700"
                     } ${recommendedLoading ? "opacity-60" : ""}`}
                   >
-                    <Sparkles className={`h-4 w-4 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
-                  </MobileTapHint>
+                    <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
+                    Polecane
+                  </button>
                 </div>
               </div>
           ) : null}
@@ -1893,6 +1894,7 @@ export default function ProviderHome() {
 
         </div>
       </div>
+      )}
 
       {/* Toolbar z przełącznikami widoków - uproszczony dla providera */}
       {viewMode === "map" ? (
@@ -1901,45 +1903,129 @@ export default function ProviderHome() {
           className="qs-provider-map-stack"
           style={{
             top: isMobileViewport
-              ? "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 3.75rem)"
+              ? "var(--app-nav-sticky-offset)"
               : "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 5.25rem)",
           }}
         >
           {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive flex shrink-0 items-center gap-2 border-b border-slate-200/40 bg-white/90 px-2 py-1 backdrop-blur-md">
-              <span className="min-w-0 flex-1 truncate text-[11px] leading-tight text-slate-700">
-                <span className="font-semibold text-slate-800">{list.length}</span>{" "}
-                {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
-                <span className="font-normal text-slate-500"> · {user?.location || "Twoja okolica"}</span>
-              </span>
-              {hasActiveFilters && (
+            <div className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
+                  {mapToolbarCollapsed ? (
+                    <>
+                      <span className="font-semibold">{list.length}</span>{" "}
+                      {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
+                      <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
+                      {(hasActiveFilters || recommendedOnly || !showAllServices) && (
+                        <span className="text-indigo-600"> · filtry</span>
+                      )}
+                    </>
+                  ) : (
+                    "Filtry i status zleceń"
+                  )}
+                </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setFilters({
-                      service: "any",
-                      maxDistance: 50,
-                      budgetMin: "",
-                      budgetMax: "",
-                      providerId: "any",
-                      paymentType: "any",
-                      offersStatus: "any",
-                      sortBy: "default",
-                    });
-                    setRecommendedOnly(false);
-                  }}
-                  className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm"
+                  onClick={() => setMapToolbarCollapsed((v) => !v)}
+                  className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
+                  aria-expanded={!mapToolbarCollapsed}
                 >
-                  Wyczyść
+                  {mapToolbarCollapsed ? (
+                    <>
+                      <ChevronDown className="h-4 w-4" aria-hidden />
+                      Rozwiń
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="h-4 w-4" aria-hidden />
+                      Zwiń
+                    </>
+                  )}
                 </button>
+              </div>
+              {!mapToolbarCollapsed && (
+                <div className="space-y-2 border-t border-white/25 px-2 py-2">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
+                      aria-label={`${list.length} zleceń w filtrze`}
+                    >
+                      <ClipboardList className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
+                      {list.length} zleceń
+                    </span>
+                    {freeRepliesLeft != null && (
+                      <span
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
+                        aria-label={`${freeRepliesLeft} darmowych wycen`}
+                      >
+                        <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {freeRepliesLeft} wycen
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
+                      onClick={() => {
+                        const next = !showAllServices;
+                        setShowAllServices(next);
+                        setFilters((s) => ({ ...s, service: "any" }));
+                      }}
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                        !showAllServices
+                          ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700"
+                      }`}
+                    >
+                      <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {showAllServices ? "Rynek" : "Moje"}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
+                      onClick={() => setRecommendedOnly((v) => !v)}
+                      disabled={recommendedLoading}
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                        recommendedOnly
+                          ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                          : "border-slate-200 bg-white text-slate-700"
+                      } ${recommendedLoading ? "opacity-60" : ""}`}
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
+                      Polecane
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilters({
+                            service: "any",
+                            maxDistance: 50,
+                            budgetMin: "",
+                            budgetMax: "",
+                            providerId: "any",
+                            paymentType: "any",
+                            offersStatus: "any",
+                            sortBy: "default",
+                          });
+                          setRecommendedOnly(false);
+                        }}
+                        className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
+                      >
+                        Wyczyść
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedFilters(true)}
+                      className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
+                    >
+                      Filtry
+                    </button>
+                  </div>
+                </div>
               )}
-              <button
-                type="button"
-                onClick={() => setShowAdvancedFilters(true)}
-                className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
-              >
-                Filtry
-              </button>
             </div>
           )}
           {!isMobileViewport && (
@@ -2061,28 +2147,31 @@ export default function ProviderHome() {
           />
         )}
         {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-          <MobileTapHint
+          <button
+            type="button"
             data-qs-map-immersive-toggle
-            label={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
-            description="Ukrywa menu i pokazuje mapę na cały ekran telefonu."
+            title={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
+            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
+            aria-pressed={mapMobileImmersive}
             onClick={() => {
               setMapMobileImmersive((v) => !v);
             }}
-            aria-pressed={mapMobileImmersive}
-            className="pointer-events-auto fixed z-[1200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
-            style={{
-              right: "max(0.75rem, env(safe-area-inset-right, 0px))",
-              bottom: mapMobileImmersive
-                ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
-                : "calc(4.75rem + 5.25rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
-            }}
+            className="pointer-events-auto fixed z-[50] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
+            style={
+              mapMobileImmersive
+                ? {
+                    right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+                    bottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+                  }
+                : undefined
+            }
           >
             {mapMobileImmersive ? (
               <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
             ) : (
               <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
             )}
-          </MobileTapHint>
+          </button>
         )}
         </>
       ) : (
@@ -2488,19 +2577,28 @@ export default function ProviderHome() {
           className={`fixed z-[35] left-3 ${
             viewMode === "list"
               ? "qs-fixed-above-mobile-tab"
-              : "qs-fixed-above-mobile-tab-xl"
+              : mapToolbarCollapsed
+                ? "qs-fixed-above-mobile-tab"
+                : "qs-fixed-above-mobile-tab-lg"
           }`}
         >
-          <MobileTapHint
-            label="Zmień widok"
-            description="Przełącz między listą zleceń a mapą."
+          <button
+            type="button"
+            title="Zmień widok: lista lub mapa"
+            aria-label="Zmień widok"
+            aria-expanded={isMobileViewMenuOpen}
             onClick={() => setIsMobileViewMenuOpen((v) => !v)}
-            className={`w-11 h-11 rounded-full border border-slate-200 bg-white/95 backdrop-blur shadow-lg flex items-center justify-center transition-transform duration-150 ${
-              isMobileViewMenuOpen ? "scale-105" : "scale-100"
-            }`}
+            className="flex flex-col items-center gap-0.5 qs-tap-target"
           >
-            <Layers className="w-5 h-5 text-slate-700" aria-hidden />
-          </MobileTapHint>
+            <span
+              className={`flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 shadow-lg backdrop-blur transition-transform duration-150 ${
+                isMobileViewMenuOpen ? "scale-105 border-indigo-200" : "scale-100"
+              }`}
+            >
+              <Layers className="w-5 h-5 text-slate-700" aria-hidden />
+            </span>
+            <span className="text-[9px] font-semibold text-slate-600 drop-shadow-sm">Widok</span>
+          </button>
           {isMobileViewMenuOpen && (
             <div
               className="absolute left-0 bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left"
@@ -2538,44 +2636,53 @@ export default function ProviderHome() {
 
       {/* Przycisk do rozwijania listy zleceń na mapie – jak „Dostępni wykonawcy” u klienta */}
       {viewMode === "map" && !showAdvancedFilters && (!isMobileViewport || !isOrderListExpanded) && (
-        <MobileTapHint
-          label={isOrderListExpanded ? "Zwiń listę zleceń" : "Lista zleceń na mapie"}
-          description="Otwiera panel z dostępnymi zleceniami bez opuszczania mapy."
+        <button
+          type="button"
+          title={isOrderListExpanded ? "Zwiń listę zleceń" : "Lista zleceń na mapie"}
+          aria-label={isOrderListExpanded ? "Zwiń listę zleceń" : `Lista zleceń, ${list.length} pozycji`}
+          aria-expanded={isOrderListExpanded}
           onClick={() => setIsOrderListExpanded(!isOrderListExpanded)}
-          className={`fixed z-[45] flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
+          className={`fixed z-[45] flex items-center border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 qs-tap-target ${
             isMobileViewport
-              ? `left-3 rounded-full ${isOrderListExpanded ? "px-3 py-2 gap-2" : "w-11 h-11 p-0 justify-center"} qs-fixed-above-mobile-tab-lg`
-              : "right-4 w-80 rounded-lg px-4 py-3"
+              ? `left-3 gap-2 rounded-full px-3 py-2 qs-fixed-above-mobile-tab-lg`
+              : "right-4 w-80 rounded-lg px-4 py-3 justify-between"
           }`}
           style={!isMobileViewport ? { top: "250px" } : undefined}
         >
           {isMobileViewport ? (
             <>
-              <div className="relative shrink-0">
+              <div className="relative flex shrink-0 items-center gap-1.5">
                 <ClipboardList className="w-5 h-5 text-slate-700" aria-hidden />
-                {!isOrderListExpanded && (
-                  <span className="absolute -right-2 -top-2 min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-600 text-white text-[10px] leading-[18px] text-center">
-                    {list.length}
-                  </span>
-                )}
+                <span className="text-sm font-medium text-slate-800">Lista</span>
+                <span className="min-w-[18px] rounded-full bg-indigo-600 px-1.5 text-[10px] font-semibold leading-[18px] text-white text-center">
+                  {list.length}
+                </span>
               </div>
-              {isOrderListExpanded && (
-                <span className="font-medium text-slate-800 text-sm truncate">Zlecenia ({list.length})</span>
-              )}
+              <svg
+                className={`w-4 h-4 text-slate-600 transition-transform shrink-0 ${isOrderListExpanded ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
             </>
           ) : (
-            <h3 className="font-semibold text-slate-800">Dostępne zlecenia ({list.length})</h3>
+            <>
+              <h3 className="font-semibold text-slate-800">Dostępne zlecenia ({list.length})</h3>
+              <svg
+                className={`w-4 h-4 text-slate-600 transition-transform shrink-0 ${isOrderListExpanded ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </>
           )}
-          <svg
-            className={`w-4 h-4 text-slate-600 transition-transform shrink-0 ${isOrderListExpanded ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </MobileTapHint>
+        </button>
       )}
 
       {/* Panel z listą zleceń w trybie mapy – na mobile bottom sheet jak u klienta */}
