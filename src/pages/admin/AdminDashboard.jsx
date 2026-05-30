@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const gmv30d = data?.kpi?.gmv30d ?? 0;
   const avgPrice = data?.kpi?.avgPrice ?? 0;
   const pageViews30d = data?.kpi?.pageViews30d ?? 0;
+  const allVisits30d = data?.kpi?.allVisits30d ?? 0;
   const distinctSessions30d = data?.kpi?.distinctSessions30d ?? 0;
   const pseoPageViews30d = data?.kpi?.pseoPageViews30d ?? 0;
 
@@ -71,10 +72,11 @@ export default function AdminDashboard() {
             <KPI label="Śr. cena" value={`${formatInt(avgPrice)} zł`} />
           </section>
 
-          <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <KPI label="Odsłony stron (30d)" value={formatInt(pageViews30d)} />
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KPI label="Wejścia na stronę (30d)" value={formatInt(allVisits30d)} />
+            <KPI label="Telemetria page_view (30d)" value={formatInt(pageViews30d)} />
             <KPI label="Sesje (30d, szac.)" value={formatInt(distinctSessions30d)} />
-            <KPI label="Odsłony PSEO (30d)" value={formatInt(pseoPageViews30d)} />
+            <KPI label="Odsłony PSEO telemetria (30d)" value={formatInt(pseoPageViews30d)} />
           </section>
 
           {/* Tables */}

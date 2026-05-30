@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
+import { recordPageHit } from "../utils/recordPageHit";
 
 /** Rejestruje odsłony (page_view) dla analityki produktowej — wymaga zgody cookies (useTelemetry). */
 export default function TelemetryRouteListener() {
@@ -9,6 +10,7 @@ export default function TelemetryRouteListener() {
 
   useEffect(() => {
     const path = `${location.pathname}${location.search || ""}`;
+    recordPageHit(location.pathname);
     trackPageView(path);
   }, [location.pathname, location.search, trackPageView]);
 
