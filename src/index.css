@@ -368,7 +368,8 @@ html.qs-map-route-scroll-lock body {
   body.qs-map-immersive [data-qs-provider-map-status-strip],
   body.qs-map-immersive [data-qs-compare-bar],
   body.qs-map-immersive button[data-testid="ai-fab"],
-  body.qs-map-immersive button[data-testid="provider-ai-fab"] {
+  body.qs-map-immersive button[data-testid="provider-ai-fab"],
+  body.qs-map-immersive [data-qs-provider-ai-nudge] {
     display: none !important;
   }
   body.qs-map-immersive .qs-home-map-shell,

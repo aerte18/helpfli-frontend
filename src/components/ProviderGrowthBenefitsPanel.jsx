@@ -78,6 +78,9 @@ export default function ProviderGrowthBenefitsPanel({
     if (foundingActive) {
       out.push(founding?.commissionLabel || '0% prowizji');
     }
+    if (foundingActive && founding?.includedProPlan) {
+      out.push('PRO 60 dni');
+    }
     if (foundingActive && (founding?.freeBoostsRemaining ?? 0) > 0) {
       out.push(`${founding.freeBoostsRemaining} darmowych boostów`);
     }
@@ -174,6 +177,19 @@ export default function ProviderGrowthBenefitsPanel({
             />
           )}
 
+          {foundingActive && founding.includedProPlan && (
+            <BenefitRow
+              icon={Crown}
+              title={founding.proPlanLabel || 'Pakiet PRO (usługodawca)'}
+              detail={
+                founding.expiresAtLabel
+                  ? `Aktywny do ${founding.expiresAtLabel} w ramach programu Pierwszy wykonawca — bez dodatkowej opłaty.`
+                  : 'Nielimitowane oferty, badge PRO, priorytet w wynikach.'
+              }
+              badge="PRO"
+            />
+          )}
+
           {foundingActive && (founding.freeBoostsRemaining ?? 0) > 0 && (
             <BenefitRow
               icon={Zap}
@@ -187,17 +203,21 @@ export default function ProviderGrowthBenefitsPanel({
               icon={Crown}
               title={`Subskrypcja ${sub.planName}`}
               detail={
-                sub.validUntilLabel
-                  ? `Pakiet aktywny do ${sub.validUntilLabel}${
-                      sub.daysRemaining != null ? ` (${sub.daysRemaining} dni)` : ''
-                    }. Opłata abonamentowa jest osobna od prowizji od zleceń.`
-                  : 'Aktywny pakiet PRO / Standard'
+                sub.foundingProGrant
+                  ? `Pakiet PRO w cenie programu Pierwszy wykonawca${
+                      sub.validUntilLabel ? ` — do ${sub.validUntilLabel}` : ''
+                    }.`
+                  : sub.validUntilLabel
+                    ? `Pakiet aktywny do ${sub.validUntilLabel}${
+                        sub.daysRemaining != null ? ` (${sub.daysRemaining} dni)` : ''
+                      }. Opłata abonamentowa jest osobna od prowizji od zleceń.`
+                    : 'Aktywny pakiet PRO / Standard'
               }
-              badge="Pakiet"
+              badge={sub.foundingProGrant ? 'PRO promo' : 'Pakiet'}
             />
           )}
 
-          {founding?.stacksWithSubscription && (foundingActive && sub) && (
+          {founding?.stacksWithSubscription && foundingActive && !sub?.foundingProGrant && (
             <p className="text-xs text-amber-900/80 flex gap-2 leading-relaxed">
               <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
               {founding.stacksWithSubscription}

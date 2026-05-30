@@ -261,20 +261,22 @@ export default function Subscriptions() {
             <ProviderGrowthBenefitsPanel storageKey="subscriptions:growthBenefitsCollapsed" />
             {user?.growthBenefits?.provider?.foundingProvider?.active &&
               mine &&
-              (mine.isImplicit || mine.planKey === 'PROV_FREE') && (
+              mine.foundingProGrant && (
                 <CollapsiblePanel
-                  title="Program Pierwszy wykonawca ≠ pakiet PRO"
-                  storageKey="subscriptions:foundingVsProNote"
+                  title="Pakiet PRO w programie Pierwszy wykonawca"
+                  storageKey="subscriptions:foundingProNote"
                   defaultCollapsed
-                  summary="Promocja startowa to nie subskrypcja PRO"
-                  className="border-amber-200 bg-amber-50/90 shadow-none"
-                  headerClassName="bg-amber-50/90"
-                  bodyClassName="pt-2 text-sm text-amber-950 leading-relaxed"
+                  summary="PRO aktywny w cenie promocji — bez dodatkowej opłaty"
+                  className="border-emerald-200 bg-emerald-50/90 shadow-none"
+                  headerClassName="bg-emerald-50/90"
+                  bodyClassName="pt-2 text-sm text-emerald-950 leading-relaxed"
                 >
-                  <strong>Program Pierwszy wykonawca</strong> (0% prowizji, darmowe boosty na ok. 60 dni)
-                  to promocja startowa — <strong>to nie jest pakiet PRO</strong>. Twój abonament to{' '}
-                  <strong>{mine.planName || 'FREE (usługodawca)'}</strong>. Pakiet PRO to osobna opłata
-                  miesięczna (nielimitowane odpowiedzi, badge PRO, priorytet w wynikach).
+                  Masz <strong>pakiet PRO (usługodawca)</strong> do końca programu Pierwszy wykonawca
+                  {mine.validUntil
+                    ? ` (${new Date(mine.validUntil).toLocaleDateString('pl-PL')})`
+                    : ''}
+                  — nielimitowane oferty, badge PRO i priorytet w wynikach. Po 60 dniach wracasz na FREE,
+                  chyba że wykupisz plan.
                 </CollapsiblePanel>
               )}
           </div>
@@ -314,14 +316,24 @@ export default function Subscriptions() {
               <div className="text-sm text-gray-600 mb-1">Twój aktualny plan</div>
               <div className="text-base font-semibold text-gray-900">
                 {mine.planName || mine.planKey}
-                {mine.isTrial ? (
+                {mine.foundingProGrant ? (
+                  <span className="ml-2 text-xs font-bold uppercase tracking-wide text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Pierwszy wykonawca
+                  </span>
+                ) : mine.isTrial ? (
                   <span className="ml-2 text-xs font-bold uppercase tracking-wide text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
                     Trial
                   </span>
                 ) : null}
               </div>
               <div className="text-xs text-gray-500">
-                {mine.isImplicit
+                {mine.foundingProGrant
+                  ? `PRO w cenie programu Pierwszy wykonawca${
+                      mine.validUntil
+                        ? ` — do ${new Date(mine.validUntil).toLocaleDateString('pl-PL')}`
+                        : ''
+                    }`
+                  : mine.isImplicit
                   ? 'Pakiet podstawowy w cenie konta — bez dodatkowej opłaty'
                   : mine.validUntil
                     ? `Ważny do: ${new Date(mine.validUntil).toLocaleDateString('pl-PL')}`

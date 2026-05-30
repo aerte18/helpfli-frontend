@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Building2, Link2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock, Trash2 } from "lucide-react";
+import { BarChart2, ClipboardList, Wallet, Heart, Star, History, Gift, CreditCard, Settings, Lock, User, Users, TrendingUp, Building2, BadgeCheck, ShieldCheck, Camera, Image, ChevronDown, ChevronUp, LogOut, Clock, Trash2 } from "lucide-react";
 import { registerPush } from "../push/registerPush";
 import { api } from "../api/client";
 import KycBadge from "../components/KycBadge";
@@ -9,8 +9,6 @@ import { useAuth } from "../context/AuthContext";
 import ManageServices from "./ManageServices";
 import PrivacySettings from "../components/PrivacySettings";
 import Referrals from "./Referrals";
-import CalendarIntegrations from "./integrations/CalendarIntegrations";
-import CrmIntegrations from "./integrations/CrmIntegrations";
 import { getMyOffers } from "../api/offers";
 import CompanyTab from "./CompanyTab";
 import NotificationSettings from "../components/NotificationSettings";
@@ -24,6 +22,7 @@ import {
   getProviderOrderPresentation,
   getProviderStageKey,
 } from "../utils/orderFlowLabels";
+import { formatRelativeTime } from "../utils/relativeTime";
 import { getStripeConnectStatus } from "../api/payments";
 
 function useAuthToken() {
@@ -109,6 +108,13 @@ export default function Account() {
       setActiveTab('settings');
       return;
     }
+    if (tabFromUrl === 'integrations') {
+      const q = new URLSearchParams(location.search);
+      q.set('tab', 'overview');
+      navigate({ search: q.toString() }, { replace: true });
+      setActiveTab('overview');
+      return;
+    }
     if (tabFromUrl === 'subscriptions') {
       const audience = user?.company ? 'business' : (user?.role === 'provider' ? 'provider' : 'client');
       navigate(`/account/subscriptions?audience=${audience}`, { replace: true });
@@ -156,7 +162,6 @@ export default function Account() {
     { id: "stats", label: "Statystyki", icon: TrendingUp },
     { id: "company", label: "Zespół", icon: Building2 },
     { id: "referrals", label: "Polecenia", icon: Gift },
-    { id: "integrations", label: "Integracje", icon: Link2 },
     { id: "payments", label: "Płatności", icon: CreditCard },
     { id: "kyc", label: "Weryfikacja", icon: BadgeCheck },
     { id: "subscriptions", label: "Subskrypcje", icon: CreditCard },
@@ -339,13 +344,6 @@ export default function Account() {
           {activeTab === "stats" && user?.role === 'provider' && <StatsTab stats={stats} />}
           {activeTab === "company" && user?.role === 'provider' && <CompanyTab user={user} />}
           {activeTab === "referrals" && <Referrals />}
-          {activeTab === "integrations" && user?.role === 'provider' && (
-            <div className="space-y-6">
-              <CalendarIntegrations />
-              <CrmIntegrations />
-              {/* Integracja księgowa ukryta – faktury wystawiane poza systemem i załączane do zlecenia, brak synchronizacji faktur z Helpfli */}
-            </div>
-          )}
           {activeTab === "payments" && user?.role === 'provider' && <PaymentsTab user={user} fetchMe={fetchMe} />}
           {activeTab === "kyc" && user?.role === 'provider' && <KycTab user={user} />}
           {activeTab === "settings" && (
@@ -400,24 +398,7 @@ function OverviewTab({ user, stats }) {
 
       {/* Recent Activity */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Ostatnie zlecenia">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <div className="font-medium">Naprawa kranu</div>
-                <div className="text-sm text-gray-500">2 dni temu</div>
-              </div>
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Wykonane</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <div className="font-medium">Montaż mebli</div>
-                <div className="text-sm text-gray-500">1 tydzień temu</div>
-              </div>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">W trakcie</span>
-            </div>
-          </div>
-        </Card>
+        <RecentOrdersCard user={user} />
 
         <Card title="Szybkie akcje">
           <div className="space-y-2">
@@ -437,6 +418,150 @@ function OverviewTab({ user, stats }) {
         </Card>
       </section>
     </div>
+  );
+}
+
+function RecentOrdersCard({ user }) {
+  const token = useAuthToken();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token || !user) {
+      setLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const res = await fetch(apiUrl("/api/orders/my?limit=20"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        let orders = [];
+        if (res.ok) {
+          const data = await res.json();
+          orders = Array.isArray(data) ? data : (data.orders || data.items || []);
+        }
+
+        if (user.role === "provider") {
+          const offers = await getMyOffers({ token }).catch(() => []);
+          const byOrderId = new Map();
+
+          for (const off of offers || []) {
+            const rawOrder = off?.orderId;
+            let order = null;
+            let orderId = null;
+
+            if (rawOrder && typeof rawOrder === "object") {
+              orderId = rawOrder._id ? String(rawOrder._id) : null;
+              order = rawOrder;
+            } else if (typeof rawOrder === "string") {
+              orderId = rawOrder;
+              order = { _id: rawOrder, status: off.status, createdAt: off.createdAt };
+            }
+
+            if (!orderId) continue;
+            const prev = byOrderId.get(orderId);
+            if (!prev || new Date(off.createdAt || 0) > new Date(prev.offer?.createdAt || 0)) {
+              byOrderId.set(orderId, { order, offer: off });
+            }
+          }
+
+          for (const o of orders || []) {
+            const orderId = o?._id ? String(o._id) : null;
+            if (!orderId || byOrderId.has(orderId)) continue;
+            const providerId = typeof o.provider === "string" ? o.provider : o.provider?._id;
+            if (providerId && user?._id && String(providerId) === String(user._id)) {
+              byOrderId.set(orderId, { order: o, offer: null });
+            }
+          }
+
+          const sorted = Array.from(byOrderId.values()).sort((a, b) => {
+            const ad = new Date(a.order?.updatedAt || a.order?.createdAt || a.offer?.createdAt || 0).getTime();
+            const bd = new Date(b.order?.updatedAt || b.order?.createdAt || b.offer?.createdAt || 0).getTime();
+            return bd - ad;
+          });
+
+          if (!cancelled) setItems(sorted.slice(0, 5));
+        } else {
+          const sorted = [...(orders || [])].sort(
+            (a, b) =>
+              new Date(b.updatedAt || b.createdAt || 0).getTime() -
+              new Date(a.updatedAt || a.createdAt || 0).getTime()
+          );
+          if (!cancelled) {
+            setItems(sorted.slice(0, 5).map((order) => ({ order, offer: null })));
+          }
+        }
+      } catch (error) {
+        console.error("Błąd pobierania ostatnich zleceń:", error);
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user?._id, user?.role]);
+
+  const getTitle = (order) =>
+    order?.serviceDetails || order?.service || order?.title || "Zlecenie";
+
+  const getPresentation = (item) => {
+    if (user?.role === "provider") {
+      return getProviderOrderPresentation({
+        order: item.order,
+        offer: item.offer,
+        viewerProviderId: user?._id,
+      });
+    }
+    return getClientOrderPresentation(item.order);
+  };
+
+  return (
+    <Card title="Ostatnie zlecenia">
+      {loading ? (
+        <div className="py-6 text-center text-sm text-gray-500">Ładowanie…</div>
+      ) : items.length === 0 ? (
+        <div className="py-6 text-center text-sm text-gray-500">
+          {user?.role === "provider"
+            ? "Brak zleceń — złóż ofertę lub poczekaj na przypisanie."
+            : "Brak zleceń — utwórz pierwsze zlecenie."}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((item) => {
+            const orderId = item.order?._id;
+            const pres = getPresentation(item);
+            const when = item.order?.updatedAt || item.order?.createdAt || item.offer?.createdAt;
+
+            return (
+              <Link
+                key={orderId || item.offer?._id}
+                to={`/orders/${orderId}?tab=details`}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div>
+                  <div className="font-medium">{getTitle(item.order)}</div>
+                  <div className="text-sm text-gray-500">
+                    {when ? formatRelativeTime(when, { showFuture: false }) : "—"}
+                  </div>
+                </div>
+                <span className={`px-2 py-1 text-xs rounded-full ${pres.badgeClass}`}>
+                  {pres.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </Card>
   );
 }
 

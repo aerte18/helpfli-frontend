@@ -22,6 +22,8 @@ import { serviceLabel } from "../utils/serviceLabels";
 import OrderModeBadge from "../components/OrderModeBadge";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
+import { MobileTapHint } from "../components/ui/MobileHintProvider";
+import ProviderMobileAiNudge, { buildAiPrefill } from "../components/provider/ProviderMobileAiNudge";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
 // Funkcja do formatowania czasu "dodane X min temu"
@@ -1408,6 +1410,50 @@ export default function ProviderHome() {
     } catch (_) {}
   }, [aiInsightsExpanded]);
 
+  const hasAiInsights =
+    inboxPriorityOrders.length > 0 ||
+    inboxFollowUps.length > 0 ||
+    coachTips.length > 0 ||
+    profileIssues.length > 0;
+
+  useEffect(() => {
+    const actionableCount = inboxPriorityOrders.length + inboxFollowUps.length;
+    window.dispatchEvent(
+      new CustomEvent("providerAiInsightsUpdate", {
+        detail: {
+          count: actionableCount,
+          hasInsights: hasAiInsights,
+        },
+      })
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("providerAiInsightsUpdate", {
+          detail: { count: 0, hasInsights: false },
+        })
+      );
+    };
+  }, [inboxPriorityOrders.length, inboxFollowUps.length, hasAiInsights]);
+
+  const openProviderAiFromInsights = () => {
+    const prefill = buildAiPrefill({
+      priorityOrders: inboxPriorityOrders,
+      followUps: inboxFollowUps,
+      coachTips,
+    });
+    const contextNote =
+      inboxPriorityOrders.length > 0
+        ? `${inboxPriorityOrders.length} dopasowanych zleceń czeka na szybką odpowiedź.`
+        : inboxFollowUps.length > 0
+          ? `${inboxFollowUps.length} ofert bez decyzji klienta.`
+          : coachTips[0]?.title || null;
+    window.dispatchEvent(
+      new CustomEvent("openProviderAi", {
+        detail: { prefill, contextNote, skipHint: true },
+      })
+    );
+  };
+
   return (
     <div
       className={
@@ -1524,7 +1570,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
+      {viewMode !== "map" && hasAiInsights && (
         <div className="md:hidden max-w-7xl mx-auto px-4 pt-3">
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -1539,15 +1585,10 @@ export default function ProviderHome() {
             </div>
             <button
               type="button"
-              onClick={() => {
-                setAiInsightsExpanded(true);
-                setTimeout(() => {
-                  document.getElementById("provider-ai-hints-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }, 80);
-              }}
+              onClick={openProviderAiFromInsights}
               className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white qs-tap-target qs-transition-soft hover:bg-indigo-700"
             >
-              Otwórz AI
+              Asystent AI
             </button>
           </div>
         </div>
@@ -1731,28 +1772,34 @@ export default function ProviderHome() {
           {isMobileViewport ? (
               <div className="flex items-center gap-1 w-full min-w-0">
                 <div className="flex min-w-0 flex-1 items-center justify-end gap-1 overflow-x-auto pb-0.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <span
-                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-700"
-                    title="Liczba zleceń w filtrze"
+                  <MobileTapHint
+                    as="span"
+                    hintOnly
+                    label="Zlecenia w filtrze"
+                    description="Liczba otwartych zleceń pasujących do aktualnych filtrów."
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-semibold text-slate-700 cursor-default"
                   >
                     <ClipboardList className="h-3.5 w-3.5 text-slate-600" aria-hidden />
                     {list.length}
-                  </span>
+                  </MobileTapHint>
                   {freeRepliesLeft != null && (
-                    <span
-                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold text-emerald-800"
-                      title="Darmowe wyceny"
+                    <MobileTapHint
+                      as="span"
+                      hintOnly
+                      label="Darmowe wyceny"
+                      description="Pozostałe bezpłatne odpowiedzi na zlecenia w tym okresie rozliczeniowym."
+                      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold text-emerald-800 cursor-default"
                     >
                       <Wallet className="h-3.5 w-3.5" aria-hidden />
                       {freeRepliesLeft}
-                    </span>
+                    </MobileTapHint>
                   )}
-                  <button
-                    type="button"
-                    title={
-                      showAllServices
-                        ? "Pełny rynek zleceń — kliknij, aby ograniczyć do usług z profilu"
-                        : "Tylko moje usługi z profilu — kliknij, aby zobaczyć pełny rynek"
+                  <MobileTapHint
+                    label={!showAllServices ? "Tylko moje usługi" : "Pełny rynek zleceń"}
+                    description={
+                      !showAllServices
+                        ? "Widzisz zlecenia zgodne z usługami w profilu. Tapnij ponownie, aby zobaczyć wszystkie."
+                        : "Widzisz wszystkie otwarte zlecenia. Tapnij ponownie, aby ograniczyć do swoich usług."
                     }
                     onClick={() => {
                       const next = !showAllServices;
@@ -1766,20 +1813,20 @@ export default function ProviderHome() {
                     }`}
                   >
                     <Briefcase className="h-4 w-4" aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    title="Tylko polecane przez AI"
+                  </MobileTapHint>
+                  <MobileTapHint
+                    label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
+                    description="Pokazuje zlecenia, które AI uznało za najlepiej dopasowane do Twojego profilu."
                     onClick={() => setRecommendedOnly((v) => !v)}
                     disabled={recommendedLoading}
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
                       recommendedOnly
                         ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
                         : "border-slate-200 bg-white text-slate-600"
-                    }`}
+                    } ${recommendedLoading ? "opacity-60" : ""}`}
                   >
                     <Sparkles className={`h-4 w-4 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
-                  </button>
+                  </MobileTapHint>
                 </div>
               </div>
           ) : null}
@@ -1998,16 +2045,30 @@ export default function ProviderHome() {
             </div>
           </div>
         </div>
-        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
-          <button
-            type="button"
-            data-qs-map-immersive-toggle
-            onClick={() => {
-              setMapMobileImmersive((v) => {
-                const next = !v;
-                return next;
-              });
+        {isMobileViewport && viewMode === "map" && hasAiInsights && !mapMobileImmersive && (
+          <ProviderMobileAiNudge
+            visible
+            priorityOrders={inboxPriorityOrders}
+            followUps={inboxFollowUps}
+            coachTips={coachTips}
+            quickWins={providerAiInbox.quickWins}
+            onOpenOrder={handleOpenDetails}
+            onOpenFollowUp={(offer) => {
+              const order = offer.orderId || {};
+              const orderId = order._id || order.id || offer.orderId;
+              handleOpenDetails({ _id: orderId }, "my_offer");
             }}
+          />
+        )}
+        {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
+          <MobileTapHint
+            data-qs-map-immersive-toggle
+            label={mapMobileImmersive ? "Wyjdź z pełnego ekranu" : "Mapa na pełny ekran"}
+            description="Ukrywa menu i pokazuje mapę na cały ekran telefonu."
+            onClick={() => {
+              setMapMobileImmersive((v) => !v);
+            }}
+            aria-pressed={mapMobileImmersive}
             className="pointer-events-auto fixed z-[1200] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/90 bg-white shadow-lg ring-1 ring-slate-900/10 backdrop-blur-sm qs-tap-target"
             style={{
               right: "max(0.75rem, env(safe-area-inset-right, 0px))",
@@ -2015,16 +2076,13 @@ export default function ProviderHome() {
                 ? "max(0.75rem, env(safe-area-inset-bottom, 0px))"
                 : "calc(4.75rem + 5.25rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px))",
             }}
-            aria-pressed={mapMobileImmersive}
-            aria-label={mapMobileImmersive ? "Wyjdź z pełnego ekranu mapy" : "Mapa na pełny ekran"}
-            title={mapMobileImmersive ? "Wyjdź (Esc)" : "Pełny ekran mapy"}
           >
             {mapMobileImmersive ? (
               <Minimize2 className="h-5 w-5 text-slate-800" aria-hidden />
             ) : (
               <Maximize2 className="h-5 w-5 text-slate-800" aria-hidden />
             )}
-          </button>
+          </MobileTapHint>
         )}
         </>
       ) : (
@@ -2433,16 +2491,16 @@ export default function ProviderHome() {
               : "qs-fixed-above-mobile-tab-xl"
           }`}
         >
-          <button
-            type="button"
+          <MobileTapHint
+            label="Zmień widok"
+            description="Przełącz między listą zleceń a mapą."
             onClick={() => setIsMobileViewMenuOpen((v) => !v)}
-            aria-label="Zmień widok"
             className={`w-11 h-11 rounded-full border border-slate-200 bg-white/95 backdrop-blur shadow-lg flex items-center justify-center transition-transform duration-150 ${
               isMobileViewMenuOpen ? "scale-105" : "scale-100"
             }`}
           >
-            <Layers className="w-5 h-5 text-slate-700" />
-          </button>
+            <Layers className="w-5 h-5 text-slate-700" aria-hidden />
+          </MobileTapHint>
           {isMobileViewMenuOpen && (
             <div
               className="absolute left-0 bottom-full mb-2 min-w-[148px] max-w-[min(148px,calc(100vw-1.5rem))] rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 transition-all duration-150 opacity-100 translate-y-0 scale-100 origin-bottom-left"
@@ -2480,8 +2538,9 @@ export default function ProviderHome() {
 
       {/* Przycisk do rozwijania listy zleceń na mapie – jak „Dostępni wykonawcy” u klienta */}
       {viewMode === "map" && !showAdvancedFilters && (!isMobileViewport || !isOrderListExpanded) && (
-        <button
-          type="button"
+        <MobileTapHint
+          label={isOrderListExpanded ? "Zwiń listę zleceń" : "Lista zleceń na mapie"}
+          description="Otwiera panel z dostępnymi zleceniami bez opuszczania mapy."
           onClick={() => setIsOrderListExpanded(!isOrderListExpanded)}
           className={`fixed z-[45] flex items-center justify-between border border-slate-200 bg-white shadow-sm transition-colors hover:bg-slate-50 ${
             isMobileViewport
@@ -2516,7 +2575,7 @@ export default function ProviderHome() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
           </svg>
-        </button>
+        </MobileTapHint>
       )}
 
       {/* Panel z listą zleceń w trybie mapy – na mobile bottom sheet jak u klienta */}

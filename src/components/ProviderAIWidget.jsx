@@ -8,6 +8,7 @@ import { useBreakpointMd } from "../hooks/useBreakpointMd";
 import { apiUrl } from "../lib/apiUrl";
 import { useLocation } from "react-router-dom";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
+import { useMobileHint } from "./ui/MobileHintProvider";
 
 export default function ProviderAIWidget() {
   const location = useLocation();
@@ -29,8 +30,11 @@ export default function ProviderAIWidget() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [usage, setUsage] = useState({ used: 0, limit: 20, remaining: 20 });
+  const [contextNote, setContextNote] = useState("");
+  const [insightBadge, setInsightBadge] = useState(0);
   const messagesEndRef = React.useRef(null);
   const isMdUp = useBreakpointMd();
+  const mobileHint = useMobileHint();
 
   useEffect(() => {
     if (isMdUp) {
@@ -62,15 +66,37 @@ export default function ProviderAIWidget() {
     };
   }, [location.pathname, isMdUp]);
 
-  // Otwórz widget z zewnątrz (np. z Konta → Moje oferty)
+  // Otwórz widget z zewnątrz (np. z Konta → Moje oferty, AI Inbox na mapie)
   useEffect(() => {
     const handler = (e) => {
       const prefill = e.detail?.prefill;
+      const note = e.detail?.contextNote;
+      const skipHint = Boolean(e.detail?.skipHint);
       setOpen(true);
+      if (typeof note === "string" && note.trim()) {
+        setContextNote(note.trim());
+      } else {
+        setContextNote("");
+      }
       if (prefill) setInput(prefill);
+      if (!skipHint) {
+        mobileHint?.showHint?.(
+          "Asystent AI wykonawcy",
+          "Pomaga pisać oferty, wyceniać zlecenia i odpowiadać klientom."
+        );
+      }
     };
     window.addEventListener('openProviderAi', handler);
     return () => window.removeEventListener('openProviderAi', handler);
+  }, [mobileHint]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const count = Number(e.detail?.count || 0);
+      setInsightBadge(Number.isFinite(count) && count > 0 ? count : 0);
+    };
+    window.addEventListener("providerAiInsightsUpdate", handler);
+    return () => window.removeEventListener("providerAiInsightsUpdate", handler);
   }, []);
 
   // Sprawdź pakiet użytkownika i pobierz statystyki użycia
@@ -280,6 +306,11 @@ export default function ProviderAIWidget() {
       dragRef.current.moved = false;
       return;
     }
+    mobileHint?.showHint?.(
+      "Asystent AI wykonawcy",
+      "Pomaga pisać oferty, wyceniać zlecenia i odpowiadać klientom."
+    );
+    setContextNote("");
     setOpen(true);
   };
 
@@ -340,6 +371,11 @@ export default function ProviderAIWidget() {
         data-testid="provider-ai-fab"
       >
         <span className="sr-only">Asystent AI</span>
+        {insightBadge > 0 && (
+          <span className="absolute right-1 top-1 z-20 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+            {insightBadge > 9 ? "9+" : insightBadge}
+          </span>
+        )}
         
         {/* Pulsująca aureola */}
         <motion.div
@@ -425,13 +461,22 @@ export default function ProviderAIWidget() {
                       </div>
                     )}
                     <button
-                      onClick={() => setOpen(false)}
+                      onClick={() => {
+                        setContextNote("");
+                        setOpen(false);
+                      }}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                       <X className="w-5 h-5 text-slate-500" />
                     </button>
                   </div>
                 </div>
+
+                {contextNote && (
+                  <div className="border-b border-indigo-100 bg-indigo-50/80 px-4 py-2.5 text-xs leading-relaxed text-indigo-900">
+                    <span className="font-semibold">AI Inbox:</span> {contextNote}
+                  </div>
+                )}
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">

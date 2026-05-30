@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import { LocateFixed, Search } from "lucide-react";
+import { useMobileHint } from "./ui/MobileHintProvider";
 
 /**
  * Niebieska kropka + delikatna poświata (jak „moja lokalizacja” w mapach).
@@ -70,6 +71,7 @@ export function MapLocateControl({ userLocation, onRequestLocation }) {
   const map = useMap();
   const [host, setHost] = useState(null);
   const pendingFly = useRef(false);
+  const mobileHint = useMobileHint();
 
   useEffect(() => {
     const wrap = document.createElement("div");
@@ -93,6 +95,10 @@ export function MapLocateControl({ userLocation, onRequestLocation }) {
   }, [userLocation, map]);
 
   const handleClick = () => {
+    mobileHint?.showHint?.(
+      "Moja lokalizacja",
+      "Centruje mapę na Twojej pozycji (GPS lub lokalizacja z profilu)."
+    );
     if (userLocation?.lat != null && userLocation?.lng != null) {
       map.flyTo([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 13), {
         duration: 0.75,

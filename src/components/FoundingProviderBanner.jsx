@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, TrendingUp, BadgeCheck, Loader2 } from 'lucide-react';
+import { Sparkles, Shield, TrendingUp, BadgeCheck, Loader2, Crown } from 'lucide-react';
 import { getFoundingProviderStatus, activateFoundingProvider } from '../api/growth';
 import { useAuth } from '../context/AuthContext';
 
 const BENEFITS = [
+  { icon: Crown, text: 'Pakiet PRO przez 60 dni' },
   { icon: Shield, text: '0% prowizji przez 60 dni' },
   { icon: BadgeCheck, text: 'Badge „Pierwszy wykonawca”' },
   { icon: TrendingUp, text: 'Większa widoczność na mapie i w AI' },

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import ToastProvider from "./components/toast/ToastProvider.jsx"
+import { MobileHintProvider } from "./components/ui/MobileHintProvider.jsx"
 import './index.css'
 /* ui.css usunięty — zawierał drugi pełny @tailwind base (Preflight 2×), co potrafi zepsuć scroll / layout */
 import { initSentry } from './sentry'
@@ -119,7 +120,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <App />
+          <MobileHintProvider>
+            <App />
+          </MobileHintProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
