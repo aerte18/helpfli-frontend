@@ -1,136 +1,93 @@
-// Service Worker — cache powłoki PWA + manifest (Vite buduje assety z hashami)
-const CACHE_NAME = 'helpfli-v5-' + new Date().getTime();
-const urlsToCache = ['/', '/manifest.json', '/icons/icon-192x192.png'];
+// Service Worker — tylko Web Push (bez cache HTML/JS; stary cache powodował biały ekran na iOS Safari)
+const SW_VERSION = "helpfli-push-v6";
 
-// Install event
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
-  );
-});
-
-// Fetch event — Cache API obsługuje tylko GET; POST/PUT/PATCH/DELETE tylko przez sieć
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') {
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  // W trybie development zawsze pobieraj z sieci
-  if (req.url.includes('localhost') || req.url.includes('127.0.0.1')) {
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  event.respondWith(
-    fetch(req)
-      .then((response) => {
-        if (response.status === 200) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(req, responseToCache);
-          });
-        }
-        return response;
-      })
-      .catch(() => caches.match(req))
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 // Push event - handle incoming push notifications
-self.addEventListener('push', (event) => {
-  console.log('Push event received:', event);
+self.addEventListener("push", (event) => {
+  console.log("Push event received:", event);
 
   let data = {};
   if (event.data) {
     try {
       data = event.data.json();
     } catch (e) {
-      data = { title: 'Helpfli', body: event.data.text() || 'Nowe powiadomienie' };
+      data = { title: "Helpfli", body: event.data.text() || "Nowe powiadomienie" };
     }
   }
 
   const options = {
-    body: data.body || 'Nowe powiadomienie z Helpfli',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-96x96.png',
+    body: data.body || "Nowe powiadomienie z Helpfli",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-96x96.png",
     vibrate: [200, 100, 200],
     data: {
-      url: data.url || '/',
-      timestamp: Date.now()
+      url: data.url || "/",
+      timestamp: Date.now(),
     },
     actions: [
       {
-        action: 'open',
-        title: 'Otwórz',
-        icon: '/icons/icon-192x192.png'
+        action: "open",
+        title: "Otwórz",
+        icon: "/icons/icon-192x192.png",
       },
       {
-        action: 'close',
-        title: 'Zamknij',
-        icon: '/icons/icon-192x192.png'
-      }
+        action: "close",
+        title: "Zamknij",
+        icon: "/icons/icon-192x192.png",
+      },
     ],
     requireInteraction: false,
-    silent: false
+    silent: false,
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Helpfli', options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title || "Helpfli", options));
 });
 
 // Notification click event
-self.addEventListener('notificationclick', (event) => {
-  console.log('Notification click received:', event);
+self.addEventListener("notificationclick", (event) => {
+  console.log("Notification click received:", event);
 
   event.notification.close();
 
-  if (event.action === 'close') {
+  if (event.action === "close") {
     return;
   }
 
-  const url = event.notification.data?.url || '/';
-  
+  const url = event.notification.data?.url || "/";
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Check if there's already a window/tab open with the target URL
-        for (const client of clientList) {
-          if (client.url.includes(url) && 'focus' in client) {
-            return client.focus();
-          }
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
         }
-        
-        // If no existing window, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(url);
-        }
-      })
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
   );
 });
 
-// Background sync (optional)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
+self.addEventListener("sync", (event) => {
+  if (event.tag === "background-sync") {
     event.waitUntil(doBackgroundSync());
   }
 });
 
 async function doBackgroundSync() {
-  // Implement background sync logic here
-  console.log('Background sync triggered');
+  console.log("Background sync triggered", SW_VERSION);
 }

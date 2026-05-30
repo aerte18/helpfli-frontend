@@ -3,6 +3,27 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ],
   "redirects": [
     { "source": "/orders/:orderId/tab-offers", "destination": "/orders/:orderId?tab=offers", "permanent": false },
     { "source": "/orders/:orderId/tab-my-offer", "destination": "/orders/:orderId?tab=my_offer", "permanent": false },

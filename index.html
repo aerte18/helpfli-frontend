@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Helpfli" />
     <meta name="description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
@@ -77,6 +78,35 @@
     </script>
   </head>
   <body>
+    <!-- iOS Safari: wyrejestruj stary SW zanim załaduje się bundle (inaczej biały ekran po deployu) -->
+    <script>
+      (function () {
+        try {
+          if (!("serviceWorker" in navigator)) return;
+          var marker = "qs_sw_cleanup_v1";
+          if (sessionStorage.getItem(marker)) return;
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            if (!regs.length) return;
+            sessionStorage.setItem(marker, "1");
+            Promise.all(regs.map(function (r) { return r.unregister(); }))
+              .then(function () {
+                if ("caches" in window) {
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                  });
+                }
+              })
+              .then(function () {
+                var u = new URL(window.location.href);
+                if (!u.searchParams.has("_sw")) {
+                  u.searchParams.set("_sw", String(Date.now()));
+                  window.location.replace(u.toString());
+                }
+              });
+          });
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

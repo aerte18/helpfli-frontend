@@ -1,5 +1,21 @@
 import React, { Component } from 'react';
 
+async function hardReloadClearingCache() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+    }
+  } catch {}
+  const url = new URL(window.location.href);
+  url.searchParams.set('_v', String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -52,6 +68,13 @@ class ErrorBoundary extends Component {
                 className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 Odśwież stronę
+              </button>
+
+              <button
+                onClick={() => hardReloadClearingCache()}
+                className="w-full bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors text-sm"
+              >
+                Wyczyść cache i odśwież (Safari / iPhone)
               </button>
               
               <button
