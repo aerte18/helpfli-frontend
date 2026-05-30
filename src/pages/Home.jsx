@@ -130,6 +130,7 @@ export default function Home() {
   const [activeFilters, setActiveFilters] = useState([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [clearCategoryTrigger, setClearCategoryTrigger] = useState(0);
+  const [maxDistance, setMaxDistance] = useState(50); // km — promień w widoku listy
 
   // Aktualizuj activeFilters gdy zmieniają się filtry
   useEffect(() => {
@@ -161,7 +162,6 @@ export default function Home() {
   }, [verifiedOnly, b2bOnly, proOnly, filters, selectedServices, viewMode, maxDistance]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [maxDistance, setMaxDistance] = useState(50); // km — promień w widoku listy
   // bbox (prostokąt z widoku mapy) ustawiany po kliknięciu „Przeszukaj ten obszar".
   const [mapBbox, setMapBbox] = useState(null);
   const [mapLoading, setMapLoading] = useState(false);

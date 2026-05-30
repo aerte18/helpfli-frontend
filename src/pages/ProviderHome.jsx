@@ -1475,6 +1475,153 @@ export default function ProviderHome() {
     );
   };
 
+  const mobileCollapsibleToolbar = (
+    <div
+      data-qs-provider-mobile-toolbar
+      className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl"
+    >
+      <div className="flex items-center gap-2 px-2 py-1.5">
+        <MobileViewModeToggle
+          viewMode={viewMode}
+          onChange={(mode) => {
+            setViewMode(mode);
+            setMapToolbarCollapsed(true);
+          }}
+        />
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
+          {mapToolbarCollapsed ? (
+            <>
+              <span className="font-semibold">{list.length}</span>{" "}
+              {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
+              <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
+              {(hasActiveFilters || recommendedOnly || !showAllServices) && (
+                <span className="text-indigo-600"> · filtry</span>
+              )}
+              {hasAiInsights && <span className="text-violet-600"> · AI</span>}
+            </>
+          ) : (
+            "Filtry i status zleceń"
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => setMapToolbarCollapsed((v) => !v)}
+          className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
+          aria-expanded={!mapToolbarCollapsed}
+        >
+          {mapToolbarCollapsed ? (
+            <>
+              <ChevronDown className="h-4 w-4" aria-hidden />
+              Rozwiń
+            </>
+          ) : (
+            <>
+              <ChevronUp className="h-4 w-4" aria-hidden />
+              Zwiń
+            </>
+          )}
+        </button>
+      </div>
+      {!mapToolbarCollapsed && (
+        <div className="space-y-2 border-t border-white/25 px-2 py-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
+              aria-label={`${list.length} zleceń w filtrze`}
+            >
+              <ClipboardList className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
+              {list.length} zleceń
+            </span>
+            {freeRepliesLeft != null && (
+              <span
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
+                aria-label={`${freeRepliesLeft} darmowych wycen`}
+              >
+                <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {freeRepliesLeft} wycen
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
+              onClick={() => {
+                const next = !showAllServices;
+                setShowAllServices(next);
+                setFilters((s) => ({ ...s, service: "any" }));
+              }}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                !showAllServices
+                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700"
+              }`}
+            >
+              <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {showAllServices ? "Rynek" : "Moje"}
+            </button>
+            <button
+              type="button"
+              aria-label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
+              onClick={() => setRecommendedOnly((v) => !v)}
+              disabled={recommendedLoading}
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+                recommendedOnly
+                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700"
+              } ${recommendedLoading ? "opacity-60" : ""}`}
+            >
+              <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
+              Polecane
+            </button>
+          </div>
+          {hasAiInsights && (
+            <button
+              type="button"
+              onClick={openProviderAiFromInsights}
+              className="flex w-full items-center justify-between rounded-lg border border-violet-200 bg-violet-50/80 px-2.5 py-2 text-left qs-tap-target"
+            >
+              <span className="text-[11px] font-medium text-violet-900">
+                {inboxFollowUps.length > 0
+                  ? `${inboxFollowUps.length} follow-up do wysłania`
+                  : `${inboxPriorityOrders.length} szans AI`}
+              </span>
+              <span className="text-[10px] font-semibold text-violet-700">Asystent →</span>
+            </button>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters({
+                    service: "any",
+                    maxDistance: 50,
+                    budgetMin: "",
+                    budgetMax: "",
+                    providerId: "any",
+                    paymentType: "any",
+                    offersStatus: "any",
+                    sortBy: "default",
+                  });
+                  setRecommendedOnly(false);
+                }}
+                className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
+              >
+                Wyczyść
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters(true)}
+              className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
+            >
+              Filtry
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div
       className={
@@ -1484,7 +1631,7 @@ export default function ProviderHome() {
       }
     >
       {/* Onboarding – pierwszy raz (3 kroki) */}
-      {!onboardingDismissed && viewMode !== "map" && (
+      {!onboardingDismissed && viewMode !== "map" && !isMobileViewport && (
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex-1">
@@ -1509,7 +1656,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (
+      {viewMode !== "map" && !isMobileViewport && (
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
           <ProviderGrowthBenefitsPanel collapsible defaultCollapsed storageKey="providerHome:growthBenefitsCollapsed" />
           {user?.role === 'provider' &&
@@ -1540,7 +1687,7 @@ export default function ProviderHome() {
       )}
 
       {/* Banner dla firm wieloosobowych */}
-      {isInCompany && viewMode !== "map" && (
+      {isInCompany && viewMode !== "map" && !isMobileViewport && (
         <div className="bg-indigo-50 border-b border-indigo-200">
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
@@ -1562,7 +1709,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
+      {viewMode !== "map" && !isMobileViewport && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0 || coachTips.length > 0 || profileIssues.length > 0) && (
         <div id="provider-ai-hints-section" className="max-w-7xl mx-auto px-4 pt-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1591,7 +1738,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && hasAiInsights && (
+      {viewMode !== "map" && !isMobileViewport && hasAiInsights && (
         <div className="md:hidden max-w-7xl mx-auto px-4 pt-3">
           <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -1615,7 +1762,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && aiInsightsExpanded && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0) && (
+      {viewMode !== "map" && !isMobileViewport && aiInsightsExpanded && (inboxPriorityOrders.length > 0 || inboxFollowUps.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <details className="group rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm" open>
             <summary className="list-none cursor-pointer">
@@ -1709,7 +1856,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {viewMode !== "map" && aiInsightsExpanded && (
+      {viewMode !== "map" && !isMobileViewport && aiInsightsExpanded && (
         <div className="max-w-7xl mx-auto px-4 pt-4">
           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <details className="group rounded-2xl border border-purple-200 bg-white p-4 shadow-sm" open>
@@ -1780,8 +1927,8 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {/* Pasek statusu wykonawcy — na mobile w mapie przeniesiony do zwijanego panelu nad mapą */}
-      {!(isMobileViewport && viewMode === "map") && (
+      {/* Pasek statusu wykonawcy — na mobile zastąpiony zwijanym toolbarem (lista i mapa) */}
+      {!isMobileViewport && (
       <div
         data-qs-provider-map-status-strip
         className={`left-0 right-0 z-[42] ${viewMode === "map" ? "fixed top-[calc(var(--app-nav-sticky-offset)+var(--app-breadcrumb-bar-height))]" : "sticky top-0"} ${viewMode === "map" ? "bg-white/95 backdrop-blur-md" : "bg-white/60 backdrop-blur-lg"} border-b ${viewMode === "map" ? "border-slate-200/20" : "border-slate-200/30"} shadow-sm transition-all duration-300`}
@@ -1927,134 +2074,7 @@ export default function ProviderHome() {
               : "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 5.25rem)",
           }}
         >
-          {isMobileViewport && (
-            <div className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl">
-              <div className="flex items-center gap-2 px-2 py-1.5">
-                <MobileViewModeToggle
-                  viewMode={viewMode}
-                  onChange={(mode) => {
-                    setViewMode(mode);
-                    if (mode === "map") setMapToolbarCollapsed(true);
-                  }}
-                />
-                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
-                  {mapToolbarCollapsed ? (
-                    <>
-                      <span className="font-semibold">{list.length}</span>{" "}
-                      {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
-                      <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
-                      {(hasActiveFilters || recommendedOnly || !showAllServices) && (
-                        <span className="text-indigo-600"> · filtry</span>
-                      )}
-                    </>
-                  ) : (
-                    "Filtry i status zleceń"
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setMapToolbarCollapsed((v) => !v)}
-                  className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
-                  aria-expanded={!mapToolbarCollapsed}
-                >
-                  {mapToolbarCollapsed ? (
-                    <>
-                      <ChevronDown className="h-4 w-4" aria-hidden />
-                      Rozwiń
-                    </>
-                  ) : (
-                    <>
-                      <ChevronUp className="h-4 w-4" aria-hidden />
-                      Zwiń
-                    </>
-                  )}
-                </button>
-              </div>
-              {!mapToolbarCollapsed && (
-                <div className="space-y-2 border-t border-white/25 px-2 py-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
-                      aria-label={`${list.length} zleceń w filtrze`}
-                    >
-                      <ClipboardList className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
-                      {list.length} zleceń
-                    </span>
-                    {freeRepliesLeft != null && (
-                      <span
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
-                        aria-label={`${freeRepliesLeft} darmowych wycen`}
-                      >
-                        <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {freeRepliesLeft} wycen
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
-                      onClick={() => {
-                        const next = !showAllServices;
-                        setShowAllServices(next);
-                        setFilters((s) => ({ ...s, service: "any" }));
-                      }}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                        !showAllServices
-                          ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                          : "border-slate-200 bg-white text-slate-700"
-                      }`}
-                    >
-                      <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      {showAllServices ? "Rynek" : "Moje"}
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
-                      onClick={() => setRecommendedOnly((v) => !v)}
-                      disabled={recommendedLoading}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                        recommendedOnly
-                          ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                          : "border-slate-200 bg-white text-slate-700"
-                      } ${recommendedLoading ? "opacity-60" : ""}`}
-                    >
-                      <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
-                      Polecane
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
-                    {hasActiveFilters && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters({
-                            service: "any",
-                            maxDistance: 50,
-                            budgetMin: "",
-                            budgetMax: "",
-                            providerId: "any",
-                            paymentType: "any",
-                            offersStatus: "any",
-                            sortBy: "default",
-                          });
-                          setRecommendedOnly(false);
-                        }}
-                        className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
-                      >
-                        Wyczyść
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvancedFilters(true)}
-                      className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
-                    >
-                      Filtry
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {isMobileViewport && mobileCollapsibleToolbar}
           {!isMobileViewport && (
             <div className="qs-home-map-shell-interactive relative max-h-[min(38vh,20rem)] shrink-0 overflow-y-auto border-b border-gray-200/20 bg-white shadow-sm sm:max-h-none sm:overflow-visible">
               {hasActiveFilters && (
@@ -2158,21 +2178,6 @@ export default function ProviderHome() {
             </div>
           </div>
         </div>
-        {isMobileViewport && viewMode === "map" && hasAiInsights && !mapMobileImmersive && (
-          <ProviderMobileAiNudge
-            visible
-            priorityOrders={inboxPriorityOrders}
-            followUps={inboxFollowUps}
-            coachTips={coachTips}
-            quickWins={providerAiInbox.quickWins}
-            onOpenOrder={handleOpenDetails}
-            onOpenFollowUp={(offer) => {
-              const order = offer.orderId || {};
-              const orderId = order._id || order.id || offer.orderId;
-              handleOpenDetails({ _id: orderId }, "my_offer");
-            }}
-          />
-        )}
         {isMobileViewport && viewMode === "map" && !showAdvancedFilters && (
           <button
             type="button"
@@ -2201,8 +2206,12 @@ export default function ProviderHome() {
           </button>
         )}
         </>
+      ) : isMobileViewport ? (
+        <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42]">
+          {mobileCollapsibleToolbar}
+        </div>
       ) : (
-        // Tryb lista/podział - sticky toolbar (kompaktowy); przy przewijaniu – przezroczysty
+        // Tryb lista/podział — sticky toolbar (desktop)
         <div
           className={`sticky top-16 z-40 border-b min-h-[88px] flex items-center transition-all duration-300 ${
             toolbarScrolled
@@ -2211,12 +2220,8 @@ export default function ProviderHome() {
           }`}
         >
           <div className="max-w-6xl mx-auto px-4 py-4 w-full">
-            <div
-              className={`flex gap-3 ${
-                isMobileViewport ? "flex-col items-stretch" : "items-end justify-between flex-wrap"
-              }`}
-            >
-              {!isMobileViewport && viewMode === "split" && (
+            <div className="flex gap-3 items-end justify-between flex-wrap">
+              {viewMode === "split" && (
               <div className="flex items-end gap-4 flex-wrap">
                 <Select
                   compact
@@ -2235,11 +2240,7 @@ export default function ProviderHome() {
                 />
               </div>
               )}
-              <div
-                className={`flex items-center gap-2 ${
-                  isMobileViewport ? "w-full justify-end" : ""
-                }`}
-              >
+              <div className="flex items-center gap-2">
                 {hasActiveFilters && (
                   <button
                     type="button"
@@ -2272,6 +2273,22 @@ export default function ProviderHome() {
             </div>
           </div>
         </div>
+      )}
+
+      {isMobileViewport && hasAiInsights && !(viewMode === "map" && mapMobileImmersive) && (
+        <ProviderMobileAiNudge
+          visible
+          priorityOrders={inboxPriorityOrders}
+          followUps={inboxFollowUps}
+          coachTips={coachTips}
+          quickWins={providerAiInbox.quickWins}
+          onOpenOrder={handleOpenDetails}
+          onOpenFollowUp={(offer) => {
+            const order = offer.orderId || {};
+            const orderId = order._id || order.id || offer.orderId;
+            handleOpenDetails({ _id: orderId }, "my_offer");
+          }}
+        />
       )}
 
       {/* Przełącznik widoku – od razu pod toolbarem, tylko w widoku lista */}
@@ -2311,7 +2328,7 @@ export default function ProviderHome() {
 
       {/* Lista + Mapa */}
       {viewMode !== "map" && (
-      <div className={`max-w-7xl mx-auto px-4 grid ${gridClass} gap-6 mt-4 ${isMobileViewport ? "pb-24" : ""}`}>
+      <div className={`max-w-7xl mx-auto px-4 grid ${gridClass} gap-6 ${isMobileViewport ? "mt-2 pb-24" : "mt-4"}`}>
         {/* Filtry po lewej — desktop; na mobile ten sam zestaw jest w drawerze „Wszystkie filtry” */}
         {viewMode === "list" && !isMobileViewport && (
           <div className={`
