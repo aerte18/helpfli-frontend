@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
@@ -9,6 +9,10 @@ import { useLocation } from "react-router-dom";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
 import AiFabLauncher from "./ui/AiFabLauncher";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
+import {
+  PROVIDER_AI_NUDGE_DISMISS_KEY,
+  NUDGE_CHANGE_EVENT,
+} from "./provider/ProviderMobileAiNudge";
 
 export default function ProviderAIWidget() {
   const location = useLocation();
@@ -24,6 +28,7 @@ export default function ProviderAIWidget() {
   const [usage, setUsage] = useState({ used: 0, limit: 20, remaining: 20 });
   const [contextNote, setContextNote] = useState("");
   const [insightBadge, setInsightBadge] = useState(0);
+  const [nudgeDockActive, setNudgeDockActive] = useState(false);
   const messagesEndRef = React.useRef(null);
 
   useEffect(() => {
@@ -61,6 +66,26 @@ export default function ProviderAIWidget() {
     window.addEventListener("providerAiInsightsUpdate", handler);
     return () => window.removeEventListener("providerAiInsightsUpdate", handler);
   }, []);
+
+  const syncNudgeDockActive = useCallback(() => {
+    const onProviderHome = location.pathname === "/provider-home";
+    if (isMdUp || !onProviderHome || insightBadge <= 0) {
+      setNudgeDockActive(false);
+      return;
+    }
+    try {
+      const dismissedAt = Number(sessionStorage.getItem(PROVIDER_AI_NUDGE_DISMISS_KEY) || "0");
+      setNudgeDockActive(dismissedAt < insightBadge);
+    } catch {
+      setNudgeDockActive(true);
+    }
+  }, [isMdUp, location.pathname, insightBadge]);
+
+  useEffect(() => {
+    syncNudgeDockActive();
+    window.addEventListener(NUDGE_CHANGE_EVENT, syncNudgeDockActive);
+    return () => window.removeEventListener(NUDGE_CHANGE_EVENT, syncNudgeDockActive);
+  }, [syncNudgeDockActive]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -240,7 +265,7 @@ export default function ProviderAIWidget() {
   const isAccountRoute = location.pathname.startsWith("/account");
   const hideFloatingFab = isAccountRoute && !open;
   const onProviderHome = location.pathname === "/provider-home";
-  const hideFabForInsightDock = !isMdUp && onProviderHome && insightBadge > 0;
+  const hideFabForInsightDock = !isMdUp && onProviderHome && nudgeDockActive;
 
   const isFree = packageType === 'PROV_FREE';
   const isStandard = packageType === 'PROV_STD';

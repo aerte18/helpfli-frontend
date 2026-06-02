@@ -521,10 +521,9 @@ html.qs-map-route-scroll-lock body {
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
   }
 
-  /* Provider AI Inbox — ten sam wzorzec co FAB (Messenger-style edge tab) */
+  /* Provider AI Inbox — tab z prawej; zwinięty = cała ikona (2.75rem) zostaje na ekranie */
   .qs-ai-nudge-edge {
-    border-radius: 9999px 0 0 9999px;
-    transform: translateX(calc(100% - 1.25rem));
+    transform: translateX(calc(100% - 2.75rem));
     transition: transform var(--qs-duration-normal) var(--qs-ease-standard);
   }
   .qs-ai-nudge-edge.qs-ai-nudge-edge--expanded {

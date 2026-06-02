@@ -95,24 +95,17 @@ export default function ProviderAdvancedFilters({
         aria-labelledby="provider-advanced-filters-title"
         className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col overflow-hidden bg-white shadow-2xl min-h-0 sm:max-w-md"
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:gap-3 sm:p-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5">
           <h2
             id="provider-advanced-filters-title"
-            className="min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--qs-color-text)] sm:text-lg"
+            className="text-lg font-semibold text-[var(--qs-color-text)]"
           >
             Filtry zaawansowane
           </h2>
           <button
             type="button"
-            onClick={handleClear}
-            className="shrink-0 whitespace-nowrap text-sm font-medium text-slate-500 hover:text-slate-800"
-          >
-            Wyczyść
-          </button>
-          <button
-            type="button"
             onClick={onClose}
-            className="shrink-0 rounded-full p-1.5 text-[var(--qs-color-muted)] transition-colors hover:bg-white hover:text-[var(--qs-color-text)]"
+            className="rounded-full p-1 text-[var(--qs-color-muted)] transition-colors hover:bg-white hover:text-[var(--qs-color-text)]"
             aria-label="Zamknij"
           >
             ✕
@@ -312,16 +305,23 @@ export default function ProviderAdvancedFilters({
         </div>
 
         <div
-          className={`flex shrink-0 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] sm:p-5 ${
+          className={`flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 ${
             mapViewMobile
-              ? "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
-              : "pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+              ? "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-5"
+              : "pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:pb-5"
           }`}
         >
           <button
             type="button"
+            onClick={handleClear}
+            className="flex-1 qs-btn qs-btn-outline text-sm !px-5 !py-2.5"
+          >
+            Wyczyść
+          </button>
+          <button
+            type="button"
             onClick={handleApply}
-            className="w-full qs-btn qs-btn-primary text-sm !px-5 !py-2.5"
+            className="flex-1 qs-btn qs-btn-primary text-sm !px-5 !py-2.5"
           >
             Zastosuj
           </button>
