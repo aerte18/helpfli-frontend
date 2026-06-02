@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronUp, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, X } from "lucide-react";
+import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 import { serviceLabel } from "../../utils/serviceLabels";
 
 const COLLAPSE_KEY = "providerAiNudge_collapsedCount";
+const PEEK_MS = 4200;
 
 function buildSummary({ priorityOrders, followUps, coachTips }) {
   if (priorityOrders.length > 0) {
@@ -41,8 +43,11 @@ export default function ProviderMobileAiNudge({
   onOpenFollowUp,
   onCoachAction,
 }) {
+  const isMdUp = useBreakpointMd();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [pillHidden, setPillHidden] = useState(false);
+  const [dockExpanded, setDockExpanded] = useState(false);
+  const [dockHidden, setDockHidden] = useState(false);
+  const collapseTimer = useRef(null);
 
   const actionableCount = priorityOrders.length + followUps.length;
   const hasContent = actionableCount > 0 || coachTips.length > 0;
@@ -51,27 +56,49 @@ export default function ProviderMobileAiNudge({
     [priorityOrders, followUps, coachTips]
   );
 
+  const scheduleCollapse = useCallback(() => {
+    if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    collapseTimer.current = setTimeout(() => setDockExpanded(false), PEEK_MS);
+  }, []);
+
+  const expandDock = useCallback(() => {
+    setDockExpanded(true);
+    scheduleCollapse();
+  }, [scheduleCollapse]);
+
+  useEffect(() => {
+    return () => {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!hasContent) {
-      setPillHidden(false);
+      setDockHidden(false);
       return;
     }
     try {
       const collapsedAt = Number(sessionStorage.getItem(COLLAPSE_KEY) || "0");
-      setPillHidden(collapsedAt >= actionableCount && actionableCount > 0);
+      setDockHidden(collapsedAt >= actionableCount && actionableCount > 0);
     } catch {
-      setPillHidden(false);
+      setDockHidden(false);
     }
   }, [actionableCount, hasContent]);
 
-  const dismissPill = () => {
+  useEffect(() => {
+    if (!visible || !hasContent || dockHidden || isMdUp) return;
+    expandDock();
+  }, [visible, hasContent, dockHidden, isMdUp, actionableCount, expandDock]);
+
+  const dismissDock = () => {
     try {
       sessionStorage.setItem(COLLAPSE_KEY, String(actionableCount));
     } catch {
       /* ignore */
     }
-    setPillHidden(true);
+    setDockHidden(true);
     setSheetOpen(false);
+    setDockExpanded(false);
   };
 
   const openAssistant = () => {
@@ -91,41 +118,54 @@ export default function ProviderMobileAiNudge({
     setSheetOpen(false);
   };
 
-  if (!visible || !hasContent || pillHidden) return null;
+  if (!visible || !hasContent || dockHidden || isMdUp) return null;
 
   return (
     <>
       <div
-        className="pointer-events-none fixed left-3 z-[49] max-w-[calc(100%-5.5rem)] qs-fixed-above-mobile-tab-lg md:hidden"
+        className="pointer-events-none fixed right-0 z-[54] md:hidden"
         data-qs-provider-ai-nudge
+        style={{ bottom: "var(--qs-map-action-bottom)" }}
       >
-        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-indigo-200/80 bg-white/95 py-1 pl-1 pr-1 shadow-lg shadow-indigo-900/10 ring-1 ring-slate-900/5 backdrop-blur-md">
+        <div
+          className={`pointer-events-auto qs-ai-nudge-edge flex max-w-[min(100vw-1rem,17.5rem)] items-center gap-0.5 border border-indigo-200/90 bg-white/97 py-1 pl-1 pr-0.5 shadow-lg shadow-indigo-900/12 ring-1 ring-slate-900/5 backdrop-blur-md ${
+            dockExpanded ? "qs-ai-nudge-edge--expanded" : ""
+          }`}
+        >
           <button
             type="button"
-            onClick={() => setSheetOpen(true)}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-full py-1.5 pl-2 pr-2 text-left qs-tap-target"
-            aria-label={`Podpowiedzi AI: ${summary}`}
+            onClick={() => {
+              expandDock();
+              setSheetOpen(true);
+            }}
+            onPointerEnter={expandDock}
+            onFocus={expandDock}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-l-full py-1 pl-1.5 pr-1 text-left qs-tap-target"
+            aria-label={`Podpowiedzi AI: ${summary}. Otwórz panel.`}
           >
-            <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white">
+              <Sparkles className="h-4 w-4" aria-hidden />
               {actionableCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-60" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white" />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold text-white ring-2 ring-white">
+                  {actionableCount > 9 ? "9+" : actionableCount}
                 </span>
               )}
             </span>
-            <span className="min-w-0">
+            <span
+              className={`min-w-0 overflow-hidden transition-[max-width,opacity] duration-300 ease-out ${
+                dockExpanded ? "max-w-[9.5rem] opacity-100" : "max-w-0 opacity-0"
+              }`}
+              aria-hidden={!dockExpanded}
+            >
               <span className="block truncate text-[11px] font-semibold text-indigo-950">{summary}</span>
-              <span className="block truncate text-[10px] text-slate-500">Tapnij, aby zobaczyć</span>
+              <span className="block truncate text-[10px] text-slate-500">Dotknij, aby otworzyć</span>
             </span>
-            <ChevronUp className="h-4 w-4 shrink-0 rotate-180 text-indigo-500" aria-hidden />
           </button>
           <button
             type="button"
-            onClick={dismissPill}
+            onClick={dismissDock}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 qs-tap-target"
-            aria-label="Ukryj podpowiedź na teraz"
+            aria-label="Schowaj podpowiedź na teraz"
           >
             <X className="h-3.5 w-3.5" aria-hidden />
           </button>

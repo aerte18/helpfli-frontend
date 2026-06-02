@@ -511,11 +511,24 @@ html.qs-map-route-scroll-lock body {
     right: 0;
     transform: translateX(calc(100% - 1.125rem));
     box-shadow: -3px 4px 16px rgba(15, 23, 42, 0.18);
+    transition:
+      transform var(--qs-duration-normal) var(--qs-ease-standard),
+      box-shadow var(--qs-duration-normal) var(--qs-ease-standard);
   }
   .qs-ai-fab.qs-ai-fab-edge.qs-ai-fab-edge--expanded,
   .qs-ai-fab.qs-ai-fab-edge:focus-visible {
     transform: translateX(0);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  }
+
+  /* Provider AI Inbox — ten sam wzorzec co FAB (Messenger-style edge tab) */
+  .qs-ai-nudge-edge {
+    border-radius: 9999px 0 0 9999px;
+    transform: translateX(calc(100% - 1.25rem));
+    transition: transform var(--qs-duration-normal) var(--qs-ease-standard);
+  }
+  .qs-ai-nudge-edge.qs-ai-nudge-edge--expanded {
+    transform: translateX(0);
   }
 }
 @media (min-width: 768px) {

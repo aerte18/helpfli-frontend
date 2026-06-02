@@ -2117,7 +2117,7 @@ export default function ProviderHome() {
         </div>
       )}
 
-      {isMobileViewport && hasAiInsights && !(viewMode === "map" && mapMobileImmersive) && (
+      {isMobileViewport && hasAiInsights && !mapMobileImmersive && (
         <ProviderMobileAiNudge
           visible
           priorityOrders={inboxPriorityOrders}

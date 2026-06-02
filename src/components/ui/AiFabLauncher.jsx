@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useBreakpointMd } from "../../hooks/useBreakpointMd";
@@ -53,22 +53,34 @@ export default function AiFabLauncher({
     };
   }, [location.pathname, isMdUp]);
 
+  const scheduleCollapse = useCallback(() => {
+    if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    collapseTimer.current = setTimeout(() => setExpanded(false), 3200);
+  }, []);
+
+  const expandDock = useCallback(() => {
+    if (!edgeDock) return;
+    setExpanded(true);
+    scheduleCollapse();
+  }, [edgeDock, scheduleCollapse]);
+
   useEffect(() => {
     return () => {
       if (collapseTimer.current) clearTimeout(collapseTimer.current);
     };
   }, []);
 
-  const scheduleCollapse = () => {
-    if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    collapseTimer.current = setTimeout(() => setExpanded(false), 3200);
-  };
-
-  const expandDock = () => {
-    if (!edgeDock) return;
+  useEffect(() => {
+    if (!edgeDock || isMdUp) return;
     setExpanded(true);
     scheduleCollapse();
-  };
+  }, [edgeDock, isMdUp, scheduleCollapse]);
+
+  useEffect(() => {
+    if (!edgeDock || isMdUp || !badge) return;
+    setExpanded(true);
+    scheduleCollapse();
+  }, [badge, edgeDock, isMdUp, scheduleCollapse]);
 
   const handleClick = () => {
     expandDock();

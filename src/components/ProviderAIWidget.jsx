@@ -8,9 +8,11 @@ import { apiUrl } from "../lib/apiUrl";
 import { useLocation } from "react-router-dom";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
 import AiFabLauncher from "./ui/AiFabLauncher";
+import { useBreakpointMd } from "../hooks/useBreakpointMd";
 
 export default function ProviderAIWidget() {
   const location = useLocation();
+  const isMdUp = useBreakpointMd();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [isMapImmersive, setIsMapImmersive] = useState(false);
@@ -237,6 +239,8 @@ export default function ProviderAIWidget() {
 
   const isAccountRoute = location.pathname.startsWith("/account");
   const hideFloatingFab = isAccountRoute && !open;
+  const onProviderHome = location.pathname === "/provider-home";
+  const hideFabForInsightDock = !isMdUp && onProviderHome && insightBadge > 0;
 
   const isFree = packageType === 'PROV_FREE';
   const isStandard = packageType === 'PROV_STD';
@@ -253,7 +257,7 @@ export default function ProviderAIWidget() {
       <AiFabLauncher
         testId="provider-ai-fab"
         variant="provider"
-        hidden={open || isMapImmersive || hideFloatingFab}
+        hidden={open || isMapImmersive || hideFloatingFab || hideFabForInsightDock}
         onClick={handleOpen}
         badge={
           insightBadge > 0 ? (

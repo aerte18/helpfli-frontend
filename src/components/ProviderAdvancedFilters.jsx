@@ -93,22 +93,33 @@ export default function ProviderAdvancedFilters({
         role="dialog"
         aria-modal="true"
         aria-labelledby="provider-advanced-filters-title"
-        className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col bg-white shadow-2xl min-h-0 sm:max-w-md"
+        className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-[min(100%,24rem)] flex-col overflow-hidden bg-white shadow-2xl min-h-0 sm:max-w-md"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5">
-          <h2 className="text-lg font-semibold text-[var(--qs-color-text)]">
+        <div className="flex shrink-0 items-center gap-2 border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:gap-3 sm:p-5">
+          <h2
+            id="provider-advanced-filters-title"
+            className="min-w-0 flex-1 text-base font-semibold leading-snug text-[var(--qs-color-text)] sm:text-lg"
+          >
             Filtry zaawansowane
           </h2>
           <button
             type="button"
+            onClick={handleClear}
+            className="shrink-0 whitespace-nowrap text-sm font-medium text-slate-500 hover:text-slate-800"
+          >
+            Wyczyść
+          </button>
+          <button
+            type="button"
             onClick={onClose}
-            className="text-[var(--qs-color-muted)] hover:text-[var(--qs-color-text)] transition-colors rounded-full p-1 hover:bg-white"
+            className="shrink-0 rounded-full p-1.5 text-[var(--qs-color-muted)] transition-colors hover:bg-white hover:text-[var(--qs-color-text)]"
+            aria-label="Zamknij"
           >
             ✕
           </button>
         </div>
 
-        <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-5 ${
+        <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-4 sm:p-5 ${
           mapViewMobile ? "pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:pb-24" : "pb-24"
         } space-y-5`}>
           <div>
@@ -300,22 +311,17 @@ export default function ProviderAdvancedFilters({
           )}
         </div>
 
-        <div className={`sticky bottom-0 z-10 flex shrink-0 gap-3 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-5 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] ${
-          mapViewMobile
-            ? "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
-            : "pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
-        }`}>
-          <button
-            type="button"
-            onClick={handleClear}
-            className="flex-1 qs-btn qs-btn-outline text-sm !px-5 !py-2.5"
-          >
-            Wyczyść
-          </button>
+        <div
+          className={`flex shrink-0 border-t border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)] p-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] sm:p-5 ${
+            mapViewMobile
+              ? "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+              : "pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+          }`}
+        >
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 qs-btn qs-btn-primary text-sm !px-5 !py-2.5"
+            className="w-full qs-btn qs-btn-primary text-sm !px-5 !py-2.5"
           >
             Zastosuj
           </button>
