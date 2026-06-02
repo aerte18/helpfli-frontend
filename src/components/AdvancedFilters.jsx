@@ -12,21 +12,29 @@ export default function AdvancedFilters({
   locationError,
   onRequestLocation,
   showDistanceFilter = false,
+  verifiedOnly = false,
+  proOnly = false,
+  onVerifiedOnlyChange,
+  onProOnlyChange,
   onApply, 
   onClear 
 }) {
   const [localFilters, setLocalFilters] = useState(filters || {});
+  const [localVerifiedOnly, setLocalVerifiedOnly] = useState(verifiedOnly);
+  const [localProOnly, setLocalProOnly] = useState(proOnly);
   const [isInitialized, setIsInitialized] = useState(false);
   
   // Resetuj localFilters tylko gdy drawer się otwiera (nie przy każdej zmianie filters)
   useEffect(() => {
     if (isOpen && !isInitialized) {
       setLocalFilters(filters || {});
+      setLocalVerifiedOnly(verifiedOnly);
+      setLocalProOnly(proOnly);
       setIsInitialized(true);
     } else if (!isOpen) {
       setIsInitialized(false);
     }
-  }, [isOpen, filters, isInitialized]);
+  }, [isOpen, filters, verifiedOnly, proOnly, isInitialized]);
 
   const handleFilterChange = (key, value) => {
     setLocalFilters(prev => ({
@@ -37,13 +45,19 @@ export default function AdvancedFilters({
 
   const handleApply = () => {
     onFiltersChange(localFilters);
+    onVerifiedOnlyChange?.(localVerifiedOnly);
+    onProOnlyChange?.(localProOnly);
     onApply();
     onClose();
   };
 
   const handleClear = () => {
     setLocalFilters({});
+    setLocalVerifiedOnly(false);
+    setLocalProOnly(false);
     onFiltersChange({});
+    onVerifiedOnlyChange?.(false);
+    onProOnlyChange?.(false);
     onClear();
     onClose();
   };
@@ -59,7 +73,7 @@ export default function AdvancedFilters({
       />
       
       {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-2xl">
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-[var(--qs-color-border)] bg-[var(--qs-color-bg-soft)]">
@@ -74,6 +88,30 @@ export default function AdvancedFilters({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Wykonawcy</h3>
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--qs-color-border)] bg-white px-3 py-2.5">
+                  <span className="text-sm text-[var(--qs-color-text)]">Tylko zweryfikowani</span>
+                  <input
+                    type="checkbox"
+                    checked={localVerifiedOnly}
+                    onChange={(e) => setLocalVerifiedOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--qs-color-border)] bg-white px-3 py-2.5">
+                  <span className="text-sm text-[var(--qs-color-text)]">Tylko TOP (PRO)</span>
+                  <input
+                    type="checkbox"
+                    checked={localProOnly}
+                    onChange={(e) => setLocalProOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </label>
+              </div>
+            </div>
+
             {/* Kategoria usługi */}
             <div>
               <h3 className="text-sm font-semibold text-[var(--qs-color-text)] mb-3">Kategoria usługi</h3>

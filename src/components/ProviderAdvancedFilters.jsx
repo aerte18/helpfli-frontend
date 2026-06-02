@@ -31,18 +31,31 @@ export default function ProviderAdvancedFilters({
   companyProviders = [],
   showDistanceFilter = true,
   mapViewMobile = false,
+  showAllServices = true,
+  onShowAllServicesChange,
+  recommendedOnly = false,
+  onRecommendedOnlyChange,
+  recommendedLoading = false,
+  freeRepliesLeft = null,
+  hasAiInsights = false,
+  aiInsightsLabel = "",
+  onOpenAiInsights,
 }) {
   const [localFilters, setLocalFilters] = useState(filters || DEFAULT_FILTERS);
+  const [localShowAllServices, setLocalShowAllServices] = useState(showAllServices);
+  const [localRecommendedOnly, setLocalRecommendedOnly] = useState(recommendedOnly);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     if (isOpen && !isInitialized) {
       setLocalFilters(filters || DEFAULT_FILTERS);
+      setLocalShowAllServices(showAllServices);
+      setLocalRecommendedOnly(recommendedOnly);
       setIsInitialized(true);
     } else if (!isOpen) {
       setIsInitialized(false);
     }
-  }, [isOpen, filters, isInitialized]);
+  }, [isOpen, filters, showAllServices, recommendedOnly, isInitialized]);
 
   const handleChange = (key, value) => {
     setLocalFilters((prev) => ({ ...prev, [key]: value }));
@@ -50,13 +63,19 @@ export default function ProviderAdvancedFilters({
 
   const handleApply = () => {
     onFiltersChange(localFilters);
+    onShowAllServicesChange?.(localShowAllServices);
+    onRecommendedOnlyChange?.(localRecommendedOnly);
     onApply?.();
     onClose();
   };
 
   const handleClear = () => {
     setLocalFilters(DEFAULT_FILTERS);
+    setLocalShowAllServices(true);
+    setLocalRecommendedOnly(false);
     onFiltersChange(DEFAULT_FILTERS);
+    onShowAllServicesChange?.(true);
+    onRecommendedOnlyChange?.(false);
     onClear?.();
     onClose();
   };
@@ -92,6 +111,58 @@ export default function ProviderAdvancedFilters({
         <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] p-5 ${
           mapViewMobile ? "pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] sm:pb-24" : "pb-24"
         } space-y-5`}>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--qs-color-text)]">Zakres zleceń</h3>
+            <div className="space-y-2">
+              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--qs-color-border)] bg-white px-3 py-2.5">
+                <div>
+                  <span className="text-sm text-[var(--qs-color-text)]">Tylko moje usługi</span>
+                  <p className="mt-0.5 text-xs text-[var(--qs-color-muted)]">
+                    Wyłączone = pełny rynek zleceń
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={!localShowAllServices}
+                  onChange={(e) => setLocalShowAllServices(!e.target.checked)}
+                  className="h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </label>
+              <label
+                className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--qs-color-border)] bg-white px-3 py-2.5 ${
+                  recommendedLoading ? "opacity-60" : ""
+                }`}
+              >
+                <span className="text-sm text-[var(--qs-color-text)]">Tylko polecane przez AI</span>
+                <input
+                  type="checkbox"
+                  checked={localRecommendedOnly}
+                  disabled={recommendedLoading}
+                  onChange={(e) => setLocalRecommendedOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </label>
+            </div>
+            {freeRepliesLeft != null && (
+              <p className="mt-2 text-xs text-emerald-800">
+                Pozostało darmowych wycen: <span className="font-semibold">{freeRepliesLeft}</span>
+              </p>
+            )}
+            {hasAiInsights && onOpenAiInsights && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenAiInsights();
+                  onClose();
+                }}
+                className="mt-2 flex w-full items-center justify-between rounded-xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-left text-sm text-violet-900"
+              >
+                <span>{aiInsightsLabel || "Otwórz asystenta AI"}</span>
+                <span className="text-xs font-semibold text-violet-700">→</span>
+              </button>
+            )}
+          </div>
+
           {/* Sortowanie */}
           <div>
             <label className="block text-sm font-semibold text-[var(--qs-color-text)] mb-2">

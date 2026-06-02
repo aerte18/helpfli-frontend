@@ -1292,6 +1292,7 @@ export default function ProviderHome() {
       sortBy: "default",
     });
     setRecommendedOnly(false);
+    setShowAllServices(true);
   }, []);
 
   // Defensive guards: backend/UX experiments can temporarily return non-array payloads.
@@ -1454,6 +1455,9 @@ export default function ProviderHome() {
     );
   };
 
+  const providerMobileFiltersActive =
+    hasActiveFilters || recommendedOnly || !showAllServices;
+
   const mobileSearchToolbar = (
     <div
       data-qs-provider-mobile-toolbar
@@ -1461,83 +1465,20 @@ export default function ProviderHome() {
     >
       <div className="flex items-center gap-2 px-2 py-2">
         <MobileViewModeToggle viewMode={viewMode} ariaLabel="Widok zleceń" onChange={setViewMode} />
-        <div className="scrollbar-hide flex min-w-0 flex-1 touch-pan-x items-center gap-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-          <span
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-slate-700"
-            aria-label={`${list.length} zleceń w filtrze`}
-          >
-            <ClipboardList className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-            {list.length}
-          </span>
-          {freeRepliesLeft != null && (
-            <span
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
-              aria-label={`${freeRepliesLeft} darmowych wycen`}
-            >
-              <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {freeRepliesLeft}
-            </span>
-          )}
-          <button
-            type="button"
-            aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
-            onClick={() => {
-              const next = !showAllServices;
-              setShowAllServices(next);
-              setFilters((s) => ({ ...s, service: "any" }));
-            }}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-              !showAllServices
-                ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-700"
-            }`}
-          >
-            <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {showAllServices ? "Rynek" : "Moje"}
-          </button>
-          <button
-            type="button"
-            aria-label={recommendedOnly ? "Filtr AI: włączone" : "Tylko polecane przez AI"}
-            onClick={() => setRecommendedOnly((v) => !v)}
-            disabled={recommendedLoading}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-              recommendedOnly
-                ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-700"
-            } ${recommendedLoading ? "opacity-60" : ""}`}
-          >
-            <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
-            Polecane
-          </button>
-          {hasAiInsights && (
-            <button
-              type="button"
-              onClick={openProviderAiFromInsights}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-1 text-[10px] font-semibold text-violet-800 qs-tap-target"
-            >
-              <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {inboxFollowUps.length > 0
-                ? `${inboxFollowUps.length} follow-up`
-                : `${inboxPriorityOrders.length} AI`}
-            </button>
-          )}
-          {(hasActiveFilters || !showAllServices) && (
-            <button
-              type="button"
-              onClick={clearProviderFilters}
-              className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 qs-tap-target"
-            >
-              Wyczyść
-            </button>
-          )}
-        </div>
+        <p className="min-w-0 flex-1 truncate text-xs text-slate-600" aria-live="polite">
+          <span className="font-semibold tabular-nums text-slate-800">{list.length}</span>{" "}
+          {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
+        </p>
         <button
           type="button"
           onClick={() => setShowAdvancedFilters(true)}
-          className="qs-tap-target inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          className="qs-tap-target relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
           aria-label="Wszystkie filtry"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
+          {providerMobileFiltersActive && (
+            <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-white" aria-hidden />
+          )}
         </button>
       </div>
     </div>
@@ -2647,6 +2588,25 @@ export default function ProviderHome() {
         companyProviders={companyProviders}
         mapViewMobile={isMobileViewport && viewMode === "map"}
         showDistanceFilter={viewMode === "list"}
+        showAllServices={showAllServices}
+        onShowAllServicesChange={(next) => {
+          setShowAllServices(next);
+          setFilters((s) => ({ ...s, service: "any" }));
+        }}
+        recommendedOnly={recommendedOnly}
+        onRecommendedOnlyChange={setRecommendedOnly}
+        recommendedLoading={recommendedLoading}
+        freeRepliesLeft={freeRepliesLeft}
+        hasAiInsights={hasAiInsights}
+        aiInsightsLabel={
+          inboxFollowUps.length > 0
+            ? `${inboxFollowUps.length} follow-up do wysłania`
+            : inboxPriorityOrders.length > 0
+              ? `${inboxPriorityOrders.length} szans AI`
+              : ""
+        }
+        onOpenAiInsights={openProviderAiFromInsights}
+        onClear={clearProviderFilters}
       />
 
     </div>

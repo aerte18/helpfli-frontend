@@ -700,6 +700,9 @@ export default function Home() {
     }
   }, []);
 
+  const mobileQuickFiltersActive =
+    verifiedOnly || proOnly || activeFilters.length > 0 || (selectedServices?.length ?? 0) > 0;
+
   const mobileSearchToolbar = (
     <div
       data-qs-home-mobile-toolbar
@@ -711,50 +714,10 @@ export default function Home() {
           ariaLabel="Widok wyszukiwania"
           onChange={setViewMode}
         />
-        <div className="scrollbar-hide flex min-w-0 flex-1 touch-pan-x items-center gap-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-          <span
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-slate-700"
-            aria-label={`${list.length} wykonawców w wynikach`}
-          >
-            <Users className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-            {list.length}
-          </span>
-          <button
-            type="button"
-            aria-label={verifiedOnly ? "Tylko zweryfikowani: włączone" : "Tylko zweryfikowani"}
-            onClick={() => setVerifiedOnly((v) => !v)}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-              verifiedOnly
-                ? "border-emerald-300 bg-emerald-600 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-700"
-            }`}
-          >
-            <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Zweryf.
-          </button>
-          <button
-            type="button"
-            aria-label={proOnly ? "Tylko PRO: włączone" : "Tylko wykonawcy PRO"}
-            onClick={() => setProOnly((v) => !v)}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-              proOnly
-                ? "border-amber-300 bg-amber-500 text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-700"
-            }`}
-          >
-            <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            PRO
-          </button>
-          {activeFilters.length > 0 && (
-            <button
-              type="button"
-              onClick={clearHomeFilters}
-              className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 qs-tap-target"
-            >
-              Wyczyść
-            </button>
-          )}
-        </div>
+        <p className="min-w-0 flex-1 truncate text-xs text-slate-600" aria-live="polite">
+          <span className="font-semibold tabular-nums text-slate-800">{list.length}</span>{" "}
+          {list.length === 1 ? "wykonawca" : list.length < 5 ? "wykonawców" : "wykonawców"}
+        </p>
         <ServiceCategoryDropdown
           compact
           menuPortal
@@ -767,28 +730,15 @@ export default function Home() {
         <button
           type="button"
           onClick={() => setShowAdvancedFilters(true)}
-          className="qs-tap-target inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          className="qs-tap-target relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
           aria-label="Wszystkie filtry"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
+          {mobileQuickFiltersActive && (
+            <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-indigo-600 ring-2 ring-white" aria-hidden />
+          )}
         </button>
       </div>
-      {viewMode === "list" && (
-        <div className="flex min-w-0 items-center gap-2 border-t border-slate-200/50 px-2 py-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-          <input
-            type="range"
-            min={5}
-            max={100}
-            step={5}
-            value={maxDistance}
-            onChange={(e) => setMaxDistance(Number(e.target.value))}
-            className="min-w-0 flex-1 accent-indigo-600"
-            aria-label="Promień wyszukiwania w kilometrach"
-          />
-          <span className="shrink-0 text-[10px] font-semibold tabular-nums text-slate-800">{maxDistance} km</span>
-        </div>
-      )}
     </div>
   );
 
@@ -926,6 +876,10 @@ export default function Home() {
         locationError={locationError}
         onRequestLocation={getUserLocation}
         showDistanceFilter={viewMode === "list"}
+        verifiedOnly={verifiedOnly}
+        proOnly={proOnly}
+        onVerifiedOnlyChange={setVerifiedOnly}
+        onProOnlyChange={setProOnly}
         onApply={() => {
           setShowAdvancedFilters(false);
         }}
