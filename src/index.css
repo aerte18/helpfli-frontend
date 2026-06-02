@@ -415,9 +415,12 @@ html.qs-map-route-scroll-lock body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   background-color: var(--background);
   pointer-events: none;
+}
+.qs-home-map-shell > .qs-home-map-shell-interactive:last-child {
+  overflow: hidden;
 }
 @media (max-width: 767px) {
   body.has-mobile-tab .qs-home-map-shell {
@@ -449,9 +452,12 @@ html.qs-map-route-scroll-lock body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   background-color: var(--background);
   pointer-events: none;
+}
+.qs-provider-map-stack > .qs-home-map-shell-interactive:last-child {
+  overflow: hidden;
 }
 @media (max-width: 767px) {
   body.has-mobile-tab .qs-provider-map-stack {

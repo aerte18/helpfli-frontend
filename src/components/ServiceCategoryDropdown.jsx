@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { IconByCategory } from "./icons/HelpfliCategoryIcons";
 import { UI } from "../i18n/pl_ui";
 import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
@@ -12,7 +13,9 @@ export default function ServiceCategoryDropdown({
   showIcon = true,
   clearTrigger = 0,
   providerServices = [], // usługi wybranego providera (dla zleceń bezpośrednich)
-  showOnlyProviderServices = false // czy pokazywać tylko usługi providera
+  showOnlyProviderServices = false, // czy pokazywać tylko usługi providera
+  compact = false,
+  menuPortal = false, // menu w portalu (mapa mobile — nad warstwą mapy)
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -23,7 +26,37 @@ export default function ServiceCategoryDropdown({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const updateMenuPosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const width = Math.min(window.innerWidth - 16, 672);
+    let left = rect.left;
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - 8 - width);
+    }
+    left = Math.max(8, left);
+    const maxHeight = Math.min(window.innerHeight - rect.bottom - 12, window.innerHeight * 0.75, 480);
+    setMenuPosition({ top: rect.bottom + 4, left, width, maxHeight });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !menuPortal) {
+      setMenuPosition(null);
+      return;
+    }
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [isOpen, menuPortal, updateMenuPosition]);
   
   // Reaguj na clearTrigger - czyść wybrane kategorie
   useEffect(() => {
@@ -39,7 +72,9 @@ export default function ServiceCategoryDropdown({
   // Zamknij dropdown po kliknięciu poza nim
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const inTrigger = dropdownRef.current?.contains(event.target);
+      const inMenu = menuRef.current?.contains(event.target);
+      if (!inTrigger && !inMenu) {
         setIsOpen(false);
         setHoveredCategory(null);
       }
@@ -444,118 +479,143 @@ export default function ServiceCategoryDropdown({
     );
   }
 
+  const buttonSizeClass = compact
+    ? 'h-9 max-w-[9.5rem] gap-1 rounded-full border-slate-200/90 px-2.5 py-1.5 text-xs'
+    : className?.includes('h-12')
+      ? 'h-12 px-4 text-base'
+      : className?.includes('text-sm')
+        ? 'px-3 py-2 text-sm'
+        : 'px-4 py-3';
+
+  const menuPanel = isOpen ? (
+    <div
+      ref={menuRef}
+      className={
+        menuPortal
+          ? 'fixed z-[90] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl'
+          : 'absolute top-full left-0 z-50 mt-1 w-[min(100vw-1rem,42rem)] max-h-[min(75dvh,30rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
+      }
+      style={
+        menuPortal && menuPosition
+          ? {
+              top: menuPosition.top,
+              left: menuPosition.left,
+              width: menuPosition.width,
+              maxHeight: menuPosition.maxHeight,
+            }
+          : undefined
+      }
+    >
+      <div className="flex max-h-[inherit] flex-col sm:flex-row sm:flex-nowrap">
+        <div className="w-full shrink-0 overflow-y-auto border-b border-gray-200 max-h-[min(40dvh,14rem)] sm:max-h-96 sm:w-44 sm:border-b-0 sm:border-r">
+          <div className="p-2">
+            <h3 className="mb-2 sticky top-0 bg-white text-sm font-semibold uppercase tracking-wide text-gray-500">
+              {UI.sectionAreas}
+            </h3>
+            <div className="mb-2 sticky top-6 bg-white pt-1">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setHoveredCategory(null);
+                }}
+                placeholder="Wpisz nazwę usługi…"
+                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            {categoriesToDisplay.length === 0 && showOnlyProviderServices ? (
+              <div className="px-3 py-4 text-center text-sm italic text-gray-500">
+                Wybrany wykonawca nie ma jeszcze przypisanych usług
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {categoriesWithSearch.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setHoveredCategory(category)}
+                    onMouseEnter={() => setHoveredCategory(category)}
+                    className={`flex w-full min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left transition-colors ${
+                      hoveredCategory?.id === category.id
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <IconByCategory id={category.id} className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 truncate text-sm font-medium">{category.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1 overflow-y-auto max-h-[min(40dvh,14rem)] sm:max-h-96">
+          <div className="p-2">
+            <h3 className="mb-2 sticky top-0 bg-white text-sm font-semibold uppercase tracking-wide text-gray-500">
+              {hoveredCategory ? hoveredCategory.name : UI.sectionAreas}
+            </h3>
+            {hoveredCategory ? (
+              <div className="space-y-1">
+                {hoveredCategory.subcategories && hoveredCategory.subcategories.length > 0 ? (
+                  hoveredCategory.subcategories.map((subcategory) => (
+                    <button
+                      key={subcategory.id}
+                      type="button"
+                      onClick={() => handleCategorySelect(hoveredCategory, subcategory)}
+                      className="w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+                    >
+                      {subcategory.name}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm italic text-gray-500">
+                    Brak podkategorii dla {hoveredCategory.name}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="px-3 py-2 text-sm italic text-gray-500">
+                Wybierz kategorię z lewej strony
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Przycisk główny */}
       <button
+        ref={buttonRef}
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between ${
-          className?.includes('h-12') 
-            ? 'h-12 px-4 text-base' 
-            : className?.includes('text-sm') 
-            ? 'px-3 py-2 text-sm' 
-            : 'px-4 py-3'
-        } bg-white border border-gray-300 rounded-lg hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors`}
+        className={`flex w-full items-center justify-between border border-gray-300 bg-white transition-colors hover:border-indigo-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 ${buttonSizeClass}`}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           {showIcon && selectedCategory && (
-            <IconByCategory id={selectedCategory.id} className="h-5 w-5" />
+            <IconByCategory id={selectedCategory.id} className={`shrink-0 ${compact ? 'h-3.5 w-3.5' : 'h-5 w-5'}`} />
           )}
-          <span className="text-gray-700 truncate">{displayText}</span>
+          <span className="truncate text-gray-700">{displayText}</span>
         </div>
-        <svg 
-          className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`shrink-0 text-gray-400 transition-transform ${compact ? 'h-3.5 w-3.5' : 'h-5 w-5'} ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
-      {/* Dropdown menu */}
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-full max-w-[min(100vw-1rem,800px)] max-h-[min(75dvh,30rem)] overflow-hidden">
-          <div className="flex flex-col sm:flex-row">
-            {/* Lista głównych kategorii */}
-            <div className="w-full sm:w-1/3 sm:border-r border-gray-200 overflow-y-auto max-h-[40dvh] sm:max-h-96">
-              <div className="p-2">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sticky top-0 bg-white">
-                  {UI.sectionAreas}
-                </h3>
-                <div className="mb-2 sticky top-6 bg-white pt-1">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      // po wpisaniu ustaw hover na null, żeby prawa kolumna pokazywała wynik dopiero po wyborze
-                      setHoveredCategory(null);
-                    }}
-                    placeholder="Wpisz nazwę usługi…"
-                    className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                {categoriesToDisplay.length === 0 && showOnlyProviderServices ? (
-                  <div className="text-sm text-gray-500 italic px-3 py-4 text-center">
-                    Wybrany wykonawca nie ma jeszcze przypisanych usług
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {categoriesWithSearch.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => setHoveredCategory(category)}
-                        onMouseEnter={() => setHoveredCategory(category)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-md transition-colors ${
-                          hoveredCategory?.id === category.id
-                            ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <IconByCategory id={category.id} className="h-4 w-4" />
-                        <span className="text-sm font-medium">{category.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Lista podkategorii */}
-            <div className="w-full sm:w-2/3 overflow-y-auto max-h-[40dvh] sm:max-h-96 border-t sm:border-t-0 border-gray-200">
-              <div className="p-2">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 sticky top-0 bg-white">
-                  {hoveredCategory ? hoveredCategory.name : UI.sectionAreas}
-                </h3>
-                {hoveredCategory ? (
-                  <div className="space-y-1">
-                    {hoveredCategory.subcategories && hoveredCategory.subcategories.length > 0 ? (
-                      hoveredCategory.subcategories.map((subcategory) => (
-                        <button
-                          key={subcategory.id}
-                          onClick={() => handleCategorySelect(hoveredCategory, subcategory)}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors"
-                        >
-                          {subcategory.name}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 italic px-3 py-2">
-                        Brak podkategorii dla {hoveredCategory.name}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500 italic px-3 py-2">
-                    Wybierz kategorię z lewej strony
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {menuPortal && menuPanel
+        ? createPortal(menuPanel, document.body)
+        : menuPanel}
     </div>
   );
 }

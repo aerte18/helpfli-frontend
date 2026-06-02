@@ -27,7 +27,7 @@ import { useAuth } from "../context/AuthContext";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
 import { Helmet } from "react-helmet-async";
-import { ShieldCheck, Star, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { ShieldCheck, Star, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, SlidersHorizontal } from "lucide-react";
 import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
@@ -298,8 +298,6 @@ export default function Home() {
   const [isProviderListExpanded, setIsProviderListExpanded] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
-  /** Mobile: domyślnie zwinięte — więcej mapy / listy */
-  const [mapFiltersCollapsed, setMapFiltersCollapsed] = useState(true);
   /** Mobile /map: pełny ekran mapy (ukrywa nav, okruszki, filtry, tab bar) */
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
 
@@ -359,7 +357,6 @@ export default function Home() {
   useEffect(() => {
     if (viewMode !== "map" || showAdvancedFilters) {
       setIsProviderListExpanded(false);
-      setMapFiltersCollapsed(true);
       setMapMobileImmersive(false);
     }
   }, [viewMode, showAdvancedFilters]);
@@ -693,138 +690,103 @@ export default function Home() {
     setClearCategoryTrigger((prev) => prev + 1);
   }, [updateFilters]);
 
-  const mobileCollapsibleToolbar = (
+  const handleMobileCategorySelect = useCallback((sel) => {
+    setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+    const slug = sel.subcategorySlug || sel.categorySlug;
+    if (slug) {
+      setSelectedServiceSlugs((prev) =>
+        Array.from(new Set([...(prev || []), String(slug)]))
+      );
+    }
+  }, []);
+
+  const mobileSearchToolbar = (
     <div
       data-qs-home-mobile-toolbar
-      className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl"
+      className="qs-home-map-shell-interactive relative z-30 shrink-0 overflow-visible border-b border-slate-200/40 bg-white/90 shadow-sm backdrop-blur-md"
     >
-      <div className="flex items-center gap-2 px-2 py-1.5">
+      <div className="flex items-center gap-2 px-2 py-2">
         <MobileViewModeToggle
           viewMode={viewMode}
           ariaLabel="Widok wyszukiwania"
-          onChange={(mode) => {
-            setViewMode(mode);
-            setMapFiltersCollapsed(true);
-          }}
+          onChange={setViewMode}
         />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
-          {mapFiltersCollapsed ? (
-            <>
-              <span className="font-semibold">{list.length}</span>{" "}
-              {list.length === 1 ? "wykonawca" : list.length < 5 ? "wykonawców" : "wykonawców"}
-              <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
-              {activeFilters.length > 0 && <span className="text-indigo-600"> · filtry</span>}
-            </>
-          ) : (
-            "Filtry wyszukiwania"
+        <div className="scrollbar-hide flex min-w-0 flex-1 touch-pan-x items-center gap-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-slate-700"
+            aria-label={`${list.length} wykonawców w wynikach`}
+          >
+            <Users className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+            {list.length}
+          </span>
+          <button
+            type="button"
+            aria-label={verifiedOnly ? "Tylko zweryfikowani: włączone" : "Tylko zweryfikowani"}
+            onClick={() => setVerifiedOnly((v) => !v)}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+              verifiedOnly
+                ? "border-emerald-300 bg-emerald-600 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            Zweryf.
+          </button>
+          <button
+            type="button"
+            aria-label={proOnly ? "Tylko PRO: włączone" : "Tylko wykonawcy PRO"}
+            onClick={() => setProOnly((v) => !v)}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+              proOnly
+                ? "border-amber-300 bg-amber-500 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+          >
+            <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            PRO
+          </button>
+          {activeFilters.length > 0 && (
+            <button
+              type="button"
+              onClick={clearHomeFilters}
+              className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 qs-tap-target"
+            >
+              Wyczyść
+            </button>
           )}
-        </span>
+        </div>
+        <ServiceCategoryDropdown
+          compact
+          menuPortal
+          showIcon={false}
+          className="shrink-0"
+          placeholder="Kategoria"
+          clearTrigger={clearCategoryTrigger}
+          onCategorySelect={handleMobileCategorySelect}
+        />
         <button
           type="button"
-          onClick={() => setMapFiltersCollapsed((v) => !v)}
-          className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
-          aria-expanded={!mapFiltersCollapsed}
+          onClick={() => setShowAdvancedFilters(true)}
+          className="qs-tap-target inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          aria-label="Wszystkie filtry"
         >
-          {mapFiltersCollapsed ? (
-            <>
-              <ChevronDown className="h-4 w-4" aria-hidden />
-              Rozwiń
-            </>
-          ) : (
-            <>
-              <ChevronUp className="h-4 w-4" aria-hidden />
-              Zwiń
-            </>
-          )}
+          <SlidersHorizontal className="h-4 w-4" aria-hidden />
         </button>
       </div>
-      {!mapFiltersCollapsed && (
-        <div className="space-y-2 border-t border-white/25 px-2 py-2">
-          <div className="flex flex-wrap items-center gap-1">
-            <span
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
-              aria-label={`${list.length} wykonawców w wynikach`}
-            >
-              <Users className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
-              {list.length} wykonawców
-            </span>
-            <button
-              type="button"
-              aria-label={verifiedOnly ? "Tylko zweryfikowani: włączone" : "Tylko zweryfikowani"}
-              onClick={() => setVerifiedOnly((v) => !v)}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                verifiedOnly
-                  ? "border-emerald-300 bg-emerald-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-700"
-              }`}
-            >
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Zweryf.
-            </button>
-            <button
-              type="button"
-              aria-label={proOnly ? "Tylko PRO: włączone" : "Tylko wykonawcy PRO"}
-              onClick={() => setProOnly((v) => !v)}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                proOnly
-                  ? "border-amber-300 bg-amber-500 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-700"
-              }`}
-            >
-              <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              PRO
-            </button>
-          </div>
-          {viewMode === "list" && (
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200/80 bg-white/80 px-2 py-1.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-              <input
-                type="range"
-                min={5}
-                max={100}
-                step={5}
-                value={maxDistance}
-                onChange={(e) => setMaxDistance(Number(e.target.value))}
-                className="min-w-0 flex-1"
-                aria-label="Promień wyszukiwania w kilometrach"
-              />
-              <span className="shrink-0 text-[10px] font-semibold tabular-nums text-slate-800">{maxDistance} km</span>
-            </div>
-          )}
-          <div className="min-w-0">
-            <ServiceCategoryDropdown
-              className="w-full"
-              placeholder="Kategoria"
-              clearTrigger={clearCategoryTrigger}
-              onCategorySelect={(sel) => {
-                setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-                const slug = sel.subcategorySlug || sel.categorySlug;
-                if (slug) {
-                  setSelectedServiceSlugs((prev) =>
-                    Array.from(new Set([...(prev || []), String(slug)]))
-                  );
-                }
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            {activeFilters.length > 0 && (
-              <button
-                type="button"
-                onClick={clearHomeFilters}
-                className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
-              >
-                Wyczyść
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowAdvancedFilters(true)}
-              className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
-            >
-              Filtry
-            </button>
-          </div>
+      {viewMode === "list" && (
+        <div className="flex min-w-0 items-center gap-2 border-t border-slate-200/50 px-2 py-1.5">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+          <input
+            type="range"
+            min={5}
+            max={100}
+            step={5}
+            value={maxDistance}
+            onChange={(e) => setMaxDistance(Number(e.target.value))}
+            className="min-w-0 flex-1 accent-indigo-600"
+            aria-label="Promień wyszukiwania w kilometrach"
+          />
+          <span className="shrink-0 text-[10px] font-semibold tabular-nums text-slate-800">{maxDistance} km</span>
         </div>
       )}
     </div>
@@ -1022,7 +984,7 @@ export default function Home() {
         <>
         {/* Tryb mapy: jedna skorupa (navbar → dół / tab bar) — toolbar nad mapą, bez skakania i bez szczelin 100dvh */}
         <div className="qs-home-map-shell">
-          {isMobileViewport ? mobileCollapsibleToolbar : (
+          {isMobileViewport ? mobileSearchToolbar : (
             <div className="qs-home-map-shell-interactive shrink-0 overflow-visible border-b border-slate-200/35 bg-white/78 backdrop-blur-md">
               <div className="mx-auto min-w-0 max-w-6xl px-3 py-2.5 sm:px-4 sm:py-3">
                 <ResultsToolbar
@@ -1080,7 +1042,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="qs-home-map-shell-interactive relative isolate min-h-0 flex-1 bg-slate-100">
+          <div className="qs-home-map-shell-interactive relative z-0 min-h-0 flex-1 overflow-hidden bg-slate-100">
             <div className="absolute inset-0">
               <MapViewEnhanced
                 providers={list.map((p) => ({
@@ -1104,13 +1066,7 @@ export default function Home() {
                 mapLoading={mapLoading}
                 showImmersiveControl={isMobileViewport && !showAdvancedFilters}
                 mapImmersive={mapMobileImmersive}
-                onToggleMapImmersive={() => {
-                  setMapMobileImmersive((v) => {
-                    const next = !v;
-                    if (next) setMapFiltersCollapsed(true);
-                    return next;
-                  });
-                }}
+                onToggleMapImmersive={() => setMapMobileImmersive((v) => !v)}
               />
             </div>
           </div>
@@ -1146,8 +1102,8 @@ export default function Home() {
       ) : (
         <>
           {isMobileViewport && (
-            <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42]">
-              {mobileCollapsibleToolbar}
+            <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42] overflow-visible">
+              {mobileSearchToolbar}
             </div>
           )}
           {/* Przełącznik widoku – w widoku lista nad listą, w prawym rogu (desktop) */}

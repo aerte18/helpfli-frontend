@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Sparkles, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { List, LayoutGrid, Map as MapIcon, MapPin, Wallet, ClipboardList, ShieldCheck, Paperclip, Bot, CreditCard, Clock, Sparkles, Briefcase, SlidersHorizontal } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import {
   MapFloatingControls,
@@ -510,9 +510,6 @@ export default function ProviderHome() {
     return window.matchMedia("(max-width: 1023px)").matches && window.innerWidth > window.innerHeight;
   });
   const [mapMobileImmersive, setMapMobileImmersive] = useState(false);
-  /** Mobile / map: zwinięty pasek filtrów — więcej miejsca na mapę */
-  const [mapToolbarCollapsed, setMapToolbarCollapsed] = useState(true);
-
   const [mapSize, setMapSize] = useState(() => {
     return localStorage.getItem('mapSize') || 'lg';
   });
@@ -586,7 +583,6 @@ export default function ProviderHome() {
   useEffect(() => {
     if (viewMode !== "map" || showAdvancedFilters) {
       setIsOrderListExpanded(false);
-      setMapToolbarCollapsed(true);
       setMapMobileImmersive(false);
     }
   }, [viewMode, showAdvancedFilters]);
@@ -1284,6 +1280,20 @@ export default function ProviderHome() {
     );
   }, [filters, recommendedOnly]);
 
+  const clearProviderFilters = useCallback(() => {
+    setFilters({
+      service: "any",
+      maxDistance: 50,
+      budgetMin: "",
+      budgetMax: "",
+      providerId: "any",
+      paymentType: "any",
+      offersStatus: "any",
+      sortBy: "default",
+    });
+    setRecommendedOnly(false);
+  }, []);
+
   // Defensive guards: backend/UX experiments can temporarily return non-array payloads.
   const listSafe = Array.isArray(list) ? list : [];
   const inboxPriorityOrders = Array.isArray(providerAiInbox?.priorityOrders) ? providerAiInbox.priorityOrders : [];
@@ -1444,151 +1454,92 @@ export default function ProviderHome() {
     );
   };
 
-  const mobileCollapsibleToolbar = (
+  const mobileSearchToolbar = (
     <div
       data-qs-provider-mobile-toolbar
-      className="qs-home-map-shell-interactive shrink-0 border-b border-white/30 bg-slate-100/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl"
+      className="qs-home-map-shell-interactive relative z-30 shrink-0 overflow-visible border-b border-slate-200/40 bg-white/90 shadow-sm backdrop-blur-md"
     >
-      <div className="flex items-center gap-2 px-2 py-1.5">
-        <MobileViewModeToggle
-          viewMode={viewMode}
-          ariaLabel="Widok zleceń"
-          onChange={(mode) => {
-            setViewMode(mode);
-            setMapToolbarCollapsed(true);
-          }}
-        />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-800">
-          {mapToolbarCollapsed ? (
-            <>
-              <span className="font-semibold">{list.length}</span>{" "}
-              {list.length === 1 ? "zlecenie" : list.length < 5 ? "zlecenia" : "zleceń"}
-              <span className="font-normal text-slate-500"> · {user?.location || "Polska"}</span>
-              {(hasActiveFilters || recommendedOnly || !showAllServices) && (
-                <span className="text-indigo-600"> · filtry</span>
-              )}
-              {hasAiInsights && <span className="text-violet-600"> · AI</span>}
-            </>
-          ) : (
-            "Filtry i status zleceń"
-          )}
-        </span>
-        <button
-          type="button"
-          onClick={() => setMapToolbarCollapsed((v) => !v)}
-          className="qs-tap-target inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/40 bg-white/55 px-2 py-1 text-xs font-medium text-slate-800 shadow-sm backdrop-blur-sm hover:bg-white/75"
-          aria-expanded={!mapToolbarCollapsed}
-        >
-          {mapToolbarCollapsed ? (
-            <>
-              <ChevronDown className="h-4 w-4" aria-hidden />
-              Rozwiń
-            </>
-          ) : (
-            <>
-              <ChevronUp className="h-4 w-4" aria-hidden />
-              Zwiń
-            </>
-          )}
-        </button>
-      </div>
-      {!mapToolbarCollapsed && (
-        <div className="space-y-2 border-t border-white/25 px-2 py-2">
-          <div className="flex flex-wrap items-center gap-1">
+      <div className="flex items-center gap-2 px-2 py-2">
+        <MobileViewModeToggle viewMode={viewMode} ariaLabel="Widok zleceń" onChange={setViewMode} />
+        <div className="scrollbar-hide flex min-w-0 flex-1 touch-pan-x items-center gap-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold tabular-nums text-slate-700"
+            aria-label={`${list.length} zleceń w filtrze`}
+          >
+            <ClipboardList className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+            {list.length}
+          </span>
+          {freeRepliesLeft != null && (
             <span
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700"
-              aria-label={`${list.length} zleceń w filtrze`}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
+              aria-label={`${freeRepliesLeft} darmowych wycen`}
             >
-              <ClipboardList className="h-3.5 w-3.5 text-slate-600 shrink-0" aria-hidden />
-              {list.length} zleceń
+              <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {freeRepliesLeft}
             </span>
-            {freeRepliesLeft != null && (
-              <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800"
-                aria-label={`${freeRepliesLeft} darmowych wycen`}
-              >
-                <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {freeRepliesLeft} wycen
-              </span>
-            )}
-            <button
-              type="button"
-              aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
-              onClick={() => {
-                const next = !showAllServices;
-                setShowAllServices(next);
-                setFilters((s) => ({ ...s, service: "any" }));
-              }}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                !showAllServices
-                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-700"
-              }`}
-            >
-              <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {showAllServices ? "Rynek" : "Moje"}
-            </button>
-            <button
-              type="button"
-              aria-label={recommendedOnly ? "Filtr AI: włączony" : "Tylko polecane przez AI"}
-              onClick={() => setRecommendedOnly((v) => !v)}
-              disabled={recommendedLoading}
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
-                recommendedOnly
-                  ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-700"
-              } ${recommendedLoading ? "opacity-60" : ""}`}
-            >
-              <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
-              Polecane
-            </button>
-          </div>
+          )}
+          <button
+            type="button"
+            aria-label={showAllServices ? "Pełny rynek zleceń" : "Tylko moje usługi"}
+            onClick={() => {
+              const next = !showAllServices;
+              setShowAllServices(next);
+              setFilters((s) => ({ ...s, service: "any" }));
+            }}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+              !showAllServices
+                ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+          >
+            <Briefcase className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {showAllServices ? "Rynek" : "Moje"}
+          </button>
+          <button
+            type="button"
+            aria-label={recommendedOnly ? "Filtr AI: włączone" : "Tylko polecane przez AI"}
+            onClick={() => setRecommendedOnly((v) => !v)}
+            disabled={recommendedLoading}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition qs-tap-target ${
+              recommendedOnly
+                ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-700"
+            } ${recommendedLoading ? "opacity-60" : ""}`}
+          >
+            <Sparkles className={`h-3.5 w-3.5 shrink-0 ${recommendedLoading ? "opacity-50" : ""}`} aria-hidden />
+            Polecane
+          </button>
           {hasAiInsights && (
             <button
               type="button"
               onClick={openProviderAiFromInsights}
-              className="flex w-full items-center justify-between rounded-lg border border-violet-200 bg-violet-50/80 px-2.5 py-2 text-left qs-tap-target"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-violet-200 bg-violet-100 px-2 py-1 text-[10px] font-semibold text-violet-800 qs-tap-target"
             >
-              <span className="text-[11px] font-medium text-violet-900">
-                {inboxFollowUps.length > 0
-                  ? `${inboxFollowUps.length} follow-up do wysłania`
-                  : `${inboxPriorityOrders.length} szans AI`}
-              </span>
-              <span className="text-[10px] font-semibold text-violet-700">Asystent →</span>
+              <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {inboxFollowUps.length > 0
+                ? `${inboxFollowUps.length} follow-up`
+                : `${inboxPriorityOrders.length} AI`}
             </button>
           )}
-          <div className="flex items-center justify-end gap-2">
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFilters({
-                    service: "any",
-                    maxDistance: 50,
-                    budgetMin: "",
-                    budgetMax: "",
-                    providerId: "any",
-                    paymentType: "any",
-                    offersStatus: "any",
-                    sortBy: "default",
-                  });
-                  setRecommendedOnly(false);
-                }}
-                className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm qs-tap-target"
-              >
-                Wyczyść
-              </button>
-            )}
+          {(hasActiveFilters || !showAllServices) && (
             <button
               type="button"
-              onClick={() => setShowAdvancedFilters(true)}
-              className="qs-tap-target shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 shadow-sm"
+              onClick={clearProviderFilters}
+              className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 qs-tap-target"
             >
-              Filtry
+              Wyczyść
             </button>
-          </div>
+          )}
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setShowAdvancedFilters(true)}
+          className="qs-tap-target inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          aria-label="Wszystkie filtry"
+        >
+          <SlidersHorizontal className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
     </div>
   );
 
@@ -2044,7 +1995,7 @@ export default function ProviderHome() {
               : "calc(var(--app-nav-sticky-offset) + var(--app-breadcrumb-bar-height) + 5.25rem)",
           }}
         >
-          {isMobileViewport && mobileCollapsibleToolbar}
+          {isMobileViewport && mobileSearchToolbar}
           {!isMobileViewport && (
             <div className="qs-home-map-shell-interactive relative max-h-[min(38vh,20rem)] shrink-0 overflow-y-auto border-b border-gray-200/20 bg-white shadow-sm sm:max-h-none sm:overflow-visible">
               {hasActiveFilters && (
@@ -2100,7 +2051,7 @@ export default function ProviderHome() {
               </div>
             </div>
           )}
-          <div className="qs-home-map-shell-interactive relative isolate min-h-0 flex-1 bg-slate-100">
+          <div className="qs-home-map-shell-interactive relative z-0 min-h-0 flex-1 overflow-hidden bg-slate-100">
             <div className="absolute inset-0 border border-slate-200 bg-white overflow-hidden">
               {center && center.length === 2 && center[0] && center[1] ? (
                 <MapContainer center={[...center]} zoom={13} className="w-full h-full">
@@ -2112,13 +2063,7 @@ export default function ProviderHome() {
                     onRequestLocation={getUserLocation}
                     showImmersive={isMobileViewport && !showAdvancedFilters}
                     immersive={mapMobileImmersive}
-                    onToggleImmersive={() => {
-                      setMapMobileImmersive((v) => {
-                        const next = !v;
-                        if (next) setMapToolbarCollapsed(true);
-                        return next;
-                      });
-                    }}
+                    onToggleImmersive={() => setMapMobileImmersive((v) => !v)}
                     placement="top-right"
                   />
                   <MapViewportTracker onViewportChange={handleMapViewportChange} />
@@ -2163,8 +2108,8 @@ export default function ProviderHome() {
         </div>
         </>
       ) : isMobileViewport ? (
-        <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42]">
-          {mobileCollapsibleToolbar}
+        <div className="sticky top-[var(--app-nav-sticky-offset)] z-[42] overflow-visible">
+          {mobileSearchToolbar}
         </div>
       ) : (
         // Tryb lista/podział — sticky toolbar (desktop)
