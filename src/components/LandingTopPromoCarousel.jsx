@@ -3,19 +3,21 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import HowItWorksAudienceModal from "./HowItWorksAudienceModal";
 
-const ASSETS_VERSION = "20260604f";
+const ASSETS_VERSION = "20260604g";
+const BANNER_W = 2172;
+const BANNER_H = 724;
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${ASSETS_VERSION}`;
 }
 
-/** Procentowy prostokąt klikalny (dopasowany do banerów 2172×724). */
-function hitArea(left, top, width, height) {
+/** Współrzędne z projektu grafiki 2172×724 → procenty (skalują się z banerem). */
+function btnRect(x, y, w, h) {
   return {
-    left: `${left}%`,
-    top: `${top}%`,
-    width: `${width}%`,
-    height: `${height}%`,
+    left: `${(x / BANNER_W) * 100}%`,
+    top: `${(y / BANNER_H) * 100}%`,
+    width: `${(w / BANNER_W) * 100}%`,
+    height: `${(h / BANNER_H) * 100}%`,
   };
 }
 
@@ -27,8 +29,8 @@ const SLIDES = [
     src: promoImg("promo klient.png"),
     registerLink:
       "/register?role=client&utm_source=landing&utm_campaign=promo_strip_client",
-    registerArea: hitArea(1.2, 70, 34, 28),
-    howItWorksArea: hitArea(36, 70, 22, 28),
+    registerArea: btnRect(52, 568, 498, 112),
+    howItWorksArea: btnRect(562, 568, 368, 112),
   },
   {
     id: "provider",
@@ -37,20 +39,39 @@ const SLIDES = [
     src: promoImg("promo provider.png"),
     registerLink:
       "/register?role=provider&utm_source=landing&utm_campaign=promo_strip_provider",
-    registerArea: hitArea(1.2, 70, 42, 28),
-    howItWorksArea: hitArea(44, 70, 22, 28),
+    registerArea: btnRect(52, 568, 648, 112),
+    howItWorksArea: btnRect(712, 568, 368, 112),
   },
 ];
 
 const ROTATE_MS = 6000;
 
+/** Bez wizualnego hovera — tylko kursor; unikamy „szarego prostokąta” obok przycisków. */
 const HOTSPOT_CLASS =
-  "absolute z-30 cursor-pointer touch-manipulation rounded-md transition-colors hover:bg-black/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 pointer-events-auto";
+  "absolute z-30 block cursor-pointer touch-manipulation rounded-[10px] bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 pointer-events-auto";
+
+function useHotspotDebug() {
+  const [debug, setDebug] = useState(false);
+  useEffect(() => {
+    try {
+      setDebug(
+        new URLSearchParams(window.location.search).get("promo_hotspot_debug") === "1"
+      );
+    } catch {
+      setDebug(false);
+    }
+  }, []);
+  return debug;
+}
 
 export default function LandingTopPromoCarousel() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [howItWorksAudience, setHowItWorksAudience] = useState(null);
+  const hotspotDebug = useHotspotDebug();
+  const hotspotClass = hotspotDebug
+    ? `${HOTSPOT_CLASS} ring-2 ring-red-500/80 bg-red-500/25`
+    : HOTSPOT_CLASS;
 
   const go = useCallback((delta) => {
     setIndex((i) => (i + delta + SLIDES.length) % SLIDES.length);
@@ -77,20 +98,21 @@ export default function LandingTopPromoCarousel() {
             className="group relative overflow-hidden rounded-xl border shadow-sm"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
           >
-            {/* Baner + warstwa klików — ten sam box, bez object-cover (1:1 z hotspotami) */}
             <div className="relative w-full aspect-[2172/724]">
               <img
                 key={slide.id}
                 src={slide.src}
                 alt={slide.alt}
+                width={BANNER_W}
+                height={BANNER_H}
                 className="block h-full w-full select-none"
                 draggable={false}
               />
 
-              <div className="absolute inset-0 z-20" aria-hidden={false}>
+              <div className="absolute inset-0 z-20">
                 <Link
                   to={slide.registerLink}
-                  className={HOTSPOT_CLASS}
+                  className={hotspotClass}
                   style={slide.registerArea}
                   aria-label={
                     slide.audience === "provider"
@@ -100,7 +122,7 @@ export default function LandingTopPromoCarousel() {
                 />
                 <button
                   type="button"
-                  className={HOTSPOT_CLASS}
+                  className={hotspotClass}
                   style={slide.howItWorksArea}
                   aria-label="Jak to działa"
                   onClick={() => setHowItWorksAudience(slide.audience)}

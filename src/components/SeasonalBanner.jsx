@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
+import { CategoryIcon } from "./icons/HelpfliCategoryIcons";
+import { resolveSeasonalServiceIcon } from "../utils/seasonalServiceIcon";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -16,30 +18,30 @@ function currentSeason() {
 const FALLBACK_BY_SEASON = {
   winter: { 
     services: [
-      { slug: "klimatyzacja-ogrzewanie-regulacja-serwis-instalacji-c-o-sterowniki-termostaty", title: "Regulacja/serwis instalacji c.o., sterowniki/termostaty", copy: "Zadbaj o bezpieczeństwo i koszty ogrzewania.", icon: "🔥" },
-      { slug: "klimatyzacja-ogrzewanie-kominiarz-przeglady-okresowe", title: "Kominiarz – przeglądy okresowe", copy: "Przegląd przed sezonem grzewczym.", icon: "🏠" },
-      { slug: "dom-ogrod-odsniezanie", title: "Odśnieżanie", copy: "Zabezpiecz dojście i podjazd.", icon: "❄️" }
+      { slug: "klimatyzacja-ogrzewanie-regulacja-serwis-instalacji-c-o-sterowniki-termostaty", title: "Regulacja/serwis instalacji c.o., sterowniki/termostaty", copy: "Zadbaj o bezpieczeństwo i koszty ogrzewania." },
+      { slug: "klimatyzacja-ogrzewanie-kominiarz-przeglady-okresowe", title: "Kominiarz – przeglądy okresowe", copy: "Przegląd przed sezonem grzewczym." },
+      { slug: "dom-ogrod-odsniezanie", title: "Odśnieżanie", copy: "Zabezpiecz dojście i podjazd." }
     ]
   },
   summer: { 
     services: [
-      { slug: "klimatyzacja-ogrzewanie-nabicie-serwis-czynnika-odgrzybianie", title: "Nabicie/serwis czynnika, odgrzybianie", copy: "Oddychaj czystym powietrzem i chłódź skuteczniej.", icon: "❄️" },
-      { slug: "klimatyzacja-ogrzewanie-montaz-klimatyzacji", title: "Montaż klimatyzacji", copy: "Chłód w upalne dni.", icon: "🌡️" },
-      { slug: "dom-ogrod-systemy-nawadniania-montaz-serwis", title: "Systemy nawadniania – montaż/serwis", copy: "Automatyczne nawadnianie w sezonie.", icon: "💧" }
+      { slug: "klimatyzacja-ogrzewanie-nabicie-serwis-czynnika-odgrzybianie", title: "Nabicie/serwis czynnika, odgrzybianie", copy: "Oddychaj czystym powietrzem i chłódź skuteczniej." },
+      { slug: "klimatyzacja-ogrzewanie-montaz-klimatyzacji", title: "Montaż klimatyzacji", copy: "Chłód w upalne dni." },
+      { slug: "dom-ogrod-systemy-nawadniania-montaz-serwis", title: "Systemy nawadniania – montaż/serwis", copy: "Automatyczne nawadnianie w sezonie." }
     ]
   },
   autumn: { 
     services: [
-      { slug: "dom-ogrod-czyszczenie-dachu", title: "Czyszczenie dachu", copy: "Przygotuj dom na jesienne ulewy.", icon: "🌧️" },
-      { slug: "dom-ogrod-czyszczenie-pieca", title: "Czyszczenie pieca", copy: "Przygotuj piec na sezon grzewczy.", icon: "🔥" },
-      { slug: "dom-ogrod-grabienie-lisci", title: "Grabienie liści", copy: "Uporządkuj ogród przed zimą.", icon: "🍂" }
+      { slug: "dom-ogrod-czyszczenie-dachu", title: "Czyszczenie dachu", copy: "Przygotuj dom na jesienne ulewy." },
+      { slug: "dom-ogrod-czyszczenie-pieca", title: "Czyszczenie pieca", copy: "Przygotuj piec na sezon grzewczy." },
+      { slug: "dom-ogrod-grabienie-lisci", title: "Grabienie liści", copy: "Uporządkuj ogród przed zimą." }
     ]
   },
   spring: { 
     services: [
-      { slug: "dom-ogrod-zak-adanie-trawnika-wertykulacja-aeracja", title: "Zakładanie trawnika / wertykulacja / aeracja", copy: "Pielęgnacja ogrodu na start sezonu.", icon: "🌱" },
-      { slug: "dom-ogrod-przycinanie-krzewow", title: "Przycinanie krzewów", copy: "Wiosenne cięcia i porządki.", icon: "🌺" },
-      { slug: "dom-ogrod-projekt-ogrodu-koncepcja-nasadzenia", title: "Projekt ogrodu (koncepcja + nasadzenia)", copy: "Nowe życie w ogrodzie.", icon: "🌷" }
+      { slug: "dom-ogrod-zak-adanie-trawnika-wertykulacja-aeracja", title: "Zakładanie trawnika / wertykulacja / aeracja", copy: "Pielęgnacja ogrodu na start sezonu." },
+      { slug: "dom-ogrod-przycinanie-krzewow", title: "Przycinanie krzewów", copy: "Wiosenne cięcia i porządki." },
+      { slug: "dom-ogrod-projekt-ogrodu-koncepcja-nasadzenia", title: "Projekt ogrodu (koncepcja + nasadzenia)", copy: "Nowe życie w ogrodzie." }
     ]
   }
 };
@@ -61,19 +63,28 @@ const SEASON_ADJECTIVE_FEMININE = {
 
 const SEASONAL_CACHE_TTL_MS = 10 * 60 * 1000;
 
+function hydrateSeasonalServices(list) {
+  return list.map((s) => ({
+    ...s,
+    icon: resolveSeasonalServiceIcon({ slug: s.slug, title: s.title, parent_slug: s.parent_slug }),
+  }));
+}
+
 export default function SeasonalBanner() {
   const season = useMemo(() => currentSeason(), []);
-  const [services, setServices] = useState(FALLBACK_BY_SEASON[season].services);
+  const [services, setServices] = useState(() =>
+    hydrateSeasonalServices(FALLBACK_BY_SEASON[season].services)
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const cacheKey = `seasonalBanner:${season}`;
+    const cacheKey = `seasonalBanner:v2:${season}`;
     try {
       const raw = sessionStorage.getItem(cacheKey);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.ts && Array.isArray(parsed?.services) && (Date.now() - parsed.ts) < SEASONAL_CACHE_TTL_MS) {
-          setServices(parsed.services);
+          setServices(hydrateSeasonalServices(parsed.services));
         }
       }
     } catch (_) {}
@@ -84,57 +95,56 @@ export default function SeasonalBanner() {
         const j = await apiGet(`/api/services?` + qs.toString());
         
         if (j.items?.length) {
-          const apiServices = j.items.map(s => ({
+          const mapService = (s) => ({
             slug: s.slug,
             title: s.name_pl || s.name_en || s.name,
             copy: s.description || "",
-            price: (typeof s.base_price_min === 'number' && typeof s.base_price_max === 'number')
-              ? `~ ${s.base_price_min}–${s.base_price_max} ${s.unit || 'PLN'}`
-              : "",
-            icon: season === "winter" ? "🔥" : season === "summer" ? "❄️" : season === "autumn" ? "🌧️" : "🌱"
-          }));
-          
-          // Jeśli API zwróciło mniej usług niż mamy w fallback, uzupełnij fallback
-          const fallbackServices = FALLBACK_BY_SEASON[season].services;
-          console.log('SeasonalBanner debug:', {
-            apiServicesLength: apiServices.length,
-            fallbackServicesLength: fallbackServices.length,
-            apiServices: apiServices.map(s => s.slug),
-            fallbackServices: fallbackServices.map(fb => fb.slug)
+            price:
+              typeof s.base_price_min === "number" && typeof s.base_price_max === "number"
+                ? `~ ${s.base_price_min}–${s.base_price_max} ${s.unit || "PLN"}`
+                : "",
+            icon: resolveSeasonalServiceIcon({
+              slug: s.slug,
+              title: s.name_pl || s.name_en || s.name,
+              parent_slug: s.parent_slug,
+            }),
           });
-          
+
+          const apiServices = j.items.map(mapService);
+
+          const fallbackServices = FALLBACK_BY_SEASON[season].services;
+
           if (apiServices.length < fallbackServices.length) {
-            // Dodaj brakujące usługi z fallback
-            const existingSlugs = new Set(apiServices.map(s => s.slug));
+            const existingSlugs = new Set(apiServices.map((s) => s.slug));
             const additionalServices = fallbackServices
-              .filter(fb => !existingSlugs.has(fb.slug))
-              .map(fb => ({
+              .filter((fb) => !existingSlugs.has(fb.slug))
+              .map((fb) => ({
                 slug: fb.slug,
                 title: fb.title,
                 copy: fb.copy,
                 price: "",
-                icon: fb.icon
+                icon: resolveSeasonalServiceIcon({
+                  slug: fb.slug,
+                  title: fb.title,
+                }),
               }));
-            console.log('SeasonalBanner adding services:', additionalServices.map(s => s.slug));
             const merged = [...apiServices, ...additionalServices];
             setServices(merged);
             try {
               sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), services: merged }));
             } catch (_) {}
           } else {
-            console.log('SeasonalBanner using only API services');
             setServices(apiServices);
             try {
               sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), services: apiServices }));
             } catch (_) {}
           }
         } else {
-          setServices(FALLBACK_BY_SEASON[season].services);
+          setServices(hydrateSeasonalServices(FALLBACK_BY_SEASON[season].services));
         }
       } catch (error) {
-        console.error('SeasonalBanner error:', error);
-        // nie blokuj UI jeśli API niedostępne – pokazuj fallback
-        setServices(FALLBACK_BY_SEASON[season].services);
+        console.error("SeasonalBanner error:", error);
+        setServices(hydrateSeasonalServices(FALLBACK_BY_SEASON[season].services));
       } finally {
         setLoading(false);
       }
@@ -214,7 +224,16 @@ export default function SeasonalBanner() {
             }}
           >
             <div className="mb-2 flex items-start justify-between md:mb-4">
-              <div className="text-2xl leading-none md:text-3xl">{svc.icon}</div>
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl md:h-11 md:w-11"
+                style={{ backgroundColor: "oklch(0.94 0.04 264 / 0.55)" }}
+              >
+                <CategoryIcon
+                  icon={svc.icon}
+                  className="h-5 w-5 md:h-6 md:w-6"
+                  style={{ color: "var(--primary)" }}
+                />
+              </div>
               <span
                 className="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide md:px-2 md:py-1 md:text-xs"
                 style={{
