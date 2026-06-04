@@ -46,6 +46,7 @@ import RoleRoute from "./components/RoleRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import SkipLinks from "./components/SkipLinks";
 import TelemetryRouteListener from "./components/TelemetryRouteListener";
+import ScrollToTop from "./components/ScrollToTop";
 
 const Breadcrumbs = lazy(() => import("./components/Breadcrumbs"));
 const MobileAppTabBar = lazy(() => import("./components/MobileAppTabBar"));
@@ -166,6 +167,7 @@ function App() {
         
         {/* Navbar */}
         <Navbar />
+        <ScrollToTop />
         {!isAdminRoute && <TelemetryRouteListener />}
         {!isAdminRoute && (
           <Suspense fallback={null}>
