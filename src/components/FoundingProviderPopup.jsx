@@ -10,17 +10,20 @@ import { useAuth } from "../context/AuthContext";
  *   - X (zamknij)   – w prawym górnym rogu, nad narysowanym kółkiem,
  *   - „Dołącz teraz" – nad narysowanym CTA.
  *
- * Logika pokazywania:
- *  - po ~5 s od wejścia na stronę (każda wizyta / przeładowanie),
- *  - zamknięcie (X / Esc / backdrop) ukrywa tylko do następnego wejścia na stronę,
- *  - po kliknięciu „Dołącz teraz" już nie wraca (wyraźna intencja rejestracji),
- *  - `?popup=founding` w URL wymusza pokaz po 1 s i ignoruje blokady.
+ * Logika pokazywania (umiarkowana):
+ *  - po ~15 s od pierwszego wejścia w sesji,
+ *  - max raz na sesję przeglądarki (nie na każdej podstronie),
+ *  - po zamknięciu (X / Esc / backdrop) — przerwa 48 h,
+ *  - po „Dołącz teraz" — już nie wraca,
+ *  - `?popup=founding` wymusza pokaz po 1 s.
  *
- * Audience: tylko niezalogowani goście (zalogowani / zarejestrowani nie widzą popupu).
+ * Audience: tylko niezalogowani goście.
  */
-const STORAGE_KEY = "helpfli.founding_popup.state.v7";
-const DELAY_MS = 5000;
+const STORAGE_KEY = "helpfli.founding_popup.state.v8";
+const SESSION_KEY = "helpfli.founding_popup.shown_this_session";
+const DELAY_MS = 15000;
 const FORCE_SHOW_DELAY_MS = 1000;
+const REAPPEAR_AFTER_MS = 48 * 60 * 60 * 1000;
 
 // --- Geometria obrazka /img/founding-provider-popup-card.png ---
 // Już przycięty asset (685 × 565), zawiera tylko białą kartę popupu.
@@ -96,12 +99,22 @@ export default function FoundingProviderPopup() {
     if (forced) return true;
 
     if (loading) return false;
-
-    // Zalogowany / zarejestrowany – nie pokazuj.
     if (user) return false;
+
+    try {
+      if (window.sessionStorage.getItem(SESSION_KEY) === "1") return false;
+    } catch {
+      /* brak sessionStorage */
+    }
 
     const state = readState();
     if (state?.joined === true) return false;
+    if (
+      Number.isFinite(state?.dismissedAt) &&
+      Date.now() - state.dismissedAt < REAPPEAR_AFTER_MS
+    ) {
+      return false;
+    }
 
     return true;
   }, [user, loading, forced]);
@@ -109,22 +122,37 @@ export default function FoundingProviderPopup() {
   useEffect(() => {
     if (!eligible) return undefined;
     const delay = forced ? FORCE_SHOW_DELAY_MS : DELAY_MS;
-    const t = setTimeout(() => setOpen(true), delay);
+    const t = setTimeout(() => {
+      setOpen(true);
+      if (!forced) {
+        try {
+          window.sessionStorage.setItem(SESSION_KEY, "1");
+        } catch {
+          /* noop */
+        }
+      }
+    }, delay);
     return () => clearTimeout(t);
   }, [eligible, forced]);
 
+  const persistDismiss = useCallback(() => {
+    if (forced) return;
+    writeState({ dismissedAt: Date.now(), joined: false });
+  }, [forced]);
+
   const persistJoined = useCallback(() => {
     if (forced) return;
-    writeState({ joined: true });
+    writeState({ dismissedAt: Date.now(), joined: true });
   }, [forced]);
 
   const handleClose = useCallback(() => {
     setClosing(true);
+    persistDismiss();
     setTimeout(() => {
       setOpen(false);
       setClosing(false);
     }, 180);
-  }, []);
+  }, [persistDismiss]);
 
   const handleJoin = useCallback(() => {
     persistJoined();

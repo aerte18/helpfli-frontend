@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import HowItWorksAudienceModal from "./HowItWorksAudienceModal";
 
-const ASSETS_VERSION = "20260604g";
+const ASSETS_VERSION = "20260604h";
 const BANNER_W = 2172;
 const BANNER_H = 724;
 
@@ -29,8 +29,8 @@ const SLIDES = [
     src: promoImg("promo klient.png"),
     registerLink:
       "/register?role=client&utm_source=landing&utm_campaign=promo_strip_client",
-    registerArea: btnRect(52, 568, 498, 112),
-    howItWorksArea: btnRect(562, 568, 368, 112),
+    registerArea: btnRect(52, 498, 498, 104),
+    howItWorksArea: btnRect(562, 498, 368, 104),
   },
   {
     id: "provider",
@@ -39,8 +39,8 @@ const SLIDES = [
     src: promoImg("promo provider.png"),
     registerLink:
       "/register?role=provider&utm_source=landing&utm_campaign=promo_strip_provider",
-    registerArea: btnRect(52, 568, 648, 112),
-    howItWorksArea: btnRect(712, 568, 368, 112),
+    registerArea: btnRect(52, 498, 648, 104),
+    howItWorksArea: btnRect(712, 498, 368, 104),
   },
 ];
 
