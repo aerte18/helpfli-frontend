@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const ASSETS_VERSION = "20260604a";
+const ASSETS_VERSION = "20260604b";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${ASSETS_VERSION}`;
