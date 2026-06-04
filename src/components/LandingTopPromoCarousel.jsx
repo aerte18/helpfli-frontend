@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const ASSETS_VERSION = "20260604b";
+const ASSETS_VERSION = "20260604c";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${ASSETS_VERSION}`;
@@ -57,14 +57,15 @@ export default function LandingTopPromoCarousel() {
           <button
             type="button"
             onClick={() => navigate(slide.link)}
-            className="flex w-full items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-xl"
+            className="relative block w-full aspect-[1716/916] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded-xl"
             aria-label={slide.alt}
           >
             <img
               key={slide.id}
               src={slide.src}
-              alt={slide.alt}
-              className="block w-full max-h-[4.25rem] sm:max-h-[5rem] md:max-h-[5.75rem] h-auto object-contain object-center select-none"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-cover object-center select-none"
               draggable={false}
             />
           </button>
