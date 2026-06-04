@@ -123,7 +123,7 @@ export default function HelpfliPromoCarousel() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
         <div 
-          className={`relative rounded-xl overflow-hidden min-h-[300px] md:min-h-0 ${isBanner ? "md:h-[280px]" : "md:h-[260px]"}`}
+          className={`relative rounded-xl overflow-hidden min-h-[220px] md:min-h-0 ${isBanner ? "md:h-[220px]" : "md:h-[200px]"}`}
           style={{
             backgroundColor: 'var(--card)',
             borderColor: 'var(--border)',

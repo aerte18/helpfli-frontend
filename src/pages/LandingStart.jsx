@@ -277,7 +277,7 @@ export default function LandingStart() {
       </div>
 
       {/* Kompaktowa karuzela promo (klient / wykonawca) — pod nagłówkiem, nad hero */}
-      <Suspense fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pt-3"><div className="aspect-[2172/724] w-full rounded-xl bg-slate-100 animate-pulse" /></div>}>
+      <Suspense fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pt-2"><div className="h-[128px] sm:h-[140px] md:h-[152px] w-full rounded-xl bg-slate-100 animate-pulse" /></div>}>
         <LandingTopPromoCarousel />
       </Suspense>
 
