@@ -1,64 +1,53 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import HowItWorksAudienceModal from "./HowItWorksAudienceModal";
 
-const ASSETS_VERSION = "20260604e";
-const BANNER_W = 2172;
-const BANNER_H = 724;
+const ASSETS_VERSION = "20260604f";
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${ASSETS_VERSION}`;
 }
 
-/** Pozycje przycisków na grafice 2172×724 (px → % przy skalowaniu). */
-function hotspot(x, y, w, h) {
+/** Procentowy prostokąt klikalny (dopasowany do banerów 2172×724). */
+function hitArea(left, top, width, height) {
   return {
-    left: `${(x / BANNER_W) * 100}%`,
-    top: `${(y / BANNER_H) * 100}%`,
-    width: `${(w / BANNER_W) * 100}%`,
-    height: `${(h / BANNER_H) * 100}%`,
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${width}%`,
+    height: `${height}%`,
   };
 }
-
-const REGISTER_HOTSPOT = hotspot(52, 548, 500, 148);
-const HOW_IT_WORKS_HOTSPOT = hotspot(568, 548, 400, 148);
 
 const SLIDES = [
   {
     id: "client",
     audience: "client",
-    alt: "Baner dla klienta — załóż konto lub zobacz jak działa Helpfli",
+    alt: "Baner dla klienta",
     src: promoImg("promo klient.png"),
     registerLink:
       "/register?role=client&utm_source=landing&utm_campaign=promo_strip_client",
+    registerArea: hitArea(1.2, 70, 34, 28),
+    howItWorksArea: hitArea(36, 70, 22, 28),
   },
   {
     id: "provider",
     audience: "provider",
-    alt: "Baner dla wykonawcy — rejestracja lub jak działa Helpfli",
+    alt: "Baner dla wykonawcy",
     src: promoImg("promo provider.png"),
     registerLink:
       "/register?role=provider&utm_source=landing&utm_campaign=promo_strip_provider",
+    registerArea: hitArea(1.2, 70, 42, 28),
+    howItWorksArea: hitArea(44, 70, 22, 28),
   },
 ];
 
 const ROTATE_MS = 6000;
 
-function HotspotButton({ style, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="absolute z-10 cursor-pointer rounded-lg transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1"
-      style={style}
-    />
-  );
-}
+const HOTSPOT_CLASS =
+  "absolute z-30 cursor-pointer touch-manipulation rounded-md transition-colors hover:bg-black/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 pointer-events-auto";
 
 export default function LandingTopPromoCarousel() {
-  const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [howItWorksAudience, setHowItWorksAudience] = useState(null);
@@ -88,29 +77,35 @@ export default function LandingTopPromoCarousel() {
             className="group relative overflow-hidden rounded-xl border shadow-sm"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
           >
-            <div className="relative block w-full aspect-[2172/724] overflow-hidden rounded-xl">
+            {/* Baner + warstwa klików — ten sam box, bez object-cover (1:1 z hotspotami) */}
+            <div className="relative w-full aspect-[2172/724]">
               <img
                 key={slide.id}
                 src={slide.src}
                 alt={slide.alt}
-                className="absolute inset-0 h-full w-full object-cover object-center select-none pointer-events-none"
+                className="block h-full w-full select-none"
                 draggable={false}
               />
 
-              <HotspotButton
-                style={REGISTER_HOTSPOT}
-                label={
-                  slide.audience === "provider"
-                    ? "Zarejestruj się jako wykonawca"
-                    : "Załóż darmowe konto"
-                }
-                onClick={() => navigate(slide.registerLink)}
-              />
-              <HotspotButton
-                style={HOW_IT_WORKS_HOTSPOT}
-                label="Jak to działa"
-                onClick={() => setHowItWorksAudience(slide.audience)}
-              />
+              <div className="absolute inset-0 z-20" aria-hidden={false}>
+                <Link
+                  to={slide.registerLink}
+                  className={HOTSPOT_CLASS}
+                  style={slide.registerArea}
+                  aria-label={
+                    slide.audience === "provider"
+                      ? "Zarejestruj się jako wykonawca"
+                      : "Załóż darmowe konto"
+                  }
+                />
+                <button
+                  type="button"
+                  className={HOTSPOT_CLASS}
+                  style={slide.howItWorksArea}
+                  aria-label="Jak to działa"
+                  onClick={() => setHowItWorksAudience(slide.audience)}
+                />
+              </div>
             </div>
 
             {SLIDES.length > 1 && (
@@ -118,7 +113,7 @@ export default function LandingTopPromoCarousel() {
                 <button
                   type="button"
                   onClick={() => go(-1)}
-                  className="absolute left-1.5 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border bg-white/90 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 md:opacity-60 md:group-hover:opacity-100"
+                  className="absolute left-1.5 top-1/2 z-40 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border bg-white/95 shadow-sm md:opacity-70 md:group-hover:opacity-100"
                   style={{ borderColor: "var(--border)" }}
                   aria-label="Poprzedni baner"
                 >
@@ -127,21 +122,21 @@ export default function LandingTopPromoCarousel() {
                 <button
                   type="button"
                   onClick={() => go(1)}
-                  className="absolute right-1.5 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border bg-white/90 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 md:opacity-60 md:group-hover:opacity-100"
+                  className="absolute right-1.5 top-1/2 z-40 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border bg-white/95 shadow-sm md:opacity-70 md:group-hover:opacity-100"
                   style={{ borderColor: "var(--border)" }}
                   aria-label="Następny baner"
                 >
                   <ChevronRight className="h-4 w-4 text-slate-700" aria-hidden />
                 </button>
 
-                <div className="absolute bottom-1.5 left-1/2 z-20 flex -translate-x-1/2 gap-1">
+                <div className="absolute top-2 right-2 z-40 flex gap-1.5 pointer-events-auto">
                   {SLIDES.map((s, i) => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setIndex(i)}
-                      className={`h-1.5 rounded-full transition-all ${
-                        i === index ? "w-4 bg-indigo-600" : "w-1.5 bg-slate-400/70"
+                      className={`h-2 rounded-full transition-all shadow-sm ${
+                        i === index ? "w-5 bg-indigo-600" : "w-2 bg-white/90 ring-1 ring-slate-300/80"
                       }`}
                       aria-label={`Baner ${i + 1}`}
                       aria-current={i === index ? "true" : undefined}
