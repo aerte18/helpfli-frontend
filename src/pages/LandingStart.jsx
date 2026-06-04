@@ -20,8 +20,31 @@ const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
 const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
 const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromoCarousel"));
 import { openHowItWorksModal } from "../utils/openHowItWorksModal";
-import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
+import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight, Briefcase, ClipboardList } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+
+const HERO_QUICK_START = {
+  client: {
+    eyebrow: "Szybki start",
+    lead: "Wybierz usługę i porównaj oferty w swojej okolicy.",
+    emphasis: "Szybko, bezpiecznie, bez dzwonienia po znajomych.",
+    steps: [
+      { Icon: Search, title: "Opisz problem", text: "Usługa + krótki opis lub AI" },
+      { Icon: Users, title: "Porównaj oferty", text: "Wykonawcy odpowiadają z wyceną" },
+      { Icon: ShieldCheck, title: "Wybierz i zapłać", text: "Bezpiecznie przez Helpfli" },
+    ],
+  },
+  provider: {
+    eyebrow: "Start wykonawcy",
+    lead: "Dołącz do sieci lokalnych specjalistów i odbieraj zapytania od klientów.",
+    emphasis: "Zero opłat startowych — płacisz dopiero, gdy zarabiasz.",
+    steps: [
+      { Icon: Briefcase, title: "Uzupełnij profil", text: "Usługi, obszar i weryfikacja" },
+      { Icon: ClipboardList, title: "Przeglądaj zlecenia", text: "Mapa i lista w Twojej okolicy" },
+      { Icon: Sparkles, title: "Wyślij ofertę", text: "AI podpowie cenę i treść" },
+    ],
+  },
+};
 
 function useDebouncedValue(value, delay = 200) {
   const [v, setV] = useState(value);
@@ -198,6 +221,11 @@ export default function LandingStart() {
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [seed, setSeed] = useState("");
 
+  const quickStart = useMemo(() => {
+    const mode = user?.role === "provider" || audience === "provider" ? "provider" : "client";
+    return HERO_QUICK_START[mode];
+  }, [user?.role, audience]);
+
   useEffect(() => {
     if (user?.role === "provider") {
       setAudience("provider");
@@ -277,37 +305,42 @@ export default function LandingStart() {
                   </button>
                 </div>
               )}
-              <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl" style={{ color: 'var(--foreground)' }}>
+              <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl whitespace-pre-line" style={{ color: 'var(--foreground)' }}>
                 {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź sprawdzoną pomoc\nw kilka minut"}
               </h1>
 
               <div
-                className="rounded-2xl border px-4 py-3.5 mb-5 sm:px-5 sm:py-4 sm:mb-6"
-                style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+                key={quickStart.eyebrow}
+                className="mb-5 sm:mb-6 overflow-hidden rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5 shadow-sm"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
-                  Szybki start
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 mb-2">
+                  {quickStart.eyebrow}
                 </p>
-                <p className="text-sm sm:text-[15px] leading-snug sm:leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-                  Wybierz usługę i porównaj oferty — znajdź pomoc w swojej okolicy.
-                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}> Szybko, bezpiecznie, bez dzwonienia po znajomych.</span>
+                <p className="text-sm sm:text-[15px] leading-relaxed text-slate-600">
+                  {quickStart.lead}{" "}
+                  <span className="font-semibold text-slate-900">{quickStart.emphasis}</span>
                 </p>
-                <ol className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
-                  {[
-                    { n: "1", title: "Opisz problem", text: "Usługa + krótki opis lub AI" },
-                    { n: "2", title: "Porównaj oferty", text: "Wykonawcy odpowiadają z wyceną" },
-                    { n: "3", title: "Wybierz i zapłać", text: "Bezpiecznie przez Helpfli" },
-                  ].map((step) => (
-                    <li
-                      key={step.n}
-                      className="rounded-lg px-2.5 py-2 text-[11px] sm:text-xs"
-                      style={{ backgroundColor: "var(--background)", border: "1px solid var(--border)" }}
-                    >
-                      <span className="font-bold" style={{ color: "var(--primary)" }}>{step.n}. </span>
-                      <span className="font-semibold" style={{ color: "var(--foreground)" }}>{step.title}</span>
-                      <span className="block mt-0.5" style={{ color: "var(--muted-foreground)" }}>{step.text}</span>
-                    </li>
-                  ))}
+                <ol className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-indigo-100/80">
+                  {quickStart.steps.map((step, index) => {
+                    const StepIcon = step.Icon;
+                    return (
+                      <li
+                        key={step.title}
+                        className="flex gap-3 sm:flex-col sm:gap-2.5 sm:px-4 first:sm:pl-0 last:sm:pr-0"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-indigo-100">
+                          <StepIcon className="h-[18px] w-[18px] text-indigo-600" aria-hidden />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-600/90">
+                            Krok {index + 1}
+                          </p>
+                          <p className="mt-0.5 text-sm font-semibold leading-snug text-slate-900">{step.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">{step.text}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
 
