@@ -103,6 +103,7 @@ const AiWidget = lazy(() => import("./components/AiWidget"));
 const ProviderAIWidget = lazy(() => import("./components/ProviderAIWidget"));
 const UnifiedAIConcierge = lazy(() => import("./components/ai/UnifiedAIConcierge"));
 const PermissionQueueManager = lazy(() => import("./components/consent/PermissionQueueManager"));
+const HowItWorksHelpfliModal = lazy(() => import("./components/HowItWorksHelpfliModal"));
 
 
 // Loading component dla lazy loaded komponentów
@@ -167,6 +168,11 @@ function App() {
         
         {/* Navbar */}
         <Navbar />
+        {!isAdminRoute && (
+          <Suspense fallback={null}>
+            <HowItWorksHelpfliModal />
+          </Suspense>
+        )}
         <ScrollToTop />
         {!isAdminRoute && <TelemetryRouteListener />}
         {!isAdminRoute && (

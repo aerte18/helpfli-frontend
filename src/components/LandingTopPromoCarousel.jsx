@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import HowItWorksAudienceModal from "./HowItWorksAudienceModal";
+import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 
 const ASSETS_VERSION = "20260604i";
 const BANNER_W = 2172;
@@ -67,7 +67,6 @@ function useHotspotDebug() {
 export default function LandingTopPromoCarousel() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [howItWorksAudience, setHowItWorksAudience] = useState(null);
   const hotspotDebug = useHotspotDebug();
   const hotspotClass = hotspotDebug
     ? `${HOTSPOT_CLASS} ring-2 ring-red-500/80 bg-red-500/25`
@@ -125,7 +124,7 @@ export default function LandingTopPromoCarousel() {
                   className={hotspotClass}
                   style={slide.howItWorksArea}
                   aria-label="Jak to działa"
-                  onClick={() => setHowItWorksAudience(slide.audience)}
+                  onClick={() => openHowItWorksModal(slide.audience)}
                 />
               </div>
             </div>
@@ -170,12 +169,6 @@ export default function LandingTopPromoCarousel() {
           </div>
         </div>
       </section>
-
-      <HowItWorksAudienceModal
-        open={howItWorksAudience != null}
-        audience={howItWorksAudience ?? "client"}
-        onClose={() => setHowItWorksAudience(null)}
-      />
     </>
   );
 }

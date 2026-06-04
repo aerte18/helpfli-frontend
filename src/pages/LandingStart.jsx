@@ -19,7 +19,7 @@ const FoundingProviderPopup = lazy(() => import("../components/FoundingProviderP
 const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
 const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
 const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromoCarousel"));
-import LandingOnboardingSections from "../components/landing/LandingOnboardingSections";
+import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -206,23 +206,10 @@ export default function LandingStart() {
     }
   }, [user?.role]);
 
-  // Obsługa przewijania do sekcji po załadowaniu strony z hashem
   useEffect(() => {
-    const hash = location.hash || window.location.hash;
-    if (hash === '#jak-to-dziala') {
-      // Czekamy na załadowanie DOM - dłuższe opóźnienie gdy przechodzimy z innej strony
-      const timeout = setTimeout(() => {
-        const element = document.getElementById('jak-to-dziala');
-        if (element) {
-          // Dodatkowe opóźnienie dla smooth scroll
-          setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 50);
-        }
-      }, location.pathname === '/' ? 100 : 300);
-      
-      return () => clearTimeout(timeout);
-    }
+    if (location.hash !== "#jak-to-dziala") return undefined;
+    const timeout = setTimeout(() => openHowItWorksModal("client"), 150);
+    return () => clearTimeout(timeout);
   }, [location.hash, location.pathname]);
 
   const goToSearch = (term = query, slug) => {
@@ -266,8 +253,6 @@ export default function LandingStart() {
         <LandingTopPromoCarousel />
       </Suspense>
 
-      <LandingOnboardingSections />
-      
       {/* HERO */}
       <section className="pt-3 md:pt-4 pb-4 md:pb-6 bg-gradient-to-b from-background to-secondary/20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">

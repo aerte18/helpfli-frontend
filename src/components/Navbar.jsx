@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import LoyaltyPointsBadge from "./LoyaltyPointsBadge";
 import ServiceAutocomplete from "./ServiceAutocomplete";
 import NotificationsDropdown from "./NotificationsDropdown";
+import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 
 export default function Navbar() {
   const [count, setCount] = useState(0);
@@ -129,29 +130,16 @@ export default function Navbar() {
               <Link to="/poradniki" className="text-sm font-medium transition-colors" style={{ color: 'var(--foreground)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--foreground)'}>
                 Poradniki
               </Link>
-              <Link 
-                to="/" 
-                onClick={(e) => {
-                  // Jeśli jesteśmy już na stronie głównej, scroll do sekcji
-                  if (location.pathname === '/') {
-                    e.preventDefault();
-                    const element = document.getElementById('jak-to-dziala');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  } else {
-                    // Jeśli jesteśmy na innej stronie, nawiguj z hashem
-                    navigate('/#jak-to-dziala');
-                    e.preventDefault();
-                  }
-                }}
+              <button
+                type="button"
+                onClick={() => openHowItWorksModal("client")}
                 className="text-sm font-medium transition-colors" 
                 style={{ color: 'var(--muted-foreground)' }} 
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} 
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted-foreground)'}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; }} 
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted-foreground)'; }}
               >
                 Jak to działa
-              </Link>
+              </button>
               <Link
                 to="/register?role=provider"
                 className="text-sm font-semibold px-3 py-1.5 rounded-full border transition-colors"
