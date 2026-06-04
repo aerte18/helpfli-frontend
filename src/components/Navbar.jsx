@@ -402,7 +402,7 @@ export default function Navbar() {
                     {(user?.role === "provider" || user?.role === "company_owner" || user?.role === "company_manager") && (
                       <>
                         <Link 
-                          to="/company/dashboard" 
+                          to="/account/company" 
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                           onClick={() => setShowUserMenu(false)}
                         >
@@ -630,7 +630,7 @@ export default function Navbar() {
                       (user?.company && (user?.roleInCompany === "owner" || user?.roleInCompany === "manager" || user?.roleInCompany === "provider"))) && (
               location.pathname === "/provider-home" ? (
                 <Link 
-                  to="/company/dashboard" 
+                  to="/account/company" 
                   onClick={() => setMobileOpen(false)} 
                   className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 flex items-center gap-2"
                 >
@@ -668,7 +668,7 @@ export default function Navbar() {
                                       (user?.company && (user?.roleInCompany === "owner" || user?.roleInCompany === "manager"));
                   return (
                     <Link 
-                      to={isCompanyUser ? "/company/dashboard" : "/account"} 
+                      to={isCompanyUser ? "/account/company" : "/account"} 
                       onClick={() => setMobileOpen(false)} 
                       className="py-2"
                     >
@@ -685,7 +685,7 @@ export default function Navbar() {
                 {(user?.role === "provider" || user?.role === "company_owner" || user?.role === "company_manager") && (
                   <>
                     <Link to="/provider-home" onClick={() => setMobileOpen(false)} className="py-2">Panel zleceń</Link>
-                    <Link to="/company/dashboard" onClick={() => setMobileOpen(false)} className="py-2">Panel firmy</Link>
+                    <Link to="/account/company" onClick={() => setMobileOpen(false)} className="py-2">Panel firmy</Link>
                   </>
                 )}
                 {user?.role === "admin" && (

@@ -23,8 +23,8 @@ export const UI = {
     "W czym potrzebujesz pomocy? (np. odebranie paczki, naprawa roweru, korepetycje)",
 
   // Zlecenia / Prośby
-  orderTitle: "Opisz, w czym potrzebujesz pomocy",
-  orderCTA: "Wyślij prośbę o pomoc",
+  orderTitle: "Opisz zlecenie",
+  orderCTA: "Opublikuj zlecenie",
   fieldKind: "Rodzaj pomocy",
   fieldBudget: "Szacowany budżet (opcjonalnie)",
   fieldWhen: "Kiedy ma nastąpić pomoc",

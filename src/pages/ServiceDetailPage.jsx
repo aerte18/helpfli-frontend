@@ -146,7 +146,7 @@ export default function ServiceDetailPage() {
           <ol className="flex items-center space-x-2 text-sm text-slate-500">
             <li><Link to="/" className="hover:text-indigo-600">Strona główna</Link></li>
             <li>/</li>
-            <li><Link to="/search" className="hover:text-indigo-600">Usługi</Link></li>
+            <li><Link to="/home" className="hover:text-indigo-600">Usługi</Link></li>
             <li>/</li>
             <li className="text-slate-900">{service.name_pl || service.name_en}</li>
           </ol>

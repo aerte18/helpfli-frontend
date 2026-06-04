@@ -944,7 +944,7 @@ export default function UnifiedAIConcierge({
 
   const openProviderSearch = () => {
     const service = analysisResult?.matching?.service || analysisResult?.serviceCandidate?.code || '';
-    navigate('/search?service=' + encodeURIComponent(service));
+    navigate('/home?service=' + encodeURIComponent(service));
     if (mode === 'modal' && onClose) onClose();
   };
 
@@ -1755,7 +1755,7 @@ export default function UnifiedAIConcierge({
                       </div>
                       <button
                         type="button"
-                        onClick={() => navigate('/search?service=' + encodeURIComponent(analysisResult.matching.service || analysisResult.serviceCandidate?.code || ''))}
+                        onClick={() => navigate('/home?service=' + encodeURIComponent(analysisResult.matching.service || analysisResult.serviceCandidate?.code || ''))}
                         className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
                       >
                         Pokaż więcej

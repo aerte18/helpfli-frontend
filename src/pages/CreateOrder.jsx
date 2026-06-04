@@ -119,6 +119,17 @@ export default function CreateOrder() {
   const orderFormTrackedStep = useRef(0);
   const orderFormSubmitted = useRef(false);
 
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(() =>
+    Boolean(
+      initialIsDirect ||
+        mode === "diy" ||
+        preFilled.providerId ||
+        preFilled.orderMode ||
+        preFilled.suggestOffersOnly ||
+        (serviceFromUrl && descFromUrl)
+    )
+  );
+
   const budgetNum = budget && String(budget).trim() ? parseFloat(budget) : null;
 
   useEffect(() => {
@@ -576,7 +587,9 @@ export default function CreateOrder() {
               {UI.orderTitle}
             </h1>
             <p style={{ color: 'var(--muted-foreground)' }}>
-              Opisz swój problem, a wykonawcy odpowiedzą z najlepszymi ofertami
+              {showAdvancedOptions
+                ? "Opisz swój problem, a wykonawcy odpowiedzą z najlepszymi ofertami"
+                : "Wystarczą 3 pola: usługa, opis i lokalizacja — reszta jest opcjonalna"}
             </p>
           </div>
 
@@ -712,7 +725,9 @@ export default function CreateOrder() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 1 — Typ zlecenia i usługa</div>
+        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>
+          {showAdvancedOptions ? "Krok 1 — Typ zlecenia i usługa" : "Krok 1 — Rodzaj pomocy"}
+        </div>
 
         {/* Tryb DIY - wyświetl kroki */}
         {mode === "diy" && diySteps.length > 0 && (
@@ -764,6 +779,7 @@ export default function CreateOrder() {
         )}
 
         {/* Przełącznik typu zlecenia */}
+        {showAdvancedOptions && (
         <div className="space-y-3">
           <label className="block text-sm font-medium" style={{ color: 'var(--foreground)' }}>
             Typ zlecenia
@@ -822,9 +838,10 @@ export default function CreateOrder() {
             </button>
           </div>
         </div>
+        )}
 
-        {/* Selektor providera dla zleceń bezpośrednich */}
-        {orderType === "direct" && (
+        {/* Selektor providera dla zleceń bezpośrednich — widoczny gdy wybrano tryb direct */}
+        {showAdvancedOptions && orderType === "direct" && (
           <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--border)' }}>
             {selectedProvider ? (
               <div className="flex items-center justify-between">
@@ -1051,6 +1068,8 @@ export default function CreateOrder() {
           </p>
         </div>
 
+        {showAdvancedOptions && (
+        <>
         <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 3 — Budżet i termin</div>
         <div className="space-y-2">
           <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
@@ -1296,8 +1315,12 @@ export default function CreateOrder() {
             <option value="any">Dowolny</option>
           </select>
         </div>
+        </>
+        )}
 
-        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 5 — Lokalizacja</div>
+        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>
+          {showAdvancedOptions ? "Krok 5 — Lokalizacja" : "Krok 3 — Lokalizacja"}
+        </div>
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
             <MapPin className="h-4 w-4" />
@@ -1350,7 +1373,9 @@ export default function CreateOrder() {
           )}
         </div>
 
-        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 6 — Załączniki</div>
+        <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>
+          {showAdvancedOptions ? "Krok 6 — Załączniki" : "Krok 4 — Załączniki (opcjonalnie)"}
+        </div>
         <div className="space-y-2">
           <label className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
             <FileText className="h-4 w-4" />
@@ -1426,6 +1451,17 @@ export default function CreateOrder() {
               </div>
             )}
         </div>
+
+        {!showAdvancedOptions && (
+          <button
+            type="button"
+            onClick={() => setShowAdvancedOptions(true)}
+            className="w-full py-3 px-4 rounded-lg border text-sm font-medium transition-colors hover:bg-muted/50"
+            style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+          >
+            Więcej opcji — typ zlecenia, budżet, płatność…
+          </button>
+        )}
 
         {error && (
           <div className="p-4 rounded-xl border text-sm md:text-base" style={{ backgroundColor: 'oklch(0.95 0.05 20)', borderColor: 'oklch(0.7 0.1 20)', color: 'oklch(0.4 0.1 20)' }}>

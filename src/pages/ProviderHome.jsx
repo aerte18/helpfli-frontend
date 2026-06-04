@@ -24,6 +24,7 @@ import OrderModeBadge from "../components/OrderModeBadge";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 import ProviderMobileAiNudge, { buildAiPrefill } from "../components/provider/ProviderMobileAiNudge";
+import ProviderGettingStartedChecklist from "../components/ProviderGettingStartedChecklist";
 import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 // ResultsToolbar usunięty - nie jest potrzebny dla providera (filtry Verified/Firma/TOP są dla klientów)
 
@@ -478,6 +479,7 @@ export default function ProviderHome() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => {
     try { return localStorage.getItem("providerHome_onboarding") === "dismissed"; } catch { return false; }
   });
+  const [checklistHidden, setChecklistHidden] = useState(false);
 
   // Lista providerów z firmy (dla właściciela/manager)
   const [companyProviders, setCompanyProviders] = useState([]);
@@ -1492,8 +1494,19 @@ export default function ProviderHome() {
           : "min-h-screen bg-[var(--qs-color-bg-soft)]"
       }
     >
-      {/* Onboarding – pierwszy raz (3 kroki) */}
-      {!onboardingDismissed && viewMode !== "map" && !isMobileViewport && (
+      {/* Checklist pierwszych kroków wykonawcy */}
+      {viewMode !== "map" && !checklistHidden && user?.role === "provider" && (
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <ProviderGettingStartedChecklist
+            user={user}
+            offersCount={stats.sentOffers7d > 0 ? stats.sentOffers7d : offers.length}
+            onDismiss={() => setChecklistHidden(true)}
+          />
+        </div>
+      )}
+
+      {/* Onboarding – pierwszy raz (skrócony baner) */}
+      {!onboardingDismissed && viewMode !== "map" && (
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex-1">

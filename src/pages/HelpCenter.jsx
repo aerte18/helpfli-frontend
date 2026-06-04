@@ -180,7 +180,7 @@ export default function HelpCenter() {
             <div>
               <h3 className="font-semibold mb-2">Dla klientów</h3>
               <ul className="space-y-1">
-                <li><Link to="/search" className="text-indigo-600 hover:underline">Znajdź wykonawcę</Link></li>
+                <li><Link to="/home" className="text-indigo-600 hover:underline">Znajdź wykonawcę</Link></li>
                 <li><Link to="/create-order" className="text-indigo-600 hover:underline">Stwórz zlecenie</Link></li>
                 <li><Link to="/my-orders" className="text-indigo-600 hover:underline">Moje zlecenia</Link></li>
                 <li><Link to="/concierge" className="text-indigo-600 hover:underline">Asystent AI</Link></li>

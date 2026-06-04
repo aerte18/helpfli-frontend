@@ -186,7 +186,7 @@ export default function Reviews() {
               Moje zlecenia
             </a>
             <a 
-              href="/search"
+              href="/home"
               className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors text-center"
             >
               Znajdź wykonawcę

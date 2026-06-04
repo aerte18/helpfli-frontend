@@ -5,10 +5,11 @@ import { Helmet } from "react-helmet-async";
 import { LocateFixed } from "lucide-react";
 import Logo from "../components/Logo";
 import GeoSuggest from "../components/GeoSuggest";
+import { getPostLoginPath, storePostOnboardingNext, safeNextPath } from "../utils/authRedirect";
 
 const ROLE_OPTIONS = [
   { key: "client", label: "Klient" },
-  { key: "provider", label: "Usługodawca" },
+  { key: "provider", label: "Wykonawca" },
   { key: "company", label: "Firma wieloosobowa" },
 ];
 
@@ -339,27 +340,34 @@ export default function Register() {
       // Przekierowanie po rejestracji
       // Sprawdź rolę użytkownika z odpowiedzi (może być company_owner jeśli rejestrował firmę)
       const userRole = data.user?.role || snapshot.role;
-      
+      const nextAfterAuth = safeNextPath(searchParams.get("next"), "");
+
+      if (nextAfterAuth) {
+        storePostOnboardingNext(nextAfterAuth);
+      }
+
+      const redirectAfterRegister = (userData) => {
+        const path = getPostLoginPath(
+          userData || { role: userRole, onboardingCompleted: userRole === "client" },
+          nextAfterAuth || undefined
+        );
+        navigate(path);
+      };
+
       // Przekieruj na właściwą stronę w zależności od roli
       if (userRole === "admin") {
-        // Dla admina - przekieruj do panelu admina po 2 sekundach
-        setTimeout(() => {
-          navigate("/admin");
-        }, 2000);
+        setTimeout(() => redirectAfterRegister({ role: "admin", onboardingCompleted: true }), 2000);
       } else if (userRole === "company_owner") {
-        // Dla firmy wieloosobowej - przekieruj do panelu firmy po 2 sekundach
-        setTimeout(() => {
-          navigate("/account/company");
-        }, 2000);
+        setTimeout(() => redirectAfterRegister({ role: "company_owner", onboardingCompleted: true }), 2000);
       } else if (userRole === "provider") {
-        // Dla providera - przejdź przez onboarding (wybór usług), żeby od razu ustawić profil.
-        setTimeout(() => {
-          navigate("/onboarding");
-        }, 2000);
+        setTimeout(() => redirectAfterRegister({ role: "provider", onboardingCompleted: false }), 2000);
       } else if (userRole === "client") {
-        // Dla klienta - przekieruj do home po 2 sekundach
         setTimeout(() => {
-          navigate("/home");
+          if (nextAfterAuth && !data.user?.onboardingCompleted) {
+            navigate("/onboarding");
+          } else {
+            redirectAfterRegister(data.user || { role: "client", onboardingCompleted: true });
+          }
         }, 2000);
       }
     } catch (err) {

@@ -4,5 +4,5 @@
  * Szuflady mają własny scroll (overflow-y-auto); lekkie przewinięcie tła na mobile jest akceptowalne.
  */
 export default function useBodyScrollLock() {
-  // intentionally empty — call sites zostają dla czytelności (SearchPage, ProvidersPage)
+  // intentionally empty — call sites zostają dla czytelności (ProvidersPage)
 }

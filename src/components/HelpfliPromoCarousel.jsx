@@ -19,7 +19,7 @@ const slides = [
     imageSrc: promoImg("baner klient.png"),
     imageBanner: true,
     imageEdgeRight: true,
-    link: "/create-order"
+    link: "/login?next=%2Fcreate-order"
   },
   {
     id: 5,

@@ -12,7 +12,6 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const OnboardingWizard = lazy(() => import("./pages/OnboardingWizard"));
 const PrivacySettings = lazy(() => import("./components/PrivacySettings"));
 const Home = lazy(() => import("./pages/Home"));
-const SearchPage = lazy(() => import("./pages/SearchPage"));
 const ServiceDetailPage = lazy(() => import("./pages/ServiceDetailPage"));
 const Account = lazy(() => import("./pages/Account"));
 const CreateOrder = lazy(() => import("./pages/CreateOrder"));
@@ -32,7 +31,8 @@ const CompanyAccount = lazy(() => import("./pages/company/CompanyAccount"));
 const CreateCompany = lazy(() => import("./pages/company/CreateCompany"));
 const CompanySettings = lazy(() => import("./pages/company/CompanySettings"));
 const JoinCompany = lazy(() => import("./pages/company/JoinCompany"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+import DashboardRedirect from "./pages/DashboardRedirect";
+import SearchRedirect from "./components/SearchRedirect";
 const ManageServices = lazy(() => import("./pages/ManageServices"));
 const MyOrders = lazy(() => import("./pages/MyOrders"));
 const AvailableOrders = lazy(() => import("./pages/AvailableOrders"));
@@ -50,6 +50,7 @@ import ScrollToTop from "./components/ScrollToTop";
 
 const Breadcrumbs = lazy(() => import("./components/Breadcrumbs"));
 const MobileAppTabBar = lazy(() => import("./components/MobileAppTabBar"));
+const GuestMobileStickyCta = lazy(() => import("./components/GuestMobileStickyCta"));
 const MobileLandscapeChrome = lazy(() => import("./components/MobileLandscapeChrome"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const WhyPro = lazy(() => import("./pages/WhyPro"));
@@ -179,6 +180,7 @@ function App() {
           <Suspense fallback={null}>
             <Breadcrumbs />
             <MobileAppTabBar />
+            <GuestMobileStickyCta />
             <MobileLandscapeChrome />
           </Suspense>
         )}
@@ -198,7 +200,7 @@ function App() {
           <Route path="/onboarding" element={<PrivateRoute><OnboardingWizard /></PrivateRoute>} />
           <Route path="/privacy" element={<PrivateRoute><PrivacySettings /></PrivateRoute>} />
           <Route path="/home" element={<Home />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/search" element={<SearchRedirect />} />
           {/* Public AI Concierge - dostępne bez logowania */}
           <Route path="/concierge" element={<ConciergePage />} />
           <Route path="/ai-public" element={<Navigate to="/concierge" replace />} />
@@ -266,8 +268,8 @@ function App() {
           <Route path="/kyc" element={<KycWizard />} />
           
           {/* Dashboard: wszyscy zalogowani (klient po błędnym redirectcie musi widzieć treść, nie pętlę) */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/client-dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<DashboardRedirect />} />
+          <Route path="/client-dashboard" element={<DashboardRedirect />} />
         </Route>
 
                   {/* Tylko dla usługodawcy */}

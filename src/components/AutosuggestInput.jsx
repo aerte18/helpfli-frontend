@@ -79,7 +79,7 @@ export default function AutosuggestInput({
   const selectTerm = (term) => {
     setOpen(false);
     if (onSelectTerm) onSelectTerm(term);
-    else navigate(`/search?q=${encodeURIComponent(term)}`);
+    else navigate(`/home?search=${encodeURIComponent(term)}`);
   };
 
   const selectService = (serviceData) => {
@@ -87,7 +87,7 @@ export default function AutosuggestInput({
     // Przekaż parent_slug (kategorię) zamiast slug (usługi)
     const categorySlug = serviceData.parent || serviceData.slug;
     if (onSelectService) onSelectService(categorySlug);
-    else navigate(`/search?service=${encodeURIComponent(categorySlug)}`);
+    else navigate(`/home?service=${encodeURIComponent(categorySlug)}`);
   };
 
   const selectSubcategory = (subcategory) => {

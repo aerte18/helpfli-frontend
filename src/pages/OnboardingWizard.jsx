@@ -7,6 +7,7 @@ import ProviderServiceCategoryPicker from "../components/ProviderServiceCategory
 import ProviderOrderScopePicker from "../components/ProviderOrderScopePicker";
 import { resolveSelectionKeysToMongoIds } from "../utils/serviceSelectionKeys";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
+import { getPostLoginPath, consumePostOnboardingNext } from "../utils/authRedirect";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -194,16 +195,9 @@ export default function OnboardingWizard() {
       });
 
       await fetchMe();
-      // Pobierz zaktualizowane dane użytkownika
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      // Przekieruj na właściwą stronę w zależności od roli
-      if (userData.role === "admin") {
-        navigate("/admin");
-      } else if (userData.role === "provider") {
-        navigate("/provider-home");
-      } else {
-        navigate("/home");
-      }
+      const deferredNext = consumePostOnboardingNext();
+      navigate(getPostLoginPath(userData, deferredNext || undefined));
     } catch (err) {
       setError(err.message);
     }

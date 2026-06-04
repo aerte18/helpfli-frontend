@@ -238,10 +238,13 @@ export default function Home() {
     return R * c;
   }, []);
 
-  // Obsługa parametru search oraz service z URL
+  // Obsługa parametru search / q / query oraz service z URL
   useEffect(() => {
-    const searchQuery = searchParams.get('search');
-    const serviceSlug = searchParams.get('service');
+    const searchQuery =
+      searchParams.get("search") ||
+      searchParams.get("q") ||
+      searchParams.get("query");
+    const serviceSlug = searchParams.get("service");
     if (searchQuery) {
       // Ustaw filtr wyszukiwania
       setFilters(prev => ({ ...prev, search: searchQuery }));
@@ -613,7 +616,8 @@ export default function Home() {
 
   const handleQuote = async (provider) => {
     if (!user) {
-      return navigate("/login?next=" + encodeURIComponent(window.location.pathname));
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      return navigate("/login?next=" + encodeURIComponent(returnTo));
     }
 
     // Przejście do profilu providera z otwartym modalem "Zapytaj o wycenę"

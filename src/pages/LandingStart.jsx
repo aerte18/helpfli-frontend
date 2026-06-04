@@ -292,6 +292,23 @@ export default function LandingStart() {
                   Wybierz usługę i porównaj oferty — znajdź pomoc w swojej okolicy.
                   <span className="font-semibold" style={{ color: 'var(--foreground)' }}> Szybko, bezpiecznie, bez dzwonienia po znajomych.</span>
                 </p>
+                <ol className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
+                  {[
+                    { n: "1", title: "Opisz problem", text: "Usługa + krótki opis lub AI" },
+                    { n: "2", title: "Porównaj oferty", text: "Wykonawcy odpowiadają z wyceną" },
+                    { n: "3", title: "Wybierz i zapłać", text: "Bezpiecznie przez Helpfli" },
+                  ].map((step) => (
+                    <li
+                      key={step.n}
+                      className="rounded-lg px-2.5 py-2 text-[11px] sm:text-xs"
+                      style={{ backgroundColor: "var(--background)", border: "1px solid var(--border)" }}
+                    >
+                      <span className="font-bold" style={{ color: "var(--primary)" }}>{step.n}. </span>
+                      <span className="font-semibold" style={{ color: "var(--foreground)" }}>{step.title}</span>
+                      <span className="block mt-0.5" style={{ color: "var(--muted-foreground)" }}>{step.text}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
 
               <div className="flex flex-col gap-3 md:flex-row md:items-stretch md:gap-3 lg:max-w-2xl">
@@ -440,7 +457,7 @@ export default function LandingStart() {
 
                 <button
                   type="button"
-                  onClick={() => nav("/create-order")}
+                  onClick={() => nav("/login?next=" + encodeURIComponent("/create-order"))}
                   className="btn-helpfli-primary mt-4 w-full px-6 py-3 sm:w-auto"
                 >
                   Zacznij teraz

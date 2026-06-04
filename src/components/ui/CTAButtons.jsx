@@ -24,7 +24,7 @@ export function CTACreateOrder({ children = "Stwórz zlecenie", ...props }) {
 export function CTASearch({ children = "Zobacz wykonawców", ...props }) {
   const nav = useNavigate();
   return (
-    <Button onClick={() => nav("/search")} {...props}>
+    <Button onClick={() => nav("/home")} {...props}>
       {children}
     </Button>
   );

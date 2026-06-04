@@ -5,6 +5,7 @@ import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 import { apiPost } from "../lib/api";
 import TwoFactorModal from "../components/TwoFactorModal";
+import { getPostLoginPath } from "../utils/authRedirect";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -57,33 +58,7 @@ function Login() {
       console.log("Login - userData.roleInCompany:", userData.roleInCompany);
       console.log("Login - userData.onboardingCompleted:", userData.onboardingCompleted);
       
-      if (!userData.onboardingCompleted) {
-        console.log("Login - redirecting to onboarding");
-        navigate("/onboarding");
-      } else {
-        // Przekieruj na właściwą stronę w zależności od roli
-        // Najpierw sprawdź admina
-        if (userData.role === "admin") {
-          console.log("Login - redirecting to admin dashboard");
-          navigate("/admin");
-        } else {
-          // Sprawdź czy użytkownik należy do firmy (ma company lub role company)
-          const isCompanyUser = userData.role === "company_owner" || 
-                               userData.role === "company_manager" ||
-                               (userData.company && (userData.roleInCompany === "owner" || userData.roleInCompany === "manager"));
-          
-          if (isCompanyUser) {
-            console.log("Login - redirecting to company dashboard");
-            navigate("/account/company");
-          } else if (userData.role === "provider") {
-            console.log("Login - redirecting to provider-home");
-            navigate("/provider-home");
-          } else {
-            console.log("Login - redirecting to home");
-            navigate("/home");
-          }
-        }
-      }
+      navigate(getPostLoginPath(userData, next));
     } catch (err) {
       console.error("Login error:", err);
       if (err?.data?.emailNotVerified) {
@@ -126,25 +101,7 @@ function Login() {
       
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       
-      if (!userData.onboardingCompleted) {
-        navigate("/onboarding");
-      } else {
-        if (userData.role === "admin") {
-          navigate("/admin");
-        } else {
-          const isCompanyUser = userData.role === "company_owner" || 
-                               userData.role === "company_manager" ||
-                               (userData.company && (userData.roleInCompany === "owner" || userData.roleInCompany === "manager"));
-          
-          if (isCompanyUser) {
-            navigate("/account/company");
-          } else if (userData.role === "provider") {
-            navigate("/provider-home");
-          } else {
-            navigate("/home");
-          }
-        }
-      }
+      navigate(getPostLoginPath(userData, next));
     } catch (err) {
       console.error("2FA login error:", err);
       setTwoFactorError(err.message || "Nieprawidłowy kod weryfikacyjny");
@@ -230,7 +187,10 @@ function Login() {
 
         <p className="text-sm mt-6 text-center">
           Nie masz konta?{" "}
-          <Link to="/register" className="text-indigo-600 hover:underline font-medium">
+          <Link
+            to={next && next !== "/home" ? `/register?next=${encodeURIComponent(next)}` : "/register"}
+            className="text-indigo-600 hover:underline font-medium"
+          >
             Zarejestruj się
           </Link>
         </p>

@@ -263,6 +263,28 @@ body.has-mobile-tab {
   padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* Gość na mobile — sticky CTA (logowanie / rejestracja) */
+body.has-guest-mobile-cta {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  body.has-guest-mobile-cta {
+    padding-bottom: 0;
+  }
+}
+
+nav[data-qs-guest-mobile-cta]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--qs-vv-bottom-offset, 0px);
+  background-color: var(--card);
+  pointer-events: none;
+}
+
 /* Wypełnienie ewentualnej szczeliny pod paskiem (subpiksele / Safari) */
 nav[data-qs-mobile-app-tab-bar]::after {
   content: "";
@@ -305,6 +327,9 @@ nav[data-qs-mobile-app-tab-bar]::after {
 }
 .qs-fixed-guest-near-bottom {
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
+}
+body.has-guest-mobile-cta .qs-fixed-guest-near-bottom {
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px));
 }
 
 /* Skrzynka / czat (mobile): pełny obszar między sticky nav a tab barem */
