@@ -19,6 +19,7 @@ const FoundingProviderPopup = lazy(() => import("../components/FoundingProviderP
 const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
 const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
 const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromoCarousel"));
+import LandingOnboardingSections from "../components/landing/LandingOnboardingSections";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -175,12 +176,6 @@ function ServiceAutocomplete({ value, onChange, onPick }) {
   );
 }
 
-const LANDING_HOW_IT_WORKS_STEPS = [
-  { step: 1, title: "Opisz problem", desc: "Krótko napisz co się dzieje. Możesz dodać zdjęcia." },
-  { step: 2, title: "AI diagnozuje", desc: "Otrzymasz wskazówki, widełki ceny i propozycję zlecenia." },
-  { step: 3, title: "Wybierz specjalistę", desc: "Wykonawcy odpowiadają, a Ty wybierasz najlepszą ofertę." },
-];
-
 function LandingHappyUserFigure({ className = "", imageClassName = "" }) {
   return (
     <div className={`relative ${className}`.trim()}>
@@ -270,6 +265,8 @@ export default function LandingStart() {
       <Suspense fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pt-3"><div className="aspect-[2172/724] w-full rounded-xl bg-slate-100 animate-pulse" /></div>}>
         <LandingTopPromoCarousel />
       </Suspense>
+
+      <LandingOnboardingSections />
       
       {/* HERO */}
       <section className="pt-3 md:pt-4 pb-4 md:pb-6 bg-gradient-to-b from-background to-secondary/20">
@@ -402,8 +399,8 @@ export default function LandingStart() {
         </div>
       </section>
 
-      {/* Dlaczego Helpfli + Jak to działa */}
-      <section className="order-2 py-6 md:py-8 md:order-none" id="jak-to-dziala">
+      {/* Dlaczego Helpfli — szczegóły platformy */}
+      <section className="order-2 py-6 md:py-8 md:order-none" id="platforma-szczegoly">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div
             className="rounded-xl p-4 sm:p-6 md:p-8"
@@ -455,61 +452,6 @@ export default function LandingStart() {
                     <p className="text-[11px] sm:text-xs md:text-sm leading-snug line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>KYC i opinie klientów</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Jak to działa — mobile: obraz po lewej, kroki 1–3 po prawej; pod spodem „Zacznij teraz” */}
-              <div className="w-full lg:max-w-none">
-                <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: 'var(--foreground)' }}>Jak to działa</h2>
-
-                <div className="mt-1 flex gap-3 items-start lg:hidden">
-                  <LandingHappyUserFigure
-                    className="shrink-0 w-[min(48%,13rem)] max-w-[220px]"
-                    imageClassName="max-h-[min(48vh,240px)] object-contain object-left"
-                  />
-                  <div className="min-w-0 flex-1 flex flex-col gap-2">
-                    {LANDING_HOW_IT_WORKS_STEPS.map((item) => (
-                      <div
-                        key={item.step}
-                        className="flex gap-2 items-start rounded-lg p-2"
-                        style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}
-                      >
-                        <div
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                          aria-hidden
-                        >
-                          {item.step}
-                        </div>
-                        <div className="min-w-0 flex-1 pt-0.5">
-                          <h3 className="font-semibold text-xs leading-snug mb-0.5" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
-                          <p className="text-[11px] leading-snug line-clamp-4" style={{ color: 'var(--muted-foreground)' }}>{item.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-3 hidden lg:flex lg:flex-col gap-3">
-                  {LANDING_HOW_IT_WORKS_STEPS.map((item) => (
-                    <div
-                      key={item.step}
-                      className="flex gap-3 items-start rounded-xl p-3 sm:p-3.5"
-                      style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', borderWidth: '1px' }}
-                    >
-                      <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                        aria-hidden
-                      >
-                        {item.step}
-                      </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <h3 className="font-semibold text-sm leading-snug mb-0.5" style={{ color: 'var(--foreground)' }}>{item.title}</h3>
-                        <p className="text-xs sm:text-sm leading-snug" style={{ color: 'var(--muted-foreground)' }}>{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
 
                 <button
                   type="button"
@@ -518,6 +460,13 @@ export default function LandingStart() {
                 >
                   Zacznij teraz
                 </button>
+              </div>
+
+              <div className="mt-6 lg:hidden">
+                <LandingHappyUserFigure
+                  className="w-full max-w-md mx-auto"
+                  imageClassName="object-contain object-center"
+                />
               </div>
             </div>
           </div>
