@@ -10,20 +10,17 @@ import { useAuth } from "../context/AuthContext";
  *   - X (zamknij)   – w prawym górnym rogu, nad narysowanym kółkiem,
  *   - „Dołącz teraz" – nad narysowanym CTA.
  *
- * Logika pokazywania (nieagresywna, ale realna):
- *  - po ~20 s w trakcie wizyty,
- *  - tylko raz na sesję przeglądarki (nie wyskakuje na każdej podstronie),
- *  - po zamknięciu (X / Esc / backdrop) wraca dopiero po 24 h,
- *  - po kliknięciu „Dołącz teraz" już nie wraca,
- *  - `?popup=founding` w URL wymusza pokaz natychmiast (1 s) i ignoruje blokady.
+ * Logika pokazywania:
+ *  - po ~5 s od wejścia na stronę (każda wizyta / przeładowanie),
+ *  - zamknięcie (X / Esc / backdrop) ukrywa tylko do następnego wejścia na stronę,
+ *  - po kliknięciu „Dołącz teraz" już nie wraca (wyraźna intencja rejestracji),
+ *  - `?popup=founding` w URL wymusza pokaz po 1 s i ignoruje blokady.
  *
- * Audience: niezalogowani LUB provider/company_owner bez aktywnego foundingProvider.
+ * Audience: tylko niezalogowani goście (zalogowani / zarejestrowani nie widzą popupu).
  */
-const STORAGE_KEY = "helpfli.founding_popup.state.v6";
-const SESSION_KEY = "helpfli.founding_popup.shown_this_session";
-const DELAY_MS = 20000;
+const STORAGE_KEY = "helpfli.founding_popup.state.v7";
+const DELAY_MS = 5000;
 const FORCE_SHOW_DELAY_MS = 1000;
-const REAPPEAR_AFTER_MS = 24 * 60 * 60 * 1000; // 24 h
 
 // --- Geometria obrazka /img/founding-provider-popup-card.png ---
 // Już przycięty asset (685 × 565), zawiera tylko białą kartę popupu.
@@ -66,22 +63,6 @@ function isForcedFromUrl() {
   }
 }
 
-function hasActiveFoundingProvider(user) {
-  if (!user) return false;
-  if (user.foundingProviderEverActivated === true) return true;
-  const fp = user.foundingProvider;
-  if (fp === true) return true;
-  if (fp && typeof fp === "object") {
-    if (fp.active === true) return true;
-    const exp = fp.expiresAt || user.foundingProviderExpiresAt;
-    if (exp) {
-      const t = Date.parse(exp);
-      if (Number.isFinite(t) && t > Date.now()) return true;
-    }
-  }
-  return false;
-}
-
 function readState() {
   if (typeof window === "undefined") return null;
   try {
@@ -104,7 +85,7 @@ function writeState(state) {
 
 export default function FoundingProviderPopup() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -114,67 +95,36 @@ export default function FoundingProviderPopup() {
     if (typeof window === "undefined") return false;
     if (forced) return true;
 
-    // 1) Pokazany w tej sesji – nie powtarzaj na innych podstronach.
-    try {
-      if (window.sessionStorage.getItem(SESSION_KEY) === "1") return false;
-    } catch {
-      /* brak sessionStorage – pomijamy */
-    }
+    if (loading) return false;
 
-    // 2) Sprawdź historię: kliknięcie „Dołącz" = permanent; X/Esc = na 24 h.
+    // Zalogowany / zarejestrowany – nie pokazuj.
+    if (user) return false;
+
     const state = readState();
-    if (state) {
-      if (state.joined === true) return false;
-      if (
-        Number.isFinite(state.dismissedAt) &&
-        Date.now() - state.dismissedAt < REAPPEAR_AFTER_MS
-      ) {
-        return false;
-      }
-    }
+    if (state?.joined === true) return false;
 
-    // 3) Audience.
-    if (!user) return true;
-    const role = user.role;
-    if (role !== "provider" && role !== "company_owner") return false;
-    if (hasActiveFoundingProvider(user)) return false;
     return true;
-  }, [user, forced]);
+  }, [user, loading, forced]);
 
   useEffect(() => {
     if (!eligible) return undefined;
     const delay = forced ? FORCE_SHOW_DELAY_MS : DELAY_MS;
-    const t = setTimeout(() => {
-      setOpen(true);
-      if (!forced) {
-        try {
-          window.sessionStorage.setItem(SESSION_KEY, "1");
-        } catch {
-          /* noop */
-        }
-      }
-    }, delay);
+    const t = setTimeout(() => setOpen(true), delay);
     return () => clearTimeout(t);
   }, [eligible, forced]);
 
-  const persistDismiss = useCallback(() => {
-    if (forced) return;
-    writeState({ dismissedAt: Date.now(), joined: false });
-  }, [forced]);
-
   const persistJoined = useCallback(() => {
     if (forced) return;
-    writeState({ dismissedAt: Date.now(), joined: true });
+    writeState({ joined: true });
   }, [forced]);
 
   const handleClose = useCallback(() => {
     setClosing(true);
-    persistDismiss();
     setTimeout(() => {
       setOpen(false);
       setClosing(false);
     }, 180);
-  }, [persistDismiss]);
+  }, []);
 
   const handleJoin = useCallback(() => {
     persistJoined();

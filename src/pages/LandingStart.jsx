@@ -18,6 +18,7 @@ const Footer = lazy(() => import("../components/Footer"));
 const FoundingProviderPopup = lazy(() => import("../components/FoundingProviderPopup"));
 const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
 const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
+const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromoCarousel"));
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -264,9 +265,14 @@ export default function LandingStart() {
         <div className="absolute top-[-200px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#A2B9FF] opacity-30 blur-[160px]" />
         <div className="absolute bottom-[-200px] right-[-100px] w-[500px] h-[500px] rounded-full bg-[#D4B3FF] opacity-30 blur-[160px]" />
       </div>
+
+      {/* Kompaktowa karuzela promo (klient / wykonawca) — pod nagłówkiem, nad hero */}
+      <Suspense fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pt-3"><div className="h-[4.25rem] sm:h-[5rem] md:h-[5.75rem] rounded-xl bg-slate-100 animate-pulse" /></div>}>
+        <LandingTopPromoCarousel />
+      </Suspense>
       
       {/* HERO */}
-      <section className="pt-5 md:pt-6 pb-4 md:pb-6 bg-gradient-to-b from-background to-secondary/20">
+      <section className="pt-3 md:pt-4 pb-4 md:pb-6 bg-gradient-to-b from-background to-secondary/20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div className="grid lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text + primary actions */}
@@ -655,7 +661,7 @@ export default function LandingStart() {
         />
       </Suspense>
 
-      {/* Pop-up "Pierwszy Wykonawca" – po ~25 s, niezarejestrowanym / klientom */}
+      {/* Pop-up "Pierwszy Wykonawca" – goście, przy każdej wizycie */}
       <Suspense fallback={null}>
         <FoundingProviderPopup />
       </Suspense>
