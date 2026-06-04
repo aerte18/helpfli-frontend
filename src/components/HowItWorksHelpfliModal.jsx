@@ -1,52 +1,51 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
-import {
-  FileText,
-  Sparkles,
-  MapPin,
-  Handshake,
-  Star,
-  Users,
-  Bot,
-  MapPinned,
-} from "lucide-react";
-const HOW_IT_WORKS_STEPS = [
-  { step: 1, icon: FileText, title: "Opisz problem", desc: "Napisz czego potrzebujesz lub z czym masz problem." },
-  { step: 2, icon: Sparkles, title: "AI proponuje rozwiązanie", desc: "Sztuczna inteligencja analizuje problem i sugeruje możliwe rozwiązania." },
-  { step: 3, icon: MapPin, title: "Znajdź wykonawcę", desc: "Jeśli potrzebujesz pomocy, wybierz specjalistę w swojej okolicy." },
-  { step: 4, icon: Handshake, title: "Wybierz najlepszą ofertę", desc: "Porównaj wykonawców, ceny i opinie." },
-  { step: 5, icon: Star, title: "Oceń usługę", desc: "Dodaj opinię i pomóż innym użytkownikom." },
-];
+import { HOW_IT_WORKS_MODAL_CONTENT } from "../constants/howItWorksModalContent";
 
-const WHY_WORTH_ITEMS = [
-  { icon: Users, value: "Pierwsi użytkownicy", desc: "Budujemy największą społeczność lokalnych usług." },
-  { icon: Bot, value: "AI Assistance", desc: "Szybka pomoc i diagnoza problemów." },
-  { icon: MapPinned, value: "Usługi lokalne", desc: "Znajdź specjalistów blisko siebie." },
-  { icon: Star, value: "System opinii", desc: "Wybieraj wykonawców na podstawie ocen." },
-];
-
-function registerPaths(audience) {
-  if (audience === "provider") {
-    return {
-      primary: "/register?role=provider&utm_source=how_it_works_modal&utm_campaign=founding_provider",
-      primaryLabel: "Zarejestruj się jako wykonawca",
-    };
-  }
-  return {
-    primary: "/register?role=client&utm_source=how_it_works_modal&utm_campaign=onboarding_cta",
-    primaryLabel: "Załóż darmowe konto",
-  };
+function AudienceToggle({ audience, onChange }) {
+  return (
+    <div
+      className="inline-flex rounded-xl border p-1"
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}
+      role="tablist"
+      aria-label="Wybierz perspektywę"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={audience === "client"}
+        onClick={() => onChange("client")}
+        className={`px-3 py-1.5 text-xs rounded-lg font-medium transition sm:text-sm ${
+          audience === "client" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
+        }`}
+      >
+        Szukam pomocy
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={audience === "provider"}
+        onClick={() => onChange("provider")}
+        className={`px-3 py-1.5 text-xs rounded-lg font-medium transition sm:text-sm ${
+          audience === "provider" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"
+        }`}
+      >
+        Jestem wykonawcą
+      </button>
+    </div>
+  );
 }
 
 /**
- * Globalny modal: Jak działa + Dlaczego warto + CTA.
- * Montowany w App.jsx; otwierany przez openHowItWorksModal() lub zdarzenie qs-open-how-it-works.
+ * Globalny modal: Jak działa + Dlaczego warto + CTA (osobna treść dla klienta i wykonawcy).
  */
 export default function HowItWorksHelpfliModal() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [audience, setAudience] = useState("client");
+
+  const content = HOW_IT_WORKS_MODAL_CONTENT[audience];
 
   useEffect(() => {
     const onOpen = (e) => {
@@ -72,8 +71,6 @@ export default function HowItWorksHelpfliModal() {
   }, [open]);
 
   if (!open) return null;
-
-  const cta = registerPaths(audience);
 
   const goDetails = () => {
     setOpen(false);
@@ -104,10 +101,10 @@ export default function HowItWorksHelpfliModal() {
         style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
       >
         <div
-          className="flex shrink-0 items-start justify-between gap-3 border-b px-5 py-4"
+          className="flex shrink-0 flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
           style={{ borderColor: "var(--border)" }}
         >
-          <div className="min-w-0 pr-2">
+          <div className="min-w-0 flex-1 pr-2">
             <h2
               id="how-it-works-helpfli-title"
               className="text-xl font-bold leading-tight md:text-2xl"
@@ -116,22 +113,25 @@ export default function HowItWorksHelpfliModal() {
               Jak działa Helpfli?
             </h2>
             <p className="mt-1 text-sm md:text-base" style={{ color: "var(--muted-foreground)" }}>
-              Znajdź rozwiązanie problemu lub odpowiedniego specjalistę w kilku prostych krokach.
+              {content.subtitle}
             </p>
+            <div className="mt-3">
+              <AudienceToggle audience={audience} onChange={setAudience} />
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="shrink-0 rounded-full p-2 transition-colors hover:bg-slate-100"
+            className="absolute right-4 top-4 shrink-0 rounded-full p-2 transition-colors hover:bg-slate-100 sm:static"
             aria-label="Zamknij okno"
           >
             <X className="h-5 w-5 text-slate-600" aria-hidden />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 md:px-6">
+        <div className="flex-1 overflow-y-auto px-5 py-4 md:px-6" key={audience}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-3">
-            {HOW_IT_WORKS_STEPS.map((item) => {
+            {content.steps.map((item) => {
               const Icon = item.icon;
               return (
                 <article
@@ -169,10 +169,10 @@ export default function HowItWorksHelpfliModal() {
               Dlaczego warto?
             </h3>
             <p className="mt-1 text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Dołącz do pierwszych użytkowników platformy Helpfli.
+              {content.whySubtitle}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {WHY_WORTH_ITEMS.map((item) => {
+              {content.benefits.map((item) => {
                 const Icon = item.icon;
                 return (
                   <article
@@ -212,15 +212,15 @@ export default function HowItWorksHelpfliModal() {
               Gotowy, aby rozpocząć?
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Załóż darmowe konto i korzystaj z pomocy AI oraz lokalnych specjalistów.
+              {content.ctaText}
             </p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Link
-                to={cta.primary}
+                to={content.registerPath}
                 onClick={() => setOpen(false)}
                 className="btn-helpfli-primary inline-flex min-h-[44px] items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-semibold"
               >
-                {cta.primaryLabel}
+                {content.registerLabel}
               </Link>
               <button
                 type="button"
