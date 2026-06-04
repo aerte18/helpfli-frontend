@@ -320,23 +320,27 @@ export default function LandingStart() {
                   {quickStart.lead}{" "}
                   <span className="font-semibold text-slate-900">{quickStart.emphasis}</span>
                 </p>
-                <ol className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-indigo-100/80">
+                <ol className="mt-3 grid grid-cols-3 gap-1.5 divide-x divide-indigo-100/80 sm:mt-4 sm:gap-0">
                   {quickStart.steps.map((step, index) => {
                     const StepIcon = step.Icon;
                     return (
                       <li
                         key={step.title}
-                        className="flex gap-3 sm:flex-col sm:gap-2.5 sm:px-4 first:sm:pl-0 last:sm:pr-0"
+                        className="flex min-w-0 flex-col gap-1 px-1.5 first:pl-0 last:pr-0 sm:gap-2.5 sm:px-4"
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-indigo-100">
-                          <StepIcon className="h-[18px] w-[18px] text-indigo-600" aria-hidden />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-indigo-100 sm:h-10 sm:w-10 sm:rounded-xl">
+                          <StepIcon className="h-4 w-4 text-indigo-600 sm:h-[18px] sm:w-[18px]" aria-hidden />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-600/90">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-indigo-600/90 sm:text-[11px]">
                             Krok {index + 1}
                           </p>
-                          <p className="mt-0.5 text-sm font-semibold leading-snug text-slate-900">{step.title}</p>
-                          <p className="mt-1 text-xs leading-relaxed text-slate-500">{step.text}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold leading-tight text-slate-900 sm:text-sm sm:leading-snug">
+                            {step.title}
+                          </p>
+                          <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-slate-500 sm:mt-1 sm:text-xs sm:leading-relaxed">
+                            {step.text}
+                          </p>
                         </div>
                       </li>
                     );
