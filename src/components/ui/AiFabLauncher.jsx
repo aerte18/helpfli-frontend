@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 
 /**
@@ -18,40 +17,39 @@ export default function AiFabLauncher({
   className = "",
 }) {
   const isMdUp = useBreakpointMd();
-  const location = useLocation();
   const [edgeDock, setEdgeDock] = useState(false);
+  const [guestCtaBar, setGuestCtaBar] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const collapseTimer = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
 
+  const activeEdgeDock = edgeDock || guestCtaBar;
+
   useEffect(() => {
     if (isMdUp) {
       setEdgeDock(false);
+      setGuestCtaBar(false);
       setExpanded(false);
       return undefined;
     }
 
-    const detectMapContext = () => {
-      const onProviderHome = location.pathname === "/provider-home";
-      const onClientHome = location.pathname === "/home";
-      const onMapUi = Boolean(
-        document.querySelector(".qs-provider-map-stack") ||
-          document.querySelector(".qs-home-map-shell") ||
-          document.querySelector("[data-qs-map-immersive-toggle]")
-      );
-      setEdgeDock(onProviderHome || onClientHome || onMapUi);
-      if (!onProviderHome && !onClientHome && !onMapUi) setExpanded(false);
+    const detectDockContext = () => {
+      const onGuestBar = document.body.classList.contains("has-guest-mobile-cta");
+      // Mobile: launcher działa jako chowany tab na wszystkich ekranach.
+      setEdgeDock(true);
+      setGuestCtaBar(onGuestBar);
+      if (!onGuestBar) setExpanded(false);
     };
 
-    detectMapContext();
-    const observer = new MutationObserver(detectMapContext);
+    detectDockContext();
+    const observer = new MutationObserver(detectDockContext);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-    window.addEventListener("resize", detectMapContext);
+    window.addEventListener("resize", detectDockContext);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", detectMapContext);
+      window.removeEventListener("resize", detectDockContext);
     };
-  }, [location.pathname, isMdUp]);
+  }, [isMdUp]);
 
   const scheduleCollapse = useCallback(() => {
     if (collapseTimer.current) clearTimeout(collapseTimer.current);
@@ -59,10 +57,10 @@ export default function AiFabLauncher({
   }, []);
 
   const expandDock = useCallback(() => {
-    if (!edgeDock) return;
+    if (!activeEdgeDock) return;
     setExpanded(true);
     scheduleCollapse();
-  }, [edgeDock, scheduleCollapse]);
+  }, [activeEdgeDock, scheduleCollapse]);
 
   useEffect(() => {
     return () => {
@@ -71,16 +69,10 @@ export default function AiFabLauncher({
   }, []);
 
   useEffect(() => {
-    if (!edgeDock || isMdUp) return;
+    if (!activeEdgeDock || isMdUp || !badge) return;
     setExpanded(true);
     scheduleCollapse();
-  }, [edgeDock, isMdUp, scheduleCollapse]);
-
-  useEffect(() => {
-    if (!edgeDock || isMdUp || !badge) return;
-    setExpanded(true);
-    scheduleCollapse();
-  }, [badge, edgeDock, isMdUp, scheduleCollapse]);
+  }, [badge, activeEdgeDock, isMdUp, scheduleCollapse]);
 
   const handleClick = () => {
     expandDock();
@@ -95,7 +87,7 @@ export default function AiFabLauncher({
       : "bg-indigo-600 text-white ring-1 ring-indigo-500/30 hover:bg-indigo-700";
 
   const edgeClass =
-    edgeDock && !isMdUp
+    activeEdgeDock && !isMdUp
       ? `qs-ai-fab-edge rounded-l-full rounded-r-none pr-2 pl-2.5 ${expanded ? "qs-ai-fab-edge--expanded" : ""}`
       : "right-3 rounded-full";
 
@@ -113,13 +105,13 @@ export default function AiFabLauncher({
       aria-label={label}
       title={label}
       className={`qs-ai-fab qs-tap-target fixed z-[55] flex items-center justify-center gap-2 shadow-lg transition-[transform,background-color,box-shadow,width,padding] duration-300 ease-out active:scale-[0.98] md:bottom-6 md:right-6 md:rounded-full ${toneClass} ${edgeClass} ${className} ${
-        isMdUp && isHovered ? "md:h-14 md:w-auto md:px-4" : edgeDock && !isMdUp ? "h-11 min-w-[2.75rem]" : "h-11 w-11"
+        isMdUp && isHovered ? "md:h-14 md:w-auto md:px-4" : activeEdgeDock && !isMdUp ? "h-11 min-w-[2.75rem]" : "h-11 w-11"
       }`}
     >
       <span className="sr-only">{label}</span>
       {badge}
       <Sparkles className="h-5 w-5 shrink-0 text-white/95" aria-hidden />
-      {edgeDock && !isMdUp && expanded ? (
+      {activeEdgeDock && !isMdUp && expanded ? (
         <span className="max-w-[5.5rem] truncate text-[11px] font-semibold pr-0.5">{label}</span>
       ) : null}
       {isMdUp && isHovered ? (

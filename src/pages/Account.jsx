@@ -155,7 +155,7 @@ export default function Account() {
 
   const providerTabs = [
     { id: "overview", label: "Przegląd", icon: BarChart2 },
-    { id: "orders", label: "Oferty", icon: ClipboardList },
+    { id: "orders", label: "Zlecenia", icon: ClipboardList },
     { id: "billing", label: "Rozliczenia", icon: Wallet },
     { id: "profile", label: "Profil", icon: User },
     { id: "ratings", label: "Oceny", icon: Star },
@@ -1233,7 +1233,7 @@ function OrdersTab({ user }) {
 
   return (
     <div className="space-y-4">
-      <Card title={user?.role === 'provider' ? 'Moje oferty' : 'Moje zlecenia'}>
+      <Card title={user?.role === 'provider' ? 'Moje zlecenia' : 'Moje zlecenia'}>
         {/* Filtry + Zapytaj AI (dla providera) */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">

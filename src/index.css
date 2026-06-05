@@ -524,6 +524,12 @@ html.qs-map-route-scroll-lock body {
       var(--qs-mobile-tab-height) + 0.625rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px)
     );
   }
+  /* Gość: FAB AI nad paskiem „Zaloguj się / Załóż konto” */
+  body.has-guest-mobile-cta {
+    --qs-map-action-bottom: calc(
+      5.5rem + 0.5rem + env(safe-area-inset-bottom, 0px) + var(--qs-vv-bottom-offset, 0px)
+    );
+  }
 }
 
 /* Launcher AI + przycisk pełnego ekranu mapy — jeden pionowy stos po prawej */

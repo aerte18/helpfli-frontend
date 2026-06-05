@@ -44,7 +44,8 @@ export function defaultPathForRole(userData) {
       (userData?.roleInCompany === "owner" || userData?.roleInCompany === "manager"));
 
   if (isCompanyUser) return "/account/company";
-  if (userData?.role === "provider") return "/provider-home";
+  // Provider po logowaniu ląduje najpierw na landing page w trybie wykonawcy.
+  if (userData?.role === "provider") return "/";
   return "/home";
 }
 
