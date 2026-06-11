@@ -65,8 +65,8 @@ export default function AiFabLauncher({
       <span className="qs-ai-fab__icon" aria-hidden>
         <Sparkles className="h-5 w-5" />
       </span>
-      <span className="qs-ai-fab__label" aria-hidden={!expanded}>
-        {lastTextRef.current}
+      <span className="qs-ai-fab__labelwrap" aria-hidden={!expanded}>
+        <span className="qs-ai-fab__label">{lastTextRef.current}</span>
       </span>
     </button>
   );

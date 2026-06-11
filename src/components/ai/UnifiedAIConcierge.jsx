@@ -216,6 +216,7 @@ export default function UnifiedAIConcierge({
   const { trackSearch, trackProviderView, trackProviderContact, trackOrderFormStart } = useTelemetry();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const hasOpenedModalRef = useRef(false);
   /** Zdjęcia/pliki z całej sesji czatu — przenoszone do formularza zlecenia */
   const sessionAttachmentUrlsRef = useRef([]);
   const { location: deviceLocation, refresh: refreshDeviceLocation } = useUserLocation();
@@ -368,6 +369,9 @@ export default function UnifiedAIConcierge({
     // Przy kolejnym otwarciu ponownie rozpoznaj kontekst firmy.
     setCompanyId(null);
     setCompanyResolved(false);
+    // Keep-alive: komponent zostaje w DOM po zamknięciu, więc jawnie
+    // zamykamy kamerę, żeby nie trzymać streamu w tle.
+    setShowLiveCamera(false);
   }, [open]);
 
   // Inicjalizacja AI – powitalna wiadomość zależna od roli (firma vs klient)
@@ -2189,13 +2193,19 @@ export default function UnifiedAIConcierge({
     }
   };
 
-  // Nie renderuj jeśli nie jest otwarty (chyba że to page mode)
-  if (!open && mode !== 'page') {
+  // Keep-alive dla trybu modal: po pierwszym otwarciu komponent zostaje w DOM
+  // (ukryty przez display:none) — ponowne otwarcie/zamknięcie jest natychmiastowe,
+  // bez kosztownego montowania całego czatu od zera.
+  if (open) hasOpenedModalRef.current = true;
+  const keepAliveHidden = !open && mode === 'modal' && hasOpenedModalRef.current;
+
+  // Nie renderuj jeśli nie jest otwarty (chyba że to page mode lub keep-alive)
+  if (!open && mode !== 'page' && !keepAliveHidden) {
     return null;
   }
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} style={keepAliveHidden ? { display: 'none' } : undefined} aria-hidden={keepAliveHidden || undefined}>
       {mode === 'modal' && (
         <div
           className="absolute inset-0 z-0 bg-black/55"

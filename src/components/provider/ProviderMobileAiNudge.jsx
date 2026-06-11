@@ -4,6 +4,8 @@ import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 import { serviceLabel } from "../../utils/serviceLabels";
 
 export const PROVIDER_AI_NUDGE_DISMISS_KEY = "providerAiNudge_collapsedCount";
+/** Otwiera panel AI Inbox z zewnątrz (np. klik w FAB z badge'em podpowiedzi). */
+export const OPEN_NUDGE_SHEET_EVENT = "openProviderAiInbox";
 const PEEK_MS = 5000;
 const NUDGE_CHANGE_EVENT = "providerAiNudgeChange";
 
@@ -108,6 +110,13 @@ export default function ProviderMobileAiNudge({
     }
   }, [visible, userDismissed]);
 
+  // Ponowne otwarcie AI Inbox z zewnątrz — działa też po schowaniu docka (X).
+  useEffect(() => {
+    const handler = () => setSheetOpen(true);
+    window.addEventListener(OPEN_NUDGE_SHEET_EVENT, handler);
+    return () => window.removeEventListener(OPEN_NUDGE_SHEET_EVENT, handler);
+  }, []);
+
   const dismissDock = () => {
     if (actionableCount > 0) {
       try {
@@ -144,17 +153,20 @@ export default function ProviderMobileAiNudge({
     setSheetOpen(true);
   };
 
-  if (!visible || !hasContent || userDismissed || isMdUp) return null;
+  // Po schowaniu docka (X) nie renderujemy paska, ale panel AI Inbox
+  // nadal można otworzyć z zewnątrz (FAB z badge'em → OPEN_NUDGE_SHEET_EVENT).
+  if (!visible || !hasContent || isMdUp) return null;
 
   return (
     <>
+      {!userDismissed && (
       <div
         className="pointer-events-none fixed right-0 z-[54] md:hidden"
         data-qs-provider-ai-nudge
         style={{ bottom: "var(--qs-map-action-bottom)" }}
       >
         <div
-          className={`pointer-events-auto qs-ai-nudge-edge flex items-center border border-indigo-200/90 bg-white/97 shadow-lg shadow-indigo-900/12 ring-1 ring-slate-900/5 backdrop-blur-md ${
+          className={`pointer-events-auto qs-ai-nudge-edge flex items-center border border-indigo-200/90 bg-white shadow-lg shadow-indigo-900/12 ring-1 ring-slate-900/5 ${
             peekExpanded
               ? "qs-ai-nudge-edge--expanded max-w-[min(100vw-1rem,17.5rem)] gap-0.5 rounded-l-full py-1 pl-1 pr-0.5"
               : "w-11 justify-center rounded-l-full py-1 pl-1 pr-1"
@@ -197,12 +209,13 @@ export default function ProviderMobileAiNudge({
           )}
         </div>
       </div>
+      )}
 
       {sheetOpen && (
         <div className="fixed inset-0 z-[56] md:hidden" role="dialog" aria-modal="true" aria-label="Podpowiedzi AI">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-900/45"
             onClick={() => setSheetOpen(false)}
             aria-label="Zamknij"
           />

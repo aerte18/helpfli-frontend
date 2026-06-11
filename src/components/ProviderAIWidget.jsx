@@ -12,6 +12,7 @@ import { useBreakpointMd } from "../hooks/useBreakpointMd";
 import {
   PROVIDER_AI_NUDGE_DISMISS_KEY,
   NUDGE_CHANGE_EVENT,
+  OPEN_NUDGE_SHEET_EVENT,
 } from "./provider/ProviderMobileAiNudge";
 
 export default function ProviderAIWidget() {
@@ -273,6 +274,12 @@ export default function ProviderAIWidget() {
   const hasUnlimited = isStandard || isPro;
 
   const handleOpen = () => {
+    // Badge z podpowiedziami (mobile, provider-home): otwórz AI Inbox,
+    // żeby liczba przy ikonce zawsze prowadziła do konkretnych sugestii.
+    if (!isMdUp && onProviderHome && insightBadge > 0) {
+      window.dispatchEvent(new CustomEvent(OPEN_NUDGE_SHEET_EVENT));
+      return;
+    }
     setContextNote("");
     setOpen(true);
   };
@@ -301,16 +308,18 @@ export default function ProviderAIWidget() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1300]"
+              transition={{ duration: 0.18 }}
+              className="fixed inset-0 bg-black/55 z-[1300]"
               onClick={() => {
                 setContextNote("");
                 setOpen(false);
               }}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="fixed inset-0 z-[1300] flex items-stretch justify-center p-0 md:items-center md:justify-center md:p-4"
               onClick={(e) => e.stopPropagation()}
             >

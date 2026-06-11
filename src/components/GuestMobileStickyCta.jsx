@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { loginUrlWithNext } from "../utils/authRedirect";
 
@@ -35,7 +35,18 @@ export default function GuestMobileStickyCta() {
     returnPath && returnPath !== "/"
       ? `/register?next=${encodeURIComponent(returnPath)}`
       : "/register";
-  const createOrderHref = "/login?next=" + encodeURIComponent("/create-order");
+
+  // Gość ma od razu zobaczyć wartość (mapa, wykonawcy, AI) — bez ściany logowania.
+  // Na stronach wyszukiwania proponujemy AI (goście mają darmowe zapytania),
+  // wszędzie indziej — przejście do wyszukiwarki z mapą.
+  const onSearchPage = ["/home", "/providers", "/nearby-providers", "/services"].some(
+    (p) => pathname === p || pathname.startsWith(`${p}?`)
+  );
+  const exploreHref = onSearchPage ? "/concierge" : "/home";
+  const exploreLabel = onSearchPage
+    ? "Opisz problem z AI — bez logowania"
+    : "Znajdź pomoc od razu — bez logowania";
+  const ExploreIcon = onSearchPage ? Sparkles : MapPin;
 
   useEffect(() => {
     if (visible) {
@@ -131,12 +142,12 @@ export default function GuestMobileStickyCta() {
       </div>
       <div className="px-3 pb-1 max-w-lg mx-auto">
         <Link
-          to={createOrderHref}
+          to={exploreHref}
           className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-medium rounded-lg transition-colors"
           style={{ color: "var(--primary)" }}
         >
-          <Plus className="w-3.5 h-3.5 shrink-0" aria-hidden />
-          Chcesz od razu zlecić usługę?
+          <ExploreIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          {exploreLabel}
         </Link>
       </div>
     </nav>
