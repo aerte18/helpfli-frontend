@@ -10,17 +10,19 @@ import { useLocation } from "react-router-dom";
  * - Dot:       mała kropka, gdy AI ma niedoczytaną sugestię (proactive).
  *
  * Triggery hintów (nigdy częściej niż co MIN_HINT_GAP_MS):
- * - 5 s po wejściu na stronę (raz na sesję),
+ * - 5 s po wejściu (raz na załadowanie strony — jak badge Meta AI),
  * - zmiana strony (sekcji),
  * - przewinięcie ponad 50% strony (raz na stronę),
  * - 30 s bezczynności,
  * - proaktywnie: użytkownik porównuje wykonawców (≥3 profile + 60 s sesji).
+ *
+ * Per sesja (sessionStorage): trigger proaktywny, lista obejrzanych profili
+ * i kropka-notyfikacja.
+ * Per załadowanie strony (zmienne modułu): hint powitalny, licznik/odstępy
+ * hintów i cisza po otwarciu asystenta — po odświeżeniu launcher znowu "żyje".
  */
 
 const SS_KEYS = {
-  engaged: "qs_ai_nudge_engaged",
-  entryDone: "qs_ai_nudge_entry_done",
-  hintCount: "qs_ai_nudge_hint_count",
   lastHintText: "qs_ai_nudge_last_text",
   proactiveDone: "qs_ai_nudge_proactive_done",
   suggestionDot: "qs_ai_nudge_dot",
@@ -33,7 +35,7 @@ const ROUTE_HINT_DELAY_MS = 3000;
 const IDLE_HINT_DELAY_MS = 30000;
 const HINT_VISIBLE_MS = 4000;
 const MIN_HINT_GAP_MS = 25000;
-const MAX_HINTS_PER_SESSION = 4;
+const MAX_HINTS_PER_PAGELOAD = 4;
 const PROACTIVE_MIN_SESSION_MS = 60000;
 const PROACTIVE_MIN_PROFILES = 3;
 
@@ -44,6 +46,14 @@ const HINT_ROTATION = [
   "Mam awarię",
   "Zapytaj AI",
 ];
+
+// Stan per załadowanie strony (reset przy pełnym przeładowaniu).
+let pageLoadState = {
+  engaged: false,
+  entryDone: false,
+  hintCount: 0,
+  lastHintAt: 0,
+};
 
 function ssGet(key, fallback = null) {
   try {
@@ -113,7 +123,6 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
   const routeTimer = useRef(null);
   const idleTimer = useRef(null);
   const proactiveTimer = useRef(null);
-  const lastHintAtRef = useRef(0);
   const firstLocationRef = useRef(true);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
@@ -135,17 +144,17 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
 
   const canHint = useCallback(() => {
     if (!enabledRef.current) return false;
-    if (ssGet(SS_KEYS.engaged) === "1") return false;
-    if (Number(ssGet(SS_KEYS.hintCount, 0)) >= MAX_HINTS_PER_SESSION) return false;
-    if (Date.now() - lastHintAtRef.current < MIN_HINT_GAP_MS) return false;
+    if (pageLoadState.engaged) return false;
+    if (pageLoadState.hintCount >= MAX_HINTS_PER_PAGELOAD) return false;
+    if (Date.now() - pageLoadState.lastHintAt < MIN_HINT_GAP_MS) return false;
     return true;
   }, []);
 
   const showHint = useCallback((kind, text) => {
     setTeaser({ kind, text });
     ssSet(SS_KEYS.lastHintText, text);
-    ssSet(SS_KEYS.hintCount, Number(ssGet(SS_KEYS.hintCount, 0)) + 1);
-    lastHintAtRef.current = Date.now();
+    pageLoadState.hintCount += 1;
+    pageLoadState.lastHintAt = Date.now();
     clearTimer(hideTimer);
     hideTimer.current = setTimeout(() => {
       setTeaser(null);
@@ -165,9 +174,9 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     [canHint, showHint, location.pathname, location.search]
   );
 
-  /** Użytkownik otworzył asystenta — koniec hintów w tej sesji, kropka znika. */
+  /** Użytkownik otworzył asystenta — cisza do następnego przeładowania, kropka znika. */
   const markEngaged = useCallback(() => {
-    ssSet(SS_KEYS.engaged, "1");
+    pageLoadState.engaged = true;
     ssSet(SS_KEYS.suggestionDot, "0");
     setSuggestionDot(false);
     [hideTimer, entryTimer, routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
@@ -190,11 +199,11 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     }
   }, [location.pathname]);
 
-  // Hint powitalny — raz na sesję, 5 s po wejściu.
+  // Hint powitalny — 5 s po załadowaniu strony.
   useEffect(() => {
-    if (ssGet(SS_KEYS.entryDone) === "1") return undefined;
+    if (pageLoadState.entryDone) return undefined;
     entryTimer.current = setTimeout(() => {
-      ssSet(SS_KEYS.entryDone, "1");
+      pageLoadState.entryDone = true;
       tryContextHint("entry");
     }, ENTRY_HINT_DELAY_MS);
     return () => clearTimer(entryTimer);
@@ -220,18 +229,30 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
 
     const onActivity = () => armIdleTimer();
 
-    const onScroll = () => {
+    const scrollProgress = (target) => {
+      // Okno lub wewnętrzny scrollowany kontener (częste na mobile).
+      if (target === document || target === document.documentElement || target === window) {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        return max > 200 ? window.scrollY / max : 0;
+      }
+      if (target instanceof Element) {
+        const max = target.scrollHeight - target.clientHeight;
+        return max > 200 ? target.scrollTop / max : 0;
+      }
+      return 0;
+    };
+
+    const onScroll = (event) => {
       armIdleTimer();
       if (scrollHintDone) return;
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - window.innerHeight;
-      if (max > 200 && window.scrollY / max >= 0.5) {
+      if (scrollProgress(event.target) >= 0.5) {
         scrollHintDone = true;
         tryContextHint("scroll");
       }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    // capture: łapie też scroll wewnątrz kontenerów, nie tylko okna.
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("pointerdown", onActivity, { passive: true });
     window.addEventListener("keydown", onActivity);
     armIdleTimer();
@@ -244,14 +265,14 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
       const elapsed = Date.now() - sessionStartRef.current;
       const wait = Math.max(2000, PROACTIVE_MIN_SESSION_MS - elapsed);
       proactiveTimer.current = setTimeout(() => {
-        if (!enabledRef.current || ssGet(SS_KEYS.engaged) === "1") return;
+        if (!enabledRef.current || pageLoadState.engaged) return;
         ssSet(SS_KEYS.proactiveDone, "1");
         showHint("proactive", "Porównujesz wykonawców? Wybiorę najlepszych.");
       }, wait);
     }
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("pointerdown", onActivity);
       window.removeEventListener("keydown", onActivity);
       [routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
