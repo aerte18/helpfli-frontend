@@ -658,36 +658,6 @@ html.qs-map-route-scroll-lock body {
     transform: scale(1.06) rotate(6deg);
   }
 }
-/* Bottom sheet Asystenta (mobile) — slide-up + fade jak w Uberze */
-.qs-ai-sheet-backdrop {
-  animation: qs-ai-sheet-fade-in 0.2s ease both;
-}
-.qs-ai-sheet-backdrop--out {
-  animation: qs-ai-sheet-fade-out 0.2s ease both;
-}
-.qs-ai-sheet-panel {
-  animation: qs-ai-sheet-up 0.3s var(--qs-ease-standard) both;
-}
-.qs-ai-sheet-panel--out {
-  animation: qs-ai-sheet-down 0.2s ease both;
-}
-@keyframes qs-ai-sheet-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes qs-ai-sheet-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-@keyframes qs-ai-sheet-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-@keyframes qs-ai-sheet-down {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .qs-ai-fab,
   .qs-ai-fab__labelwrap,
@@ -696,11 +666,7 @@ html.qs-map-route-scroll-lock body {
   }
   .qs-ai-fab--hello::before,
   .qs-ai-fab--teasing::before,
-  .qs-ai-fab--teasing .qs-ai-fab__icon svg,
-  .qs-ai-sheet-backdrop,
-  .qs-ai-sheet-backdrop--out,
-  .qs-ai-sheet-panel,
-  .qs-ai-sheet-panel--out {
+  .qs-ai-fab--teasing .qs-ai-fab__icon svg {
     animation: none;
   }
 }

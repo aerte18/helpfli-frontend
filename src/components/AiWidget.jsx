@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import UnifiedAIConcierge from "./ai/UnifiedAIConcierge";
-import AiQuickSheet from "./ai/AiQuickSheet";
 import AiFabLauncher from "./ui/AiFabLauncher";
 import useAiConciergeNudge from "../hooks/useAiConciergeNudge";
-import { useBreakpointMd } from "../hooks/useBreakpointMd";
 import { useAuth } from "../context/AuthContext";
 import { onAI } from "../ai/chat/bus";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
@@ -12,10 +10,7 @@ import { isChatContextRoute } from "../utils/chatMobileChrome";
 export default function AiWidget() {
   const { user } = useAuth();
   const location = useLocation();
-  const isMdUp = useBreakpointMd();
   const [open, setOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [seedQuery, setSeedQuery] = useState("");
   const [busAiOpen, setBusAiOpen] = useState(false);
 
   useEffect(() => {
@@ -25,7 +20,7 @@ export default function AiWidget() {
     });
   }, []);
 
-  const fabHidden = open || sheetOpen || busAiOpen;
+  const fabHidden = open || busAiOpen;
   const hideOnChat = isChatContextRoute(location);
   const isProvider = user?.role === "provider";
 
@@ -37,21 +32,8 @@ export default function AiWidget() {
     return null;
   }
 
-  const handleFabClick = () => {
+  const handleOpen = () => {
     markEngaged();
-    if (isMdUp) {
-      // Desktop: od razu rozmowa.
-      setSeedQuery("");
-      setOpen(true);
-    } else {
-      // Mobile: najpierw bottom sheet z szybkimi akcjami (stan 4).
-      setSheetOpen(true);
-    }
-  };
-
-  const startChat = (seed) => {
-    setSeedQuery(seed || "");
-    setSheetOpen(false);
     setOpen(true);
   };
 
@@ -64,20 +46,14 @@ export default function AiWidget() {
         teaser={teaser}
         dot={suggestionDot}
         label="Zapytaj AI"
-        onClick={handleFabClick}
-      />
-
-      <AiQuickSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onStart={startChat}
+        onClick={handleOpen}
       />
 
       <UnifiedAIConcierge
         mode="modal"
         open={open}
         onClose={() => setOpen(false)}
-        seedQuery={seedQuery}
+        seedQuery=""
       />
     </>
   );
