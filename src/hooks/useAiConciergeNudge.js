@@ -4,22 +4,17 @@ import { useLocation } from "react-router-dom";
 /**
  * Logika "AI Concierge" w stylu Meta AI / Messenger.
  *
- * Stany launchera:
- * - Idle:      sama ikonka ✨ (domyślnie, przez większość czasu),
- * - Hint:      badge "✨ Pomóc Ci?" wysuwa się na 4 s i sam się zwija,
- * - Dot:       mała kropka, gdy AI ma niedoczytaną sugestię (proactive).
+ * Każdy hint to para { text, prompt }:
+ * - text   → krótki tekst w białym dymku ("Znaleźć najlepszego wykonawcę?"),
+ * - prompt → gotowe pytanie wysyłane/wstawiane do czatu po kliknięciu (follow-up),
+ *   dzięki czemu rozmowa zaczyna się od razu w temacie podpowiedzi.
  *
  * Triggery hintów (nigdy częściej niż co MIN_HINT_GAP_MS):
  * - 5 s po wejściu (raz na załadowanie strony — jak badge Meta AI),
  * - zmiana strony (sekcji),
  * - przewinięcie ponad 50% strony (raz na stronę),
  * - 30 s bezczynności,
- * - proaktywnie: użytkownik porównuje wykonawców (≥3 profile + 60 s sesji).
- *
- * Per sesja (sessionStorage): trigger proaktywny, lista obejrzanych profili
- * i kropka-notyfikacja.
- * Per załadowanie strony (zmienne modułu): hint powitalny, licznik/odstępy
- * hintów i cisza po otwarciu asystenta — po odświeżeniu launcher znowu "żyje".
+ * - proaktywnie (klient): porównywanie wykonawców (≥3 profile + 60 s sesji).
  */
 
 const SS_KEYS = {
@@ -31,36 +26,35 @@ const SS_KEYS = {
 };
 
 const ENTRY_HINT_DELAY_MS = 5000;
-const ROUTE_HINT_DELAY_MS = 2500;
+const ROUTE_HINT_DELAY_MS = 2000;
 const IDLE_HINT_DELAY_MS = 30000;
 const HINT_VISIBLE_MS = 4000;
-const MIN_HINT_GAP_MS = 15000;
-const MAX_HINTS_PER_PAGELOAD = 8;
+const MIN_HINT_GAP_MS = 10000;
+const MAX_HINTS_PER_PAGELOAD = 10;
 const PROACTIVE_MIN_SESSION_MS = 60000;
 const PROACTIVE_MIN_PROFILES = 3;
 
-const HINT_ROTATION = {
-  client: [
-    "Pomóc Ci?",
-    "Znajdź wykonawcę",
-    "Opisz problem",
-    "Mam awarię",
-    "Zapytaj AI",
-  ],
-  provider: [
-    "Pomóc Ci?",
-    "Wskażę najlepsze zlecenia",
-    "Pomogę wycenić ofertę",
-    "Zapytaj AI",
-  ],
+export const PROACTIVE_HINT = {
+  text: "Porównujesz wykonawców? Wybiorę najlepszych.",
+  prompt: "Porównuję kilku wykonawców. Pomóż mi wybrać najlepszego do mojego problemu.",
 };
 
-// Stan per załadowanie strony (reset przy pełnym przeładowaniu).
-let pageLoadState = {
-  engaged: false,
-  entryDone: false,
-  hintCount: 0,
-  lastHintAt: 0,
+const HINT_ROTATION = {
+  client: [
+    { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." },
+    { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." },
+    { text: "Opisz problem", prompt: "Pomóż mi opisać mój problem i dobrać odpowiednią usługę." },
+    { text: "Mam awarię", prompt: "Mam awarię w domu. Pomóż ocenić, co się dzieje i co mogę zrobić." },
+    { text: "Ile to kosztuje?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." },
+    { text: "Zapytaj AI", prompt: "" },
+  ],
+  provider: [
+    { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc jako wykonawcy?" },
+    { text: "Znaleźć najlepsze zlecenia?", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." },
+    { text: "Pomogę wycenić ofertę", prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję." },
+    { text: "Jak zdobyć więcej zleceń?", prompt: "Co mogę zrobić, żeby wygrywać więcej zleceń na Helpfli?" },
+    { text: "Zapytaj AI", prompt: "" },
+  ],
 };
 
 function ssGet(key, fallback = null) {
@@ -80,70 +74,110 @@ function ssSet(key, value) {
   }
 }
 
-/** Kontekstowy tekst hintu dla klienta; null = użyj rotacji losowej. */
-function clientTeaserText(pathname, search) {
+// Stan per załadowanie strony (reset przy pełnym przeładowaniu).
+let pageLoadState = {
+  engaged: false,
+  entryDone: false,
+  hintCount: 0,
+  lastHintAt: 0,
+};
+
+/** Kontekstowy hint dla klienta; null = użyj rotacji losowej. */
+function clientTeaserHint(pathname, search) {
   const haystack = `${pathname} ${search}`.toLowerCase();
 
   // Kategoria usługi ma najwyższy priorytet (z URL-a lub parametrów wyszukiwania).
-  if (/hydraul/.test(haystack)) return "Masz problem z hydrauliką?";
-  if (/elektry/.test(haystack)) return "Potrzebujesz elektryka?";
-  if (/agd|rtv|pralk|lodowk|lodówk|zmywark|piekarnik/.test(haystack)) {
-    return "Spróbujemy naprawić problem?";
+  if (/hydraul/.test(haystack)) {
+    return { text: "Masz problem z hydrauliką?", prompt: "Mam problem z hydrauliką. Pomóż ocenić, co się dzieje, i znaleźć najlepszego hydraulika w okolicy." };
   }
-  if (/sprzat|sprząt/.test(haystack)) return "Szukasz pomocy w sprzątaniu?";
-  if (/remont|malowan|glazur|tynk/.test(haystack)) return "Planujesz remont?";
+  if (/elektry/.test(haystack)) {
+    return { text: "Potrzebujesz elektryka?", prompt: "Szukam dobrego elektryka. Pomóż mi opisać problem i wybrać najlepszego w okolicy." };
+  }
+  if (/agd|rtv|pralk|lodowk|lodówk|zmywark|piekarnik/.test(haystack)) {
+    return { text: "Spróbujemy naprawić problem?", prompt: "Mam problem ze sprzętem AGD. Spróbujmy najpierw zdiagnozować usterkę, a jeśli się nie uda — znajdź fachowca." };
+  }
+  if (/sprzat|sprząt/.test(haystack)) {
+    return { text: "Szukasz pomocy w sprzątaniu?", prompt: "Szukam pomocy w sprzątaniu. Pomóż dobrać zakres usługi i znaleźć sprawdzoną osobę w okolicy." };
+  }
+  if (/remont|malowan|glazur|tynk/.test(haystack)) {
+    return { text: "Planujesz remont?", prompt: "Planuję remont. Pomóż mi opisać zakres prac, oszacować koszt i znaleźć dobrą ekipę." };
+  }
 
   // Co klient właśnie robi.
-  if (/^\/provider\/[^/]+$/.test(pathname)) return "Porównać z innymi wykonawcami?";
+  if (/^\/provider\/[^/]+$/.test(pathname)) {
+    return { text: "Porównać z innymi wykonawcami?", prompt: "Oglądam profil wykonawcy. Pomóż mi porównać go z innymi i ocenić, czy to dobry wybór." };
+  }
   if (pathname.startsWith("/providers") || pathname.startsWith("/nearby-providers")) {
     const params = new URLSearchParams(search);
     const query = params.get("service") || params.get("q") || "";
-    return query ? "Pomogę wybrać najlepszego" : "Pomóc znaleźć wykonawcę?";
+    return query
+      ? { text: "Pomogę wybrać najlepszego", prompt: "Przeglądam wykonawców. Pomóż mi wybrać najlepszego: porównaj opinie, ceny i dostępność." }
+      : { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." };
   }
   if (pathname.startsWith("/my-orders") || pathname.startsWith("/orders/my")) {
-    return "Sprawdzić status zleceń?";
+    return { text: "Sprawdzić status zleceń?", prompt: "Pokaż moje zlecenia i podpowiedz, czy coś wymaga mojej reakcji." };
   }
-  if (/^\/orders\/[^/]+/.test(pathname)) return "Pytanie do tego zlecenia?";
-  if (pathname.startsWith("/create-order")) return "Przygotuję opis zlecenia";
-  if (pathname.startsWith("/cennik")) return "Oszacować koszt usługi?";
-  if (pathname.startsWith("/poradnik")) return "Pytanie do tego poradnika?";
-  if (pathname.startsWith("/concierge")) return "Opisz problem";
-  if (pathname.startsWith("/services") || pathname.startsWith("/service/")) return "Opisz problem";
-  if (pathname === "/" || pathname.startsWith("/home")) return "Pomóc Ci?";
+  if (/^\/orders\/[^/]+/.test(pathname)) {
+    return { text: "Pytanie do tego zlecenia?", prompt: "Mam pytanie dotyczące mojego zlecenia. Pomóż mi je ogarnąć." };
+  }
+  if (pathname.startsWith("/create-order")) {
+    return { text: "Przygotuję opis zlecenia", prompt: "Pomóż mi opisać problem, zadaj najważniejsze pytania i przygotuj zlecenie dla wykonawcy." };
+  }
+  if (pathname.startsWith("/cennik")) {
+    return { text: "Oszacować koszt usługi?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." };
+  }
+  if (pathname.startsWith("/poradnik")) {
+    return { text: "Pytanie do tego poradnika?", prompt: "Czytam poradnik na Helpfli. Mam pytanie dotyczące tego tematu." };
+  }
+  if (pathname.startsWith("/concierge")) {
+    return { text: "Opisz problem", prompt: "" };
+  }
+  if (pathname.startsWith("/services") || pathname.startsWith("/service/")) {
+    return { text: "Opisz problem", prompt: "Pomóż mi opisać mój problem i dobrać odpowiednią usługę." };
+  }
+  if (pathname === "/" || pathname.startsWith("/home")) {
+    return { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." };
+  }
 
   return null;
 }
 
-/** Kontekstowy tekst hintu dla wykonawcy; null = użyj rotacji losowej. */
-function providerTeaserText(pathname) {
+/** Kontekstowy hint dla wykonawcy; null = użyj rotacji losowej. */
+function providerTeaserHint(pathname) {
   if (pathname.startsWith("/provider-home") || pathname.startsWith("/available-orders")) {
-    return "Pomóc znaleźć zlecenia?";
+    return { text: "Znaleźć najlepsze zlecenia?", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." };
   }
-  if (pathname.startsWith("/provider/quotes")) return "Pomogę wycenić ofertę";
-  if (/^\/orders\/[^/]+/.test(pathname)) return "Pomóc przygotować ofertę?";
+  if (pathname.startsWith("/provider/quotes")) {
+    return { text: "Pomogę wycenić ofertę", prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję." };
+  }
+  if (/^\/orders\/[^/]+/.test(pathname)) {
+    return { text: "Pomóc przygotować ofertę?", prompt: "Pomóż mi przygotować dobrą ofertę do tego zlecenia: cena, zakres i pierwsza wiadomość do klienta." };
+  }
   if (pathname.startsWith("/messages") || pathname.startsWith("/inbox")) {
-    return "Napiszę odpowiedź do klienta";
+    return { text: "Napiszę odpowiedź do klienta", prompt: "Napisz profesjonalną odpowiedź do klienta z pytaniami o zakres, termin i budżet." };
   }
-  if (pathname.startsWith("/manage-services")) return "Podpowiem, jak ulepszyć profil";
+  if (pathname.startsWith("/manage-services")) {
+    return { text: "Podpowiem, jak ulepszyć profil", prompt: "Co mogę poprawić w moim profilu i usługach, żeby dostawać więcej zleceń?" };
+  }
   if (pathname.startsWith("/account/subscriptions") || pathname.startsWith("/why-pro")) {
-    return "Pytanie o pakiety?";
+    return { text: "Pytanie o pakiety?", prompt: "Wyjaśnij różnice między pakietami Helpfli i podpowiedz, który najbardziej mi się opłaca." };
   }
   return null;
 }
 
-/** Kontekstowy tekst hintu; null = użyj rotacji losowej. */
-export function contextTeaserText(pathname = "", search = "", role = "client") {
+/** Kontekstowy hint; null = użyj rotacji losowej. */
+export function contextTeaserHint(pathname = "", search = "", role = "client") {
   return role === "provider"
-    ? providerTeaserText(pathname)
-    : clientTeaserText(pathname, search);
+    ? providerTeaserHint(pathname)
+    : clientTeaserHint(pathname, search);
 }
 
-function pickHintText(pathname, search, role) {
-  const contextual = contextTeaserText(pathname, search, role);
+function pickHint(pathname, search, role) {
+  const contextual = contextTeaserHint(pathname, search, role);
   if (contextual) return contextual;
   const last = ssGet(SS_KEYS.lastHintText, "");
   const rotation = HINT_ROTATION[role] || HINT_ROTATION.client;
-  const pool = rotation.filter((t) => t !== last);
+  const pool = rotation.filter((h) => h.text !== last);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -198,9 +232,9 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     return true;
   }, []);
 
-  const showHint = useCallback((kind, text) => {
-    setTeaser({ kind, text });
-    ssSet(SS_KEYS.lastHintText, text);
+  const showHint = useCallback((kind, hint) => {
+    setTeaser({ kind, text: hint.text, prompt: hint.prompt || "" });
+    ssSet(SS_KEYS.lastHintText, hint.text);
     pageLoadState.hintCount += 1;
     pageLoadState.lastHintAt = Date.now();
     clearTimer(hideTimer);
@@ -217,7 +251,7 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
   const tryContextHint = useCallback(
     (kind) => {
       if (!canHint()) return;
-      showHint(kind, pickHintText(location.pathname, location.search, role));
+      showHint(kind, pickHint(location.pathname, location.search, role));
     },
     [canHint, showHint, location.pathname, location.search, role]
   );
@@ -317,7 +351,7 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
       proactiveTimer.current = setTimeout(() => {
         if (!enabledRef.current || pageLoadState.engaged) return;
         ssSet(SS_KEYS.proactiveDone, "1");
-        showHint("proactive", "Porównujesz wykonawców? Wybiorę najlepszych.");
+        showHint("proactive", PROACTIVE_HINT);
       }, wait);
     }
 

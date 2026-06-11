@@ -217,6 +217,7 @@ export default function UnifiedAIConcierge({
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const hasOpenedModalRef = useRef(false);
+  const seedSentRef = useRef("");
   /** Zdjęcia/pliki z całej sesji czatu — przenoszone do formularza zlecenia */
   const sessionAttachmentUrlsRef = useRef([]);
   const { location: deviceLocation, refresh: refreshDeviceLocation } = useUserLocation();
@@ -393,14 +394,17 @@ export default function UnifiedAIConcierge({
     return () => clearTimeout(timer);
   }, [open, msgs.length, companyId, companyResolved]);
 
-  // Auto-wysłanie seedQuery
+  // Auto-wysłanie seedQuery — czeka aż pojawi się wiadomość powitalna
+  // (msgs.length === 1), wysyła dany seed tylko raz.
   useEffect(() => {
-    if (open && seedQuery && seedQuery.trim() && msgs.length === 1) {
-      const timer = setTimeout(() => ask(), 250);
-      return () => clearTimeout(timer);
-    }
+    if (!open || !seedQuery || !seedQuery.trim()) return undefined;
+    if (msgs.length !== 1) return undefined;
+    if (seedSentRef.current === seedQuery) return undefined;
+    seedSentRef.current = seedQuery;
+    const timer = setTimeout(() => ask(), 250);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, seedQuery]);
+  }, [open, seedQuery, msgs.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

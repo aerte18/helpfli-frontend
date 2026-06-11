@@ -281,6 +281,8 @@ export default function ProviderAIWidget() {
   const hasUnlimited = isStandard || isPro;
 
   const handleOpen = () => {
+    // Follow-up: klik w dymek z podpowiedzią wstawia gotowe pytanie do czatu.
+    const followUp = teaser?.prompt || "";
     markEngaged();
     // Badge z podpowiedziami (mobile, provider-home): otwórz AI Inbox,
     // żeby liczba przy ikonce zawsze prowadziła do konkretnych sugestii.
@@ -289,6 +291,7 @@ export default function ProviderAIWidget() {
       return;
     }
     setContextNote("");
+    if (followUp) setInput(followUp);
     setOpen(true);
   };
 

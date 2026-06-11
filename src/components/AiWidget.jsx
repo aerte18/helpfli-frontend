@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import UnifiedAIConcierge from "./ai/UnifiedAIConcierge";
 import AiFabLauncher from "./ui/AiFabLauncher";
-import useAiConciergeNudge from "../hooks/useAiConciergeNudge";
+import useAiConciergeNudge, { PROACTIVE_HINT } from "../hooks/useAiConciergeNudge";
 import { useAuth } from "../context/AuthContext";
 import { onAI } from "../ai/chat/bus";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
@@ -12,6 +12,7 @@ export default function AiWidget() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [busAiOpen, setBusAiOpen] = useState(false);
+  const [seedQuery, setSeedQuery] = useState("");
 
   useEffect(() => {
     return onAI((evt) => {
@@ -33,7 +34,11 @@ export default function AiWidget() {
   }
 
   const handleOpen = () => {
+    // Follow-up: klik w dymek z podpowiedzią (lub z kropką sugestii)
+    // otwiera czat od razu w temacie tej podpowiedzi.
+    const followUp = teaser?.prompt || (suggestionDot ? PROACTIVE_HINT.prompt : "");
     markEngaged();
+    setSeedQuery(followUp);
     setOpen(true);
   };
 
@@ -52,8 +57,11 @@ export default function AiWidget() {
       <UnifiedAIConcierge
         mode="modal"
         open={open}
-        onClose={() => setOpen(false)}
-        seedQuery=""
+        onClose={() => {
+          setOpen(false);
+          setSeedQuery("");
+        }}
+        seedQuery={seedQuery}
       />
     </>
   );
