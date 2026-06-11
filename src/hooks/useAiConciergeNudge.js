@@ -32,27 +32,43 @@ const PROACTIVE_MIN_SESSION_MS = 45000;
 const PROACTIVE_MIN_PROFILES = 3;
 
 export const PROACTIVE_HINT = {
-  text: "Porównujesz wykonawców? Wybiorę najlepszych.",
-  prompt: "Porównuję kilku wykonawców. Pomóż mi wybrać najlepszego do mojego problemu.",
+  text: "Trudny wybór? Dobiorę najlepszego.",
+  prompt: "Przeglądam kilku wykonawców i nie wiem, kogo wybrać. Porównaj ich i poleć mi najlepszego do mojego problemu.",
 };
 
 const HINT_ROTATION = {
   client: [
-    { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." },
-    { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." },
-    { text: "Opisz problem", prompt: "Pomóż mi opisać mój problem i dobrać odpowiednią usługę." },
-    { text: "Mam awarię", prompt: "Mam awarię w domu. Pomóż ocenić, co się dzieje i co mogę zrobić." },
-    { text: "Ile to kosztuje?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." },
-    { text: "Zapytaj AI", prompt: "" },
+    { text: "Opowiedz problem — resztę ogarnę", prompt: "Mam problem do rozwiązania. Pomóż mi go opisać i znaleźć najlepszą pomoc." },
+    { text: "Znaleźć Ci najlepszą pomoc?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." },
+    { text: "Nie wiesz od czego zacząć?", prompt: "Nie wiem, od czego zacząć. Zadaj mi pytania i pomóż dobrać właściwą usługę." },
+    { text: "Pilna sprawa? Pomogę od razu", prompt: "Mam pilną sprawę w domu. Pomóż ocenić sytuację i znaleźć kogoś dostępnego jak najszybciej." },
+    { text: "Ile to może kosztować?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." },
+    { text: "Potrzebujesz pomocy?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." },
   ],
   provider: [
-    { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc jako wykonawcy?" },
-    { text: "Znaleźć najlepsze zlecenia?", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." },
-    { text: "Pomogę wycenić ofertę", prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję." },
-    { text: "Jak zdobyć więcej zleceń?", prompt: "Co mogę zrobić, żeby wygrywać więcej zleceń na Helpfli?" },
-    { text: "Zapytaj AI", prompt: "" },
+    { text: "Chcesz więcej zleceń?", prompt: "Co mogę zrobić, żeby dostawać więcej zleceń i wygrywać częściej na Helpfli?" },
+    { text: "Pokażę najlepsze okazje", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." },
+    { text: "Wycenimy ofertę razem?", prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję." },
+    { text: "Jak wygrać to zlecenie?", prompt: "Jak mogę zwiększyć szansę na wygranie zlecenia? Podpowiedz cenę, zakres i pierwszą wiadomość." },
+    { text: "Podpowiem, co poprawić", prompt: "Przeanalizuj mój profil i oferty. Co mogę poprawić, żeby zarabiać więcej?" },
+    { text: "Co robić teraz?", prompt: "Co powinienem teraz zrobić, żeby wygrać więcej zleceń?" },
   ],
 };
+
+/** Krótka etykieta usługi z URL (do personalizacji hintów). */
+function serviceLabelFromContext(pathname, search) {
+  const params = new URLSearchParams(search);
+  const raw =
+    params.get("service") ||
+    params.get("q") ||
+    params.get("category") ||
+    pathname.match(/\/wykonawcy\/([^/]+)/)?.[1]?.replace(/-/g, " ") ||
+    pathname.match(/\/service\/([^/]+)/)?.[1]?.replace(/-/g, " ") ||
+    "";
+  if (!raw) return "";
+  const label = decodeURIComponent(raw).trim();
+  return label.length > 28 ? "" : label;
+}
 
 function ssGet(key, fallback = null) {
   try {
@@ -84,91 +100,256 @@ function routeKey(pathname, search, role) {
 
 function clientTeaserHint(pathname, search) {
   const haystack = `${pathname} ${search}`.toLowerCase();
+  const serviceLabel = serviceLabelFromContext(pathname, search);
 
-  if (/hydraul/.test(haystack)) {
-    return { text: "Masz problem z hydrauliką?", prompt: "Mam problem z hydrauliką. Pomóż ocenić, co się dzieje, i znaleźć najlepszego hydraulika w okolicy." };
+  // Kategorie usług — chwytliwe, jak concierge, nie suchy FAQ.
+  if (/hydraul|ciek|kran|rura|kanaliz|wc\b|udrażn/.test(haystack)) {
+    return {
+      text: "Cieknie? Znajdę hydraulika",
+      prompt: "Mam problem z hydrauliką. Pomóż ocenić sytuację i znaleźć sprawdzonego fachowca w okolicy.",
+    };
   }
-  if (/elektry/.test(haystack)) {
-    return { text: "Potrzebujesz elektryka?", prompt: "Szukam dobrego elektryka. Pomóż mi opisać problem i wybrać najlepszego w okolicy." };
+  if (/elektry|prąd|prad|gniazd|bezpiecznik|oświetl|oswietl/.test(haystack)) {
+    return {
+      text: "Problem z prądem? Pomogę",
+      prompt: "Mam problem z instalacją elektryczną. Pomóż opisać usterkę i znaleźć dobrego elektryka.",
+    };
   }
-  if (/agd|rtv|pralk|lodowk|lodówk|zmywark|piekarnik/.test(haystack)) {
-    return { text: "Spróbujemy naprawić problem?", prompt: "Mam problem ze sprzętem AGD. Spróbujmy najpierw zdiagnozować usterkę, a jeśli się nie uda — znajdź fachowca." };
+  if (/agd|rtv|pralk|lodowk|lodówk|zmywark|piekarnik|kuchenk|suszark/.test(haystack)) {
+    return {
+      text: "Naprawimy czy wymienimy?",
+      prompt: "Mam problem ze sprzętem AGD. Pomóż zdiagnozować usterkę i powiedz, czy opłaca się naprawa.",
+    };
   }
-  if (/sprzat|sprząt/.test(haystack)) {
-    return { text: "Szukasz pomocy w sprzątaniu?", prompt: "Szukam pomocy w sprzątaniu. Pomóż dobrać zakres usługi i znaleźć sprawdzoną osobę w okolicy." };
+  if (/sprzat|sprząt|mycie|clean/.test(haystack)) {
+    return {
+      text: "Potrzebujesz pomocy w domu?",
+      prompt: "Szukam pomocy ze sprzątaniem. Pomóż dobrać zakres i znaleźć zaufaną osobę w okolicy.",
+    };
   }
-  if (/remont|malowan|glazur|tynk/.test(haystack)) {
-    return { text: "Planujesz remont?", prompt: "Planuję remont. Pomóż mi opisać zakres prac, oszacować koszt i znaleźć dobrą ekipę." };
+  if (/remont|malowan|glazur|tynk|tapet|wykończen|wykonczen|budow/.test(haystack)) {
+    return {
+      text: "Plan remontu? Ogarnę to z Tobą",
+      prompt: "Planuję remont. Pomóż opisać zakres, oszacować koszt i znaleźć dobrą ekipę.",
+    };
+  }
+  if (/klimat|klima|ogrzew|piec|grzejnik/.test(haystack)) {
+    return {
+      text: "Za zimno albo za gorąco?",
+      prompt: "Mam problem z ogrzewaniem lub klimatyzacją. Pomóż ocenić sytuację i znaleźć fachowca.",
+    };
+  }
+  if (/transport|przeprowadz|mebl|montaż|montaz/.test(haystack)) {
+    return {
+      text: "Trzeba to przewieźć lub zamontować?",
+      prompt: "Potrzebuję pomocy z transportem lub montażem. Pomóż dobrać wykonawcę i oszacować koszt.",
+    };
   }
 
+  // Co klient właśnie robi na platformie.
   if (/^\/provider\/[^/]+$/.test(pathname)) {
-    return { text: "Porównać z innymi wykonawcami?", prompt: "Oglądam profil wykonawcy. Pomóż mi porównać go z innymi i ocenić, czy to dobry wybór." };
+    return {
+      text: "Dobry wybór? Sprawdzę za Ciebie",
+      prompt: "Oglądam profil wykonawcy. Pomóż mi ocenić, czy to dobry wybór, i porównać z innymi.",
+    };
   }
   if (pathname.startsWith("/providers") || pathname.startsWith("/nearby-providers")) {
-    const params = new URLSearchParams(search);
-    const query = params.get("service") || params.get("q") || "";
-    return query
-      ? { text: "Pomogę wybrać najlepszego", prompt: "Przeglądam wykonawców. Pomóż mi wybrać najlepszego: porównaj opinie, ceny i dostępność." }
-      : { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." };
+    if (serviceLabel) {
+      return {
+        text: "Znaleźć Ci najlepszą pomoc?",
+        prompt: `Szukam wykonawcy: ${serviceLabel}. Pomóż mi wybrać najlepszego — opinie, cena i dostępność.`,
+      };
+    }
+    return {
+      text: "Szukasz fachowca? Pomogę wybrać",
+      prompt: "Przeglądam wykonawców i nie wiem, kogo wybrać. Pomóż mi znaleźć najlepszą pomoc w okolicy.",
+    };
   }
   if (pathname.startsWith("/wykonawcy/")) {
-    return { text: "Znaleźć fachowca w okolicy?", prompt: "Szukam wykonawcy w mojej okolicy. Pomóż mi wybrać najlepszego." };
+    const city = pathname.split("/")[3]?.replace(/-/g, " ") || "okolicy";
+    return {
+      text: "Znaleźć fachowca w okolicy?",
+      prompt: `Szukam sprawdzonego wykonawcy w ${city}. Pomóż mi wybrać najlepszego.`,
+    };
   }
   if (pathname.startsWith("/my-orders") || pathname.startsWith("/orders/my")) {
-    return { text: "Sprawdzić status zleceń?", prompt: "Pokaż moje zlecenia i podpowiedz, czy coś wymaga mojej reakcji." };
+    return {
+      text: "Co wymaga Twojej uwagi?",
+      prompt: "Przejrzyj moje zlecenia i powiedz, czy coś wymaga mojej reakcji albo pilnej decyzji.",
+    };
+  }
+  if (pathname.includes("/sprawa")) {
+    return {
+      text: "Pomogę w tej sprawie",
+      prompt: "Mam sprawę/spór dotyczący zlecenia. Pomóż mi zrozumieć sytuację i podpowiedz, co zrobić.",
+    };
   }
   if (/^\/orders\/[^/]+/.test(pathname)) {
-    return { text: "Pytanie do tego zlecenia?", prompt: "Mam pytanie dotyczące mojego zlecenia. Pomóż mi je ogarnąć." };
+    return {
+      text: "Ogarnąć to zlecenie?",
+      prompt: "Mam pytanie lub wątpliwość dotyczącą tego zlecenia. Pomóż mi podjąć dobrą decyzję.",
+    };
   }
   if (pathname.startsWith("/create-order")) {
-    return { text: "Przygotuję opis zlecenia", prompt: "Pomóż mi opisać problem, zadaj najważniejsze pytania i przygotuj zlecenie dla wykonawcy." };
+    return {
+      text: "Opisz problem — resztę ogarnę",
+      prompt: "Chcę zlecić usługę. Zadaj mi najważniejsze pytania i pomóż przygotować dobre zlecenie.",
+    };
+  }
+  if (pathname.startsWith("/checkout")) {
+    return {
+      text: "Masz wątpliwości przed płatnością?",
+      prompt: "Jestem przy płatności i mam wątpliwości. Wyjaśnij mi, co się teraz dzieje i czy wszystko wygląda OK.",
+    };
   }
   if (pathname.startsWith("/cennik")) {
-    return { text: "Oszacować koszt usługi?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." };
+    return {
+      text: "Ile to może kosztować?",
+      prompt: "Chcę wiedzieć, ile może kosztować usługa, której potrzebuję. Pomóż mi to oszacować.",
+    };
   }
   if (pathname.startsWith("/poradnik")) {
-    return { text: "Pytanie do tego poradnika?", prompt: "Czytam poradnik na Helpfli. Mam pytanie dotyczące tego tematu." };
+    return {
+      text: "Masz pytanie? Wyjaśnię",
+      prompt: "Czytam poradnik i mam pytanie do tego tematu. Wyjaśnij mi to prosto i praktycznie.",
+    };
+  }
+  if (pathname.startsWith("/poradniki")) {
+    return {
+      text: "Nie wiesz, od czego zacząć?",
+      prompt: "Przeglądam poradniki i nie wiem, od czego zacząć. Pomóż mi dobrać właściwą usługę.",
+    };
   }
   if (pathname.startsWith("/concierge")) {
-    return { text: "Opisz problem", prompt: "" };
+    return {
+      text: "Opowiedz — znajdę pomoc",
+      prompt: "",
+    };
   }
   if (pathname.startsWith("/services") || pathname.startsWith("/service/")) {
-    return { text: "Opisz problem", prompt: "Pomóż mi opisać mój problem i dobrać odpowiednią usługę." };
+    if (serviceLabel) {
+      return {
+        text: "Potrzebujesz tej usługi?",
+        prompt: `Interesuje mnie usługa: ${serviceLabel}. Pomóż opisać problem i znaleźć dobrego wykonawcę.`,
+      };
+    }
+    return {
+      text: "Nie wiesz, kogo wybrać?",
+      prompt: "Przeglądam usługi i nie wiem, kogo wybrać. Pomóż mi dobrać właściwą pomoc.",
+    };
+  }
+  if (pathname.startsWith("/account/subscriptions")) {
+    return {
+      text: "Pytanie o pakiet?",
+      prompt: "Mam pytanie o pakiety i korzyści na Helpfli. Wyjaśnij, co mi się opłaca.",
+    };
   }
   if (pathname.startsWith("/account")) {
-    return { text: "Pytanie o konto?", prompt: "Mam pytanie dotyczące mojego konta lub zleceń na Helpfli." };
+    return {
+      text: "Pomogę ogarnąć konto",
+      prompt: "Mam pytanie o moje konto, zlecenia lub ustawienia na Helpfli.",
+    };
   }
   if (pathname.startsWith("/notifications")) {
-    return { text: "Co wymaga reakcji?", prompt: "Podsumuj moje powiadomienia i powiedz, co powinienem teraz zrobić." };
+    return {
+      text: "Co jest teraz pilne?",
+      prompt: "Podsumuj moje powiadomienia i powiedz, co powinienem teraz zrobić w pierwszej kolejności.",
+    };
+  }
+  if (pathname.startsWith("/help")) {
+    return {
+      text: "Nie znalazłeś odpowiedzi?",
+      prompt: "Szukam pomocy w centrum pomocy. Opisz mój problem i podpowiedz, co powinienem zrobić.",
+    };
+  }
+  if (pathname.startsWith("/rate-user")) {
+    return {
+      text: "Pomogę napisać opinię",
+      prompt: "Chcę wystawić opinię wykonawcy. Pomóż mi napisać krótką, fair recenzję.",
+    };
   }
   if (pathname === "/" || pathname.startsWith("/home")) {
-    return { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." };
+    return {
+      text: "Szukasz pomocy? Zacznijmy",
+      prompt: "Szukam pomocy w domu lub okolicy. Pomóż mi opisać problem i znaleźć najlepszego wykonawcę.",
+    };
   }
 
   return null;
 }
 
 function providerTeaserHint(pathname) {
-  if (pathname.startsWith("/provider-home") || pathname.startsWith("/available-orders")) {
-    return { text: "Znaleźć najlepsze zlecenia?", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." };
+  if (pathname.startsWith("/provider-home")) {
+    return {
+      text: "Mam dla Ciebie okazje",
+      prompt: "Pokaż najlepsze zlecenia dla mnie teraz i posortuj je według szansy wygranej.",
+    };
+  }
+  if (pathname.startsWith("/available-orders")) {
+    return {
+      text: "Szukasz zarobku? Znalazłem okazje",
+      prompt: "Przeglądam dostępne zlecenia. Pokaż te z największą szansą wygranej i najlepszym zarobkiem.",
+    };
   }
   if (pathname.startsWith("/provider/quotes")) {
-    return { text: "Pomogę wycenić ofertę", prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały i konkurencję." };
+    return {
+      text: "Wycenimy ofertę razem?",
+      prompt: "Pomóż mi wycenić ofertę: uwzględnij zakres, dojazd, materiały, czas pracy i konkurencję.",
+    };
+  }
+  if (pathname.includes("/sprawa")) {
+    return {
+      text: "Pomogę w tej sprawie",
+      prompt: "Mam sprawę dotyczącą zlecenia. Pomóż mi zrozumieć sytuację i podpowiedz, jak profesjonalnie odpowiedzieć.",
+    };
   }
   if (/^\/orders\/[^/]+/.test(pathname)) {
-    return { text: "Pomóc przygotować ofertę?", prompt: "Pomóż mi przygotować dobrą ofertę do tego zlecenia: cena, zakres i pierwsza wiadomość do klienta." };
+    return {
+      text: "Wygrywamy to zlecenie?",
+      prompt: "Chcę wygrać to zlecenie. Podpowiedz dobrą cenę, zakres prac i pierwszą wiadomość do klienta.",
+    };
   }
   if (pathname.startsWith("/messages") || pathname.startsWith("/inbox")) {
-    return { text: "Napiszę odpowiedź do klienta", prompt: "Napisz profesjonalną odpowiedź do klienta z pytaniami o zakres, termin i budżet." };
+    return {
+      text: "Napiszę wiadomość do klienta",
+      prompt: "Napisz profesjonalną wiadomość do klienta — krótko, konkretnie, z pytaniami o zakres, termin i budżet.",
+    };
   }
   if (pathname.startsWith("/manage-services")) {
-    return { text: "Podpowiem, jak ulepszyć profil", prompt: "Co mogę poprawić w moim profilu i usługach, żeby dostawać więcej zleceń?" };
+    return {
+      text: "Więcej zleceń? Podpowiem jak",
+      prompt: "Co mogę poprawić w profilu i ofercie usług, żeby dostawać więcej zleceń?",
+    };
   }
-  if (pathname.startsWith("/account")) {
-    return { text: "Pytanie o konto?", prompt: "Mam pytanie o moje konto wykonawcy, statystyki lub ustawienia." };
+  if (pathname.startsWith("/kyc")) {
+    return {
+      text: "Pytanie o weryfikację?",
+      prompt: "Mam pytanie o weryfikację konta wykonawcy. Wyjaśnij, co powinienem zrobić.",
+    };
   }
   if (pathname.startsWith("/account/subscriptions") || pathname.startsWith("/why-pro")) {
-    return { text: "Pytanie o pakiety?", prompt: "Wyjaśnij różnice między pakietami Helpfli i podpowiedz, który najbardziej mi się opłaca." };
+    return {
+      text: "Chcesz więcej zleceń?",
+      prompt: "Wyjaśnij różnice między pakietami Helpfli i powiedz, który najbardziej zwiększy moje szanse.",
+    };
+  }
+  if (pathname.startsWith("/account/wallet") || pathname.startsWith("/account/boosts")) {
+    return {
+      text: "Jak lepiej wykorzystać konto?",
+      prompt: "Mam pytanie o portfel, boosty lub wydatki na Helpfli. Podpowiedz, co mi się opłaca.",
+    };
+  }
+  if (pathname.startsWith("/account")) {
+    return {
+      text: "Pomogę ogarnąć konto",
+      prompt: "Mam pytanie o konto wykonawcy, statystyki, ustawienia lub moje oferty.",
+    };
+  }
+  if (pathname.startsWith("/notifications")) {
+    return {
+      text: "Co wymaga reakcji?",
+      prompt: "Podsumuj moje powiadomienia i powiedz, na co powinienem zareagować w pierwszej kolejności.",
+    };
   }
   return null;
 }
