@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
 import AiFabLauncher from "./ui/AiFabLauncher";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
+import useAiConciergeNudge from "../hooks/useAiConciergeNudge";
 import {
   PROVIDER_AI_NUDGE_DISMISS_KEY,
   NUDGE_CHANGE_EVENT,
@@ -31,6 +32,12 @@ export default function ProviderAIWidget() {
   const [insightBadge, setInsightBadge] = useState(0);
   const [nudgeDockActive, setNudgeDockActive] = useState(false);
   const messagesEndRef = React.useRef(null);
+
+  // Inteligentne hinty dymka ("Pomóc znaleźć zlecenia?" itp.) — jak u klienta.
+  const { teaser, markEngaged } = useAiConciergeNudge({
+    enabled: user?.role === "provider" && !open && !isMapImmersive,
+    role: "provider",
+  });
 
   useEffect(() => {
     const syncImmersive = () => {
@@ -274,6 +281,7 @@ export default function ProviderAIWidget() {
   const hasUnlimited = isStandard || isPro;
 
   const handleOpen = () => {
+    markEngaged();
     // Badge z podpowiedziami (mobile, provider-home): otwórz AI Inbox,
     // żeby liczba przy ikonce zawsze prowadziła do konkretnych sugestii.
     if (!isMdUp && onProviderHome && insightBadge > 0) {
@@ -290,6 +298,8 @@ export default function ProviderAIWidget() {
         testId="provider-ai-fab"
         variant="provider"
         hidden={open || isMapImmersive || hideFloatingFab || hideFabForInsightDock}
+        teaser={teaser}
+        label="Zapytaj AI"
         onClick={handleOpen}
         badge={
           insightBadge > 0 ? (

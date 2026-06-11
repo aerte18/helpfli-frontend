@@ -39,13 +39,21 @@ const MAX_HINTS_PER_PAGELOAD = 8;
 const PROACTIVE_MIN_SESSION_MS = 60000;
 const PROACTIVE_MIN_PROFILES = 3;
 
-const HINT_ROTATION = [
-  "Pomóc Ci?",
-  "Znajdź wykonawcę",
-  "Opisz problem",
-  "Mam awarię",
-  "Zapytaj AI",
-];
+const HINT_ROTATION = {
+  client: [
+    "Pomóc Ci?",
+    "Znajdź wykonawcę",
+    "Opisz problem",
+    "Mam awarię",
+    "Zapytaj AI",
+  ],
+  provider: [
+    "Pomóc Ci?",
+    "Wskażę najlepsze zlecenia",
+    "Pomogę wycenić ofertę",
+    "Zapytaj AI",
+  ],
+};
 
 // Stan per załadowanie strony (reset przy pełnym przeładowaniu).
 let pageLoadState = {
@@ -72,11 +80,11 @@ function ssSet(key, value) {
   }
 }
 
-/** Kontekstowy tekst hintu; null = użyj rotacji losowej. */
-export function contextTeaserText(pathname = "", search = "") {
+/** Kontekstowy tekst hintu dla klienta; null = użyj rotacji losowej. */
+function clientTeaserText(pathname, search) {
   const haystack = `${pathname} ${search}`.toLowerCase();
 
-  // Kategoria usługi ma najwyższy priorytet.
+  // Kategoria usługi ma najwyższy priorytet (z URL-a lub parametrów wyszukiwania).
   if (/hydraul/.test(haystack)) return "Masz problem z hydrauliką?";
   if (/elektry/.test(haystack)) return "Potrzebujesz elektryka?";
   if (/agd|rtv|pralk|lodowk|lodówk|zmywark|piekarnik/.test(haystack)) {
@@ -85,11 +93,20 @@ export function contextTeaserText(pathname = "", search = "") {
   if (/sprzat|sprząt/.test(haystack)) return "Szukasz pomocy w sprzątaniu?";
   if (/remont|malowan|glazur|tynk/.test(haystack)) return "Planujesz remont?";
 
-  // Kontekst sekcji.
+  // Co klient właśnie robi.
+  if (/^\/provider\/[^/]+$/.test(pathname)) return "Porównać z innymi wykonawcami?";
   if (pathname.startsWith("/providers") || pathname.startsWith("/nearby-providers")) {
-    return "Znajdź wykonawcę";
+    const params = new URLSearchParams(search);
+    const query = params.get("service") || params.get("q") || "";
+    return query ? "Pomogę wybrać najlepszego" : "Pomóc znaleźć wykonawcę?";
   }
+  if (pathname.startsWith("/my-orders") || pathname.startsWith("/orders/my")) {
+    return "Sprawdzić status zleceń?";
+  }
+  if (/^\/orders\/[^/]+/.test(pathname)) return "Pytanie do tego zlecenia?";
   if (pathname.startsWith("/create-order")) return "Przygotuję opis zlecenia";
+  if (pathname.startsWith("/cennik")) return "Oszacować koszt usługi?";
+  if (pathname.startsWith("/poradnik")) return "Pytanie do tego poradnika?";
   if (pathname.startsWith("/concierge")) return "Opisz problem";
   if (pathname.startsWith("/services") || pathname.startsWith("/service/")) return "Opisz problem";
   if (pathname === "/" || pathname.startsWith("/home")) return "Pomóc Ci?";
@@ -97,11 +114,36 @@ export function contextTeaserText(pathname = "", search = "") {
   return null;
 }
 
-function pickHintText(pathname, search) {
-  const contextual = contextTeaserText(pathname, search);
+/** Kontekstowy tekst hintu dla wykonawcy; null = użyj rotacji losowej. */
+function providerTeaserText(pathname) {
+  if (pathname.startsWith("/provider-home") || pathname.startsWith("/available-orders")) {
+    return "Pomóc znaleźć zlecenia?";
+  }
+  if (pathname.startsWith("/provider/quotes")) return "Pomogę wycenić ofertę";
+  if (/^\/orders\/[^/]+/.test(pathname)) return "Pomóc przygotować ofertę?";
+  if (pathname.startsWith("/messages") || pathname.startsWith("/inbox")) {
+    return "Napiszę odpowiedź do klienta";
+  }
+  if (pathname.startsWith("/manage-services")) return "Podpowiem, jak ulepszyć profil";
+  if (pathname.startsWith("/account/subscriptions") || pathname.startsWith("/why-pro")) {
+    return "Pytanie o pakiety?";
+  }
+  return null;
+}
+
+/** Kontekstowy tekst hintu; null = użyj rotacji losowej. */
+export function contextTeaserText(pathname = "", search = "", role = "client") {
+  return role === "provider"
+    ? providerTeaserText(pathname)
+    : clientTeaserText(pathname, search);
+}
+
+function pickHintText(pathname, search, role) {
+  const contextual = contextTeaserText(pathname, search, role);
   if (contextual) return contextual;
   const last = ssGet(SS_KEYS.lastHintText, "");
-  const pool = HINT_ROTATION.filter((t) => t !== last);
+  const rotation = HINT_ROTATION[role] || HINT_ROTATION.client;
+  const pool = rotation.filter((t) => t !== last);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -114,7 +156,7 @@ function readViewedProfiles() {
   }
 }
 
-export default function useAiConciergeNudge({ enabled = true } = {}) {
+export default function useAiConciergeNudge({ enabled = true, role = "client" } = {}) {
   const location = useLocation();
   const [teaser, setTeaser] = useState(null);
   const [suggestionDot, setSuggestionDot] = useState(ssGet(SS_KEYS.suggestionDot) === "1");
@@ -175,9 +217,9 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
   const tryContextHint = useCallback(
     (kind) => {
       if (!canHint()) return;
-      showHint(kind, pickHintText(location.pathname, location.search));
+      showHint(kind, pickHintText(location.pathname, location.search, role));
     },
-    [canHint, showHint, location.pathname, location.search]
+    [canHint, showHint, location.pathname, location.search, role]
   );
 
   /** Użytkownik otworzył asystenta — cisza do następnego przeładowania, kropka znika. */
@@ -194,8 +236,9 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     setTeaser(null);
   }, []);
 
-  // Śledzenie odwiedzonych profili wykonawców (trigger proaktywny).
+  // Śledzenie odwiedzonych profili wykonawców (trigger proaktywny — tylko klient).
   useEffect(() => {
+    if (role !== "client") return;
     const match = location.pathname.match(/^\/provider\/([^/]+)$/);
     const id = match?.[1];
     if (!id || ["sponsored", "quotes"].includes(id)) return;
@@ -203,7 +246,7 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     if (!viewed.includes(id)) {
       ssSet(SS_KEYS.profiles, JSON.stringify([...viewed, id].slice(-20)));
     }
-  }, [location.pathname]);
+  }, [location.pathname, role]);
 
   // Hint powitalny — 5 s po załadowaniu strony.
   useEffect(() => {
@@ -263,8 +306,9 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     window.addEventListener("keydown", onActivity);
     armIdleTimer();
 
-    // Proactive: porównywanie wykonawców (raz na sesję, priorytet nad limitem przerwy).
+    // Proactive: porównywanie wykonawców (tylko klient, raz na sesję).
     if (
+      role === "client" &&
       ssGet(SS_KEYS.proactiveDone) !== "1" &&
       readViewedProfiles().length >= PROACTIVE_MIN_PROFILES
     ) {
@@ -283,7 +327,7 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
       window.removeEventListener("keydown", onActivity);
       [routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
     };
-  }, [location.pathname, location.search, tryContextHint, showHint]);
+  }, [location.pathname, location.search, tryContextHint, showHint, role]);
 
   useEffect(() => () => clearTimer(hideTimer), []);
 
