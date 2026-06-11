@@ -532,24 +532,125 @@ html.qs-map-route-scroll-lock body {
   }
 }
 
-/* Launcher AI + przycisk pełnego ekranu mapy — jeden pionowy stos po prawej */
+/* Launcher AI — "AI Concierge": okrąg ✨ płynnie rozwijany w pigułkę z teaserem */
 .qs-ai-fab {
   bottom: calc(var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra));
+  height: 3rem;
+  min-width: 3rem;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px) scale(0.85);
+  box-shadow:
+    0 8px 24px rgba(79, 70, 229, 0.32),
+    0 2px 8px rgba(15, 23, 42, 0.18);
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease,
+    box-shadow 0.25s var(--qs-ease-standard);
+}
+.qs-ai-fab--in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.qs-ai-fab--client {
+  background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #c026d3 100%);
+}
+.qs-ai-fab--provider {
+  background-image: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+}
+.qs-ai-fab:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow:
+    0 12px 30px rgba(79, 70, 229, 0.4),
+    0 3px 10px rgba(15, 23, 42, 0.2);
+}
+.qs-ai-fab:active {
+  transform: scale(0.95);
+}
+.qs-ai-fab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.qs-ai-fab__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+.qs-ai-fab__label {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition:
+    max-width 0.38s var(--qs-ease-standard),
+    opacity 0.26s ease,
+    transform 0.38s var(--qs-ease-standard),
+    padding 0.38s var(--qs-ease-standard);
+}
+.qs-ai-fab--expanded .qs-ai-fab__label {
+  max-width: 13rem;
+  opacity: 1;
+  transform: translateX(0);
+  padding-right: 1.0625rem;
+}
+/* Halo przy teaserze — pojedynczy, miękki puls zwracający uwagę */
+.qs-ai-fab--teasing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  background: inherit;
+  background-image: inherit;
+  animation: qs-ai-fab-halo 1.7s var(--qs-ease-standard) 2;
+}
+@keyframes qs-ai-fab-halo {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+.qs-ai-fab--teasing .qs-ai-fab__icon svg {
+  animation: qs-ai-fab-sparkle 1.4s ease-in-out 2;
+}
+@keyframes qs-ai-fab-sparkle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  35% {
+    transform: scale(1.18) rotate(-8deg);
+  }
+  70% {
+    transform: scale(1.06) rotate(6deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qs-ai-fab,
+  .qs-ai-fab__label {
+    transition: none;
+  }
+  .qs-ai-fab--teasing::before,
+  .qs-ai-fab--teasing .qs-ai-fab__icon svg {
+    animation: none;
+  }
 }
 @media (max-width: 767px) {
-  /* Mapa: wysuwany tab z prawej — widoczny pasek, reszta schowana poza ekranem */
-  .qs-ai-fab.qs-ai-fab-edge {
-    right: 0;
-    transform: translateX(calc(100% - 1.125rem));
-    box-shadow: -3px 4px 16px rgba(15, 23, 42, 0.18);
-    transition:
-      transform var(--qs-duration-normal) var(--qs-ease-standard),
-      box-shadow var(--qs-duration-normal) var(--qs-ease-standard);
-  }
-  .qs-ai-fab.qs-ai-fab-edge.qs-ai-fab-edge--expanded,
-  .qs-ai-fab.qs-ai-fab-edge:focus-visible {
-    transform: translateX(0);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  .qs-ai-fab {
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 
   /* Provider AI Inbox — tab z prawej; zwinięty = cała ikona (2.75rem) zostaje na ekranie */
@@ -564,11 +665,6 @@ html.qs-map-route-scroll-lock body {
 @media (min-width: 768px) {
   .qs-ai-fab {
     right: 1.5rem;
-  }
-}
-@media (max-width: 767px) {
-  .qs-ai-fab:not(.qs-ai-fab-edge) {
-    right: max(0.75rem, env(safe-area-inset-right, 0px));
   }
 }
 

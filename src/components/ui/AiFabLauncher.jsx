@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 
 /**
- * Launcher Asystenta AI.
- * Mobile + mapa: wysuwany „tab” z prawej krawędzi (nie zasłania stosu przycisków).
- * Desktop / zwykłe strony: klasyczne okrągłe FAB.
+ * Launcher Asystenta AI — styl "AI Concierge".
+ *
+ * Stan spoczynku: okrągła ikona ✨ na gradiencie (premium, bez napisów).
+ * Teaser: płynnie rozwija się w pigułkę z krótkim tekstem ("Pomóc Ci?"),
+ * po chwili sam się zwija — jak w Messengerze / ChatGPT mobile.
+ * Klik: natychmiast otwiera asystenta (nigdy nie "wysuwa" się najpierw).
  */
 export default function AiFabLauncher({
   testId = "ai-fab",
@@ -13,110 +16,51 @@ export default function AiFabLauncher({
   hidden = false,
   badge = null,
   variant = "client",
-  label = "Asystent AI",
+  label = "Asystent Helpfli",
+  teaser = null,
   className = "",
 }) {
   const isMdUp = useBreakpointMd();
-  const [edgeDock, setEdgeDock] = useState(false);
-  const [guestCtaBar, setGuestCtaBar] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const collapseTimer = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const activeEdgeDock = edgeDock || guestCtaBar;
+  // Tekst zostaje w DOM podczas zwijania, żeby animacja wyjścia była płynna.
+  const lastTextRef = useRef(label);
+  const teaserText = teaser?.text || null;
+  const hoverText = isMdUp && isHovered ? label : null;
+  const activeText = teaserText || hoverText;
+  if (activeText) lastTextRef.current = activeText;
+  const expanded = Boolean(activeText);
 
   useEffect(() => {
-    if (isMdUp) {
-      setEdgeDock(false);
-      setGuestCtaBar(false);
-      setExpanded(false);
-      return undefined;
-    }
-
-    const detectDockContext = () => {
-      const onGuestBar = document.body.classList.contains("has-guest-mobile-cta");
-      // Mobile: launcher działa jako chowany tab na wszystkich ekranach.
-      setEdgeDock(true);
-      setGuestCtaBar(onGuestBar);
-      if (!onGuestBar) setExpanded(false);
-    };
-
-    detectDockContext();
-    const observer = new MutationObserver(detectDockContext);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-    window.addEventListener("resize", detectDockContext);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", detectDockContext);
-    };
-  }, [isMdUp]);
-
-  const scheduleCollapse = useCallback(() => {
-    if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    collapseTimer.current = setTimeout(() => setExpanded(false), 3200);
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
-
-  const expandDock = useCallback(() => {
-    if (!activeEdgeDock) return;
-    setExpanded(true);
-    scheduleCollapse();
-  }, [activeEdgeDock, scheduleCollapse]);
-
-  useEffect(() => {
-    return () => {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!activeEdgeDock || isMdUp || !badge) return;
-    setExpanded(true);
-    scheduleCollapse();
-  }, [badge, activeEdgeDock, isMdUp, scheduleCollapse]);
-
-  const handleClick = () => {
-    expandDock();
-    onClick?.();
-  };
 
   if (hidden) return null;
 
-  const toneClass =
-    variant === "provider"
-      ? "bg-violet-600 text-white ring-1 ring-violet-500/30 hover:bg-violet-700"
-      : "bg-indigo-600 text-white ring-1 ring-indigo-500/30 hover:bg-indigo-700";
-
-  const edgeClass =
-    activeEdgeDock && !isMdUp
-      ? `qs-ai-fab-edge rounded-l-full rounded-r-none pr-2 pl-2.5 ${expanded ? "qs-ai-fab-edge--expanded" : ""}`
-      : "right-3 rounded-full";
+  const toneClass = variant === "provider" ? "qs-ai-fab--provider" : "qs-ai-fab--client";
 
   return (
     <button
       type="button"
-      onClick={handleClick}
-      onPointerEnter={() => {
-        setIsHovered(true);
-        expandDock();
-      }}
+      onClick={() => onClick?.()}
+      onPointerEnter={() => setIsHovered(true)}
       onPointerLeave={() => setIsHovered(false)}
-      onFocus={() => expandDock()}
       data-testid={testId}
-      aria-label={label}
+      aria-label={teaserText || label}
       title={label}
-      className={`qs-ai-fab qs-tap-target fixed z-[55] flex items-center justify-center gap-2 shadow-lg transition-[transform,background-color,box-shadow,width,padding] duration-300 ease-out active:scale-[0.98] md:bottom-6 md:right-6 md:rounded-full ${toneClass} ${edgeClass} ${className} ${
-        isMdUp && isHovered ? "md:h-14 md:w-auto md:px-4" : activeEdgeDock && !isMdUp ? "h-11 min-w-[2.75rem]" : "h-11 w-11"
-      }`}
+      className={`qs-ai-fab qs-tap-target fixed z-[55] flex items-center overflow-visible rounded-full text-white md:bottom-6 md:right-6 ${toneClass} ${
+        mounted ? "qs-ai-fab--in" : ""
+      } ${expanded ? "qs-ai-fab--expanded" : ""} ${teaser ? "qs-ai-fab--teasing" : ""} ${className}`}
     >
-      <span className="sr-only">{label}</span>
       {badge}
-      <Sparkles className="h-5 w-5 shrink-0 text-white/95" aria-hidden />
-      {activeEdgeDock && !isMdUp && expanded ? (
-        <span className="max-w-[5.5rem] truncate text-[11px] font-semibold pr-0.5">{label}</span>
-      ) : null}
-      {isMdUp && isHovered ? (
-        <span className="hidden md:inline text-sm font-semibold whitespace-nowrap">{label}</span>
-      ) : null}
+      <span className="qs-ai-fab__icon" aria-hidden>
+        <Sparkles className="h-5 w-5" />
+      </span>
+      <span className="qs-ai-fab__label" aria-hidden={!expanded}>
+        {lastTextRef.current}
+      </span>
     </button>
   );
 }

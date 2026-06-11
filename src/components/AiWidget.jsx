@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import UnifiedAIConcierge from "./ai/UnifiedAIConcierge";
 import AiFabLauncher from "./ui/AiFabLauncher";
+import useAiConciergeNudge from "../hooks/useAiConciergeNudge";
 import { useAuth } from "../context/AuthContext";
 import { onAI } from "../ai/chat/bus";
 import { isChatContextRoute } from "../utils/chatMobileChrome";
@@ -21,10 +22,20 @@ export default function AiWidget() {
 
   const fabHidden = open || busAiOpen;
   const hideOnChat = isChatContextRoute(location);
+  const isProvider = user?.role === "provider";
 
-  if (user?.role === "provider" || hideOnChat) {
+  const { teaser, markEngaged } = useAiConciergeNudge({
+    enabled: !fabHidden && !hideOnChat && !isProvider,
+  });
+
+  if (isProvider || hideOnChat) {
     return null;
   }
+
+  const handleOpen = () => {
+    markEngaged();
+    setOpen(true);
+  };
 
   return (
     <>
@@ -32,7 +43,8 @@ export default function AiWidget() {
         testId="ai-fab"
         variant="client"
         hidden={fabHidden}
-        onClick={() => setOpen(true)}
+        teaser={teaser}
+        onClick={handleOpen}
       />
 
       <UnifiedAIConcierge
