@@ -3,20 +3,21 @@ import { Sparkles } from "lucide-react";
 import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 
 /**
- * Launcher Asystenta AI — styl "AI Concierge".
+ * Launcher Asystenta AI — 3 stany jak Meta AI w Messengerze:
+ * - Idle:  sama okrągła ikonka ✨ na gradiencie,
+ * - Hint:  badge "✨ Pomóc Ci?" wysuwa się i sam zwija (sterowane prop `teaser`),
+ * - Dot:   mała kropka-notyfikacja, gdy AI ma sugestię (prop `dot`).
  *
- * Stan spoczynku: okrągła ikona ✨ na gradiencie (premium, bez napisów).
- * Teaser: płynnie rozwija się w pigułkę z krótkim tekstem ("Pomóc Ci?"),
- * po chwili sam się zwija — jak w Messengerze / ChatGPT mobile.
- * Klik: natychmiast otwiera asystenta (nigdy nie "wysuwa" się najpierw).
+ * Klik zawsze natychmiast otwiera asystenta. Desktop: hover rozwija badge.
  */
 export default function AiFabLauncher({
   testId = "ai-fab",
   onClick,
   hidden = false,
   badge = null,
+  dot = false,
   variant = "client",
-  label = "Asystent Helpfli",
+  label = "Zapytaj AI",
   teaser = null,
   className = "",
 }) {
@@ -55,6 +56,12 @@ export default function AiFabLauncher({
       } ${expanded ? "qs-ai-fab--expanded" : ""} ${teaser ? "qs-ai-fab--teasing" : ""} ${className}`}
     >
       {badge}
+      {dot && !expanded ? (
+        <span
+          className="absolute right-0.5 top-0.5 z-20 h-2.5 w-2.5 rounded-full bg-sky-400 ring-2 ring-white"
+          aria-hidden
+        />
+      ) : null}
       <span className="qs-ai-fab__icon" aria-hidden>
         <Sparkles className="h-5 w-5" />
       </span>

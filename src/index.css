@@ -584,17 +584,17 @@ html.qs-map-route-scroll-lock body {
 .qs-ai-fab__label {
   max-width: 0;
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translateX(8px);
   overflow: hidden;
   white-space: nowrap;
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   transition:
-    max-width 0.38s var(--qs-ease-standard),
-    opacity 0.26s ease,
-    transform 0.38s var(--qs-ease-standard),
-    padding 0.38s var(--qs-ease-standard);
+    max-width 0.3s var(--qs-ease-standard),
+    opacity 0.22s ease,
+    transform 0.34s cubic-bezier(0.34, 1.4, 0.64, 1),
+    padding 0.3s var(--qs-ease-standard);
 }
 .qs-ai-fab--expanded .qs-ai-fab__label {
   max-width: 13rem;
@@ -602,7 +602,7 @@ html.qs-map-route-scroll-lock body {
   transform: translateX(0);
   padding-right: 1.0625rem;
 }
-/* Halo przy teaserze — pojedynczy, miękki puls zwracający uwagę */
+/* Halo przy hincie — jeden miękki puls, bez ciągłego pulsowania */
 .qs-ai-fab--teasing::before {
   content: "";
   position: absolute;
@@ -611,7 +611,7 @@ html.qs-map-route-scroll-lock body {
   border-radius: 9999px;
   background: inherit;
   background-image: inherit;
-  animation: qs-ai-fab-halo 1.7s var(--qs-ease-standard) 2;
+  animation: qs-ai-fab-halo 1.6s var(--qs-ease-standard) 1;
 }
 @keyframes qs-ai-fab-halo {
   0% {
@@ -624,7 +624,7 @@ html.qs-map-route-scroll-lock body {
   }
 }
 .qs-ai-fab--teasing .qs-ai-fab__icon svg {
-  animation: qs-ai-fab-sparkle 1.4s ease-in-out 2;
+  animation: qs-ai-fab-sparkle 1.3s ease-in-out 1;
 }
 @keyframes qs-ai-fab-sparkle {
   0%,

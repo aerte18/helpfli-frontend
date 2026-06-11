@@ -24,7 +24,7 @@ export default function AiWidget() {
   const hideOnChat = isChatContextRoute(location);
   const isProvider = user?.role === "provider";
 
-  const { teaser, markEngaged } = useAiConciergeNudge({
+  const { teaser, suggestionDot, markEngaged } = useAiConciergeNudge({
     enabled: !fabHidden && !hideOnChat && !isProvider,
   });
 
@@ -44,6 +44,8 @@ export default function AiWidget() {
         variant="client"
         hidden={fabHidden}
         teaser={teaser}
+        dot={suggestionDot}
+        label="Zapytaj AI"
         onClick={handleOpen}
       />
 
