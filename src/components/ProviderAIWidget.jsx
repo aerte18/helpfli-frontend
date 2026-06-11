@@ -35,7 +35,8 @@ export default function ProviderAIWidget() {
 
   // Inteligentne hinty dymka ("Pomóc znaleźć zlecenia?" itp.) — jak u klienta.
   const { teaser, markEngaged } = useAiConciergeNudge({
-    enabled: user?.role === "provider" && !open && !isMapImmersive,
+    enabled: user?.role === "provider" && !isMapImmersive,
+    chatOpen: open,
     role: "provider",
   });
 
@@ -270,10 +271,7 @@ export default function ProviderAIWidget() {
     return null;
   }
 
-  const isAccountRoute = location.pathname.startsWith("/account");
-  const hideFloatingFab = isAccountRoute && !open;
   const onProviderHome = location.pathname === "/provider-home";
-  const hideFabForInsightDock = !isMdUp && onProviderHome && nudgeDockActive;
 
   const isFree = packageType === 'PROV_FREE';
   const isStandard = packageType === 'PROV_STD';
@@ -300,7 +298,7 @@ export default function ProviderAIWidget() {
       <AiFabLauncher
         testId="provider-ai-fab"
         variant="provider"
-        hidden={open || isMapImmersive || hideFloatingFab || hideFabForInsightDock}
+        hidden={open || isMapImmersive}
         teaser={teaser}
         label="Zapytaj AI"
         onClick={handleOpen}

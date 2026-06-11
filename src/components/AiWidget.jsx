@@ -26,7 +26,8 @@ export default function AiWidget() {
   const isProvider = user?.role === "provider";
 
   const { teaser, suggestionDot, markEngaged } = useAiConciergeNudge({
-    enabled: !fabHidden && !hideOnChat && !isProvider,
+    enabled: !hideOnChat && !isProvider,
+    chatOpen: fabHidden,
   });
 
   if (isProvider || hideOnChat) {

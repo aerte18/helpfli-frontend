@@ -2,19 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 /**
- * Logika "AI Concierge" w stylu Meta AI / Messenger.
+ * Logika "AI Concierge" — hinty kontekstowe + follow-up do czatu.
  *
- * Każdy hint to para { text, prompt }:
- * - text   → krótki tekst w białym dymku ("Znaleźć najlepszego wykonawcę?"),
- * - prompt → gotowe pytanie wysyłane/wstawiane do czatu po kliknięciu (follow-up),
- *   dzięki czemu rozmowa zaczyna się od razu w temacie podpowiedzi.
+ * Każdy hint: { text, prompt } — text w dymku, prompt po kliknięciu.
  *
- * Triggery hintów (nigdy częściej niż co MIN_HINT_GAP_MS):
- * - 5 s po wejściu (raz na załadowanie strony — jak badge Meta AI),
- * - zmiana strony (sekcji),
- * - przewinięcie ponad 50% strony (raz na stronę),
- * - 30 s bezczynności,
- * - proaktywnie (klient): porównywanie wykonawców (≥3 profile + 60 s sesji).
+ * Triggery (per strona / nawigacja):
+ * - ~1,5 s po wejściu na nową stronę (SPA i pierwsze załadowanie),
+ * - przewinięcie 40% strony,
+ * - 15 s bezczynności,
+ * - proaktywnie (klient): ≥3 profile wykonawców + 45 s sesji.
  */
 
 const SS_KEYS = {
@@ -25,13 +21,14 @@ const SS_KEYS = {
   sessionStart: "qs_ai_nudge_session_start",
 };
 
-const ENTRY_HINT_DELAY_MS = 5000;
-const ROUTE_HINT_DELAY_MS = 2000;
-const IDLE_HINT_DELAY_MS = 30000;
-const HINT_VISIBLE_MS = 4000;
-const MIN_HINT_GAP_MS = 10000;
-const MAX_HINTS_PER_PAGELOAD = 10;
-const PROACTIVE_MIN_SESSION_MS = 60000;
+const ROUTE_HINT_DELAY_MS = 1500;
+const IDLE_HINT_DELAY_MS = 15000;
+const HINT_VISIBLE_MS = 8000;
+const MIN_HINT_GAP_MS = 4000;
+const MIN_HINT_GAP_ROUTE_MS = 2500;
+const CHAT_COOLDOWN_MS = 15000;
+const MAX_HINTS_PER_PAGELOAD = 40;
+const PROACTIVE_MIN_SESSION_MS = 45000;
 const PROACTIVE_MIN_PROFILES = 3;
 
 export const PROACTIVE_HINT = {
@@ -70,23 +67,24 @@ function ssSet(key, value) {
   try {
     sessionStorage.setItem(key, String(value));
   } catch {
-    /* tryb prywatny — pomijamy */
+    /* tryb prywatny */
   }
 }
 
-// Stan per załadowanie strony (reset przy pełnym przeładowaniu).
 let pageLoadState = {
-  engaged: false,
-  entryDone: false,
+  cooldownUntil: 0,
   hintCount: 0,
   lastHintAt: 0,
+  lastRouteKey: "",
 };
 
-/** Kontekstowy hint dla klienta; null = użyj rotacji losowej. */
+function routeKey(pathname, search, role) {
+  return `${role}:${pathname}${search}`;
+}
+
 function clientTeaserHint(pathname, search) {
   const haystack = `${pathname} ${search}`.toLowerCase();
 
-  // Kategoria usługi ma najwyższy priorytet (z URL-a lub parametrów wyszukiwania).
   if (/hydraul/.test(haystack)) {
     return { text: "Masz problem z hydrauliką?", prompt: "Mam problem z hydrauliką. Pomóż ocenić, co się dzieje, i znaleźć najlepszego hydraulika w okolicy." };
   }
@@ -103,7 +101,6 @@ function clientTeaserHint(pathname, search) {
     return { text: "Planujesz remont?", prompt: "Planuję remont. Pomóż mi opisać zakres prac, oszacować koszt i znaleźć dobrą ekipę." };
   }
 
-  // Co klient właśnie robi.
   if (/^\/provider\/[^/]+$/.test(pathname)) {
     return { text: "Porównać z innymi wykonawcami?", prompt: "Oglądam profil wykonawcy. Pomóż mi porównać go z innymi i ocenić, czy to dobry wybór." };
   }
@@ -113,6 +110,9 @@ function clientTeaserHint(pathname, search) {
     return query
       ? { text: "Pomogę wybrać najlepszego", prompt: "Przeglądam wykonawców. Pomóż mi wybrać najlepszego: porównaj opinie, ceny i dostępność." }
       : { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." };
+  }
+  if (pathname.startsWith("/wykonawcy/")) {
+    return { text: "Znaleźć fachowca w okolicy?", prompt: "Szukam wykonawcy w mojej okolicy. Pomóż mi wybrać najlepszego." };
   }
   if (pathname.startsWith("/my-orders") || pathname.startsWith("/orders/my")) {
     return { text: "Sprawdzić status zleceń?", prompt: "Pokaż moje zlecenia i podpowiedz, czy coś wymaga mojej reakcji." };
@@ -135,6 +135,12 @@ function clientTeaserHint(pathname, search) {
   if (pathname.startsWith("/services") || pathname.startsWith("/service/")) {
     return { text: "Opisz problem", prompt: "Pomóż mi opisać mój problem i dobrać odpowiednią usługę." };
   }
+  if (pathname.startsWith("/account")) {
+    return { text: "Pytanie o konto?", prompt: "Mam pytanie dotyczące mojego konta lub zleceń na Helpfli." };
+  }
+  if (pathname.startsWith("/notifications")) {
+    return { text: "Co wymaga reakcji?", prompt: "Podsumuj moje powiadomienia i powiedz, co powinienem teraz zrobić." };
+  }
   if (pathname === "/" || pathname.startsWith("/home")) {
     return { text: "Pomóc Ci?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." };
   }
@@ -142,7 +148,6 @@ function clientTeaserHint(pathname, search) {
   return null;
 }
 
-/** Kontekstowy hint dla wykonawcy; null = użyj rotacji losowej. */
 function providerTeaserHint(pathname) {
   if (pathname.startsWith("/provider-home") || pathname.startsWith("/available-orders")) {
     return { text: "Znaleźć najlepsze zlecenia?", prompt: "Pokaż najlepsze zlecenia dla mnie i posortuj je według szansy wygranej." };
@@ -159,13 +164,15 @@ function providerTeaserHint(pathname) {
   if (pathname.startsWith("/manage-services")) {
     return { text: "Podpowiem, jak ulepszyć profil", prompt: "Co mogę poprawić w moim profilu i usługach, żeby dostawać więcej zleceń?" };
   }
+  if (pathname.startsWith("/account")) {
+    return { text: "Pytanie o konto?", prompt: "Mam pytanie o moje konto wykonawcy, statystyki lub ustawienia." };
+  }
   if (pathname.startsWith("/account/subscriptions") || pathname.startsWith("/why-pro")) {
     return { text: "Pytanie o pakiety?", prompt: "Wyjaśnij różnice między pakietami Helpfli i podpowiedz, który najbardziej mi się opłaca." };
   }
   return null;
 }
 
-/** Kontekstowy hint; null = użyj rotacji losowej. */
 export function contextTeaserHint(pathname = "", search = "", role = "client") {
   return role === "provider"
     ? providerTeaserHint(pathname)
@@ -190,21 +197,30 @@ function readViewedProfiles() {
   }
 }
 
-export default function useAiConciergeNudge({ enabled = true, role = "client" } = {}) {
+function isTypingInForm() {
+  const ae = document.activeElement;
+  return ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
+}
+
+export default function useAiConciergeNudge({
+  enabled = true,
+  chatOpen = false,
+  role = "client",
+} = {}) {
   const location = useLocation();
   const [teaser, setTeaser] = useState(null);
   const [suggestionDot, setSuggestionDot] = useState(ssGet(SS_KEYS.suggestionDot) === "1");
 
   const hideTimer = useRef(null);
-  const entryTimer = useRef(null);
   const routeTimer = useRef(null);
   const idleTimer = useRef(null);
   const proactiveTimer = useRef(null);
-  const firstLocationRef = useRef(true);
+  const resumeTimer = useRef(null);
   const enabledRef = useRef(enabled);
+  const chatOpenRef = useRef(chatOpen);
   enabledRef.current = enabled;
+  chatOpenRef.current = chatOpen;
 
-  // Start sesji (do triggera proaktywnego).
   const sessionStartRef = useRef(0);
   if (!sessionStartRef.current) {
     const existing = Number(ssGet(SS_KEYS.sessionStart, 0));
@@ -219,20 +235,20 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     }
   };
 
-  const canHint = useCallback(() => {
-    if (!enabledRef.current) return false;
-    if (pageLoadState.engaged) return false;
+  const canHint = useCallback((kind = "default") => {
+    if (!enabledRef.current || chatOpenRef.current) return false;
+    if (Date.now() < pageLoadState.cooldownUntil) return false;
     if (pageLoadState.hintCount >= MAX_HINTS_PER_PAGELOAD) return false;
-    if (Date.now() - pageLoadState.lastHintAt < MIN_HINT_GAP_MS) return false;
-    // Użytkownik wypełnia formularz — nie przeszkadzamy.
-    const ae = document.activeElement;
-    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) {
-      return false;
-    }
+
+    const gap = kind === "route" ? MIN_HINT_GAP_ROUTE_MS : MIN_HINT_GAP_MS;
+    if (Date.now() - pageLoadState.lastHintAt < gap) return false;
+
+    if (kind === "idle" && isTypingInForm()) return false;
     return true;
   }, []);
 
   const showHint = useCallback((kind, hint) => {
+    if (!hint?.text) return;
     setTeaser({ kind, text: hint.text, prompt: hint.prompt || "" });
     ssSet(SS_KEYS.lastHintText, hint.text);
     pageLoadState.hintCount += 1;
@@ -240,7 +256,6 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     clearTimer(hideTimer);
     hideTimer.current = setTimeout(() => {
       setTeaser(null);
-      // Niedoczytana sugestia proaktywna → kropka jak w Messengerze.
       if (kind === "proactive") {
         ssSet(SS_KEYS.suggestionDot, "1");
         setSuggestionDot(true);
@@ -250,18 +265,35 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
 
   const tryContextHint = useCallback(
     (kind) => {
-      if (!canHint()) return;
+      if (!canHint(kind)) return false;
       showHint(kind, pickHint(location.pathname, location.search, role));
+      return true;
     },
     [canHint, showHint, location.pathname, location.search, role]
   );
 
-  /** Użytkownik otworzył asystenta — cisza do następnego przeładowania, kropka znika. */
+  const tryRouteHint = useCallback(() => {
+    const currentRoute = routeKey(location.pathname, location.search, role);
+    if (!enabledRef.current || chatOpenRef.current) return false;
+    if (Date.now() < pageLoadState.cooldownUntil) return false;
+    if (pageLoadState.hintCount >= MAX_HINTS_PER_PAGELOAD) return false;
+
+    const isNewRoute = currentRoute !== pageLoadState.lastRouteKey;
+    if (!isNewRoute && pageLoadState.lastHintAt > 0) return false;
+    if (!isNewRoute && Date.now() - pageLoadState.lastHintAt < MIN_HINT_GAP_ROUTE_MS) return false;
+    if (isNewRoute && Date.now() - pageLoadState.lastHintAt < 1200) return false;
+
+    showHint("route", pickHint(location.pathname, location.search, role));
+    pageLoadState.lastRouteKey = currentRoute;
+    return true;
+  }, [location.pathname, location.search, role, showHint]);
+
+  /** Po otwarciu czatu — krótka przerwa, potem hinty wracają na kolejnych stronach. */
   const markEngaged = useCallback(() => {
-    pageLoadState.engaged = true;
+    pageLoadState.cooldownUntil = Date.now() + CHAT_COOLDOWN_MS;
     ssSet(SS_KEYS.suggestionDot, "0");
     setSuggestionDot(false);
-    [hideTimer, entryTimer, routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
+    [hideTimer, routeTimer, idleTimer, proactiveTimer, resumeTimer].forEach(clearTimer);
     setTeaser(null);
   }, []);
 
@@ -270,7 +302,6 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     setTeaser(null);
   }, []);
 
-  // Śledzenie odwiedzonych profili wykonawców (trigger proaktywny — tylko klient).
   useEffect(() => {
     if (role !== "client") return;
     const match = location.pathname.match(/^\/provider\/([^/]+)$/);
@@ -282,28 +313,18 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     }
   }, [location.pathname, role]);
 
-  // Hint powitalny — 5 s po załadowaniu strony.
-  useEffect(() => {
-    if (pageLoadState.entryDone) return undefined;
-    entryTimer.current = setTimeout(() => {
-      pageLoadState.entryDone = true;
-      tryContextHint("entry");
-    }, ENTRY_HINT_DELAY_MS);
-    return () => clearTimer(entryTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Triggery zależne od strony: zmiana sekcji, scroll 50%, bezczynność, proactive.
+  // Hint przy każdej stronie (w tym pierwszym wejściu i po remouncie widgetu).
   useEffect(() => {
     let scrollHintDone = false;
 
-    // Zmiana sekcji (pomijamy pierwsze renderowanie — obsługuje je hint powitalny).
-    if (firstLocationRef.current) {
-      firstLocationRef.current = false;
-    } else {
-      setTeaser(null);
-      routeTimer.current = setTimeout(() => tryContextHint("route"), ROUTE_HINT_DELAY_MS);
-    }
+    setTeaser(null);
+    clearTimer(routeTimer);
+    clearTimer(idleTimer);
+    clearTimer(proactiveTimer);
+
+    routeTimer.current = setTimeout(() => {
+      tryRouteHint();
+    }, ROUTE_HINT_DELAY_MS);
 
     const armIdleTimer = () => {
       clearTimer(idleTimer);
@@ -313,14 +334,13 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     const onActivity = () => armIdleTimer();
 
     const scrollProgress = (target) => {
-      // Okno lub wewnętrzny scrollowany kontener (częste na mobile).
       if (target === document || target === document.documentElement || target === window) {
         const max = document.documentElement.scrollHeight - window.innerHeight;
-        return max > 200 ? window.scrollY / max : 0;
+        return max > 160 ? window.scrollY / max : 0;
       }
       if (target instanceof Element) {
         const max = target.scrollHeight - target.clientHeight;
-        return max > 200 ? target.scrollTop / max : 0;
+        return max > 160 ? target.scrollTop / max : 0;
       }
       return 0;
     };
@@ -328,28 +348,27 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
     const onScroll = (event) => {
       armIdleTimer();
       if (scrollHintDone) return;
-      if (scrollProgress(event.target) >= 0.5) {
+      if (scrollProgress(event.target) >= 0.4) {
         scrollHintDone = true;
         tryContextHint("scroll");
       }
     };
 
-    // capture: łapie też scroll wewnątrz kontenerów, nie tylko okna.
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("pointerdown", onActivity, { passive: true });
     window.addEventListener("keydown", onActivity);
     armIdleTimer();
 
-    // Proactive: porównywanie wykonawców (tylko klient, raz na sesję).
     if (
       role === "client" &&
       ssGet(SS_KEYS.proactiveDone) !== "1" &&
       readViewedProfiles().length >= PROACTIVE_MIN_PROFILES
     ) {
       const elapsed = Date.now() - sessionStartRef.current;
-      const wait = Math.max(2000, PROACTIVE_MIN_SESSION_MS - elapsed);
+      const wait = Math.max(1500, PROACTIVE_MIN_SESSION_MS - elapsed);
       proactiveTimer.current = setTimeout(() => {
-        if (!enabledRef.current || pageLoadState.engaged) return;
+        if (!enabledRef.current || chatOpenRef.current) return;
+        if (Date.now() < pageLoadState.cooldownUntil) return;
         ssSet(SS_KEYS.proactiveDone, "1");
         showHint("proactive", PROACTIVE_HINT);
       }, wait);
@@ -361,7 +380,26 @@ export default function useAiConciergeNudge({ enabled = true, role = "client" } 
       window.removeEventListener("keydown", onActivity);
       [routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
     };
-  }, [location.pathname, location.search, tryContextHint, showHint, role]);
+  }, [location.pathname, location.search, tryContextHint, tryRouteHint, showHint, role]);
+
+  // Po zamknięciu czatu — hint kontekstowy na bieżącej stronie.
+  useEffect(() => {
+    if (chatOpen) {
+      clearTimer(resumeTimer);
+      setTeaser(null);
+      return undefined;
+    }
+
+    clearTimer(resumeTimer);
+    resumeTimer.current = setTimeout(() => {
+      if (!enabledRef.current) return;
+      pageLoadState.cooldownUntil = 0;
+      pageLoadState.lastRouteKey = "";
+      tryRouteHint();
+    }, 4000);
+
+    return () => clearTimer(resumeTimer);
+  }, [chatOpen, enabled, tryRouteHint]);
 
   useEffect(() => () => clearTimer(hideTimer), []);
 
