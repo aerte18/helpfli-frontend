@@ -91,6 +91,7 @@ export function contextTeaserText(pathname = "", search = "") {
   }
   if (pathname.startsWith("/create-order")) return "Przygotuję opis zlecenia";
   if (pathname.startsWith("/concierge")) return "Opisz problem";
+  if (pathname.startsWith("/services") || pathname.startsWith("/service/")) return "Opisz problem";
   if (pathname === "/" || pathname.startsWith("/home")) return "Pomóc Ci?";
 
   return null;
@@ -147,6 +148,11 @@ export default function useAiConciergeNudge({ enabled = true } = {}) {
     if (pageLoadState.engaged) return false;
     if (pageLoadState.hintCount >= MAX_HINTS_PER_PAGELOAD) return false;
     if (Date.now() - pageLoadState.lastHintAt < MIN_HINT_GAP_MS) return false;
+    // Użytkownik wypełnia formularz — nie przeszkadzamy.
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) {
+      return false;
+    }
     return true;
   }, []);
 

@@ -535,8 +535,8 @@ html.qs-map-route-scroll-lock body {
 /* Launcher AI — "AI Concierge": okrąg ✨ płynnie rozwijany w pigułkę z teaserem */
 .qs-ai-fab {
   bottom: calc(var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra));
-  height: 3rem;
-  min-width: 3rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
   padding: 0;
   border: none;
   cursor: pointer;
@@ -580,8 +580,8 @@ html.qs-map-route-scroll-lock body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  width: 3.5rem;
+  height: 3.5rem;
   flex-shrink: 0;
 }
 /* Rozsuwanie do dokładnej szerokości tekstu (grid 0fr→1fr) — płynne w obie strony */
@@ -610,6 +610,17 @@ html.qs-map-route-scroll-lock body {
 .qs-ai-fab--expanded .qs-ai-fab__label {
   opacity: 1;
   transform: translateX(0);
+}
+/* Pojedynczy puls powitalny po wejściu na stronę (stan 5 — nie powtarza się) */
+.qs-ai-fab--hello::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  background: inherit;
+  background-image: inherit;
+  animation: qs-ai-fab-halo 1.5s var(--qs-ease-standard) 1;
 }
 /* Halo przy hincie — jeden miękki puls, bez ciągłego pulsowania */
 .qs-ai-fab--teasing::before {
@@ -647,14 +658,49 @@ html.qs-map-route-scroll-lock body {
     transform: scale(1.06) rotate(6deg);
   }
 }
+/* Bottom sheet Asystenta (mobile) — slide-up + fade jak w Uberze */
+.qs-ai-sheet-backdrop {
+  animation: qs-ai-sheet-fade-in 0.2s ease both;
+}
+.qs-ai-sheet-backdrop--out {
+  animation: qs-ai-sheet-fade-out 0.2s ease both;
+}
+.qs-ai-sheet-panel {
+  animation: qs-ai-sheet-up 0.3s var(--qs-ease-standard) both;
+}
+.qs-ai-sheet-panel--out {
+  animation: qs-ai-sheet-down 0.2s ease both;
+}
+@keyframes qs-ai-sheet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes qs-ai-sheet-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes qs-ai-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes qs-ai-sheet-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .qs-ai-fab,
   .qs-ai-fab__labelwrap,
   .qs-ai-fab__label {
     transition: none;
   }
+  .qs-ai-fab--hello::before,
   .qs-ai-fab--teasing::before,
-  .qs-ai-fab--teasing .qs-ai-fab__icon svg {
+  .qs-ai-fab--teasing .qs-ai-fab__icon svg,
+  .qs-ai-sheet-backdrop,
+  .qs-ai-sheet-backdrop--out,
+  .qs-ai-sheet-panel,
+  .qs-ai-sheet-panel--out {
     animation: none;
   }
 }

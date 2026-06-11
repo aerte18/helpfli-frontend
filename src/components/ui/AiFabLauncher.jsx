@@ -24,6 +24,7 @@ export default function AiFabLauncher({
   const isMdUp = useBreakpointMd();
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [helloPulse, setHelloPulse] = useState(false);
 
   // Tekst zostaje w DOM podczas zwijania, żeby animacja wyjścia była płynna.
   const lastTextRef = useRef(label);
@@ -35,7 +36,14 @@ export default function AiFabLauncher({
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
+    // Jeden subtelny puls po wejściu (stan 5) — potem już się nie powtarza.
+    const pulseOn = setTimeout(() => setHelloPulse(true), 1200);
+    const pulseOff = setTimeout(() => setHelloPulse(false), 3000);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(pulseOn);
+      clearTimeout(pulseOff);
+    };
   }, []);
 
   if (hidden) return null;
@@ -53,7 +61,9 @@ export default function AiFabLauncher({
       title={label}
       className={`qs-ai-fab qs-tap-target fixed z-[55] flex items-center overflow-visible rounded-full text-white md:bottom-6 md:right-6 ${toneClass} ${
         mounted ? "qs-ai-fab--in" : ""
-      } ${expanded ? "qs-ai-fab--expanded" : ""} ${teaser ? "qs-ai-fab--teasing" : ""} ${className}`}
+      } ${expanded ? "qs-ai-fab--expanded" : ""} ${teaser ? "qs-ai-fab--teasing" : ""} ${
+        helloPulse && !teaser ? "qs-ai-fab--hello" : ""
+      } ${className}`}
     >
       {badge}
       {dot && !expanded ? (
@@ -63,7 +73,7 @@ export default function AiFabLauncher({
         />
       ) : null}
       <span className="qs-ai-fab__icon" aria-hidden>
-        <Sparkles className="h-5 w-5" />
+        <Sparkles className="h-6 w-6" />
       </span>
       <span className="qs-ai-fab__labelwrap" aria-hidden={!expanded}>
         <span className="qs-ai-fab__label">{lastTextRef.current}</span>
