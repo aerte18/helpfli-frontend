@@ -28,6 +28,7 @@ export default function AiWidget() {
   const { teaser, suggestionDot, markEngaged } = useAiConciergeNudge({
     enabled: !hideOnChat && !isProvider,
     chatOpen: fabHidden,
+    isLoggedIn: Boolean(user),
   });
 
   if (isProvider || hideOnChat) {

@@ -37,13 +37,19 @@ export const PROACTIVE_HINT = {
 };
 
 const HINT_ROTATION = {
-  client: [
-    { text: "Opowiedz problem — resztę ogarnę", prompt: "Mam problem do rozwiązania. Pomóż mi go opisać i znaleźć najlepszą pomoc." },
-    { text: "Znaleźć Ci najlepszą pomoc?", prompt: "Pomóż mi znaleźć najlepszego wykonawcę w mojej okolicy." },
-    { text: "Nie wiesz od czego zacząć?", prompt: "Nie wiem, od czego zacząć. Zadaj mi pytania i pomóż dobrać właściwą usługę." },
-    { text: "Pilna sprawa? Pomogę od razu", prompt: "Mam pilną sprawę w domu. Pomóż ocenić sytuację i znaleźć kogoś dostępnego jak najszybciej." },
+  guest: [
+    { text: "Szukaj pomocy? Zacznijmy", prompt: "Szukam pomocy w domu. Pomóż mi opisać problem i znaleźć wykonawcę — bez zbędnych formalności." },
+    { text: "Znaleźć pomoc w okolicy?", prompt: "Chcę znaleźć sprawdzonego wykonawcę w mojej okolicy. Od czego zacząć?" },
+    { text: "Nie wiesz, czego szukasz?", prompt: "Nie wiem dokładnie, jakiej usługi potrzebuję. Zadaj mi pytania i pomóż dobrać właściwą pomoc." },
+    { text: "Opowiedz problem — resztę ogarnę", prompt: "Mam problem do rozwiązania. Pomóż mi go opisać i wskazać następny krok." },
     { text: "Ile to może kosztować?", prompt: "Pomóż mi oszacować, ile może kosztować usługa, której potrzebuję." },
-    { text: "Potrzebujesz pomocy?", prompt: "W czym możesz mi pomóc? Pokaż, co potrafisz." },
+  ],
+  client: [
+    { text: "Pomóc w utworzeniu zlecenia?", prompt: "Chcę zlecić usługę. Pomóż mi krok po kroku przygotować dobre zlecenie." },
+    { text: "Znaleźć najlepszego wykonawcę?", prompt: "Pomóż mi znaleźć i wybrać najlepszego wykonawcę do mojego problemu." },
+    { text: "Znaleźć pomoc w okolicy?", prompt: "Szukam wykonawcy blisko mnie. Kogo polecasz i dlaczego?" },
+    { text: "Co robić dalej?", prompt: "Nie wiem, jaki jest następny krok w moim zleceniu. Podpowiedz, co powinienem zrobić." },
+    { text: "Ile to może kosztować?", prompt: "Pomóż mi oszacować koszt usługi, której potrzebuję." },
   ],
   provider: [
     { text: "Chcesz więcej zleceń?", prompt: "Co mogę zrobić, żeby dostawać więcej zleceń i wygrywać częściej na Helpfli?" },
@@ -94,11 +100,11 @@ let pageLoadState = {
   lastRouteKey: "",
 };
 
-function routeKey(pathname, search, role) {
-  return `${role}:${pathname}${search}`;
+function routeKey(pathname, search, role, isLoggedIn = false) {
+  return `${role}:${isLoggedIn ? "in" : "out"}:${pathname}${search}`;
 }
 
-function clientTeaserHint(pathname, search) {
+function clientTeaserHint(pathname, search, isLoggedIn = false) {
   const haystack = `${pathname} ${search}`.toLowerCase();
   const serviceLabel = serviceLabelFromContext(pathname, search);
 
@@ -146,31 +152,64 @@ function clientTeaserHint(pathname, search) {
     };
   }
 
-  // Co klient właśnie robi na platformie.
+  // Co klient właśnie robi — różne hinty dla gościa i zalogowanego klienta.
   if (/^\/provider\/[^/]+$/.test(pathname)) {
-    return {
-      text: "Dobry wybór? Sprawdzę za Ciebie",
-      prompt: "Oglądam profil wykonawcy. Pomóż mi ocenić, czy to dobry wybór, i porównać z innymi.",
-    };
+    return isLoggedIn
+      ? {
+          text: "Dobry wybór? Sprawdzę za Ciebie",
+          prompt: "Oglądam profil wykonawcy przed zleceniem. Pomóż ocenić, czy to dobry wybór, i porównać z innymi.",
+        }
+      : {
+          text: "Ten wykonawca pasuje?",
+          prompt: "Przeglądam profil wykonawcy. Pomóż mi ocenić, czy warto go wybrać, zanim zacznę.",
+        };
   }
-  if (pathname.startsWith("/providers") || pathname.startsWith("/nearby-providers")) {
+  if (pathname.startsWith("/providers")) {
+    if (isLoggedIn) {
+      if (serviceLabel) {
+        return {
+          text: "Znaleźć najlepszego wykonawcę?",
+          prompt: `Przeglądam listę wykonawców (${serviceLabel}). Pomóż mi wybrać najlepszego — opinie, cena i dostępność.`,
+        };
+      }
+      return {
+        text: "Znaleźć najlepszego wykonawcę?",
+        prompt: "Przeglądam listę wykonawców. Pomóż mi porównać ich i wybrać najlepszego do mojego problemu.",
+      };
+    }
     if (serviceLabel) {
       return {
-        text: "Znaleźć Ci najlepszą pomoc?",
-        prompt: `Szukam wykonawcy: ${serviceLabel}. Pomóż mi wybrać najlepszego — opinie, cena i dostępność.`,
+        text: "Szukasz kogoś z listy?",
+        prompt: `Przeglądam wykonawców: ${serviceLabel}. Pomóż mi wybrać kogoś sprawdzonego.`,
       };
     }
     return {
-      text: "Szukasz fachowca? Pomogę wybrać",
-      prompt: "Przeglądam wykonawców i nie wiem, kogo wybrać. Pomóż mi znaleźć najlepszą pomoc w okolicy.",
+      text: "Przeglądasz wykonawców? Pomogę",
+      prompt: "Przeglądam listę wykonawców i nie wiem, kogo wybrać. Pomóż mi znaleźć dobrą pomoc.",
     };
+  }
+  if (pathname.startsWith("/nearby-providers")) {
+    return isLoggedIn
+      ? {
+          text: "Kto jest najbliżej?",
+          prompt: "Szukam wykonawcy blisko mnie. Pomóż wybrać najlepszego z tej okolicy.",
+        }
+      : {
+          text: "Znaleźć pomoc w okolicy?",
+          prompt: "Chcę znaleźć wykonawcę w mojej okolicy. Od czego zacząć i na co zwrócić uwagę?",
+        };
   }
   if (pathname.startsWith("/wykonawcy/")) {
     const city = pathname.split("/")[3]?.replace(/-/g, " ") || "okolicy";
-    return {
-      text: "Znaleźć fachowca w okolicy?",
-      prompt: `Szukam sprawdzonego wykonawcy w ${city}. Pomóż mi wybrać najlepszego.`,
-    };
+    return isLoggedIn
+      ? {
+          text: "Znaleźć najlepszego w tej okolicy?",
+          prompt: `Szukam najlepszego wykonawcy w ${city}. Pomóż mi wybrać kogoś sprawdzonego.`,
+        }
+      : {
+          text: "Znaleźć pomoc w okolicy?",
+          prompt: `Szukam fachowca w ${city}. Pomóż mi wybrać kogoś z tej okolicy.`,
+        };
   }
   if (pathname.startsWith("/my-orders") || pathname.startsWith("/orders/my")) {
     return {
@@ -191,10 +230,15 @@ function clientTeaserHint(pathname, search) {
     };
   }
   if (pathname.startsWith("/create-order")) {
-    return {
-      text: "Opisz problem — resztę ogarnę",
-      prompt: "Chcę zlecić usługę. Zadaj mi najważniejsze pytania i pomóż przygotować dobre zlecenie.",
-    };
+    return isLoggedIn
+      ? {
+          text: "Pomogę ułożyć zlecenie krok po kroku",
+          prompt: "Tworzę zlecenie. Zadaj mi najważniejsze pytania i pomóż przygotować dobry opis dla wykonawcy.",
+        }
+      : {
+          text: "Pomóc w utworzeniu zlecenia?",
+          prompt: "Chcę zlecić usługę. Pomóż mi opisać problem i przygotować zlecenie.",
+        };
   }
   if (pathname.startsWith("/checkout")) {
     return {
@@ -221,22 +265,37 @@ function clientTeaserHint(pathname, search) {
     };
   }
   if (pathname.startsWith("/concierge")) {
-    return {
-      text: "Opowiedz — znajdę pomoc",
-      prompt: "",
-    };
+    return isLoggedIn
+      ? {
+          text: "Pomóc w utworzeniu zlecenia?",
+          prompt: "Chcę opisać problem i zlecić usługę. Pomóż mi krok po kroku.",
+        }
+      : {
+          text: "Opowiedz — znajdę pomoc",
+          prompt: "",
+        };
   }
   if (pathname.startsWith("/services") || pathname.startsWith("/service/")) {
     if (serviceLabel) {
-      return {
-        text: "Potrzebujesz tej usługi?",
-        prompt: `Interesuje mnie usługa: ${serviceLabel}. Pomóż opisać problem i znaleźć dobrego wykonawcę.`,
-      };
+      return isLoggedIn
+        ? {
+            text: "Zlecić tę usługę?",
+            prompt: `Interesuje mnie usługa: ${serviceLabel}. Pomóż opisać problem i przygotować zlecenie.`,
+          }
+        : {
+            text: "Potrzebujesz tej usługi?",
+            prompt: `Interesuje mnie usługa: ${serviceLabel}. Pomóż opisać problem i znaleźć wykonawcę w okolicy.`,
+          };
     }
-    return {
-      text: "Nie wiesz, kogo wybrać?",
-      prompt: "Przeglądam usługi i nie wiem, kogo wybrać. Pomóż mi dobrać właściwą pomoc.",
-    };
+    return isLoggedIn
+      ? {
+          text: "Pomóc w utworzeniu zlecenia?",
+          prompt: "Przeglądam usługi i chcę coś zlecić. Pomóż mi dobrać właściwą usługę i przygotować zlecenie.",
+        }
+      : {
+          text: "Nie wiesz, czego szukasz?",
+          prompt: "Przeglądam usługi i nie wiem, czego potrzebuję. Pomóż mi dobrać właściwą pomoc.",
+        };
   }
   if (pathname.startsWith("/account/subscriptions")) {
     return {
@@ -268,11 +327,27 @@ function clientTeaserHint(pathname, search) {
       prompt: "Chcę wystawić opinię wykonawcy. Pomóż mi napisać krótką, fair recenzję.",
     };
   }
-  if (pathname === "/" || pathname.startsWith("/home")) {
-    return {
-      text: "Szukasz pomocy? Zacznijmy",
-      prompt: "Szukam pomocy w domu lub okolicy. Pomóż mi opisać problem i znaleźć najlepszego wykonawcę.",
-    };
+  if (pathname === "/") {
+    return isLoggedIn
+      ? {
+          text: "Pomóc w utworzeniu zlecenia?",
+          prompt: "Chcę zlecić usługę na Helpfli. Pomóż mi krok po kroku od opisu problemu do zlecenia.",
+        }
+      : {
+          text: "Szukaj pomocy? Zacznijmy",
+          prompt: "Szukam pomocy w domu. Pomóż mi opisać problem i znaleźć wykonawcę w okolicy.",
+        };
+  }
+  if (pathname.startsWith("/home")) {
+    return isLoggedIn
+      ? {
+          text: "Pomóc w utworzeniu zlecenia?",
+          prompt: "Jestem na mapie i chcę zlecić usługę. Pomóż mi opisać problem i dobrać wykonawcę.",
+        }
+      : {
+          text: "Znaleźć pomoc w okolicy?",
+          prompt: "Przeglądam mapę wykonawców. Pomóż mi znaleźć sprawdzoną pomoc blisko mnie.",
+        };
   }
 
   return null;
@@ -354,17 +429,18 @@ function providerTeaserHint(pathname) {
   return null;
 }
 
-export function contextTeaserHint(pathname = "", search = "", role = "client") {
+export function contextTeaserHint(pathname = "", search = "", role = "client", isLoggedIn = false) {
   return role === "provider"
     ? providerTeaserHint(pathname)
-    : clientTeaserHint(pathname, search);
+    : clientTeaserHint(pathname, search, isLoggedIn);
 }
 
-function pickHint(pathname, search, role) {
-  const contextual = contextTeaserHint(pathname, search, role);
+function pickHint(pathname, search, role, isLoggedIn = false) {
+  const contextual = contextTeaserHint(pathname, search, role, isLoggedIn);
   if (contextual) return contextual;
   const last = ssGet(SS_KEYS.lastHintText, "");
-  const rotation = HINT_ROTATION[role] || HINT_ROTATION.client;
+  const rotationKey = role === "provider" ? "provider" : isLoggedIn ? "client" : "guest";
+  const rotation = HINT_ROTATION[rotationKey] || HINT_ROTATION.guest;
   const pool = rotation.filter((h) => h.text !== last);
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -387,6 +463,7 @@ export default function useAiConciergeNudge({
   enabled = true,
   chatOpen = false,
   role = "client",
+  isLoggedIn = false,
 } = {}) {
   const location = useLocation();
   const [teaser, setTeaser] = useState(null);
@@ -399,8 +476,10 @@ export default function useAiConciergeNudge({
   const resumeTimer = useRef(null);
   const enabledRef = useRef(enabled);
   const chatOpenRef = useRef(chatOpen);
+  const isLoggedInRef = useRef(isLoggedIn);
   enabledRef.current = enabled;
   chatOpenRef.current = chatOpen;
+  isLoggedInRef.current = isLoggedIn;
 
   const sessionStartRef = useRef(0);
   if (!sessionStartRef.current) {
@@ -447,14 +526,14 @@ export default function useAiConciergeNudge({
   const tryContextHint = useCallback(
     (kind) => {
       if (!canHint(kind)) return false;
-      showHint(kind, pickHint(location.pathname, location.search, role));
+      showHint(kind, pickHint(location.pathname, location.search, role, isLoggedInRef.current));
       return true;
     },
     [canHint, showHint, location.pathname, location.search, role]
   );
 
   const tryRouteHint = useCallback(() => {
-    const currentRoute = routeKey(location.pathname, location.search, role);
+    const currentRoute = routeKey(location.pathname, location.search, role, isLoggedInRef.current);
     if (!enabledRef.current || chatOpenRef.current) return false;
     if (Date.now() < pageLoadState.cooldownUntil) return false;
     if (pageLoadState.hintCount >= MAX_HINTS_PER_PAGELOAD) return false;
@@ -464,7 +543,7 @@ export default function useAiConciergeNudge({
     if (!isNewRoute && Date.now() - pageLoadState.lastHintAt < MIN_HINT_GAP_ROUTE_MS) return false;
     if (isNewRoute && Date.now() - pageLoadState.lastHintAt < 1200) return false;
 
-    showHint("route", pickHint(location.pathname, location.search, role));
+    showHint("route", pickHint(location.pathname, location.search, role, isLoggedInRef.current));
     pageLoadState.lastRouteKey = currentRoute;
     return true;
   }, [location.pathname, location.search, role, showHint]);
@@ -561,7 +640,7 @@ export default function useAiConciergeNudge({
       window.removeEventListener("keydown", onActivity);
       [routeTimer, idleTimer, proactiveTimer].forEach(clearTimer);
     };
-  }, [location.pathname, location.search, tryContextHint, tryRouteHint, showHint, role]);
+  }, [location.pathname, location.search, tryContextHint, tryRouteHint, showHint, role, isLoggedIn]);
 
   // Po zamknięciu czatu — hint kontekstowy na bieżącej stronie.
   useEffect(() => {
