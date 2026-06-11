@@ -1,14 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import { Sparkles } from "lucide-react";
 import { useBreakpointMd } from "../../hooks/useBreakpointMd";
 
 /**
+ * Gwiazdki AI w stylu Meta AI / Gemini — duża czteroramienna + mała u góry.
+ * Rysowane krzywymi, dzięki czemu wyglądają miękko i premium.
+ */
+export function AiSparkleIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M10 6c.7 4.8 2.4 6.5 7.2 7.2-4.8.7-6.5 2.4-7.2 7.2-.7-4.8-2.4-6.5-7.2-7.2 4.8-.7 6.5-2.4 7.2-7.2z" />
+      <path d="M18.3 2c.36 2.45 1.25 3.34 3.7 3.7-2.45.36-3.34 1.25-3.7 3.7-.36-2.45-1.25-3.34-3.7-3.7 2.45-.36 3.34-1.25 3.7-3.7z" />
+    </svg>
+  );
+}
+
+/**
  * Launcher Asystenta AI — stany jak Meta AI w Messengerze:
- * - Idle:  okrągła ikonka ✨ (56 px) na gradiencie — nigdy się nie rozciąga,
- * - Hint:  osobny biały dymek "✨ Pomóc Ci?" nad ikoną (slide-in z prawej,
- *          fade-out + slide przy znikaniu) — sterowane prop `teaser`,
- * - Dot:   fioletowa kropka-notyfikacja, gdy AI ma sugestię (prop `dot`),
- * - Puls:  jeden subtelny puls po wejściu na stronę, bez powtarzania.
+ * - Idle:   okrągła ikonka ✨ (56 px) na gradiencie — nigdy się nie rozciąga,
+ * - Hint:   osobny biały dymek "✨ Pomóc Ci?" nad ikoną (slide-in z prawej),
+ * - Alert:  fioletowa kropka + mocniejsza poświata kółka, gdy AI ma sugestię,
+ * - Puls:   podwójny, miękki pierścień raz po wejściu na stronę.
  *
  * Klik zawsze natychmiast otwiera asystenta. Desktop: hover pokazuje dymek.
  */
@@ -59,9 +70,9 @@ export default function AiFabLauncher({
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
-    // Jeden subtelny puls po wejściu — potem już się nie powtarza.
+    // Jeden podwójny puls po wejściu — potem już się nie powtarza.
     const pulseOn = setTimeout(() => setHelloPulse(true), 1200);
-    const pulseOff = setTimeout(() => setHelloPulse(false), 3000);
+    const pulseOff = setTimeout(() => setHelloPulse(false), 3400);
     return () => {
       cancelAnimationFrame(id);
       clearTimeout(pulseOn);
@@ -72,6 +83,7 @@ export default function AiFabLauncher({
   if (hidden) return null;
 
   const toneClass = variant === "provider" ? "qs-ai-fab--provider" : "qs-ai-fab--client";
+  const alert = dot && !shownText;
 
   return (
     <button
@@ -84,19 +96,21 @@ export default function AiFabLauncher({
       title={label}
       className={`qs-ai-fab qs-tap-target fixed z-[55] flex items-center justify-center overflow-visible rounded-full text-white md:bottom-6 md:right-6 ${toneClass} ${
         mounted ? "qs-ai-fab--in" : ""
-      } ${helloPulse && !shownText ? "qs-ai-fab--hello" : ""} ${className}`}
+      } ${helloPulse && !shownText ? "qs-ai-fab--hello" : ""} ${
+        alert ? "qs-ai-fab--alert" : ""
+      } ${className}`}
     >
       {badge}
-      {dot && !shownText ? (
+      {alert ? (
         <span
-          className="absolute right-1 top-1 z-20 h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-white"
+          className="qs-ai-dot absolute right-0.5 top-0.5 z-20 h-3.5 w-3.5 rounded-full bg-violet-500 ring-[2.5px] ring-white"
           aria-hidden
         />
       ) : null}
-      <Sparkles className="h-6 w-6" aria-hidden />
+      <AiSparkleIcon className="h-7 w-7" />
       {shownText ? (
         <span className={`qs-ai-hint ${leaving ? "qs-ai-hint--out" : ""}`} aria-hidden={leaving}>
-          <Sparkles className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+          <AiSparkleIcon className="h-4 w-4 shrink-0 text-violet-600" />
           {shownText}
         </span>
       ) : null}

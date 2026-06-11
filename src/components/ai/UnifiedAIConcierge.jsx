@@ -978,7 +978,7 @@ export default function UnifiedAIConcierge({
     : 'min-h-screen bg-gray-50';
 
   const cardClass = mode === 'modal'
-    ? 'relative z-[61] flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl md:h-[min(72dvh,640px)] md:max-h-[640px] md:max-w-[560px] md:rounded-2xl md:border md:border-gray-200'
+    ? 'qs-ai-panel-in relative z-[61] flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl md:h-[min(72dvh,640px)] md:max-h-[640px] md:max-w-[560px] md:rounded-2xl md:border md:border-gray-200'
     : mode === 'inline'
     ? 'w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[600px] relative z-50'
     : 'bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col h-[calc(100vh-8rem)] relative z-50';
@@ -2208,7 +2208,7 @@ export default function UnifiedAIConcierge({
     <div className={containerClass} style={keepAliveHidden ? { display: 'none' } : undefined} aria-hidden={keepAliveHidden || undefined}>
       {mode === 'modal' && (
         <div
-          className="absolute inset-0 z-0 bg-black/55"
+          className="qs-ai-backdrop-in absolute inset-0 z-0 bg-black/55"
           onClick={handleBackdropClick}
           aria-hidden
         />

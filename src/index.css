@@ -535,9 +535,13 @@ html.qs-map-route-scroll-lock body {
 /* Launcher AI — "AI Concierge": okrąg ✨ płynnie rozwijany w pigułkę z teaserem */
 .qs-ai-fab {
   bottom: calc(var(--qs-map-action-bottom) + var(--qs-map-action-stack-extra));
+  /* Sztywne 56×56 px — idealne kółko, zawartość nie wpływa na wymiar */
+  width: 3.5rem;
   height: 3.5rem;
   min-width: 3.5rem;
+  max-width: 3.5rem;
   padding: 0;
+  box-sizing: border-box;
   border: none;
   cursor: pointer;
   /* Mobile: natychmiastowy tap — bez opóźnienia double-tap-zoom i szarego flasha */
@@ -558,10 +562,18 @@ html.qs-map-route-scroll-lock body {
   transform: translateY(0) scale(1);
 }
 .qs-ai-fab--client {
-  background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #c026d3 100%);
+  /* Niebiesko-fioletowy gradient jak w projekcie (bez różu) */
+  background-image: linear-gradient(140deg, #6366f1 0%, #7c3aed 55%, #a855f7 100%);
 }
 .qs-ai-fab--provider {
-  background-image: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+  background-image: linear-gradient(140deg, #6d28d9 0%, #9333ea 100%);
+}
+/* Uwaga (nowa sugestia) — kółko dostaje fioletową poświatę, wygląda "naładowane" */
+.qs-ai-fab--alert {
+  box-shadow:
+    0 10px 30px rgba(124, 58, 237, 0.45),
+    0 0 0 5px rgba(124, 58, 237, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.16);
 }
 .qs-ai-fab:hover {
   transform: translateY(-1px) scale(1.04);
@@ -632,8 +644,64 @@ html.qs-map-route-scroll-lock body {
     transform: translateX(10px);
   }
 }
+/* Stan 5: kliknięcie — panel czatu wysuwa się od dołu (mobile), na desktopie fade+scale.
+   Keep-alive (display:none → flex) restartuje animację przy każdym otwarciu. */
+.qs-ai-panel-in {
+  animation: qs-ai-panel-up 0.3s var(--qs-ease-standard) both;
+}
+.qs-ai-backdrop-in {
+  animation: qs-ai-backdrop-fade 0.25s ease both;
+}
+@keyframes qs-ai-panel-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes qs-ai-backdrop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 768px) {
+  .qs-ai-panel-in {
+    animation: qs-ai-panel-pop 0.22s var(--qs-ease-standard) both;
+  }
+  @keyframes qs-ai-panel-pop {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+/* Nowa sugestia — kropka pojawia się z delikatnym "pop" */
+.qs-ai-dot {
+  animation: qs-ai-dot-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes qs-ai-dot-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 /* Pojedynczy puls powitalny po wejściu na stronę (stan 5 — nie powtarza się) */
-.qs-ai-fab--hello::before {
+/* Podwójny pierścień pulsu — dwie fale rozchodzące się jedna po drugiej */
+.qs-ai-fab--hello::before,
+.qs-ai-fab--hello::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -641,7 +709,10 @@ html.qs-map-route-scroll-lock body {
   border-radius: 9999px;
   background: inherit;
   background-image: inherit;
-  animation: qs-ai-fab-halo 1.5s var(--qs-ease-standard) 1;
+  animation: qs-ai-fab-halo 1.6s var(--qs-ease-standard) 1 both;
+}
+.qs-ai-fab--hello::after {
+  animation-delay: 0.35s;
 }
 @keyframes qs-ai-fab-halo {
   0% {
@@ -658,8 +729,12 @@ html.qs-map-route-scroll-lock body {
     transition: none;
   }
   .qs-ai-fab--hello::before,
+  .qs-ai-fab--hello::after,
   .qs-ai-hint,
-  .qs-ai-hint--out {
+  .qs-ai-hint--out,
+  .qs-ai-dot,
+  .qs-ai-panel-in,
+  .qs-ai-backdrop-in {
     animation: none;
   }
 }
