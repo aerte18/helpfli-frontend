@@ -1,15 +1,39 @@
 import { apiUrl } from '@/lib/apiUrl';
 
+const SESSION_KEY = 'qs_site_visit_recorded';
+let recordedInMemory = false;
+
+function hasRecordedVisitThisSession() {
+  try {
+    return sessionStorage.getItem(SESSION_KEY) === '1';
+  } catch {
+    return recordedInMemory;
+  }
+}
+
+function markVisitRecordedThisSession() {
+  try {
+    sessionStorage.setItem(SESSION_KEY, '1');
+  } catch {
+    recordedInMemory = true;
+  }
+}
+
 /**
- * Anonimowy licznik wejść (dzienne sumy per ścieżka, bez IP).
- * Działa bez zgody na cookies analityczne — uzupełnia telemetrię page_view.
+ * Anonimowy licznik wejść (1× na sesję przeglądarki, dzienne sumy per landing, bez IP).
+ * Działa bez zgody na cookies analityczne — uzupełnia telemetrię page_view (odsłony).
  */
 export function recordPageHit(path) {
   if (typeof window === 'undefined') return;
+  if (hasRecordedVisitThisSession()) return;
+
   const pathname =
     typeof path === 'string' && path
       ? path.split('?')[0]
       : window.location.pathname || '/';
+
+  markVisitRecordedThisSession();
+
   try {
     fetch(apiUrl('/api/telemetry/public/page-hit'), {
       method: 'POST',

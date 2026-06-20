@@ -73,7 +73,7 @@ export default function AdminDashboard() {
           </section>
 
           <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KPI label="Wejścia na stronę (30d)" value={formatInt(allVisits30d)} />
+            <KPI label="Wejścia — sesje (30d)" value={formatInt(allVisits30d)} />
             <KPI label="Telemetria page_view (30d)" value={formatInt(pageViews30d)} />
             <KPI label="Sesje (30d, szac.)" value={formatInt(distinctSessions30d)} />
             <KPI label="Odsłony PSEO telemetria (30d)" value={formatInt(pseoPageViews30d)} />

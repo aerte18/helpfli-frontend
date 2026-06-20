@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { recordPageHit } from "../utils/recordPageHit";
 
-/** Rejestruje odsłony (page_view) dla analityki produktowej — wymaga zgody cookies (useTelemetry). */
+/** Rejestruje wejście sesji (1×) i odsłony page_view — telemetria wymaga zgody cookies (useTelemetry). */
 export default function TelemetryRouteListener() {
   const location = useLocation();
   const { trackPageView } = useTelemetry();

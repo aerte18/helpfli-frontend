@@ -544,12 +544,12 @@ export default function AdminAnalytics() {
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">Ruch i wyszukiwania (produkt)</h2>
       <p className="text-sm text-slate-600 -mt-4 max-w-3xl">
-        <strong>Wszystkie wejścia</strong> liczy każdą odsłonę (także bez zgody na cookies analityczne).
-        <strong> Telemetria page_view</strong> to szczegóły tylko po akceptacji analityki — stąd często 0 przy realnym ruchu.
+        <strong>Wejścia (sesje)</strong> liczy 1× na sesję przeglądarki (także bez zgody na cookies analityczne).
+        <strong> Telemetria page_view</strong> to każda odsłona — tylko po akceptacji analityki.
         Licznik „GET /api/search” to logi backendu, nie odsłony stron.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-        <Card title="Wszystkie wejścia" value={asText(num(traffic.allVisits))} />
+        <Card title="Wejścia (sesje)" value={asText(num(traffic.allVisits))} />
         <Card title="Telemetria (page_view)" value={asText(num(traffic.pageViews))} />
         <Card title="Sesje (szac.)" value={asText(num(traffic.distinctSessionsApprox))} />
         <Card title="Zdarzenia wyszukiwania" value={asText(num(traffic.searchEvents))} />

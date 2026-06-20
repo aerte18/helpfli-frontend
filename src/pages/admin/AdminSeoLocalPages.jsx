@@ -319,7 +319,7 @@ export default function AdminSeoLocalPages() {
         ) : traffic?.summary ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-              <TrafficKpi label="Wejścia (wszystkie)" value={traffic.summary.allVisits} />
+              <TrafficKpi label="Wejścia (sesje)" value={traffic.summary.allVisits} />
               <TrafficKpi label="Telemetria page_view" value={traffic.summary.totalPageViews} />
               <TrafficKpi label="Landingi PSEO" value={traffic.summary.pseoPageViews} />
               <TrafficKpi label="Poradniki" value={traffic.summary.poradnikPageViews} />
