@@ -3,12 +3,14 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import AskQuoteModal from "../components/AskQuoteModal";
+import SEOHead from "../components/SEOHead";
 import StarRating from "../components/StarRating";
 import ReportAbuseButton from "../components/ReportAbuseButton";
 import RatingModal from "../components/RatingModal";
 import { getProviderMini } from "../api/providers";
 import { getProviderTrustBadges } from "../utils/providerTrustBadges";
 import { getCategoryName } from "../utils/getProviderLabel";
+import { useTelemetry } from "../hooks/useTelemetry";
 import Footer from "../components/Footer";
 import Portfolio from "./Portfolio";
 import {
@@ -64,6 +66,11 @@ export default function ProviderProfile() {
   const [rateHeading, setRateHeading] = useState("Oceń wykonawcę");
   const [error, setError] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const { trackProviderView, trackProviderContact } = useTelemetry();
+
+  useEffect(() => {
+    if (id) trackProviderView(id, "profile_page");
+  }, [id, trackProviderView]);
 
   // 1) dociągnij średnią ocen
   useEffect(() => {
@@ -130,6 +137,7 @@ export default function ProviderProfile() {
   }, [id]);
 
   const startInstantOrder = () => {
+    trackProviderContact(id, "instant_order");
     const preFilledData = {
       providerId: provider._id,
       providerName: provider.name,
@@ -176,8 +184,49 @@ export default function ProviderProfile() {
       (Array.isArray(providerData?.badges) && providerData.badges.includes('founding_provider')),
   });
 
+  const openQuoteModal = () => {
+    trackProviderContact(id, "ask_quote");
+    setOpenQuote(true);
+  };
+
+  const providerTitle = provider?.name
+    ? `${provider.name} — wykonawca | Helpfli`
+    : "Profil wykonawcy | Helpfli";
+  const providerDescription =
+    provider?.bio?.slice(0, 155) ||
+    (provider?.name
+      ? `Profil wykonawcy ${provider.name} na Helpfli. Sprawdź usługi, opinie i wyślij zapytanie o wycenę.`
+      : "Profil wykonawcy na Helpfli.");
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={providerTitle}
+        description={providerDescription}
+        canonical={`/provider/${id}`}
+        ogType="profile"
+      >
+        {provider?.name && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              name: provider.name,
+              url: `https://helpfli.pl/provider/${id}`,
+              description: providerDescription,
+              ...(avgRating && avgRating > 0
+                ? {
+                    aggregateRating: {
+                      "@type": "AggregateRating",
+                      ratingValue: Number(avgRating.toFixed(1)),
+                      reviewCount: providerData?.ratingCount || 0
+                    }
+                  }
+                : {})
+            })}
+          </script>
+        )}
+      </SEOHead>
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-background to-secondary/20 border-b border-border">
         <div className="container mx-auto px-4 py-12">
@@ -580,7 +629,7 @@ export default function ProviderProfile() {
               <h3 className="font-semibold text-foreground mb-4">Szybkie akcje</h3>
               <div className="space-y-2">
                 <button
-                  onClick={() => setOpenQuote(true)}
+                  onClick={openQuoteModal}
                   className="btn-helpfli-primary w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-left"
                 >
                   <span>Zapytaj o wycenę</span>

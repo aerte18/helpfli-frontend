@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { captureException } from '@sentry/react';
 
 async function hardReloadClearingCache() {
   try {
@@ -36,16 +37,14 @@ class ErrorBoundary extends Component {
       errorInfo: errorInfo
     });
 
-    // Send to Sentry if available
-    if (window.Sentry) {
-      window.Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack
-          }
+    // Send to Sentry if initialized (DSN + consent)
+    captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack
         }
-      });
-    }
+      }
+    });
   }
 
   render() {

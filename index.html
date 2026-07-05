@@ -17,11 +17,14 @@
     <meta property="og:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
     <meta property="og:description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/icons/icon.svg" />
+    <meta property="og:url" content="https://helpfli.pl/" />
+    <meta property="og:site_name" content="Helpfli" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:image" content="https://helpfli.pl/icons/icon-192x192.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
     <meta name="twitter:description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi." />
-    <meta name="twitter:image" content="/icons/icon.svg" />
+    <meta name="twitter:image" content="https://helpfli.pl/icons/icon-192x192.png" />
     <link rel="manifest" href="/manifest.json" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,46 +42,23 @@
       />
     </noscript>
     
-    <!-- Structured Data for SEO -->
+    <!-- Structured Data for SEO (Organization — bez fałszywego telefonu) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
+      "@type": "Organization",
       "name": "Helpfli",
       "description": "Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi.",
       "url": "https://helpfli.pl",
       "logo": "https://helpfli.pl/icons/icon-192x192.png",
-      "image": "https://helpfli.pl/og-image.png",
-      "telephone": "+48-XXX-XXX-XXX",
+      "image": "https://helpfli.pl/icons/icon-192x192.png",
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "PL"
       },
-      "serviceArea": {
+      "areaServed": {
         "@type": "Country",
         "name": "Polska"
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Usługi wykonawców",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Hydraulik",
-              "description": "Usługi hydrauliczne"
-            }
-          },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Elektryk",
-              "description": "Usługi elektryczne"
-            }
-          }
-        ]
       }
     }
     </script>

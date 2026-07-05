@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import SEOHead from '@/components/SEOHead';
 import { fetchSeoLocalServices, fetchSeoLocalCities } from '@/api/seoLocal';
 
 /**
- * /uslugi — hub PSEO.
- *
- * Strona-katalog: wszystkie usługi × wszystkie miasta. Działa też jako
- * silne wewnętrzne linkowanie — Google podchwytuje stąd 1500+ landingów PSEO.
+ * /wykonawcy — hub PSEO.
+ * Katalog usług × miasta z linkami do landingów /wykonawcy/:service/:city.
  */
-
-const SITE_URL =
-  (typeof window !== 'undefined' && window.__HELPFLI_SITE_URL__) || 'https://helpfli.pl';
 
 const CATEGORY_LABELS = {
   hydraulik: 'Hydraulik',
@@ -52,27 +47,24 @@ export default function SeoLocalIndex() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Helmet>
-        <title>Usługi Helpfli — hydraulik, elektryk, AGD, remont w Twoim mieście</title>
-        <meta
-          name="description"
-          content="Pełen katalog usług Helpfli: hydraulik, elektryk, AGD, remont, sprzątanie. Sprawdź ceny i znajdź sprawdzonego wykonawcę w swoim mieście."
-        />
-        <link rel="canonical" href={`${SITE_URL}/uslugi`} />
-      </Helmet>
+      <SEOHead
+        title="Wykonawcy Helpfli — hydraulik, elektryk, AGD, remont w Twoim mieście"
+        description="Pełen katalog usług Helpfli: hydraulik, elektryk, AGD, remont, sprzątanie. Sprawdź ceny i znajdź sprawdzonego wykonawcę w swoim mieście."
+        canonical="/wykonawcy"
+      />
 
       <header className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white">
         <div className="max-w-5xl mx-auto px-4 py-10 sm:py-14">
           <nav aria-label="Breadcrumb" className="text-xs text-indigo-100/80 mb-3">
             <Link to="/" className="hover:underline">Strona główna</Link>
             <span className="mx-1.5">/</span>
-            <span>Usługi</span>
+            <span>Wykonawcy</span>
           </nav>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">
-            Wszystkie usługi Helpfli w Twoim mieście
+            Wszyscy wykonawcy Helpfli w Twoim mieście
           </h1>
           <p className="text-lg text-indigo-100 max-w-2xl">
-            Hydraulik, elektryk, serwis AGD, remonty, sprzątanie — sprawdzeni wykonawcy w {cities.length} miastach w Polsce.
+            Hydraulik, elektryk, serwis AGD, remonty, sprzątanie — sprawdzeni wykonawcy w {cities.length || '…'} miastach w Polsce.
           </p>
         </div>
       </header>
@@ -94,15 +86,17 @@ export default function SeoLocalIndex() {
                       <ul className="text-sm space-y-1">
                         {cities.slice(0, 6).map((c) => (
                           <li key={c.slug}>
-                            <Link to={`/uslugi/${s.slug}/${c.slug}`} className="text-indigo-700 hover:underline">
+                            <Link to={`/wykonawcy/${s.slug}/${c.slug}`} className="text-indigo-700 hover:underline">
                               {s.name} {c.name}
                             </Link>
                           </li>
                         ))}
                       </ul>
-                      <Link to={`/uslugi/${s.slug}`} className="block mt-2 text-xs text-slate-500 hover:underline">
-                        Zobacz wszystkie miasta →
-                      </Link>
+                      {cities.length > 6 && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          + {cities.length - 6} innych miast
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -115,7 +109,7 @@ export default function SeoLocalIndex() {
                 {cities.map((c) => (
                   <Link
                     key={c.slug}
-                    to={`/uslugi/miasto/${c.slug}`}
+                    to={`/wykonawcy/hydraulik/${c.slug}`}
                     className="text-sm rounded-full border bg-white px-3 py-1.5 hover:bg-slate-100 text-slate-700"
                   >
                     {c.name}

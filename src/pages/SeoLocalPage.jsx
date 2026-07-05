@@ -17,10 +17,12 @@ import { SITE_URL } from '@/utils/siteUrl';
 function buildSeoMeta(page) {
   const serviceName = page.serviceName;
   const cityName = page.cityName;
+  const fallbackTitle = `${serviceName} ${cityName} | Helpfli`;
+  const fallbackDescription = `Znajdź sprawdzonych wykonawców: ${serviceName} w mieście ${cityName}. Porównaj oferty, opinie i wybierz fachowca w Helpfli.`;
   return {
-    title: `${serviceName} ${cityName} | Helpfli`,
-    description: `Znajdź sprawdzonych wykonawców: ${serviceName} w mieście ${cityName}. Porównaj oferty, opinie i wybierz fachowca w Helpfli.`,
-    h1: `${serviceName} w mieście ${cityName}`,
+    title: page.metaTitle?.trim() || fallbackTitle,
+    description: page.metaDescription?.trim() || fallbackDescription,
+    h1: page.title?.trim() || `${serviceName} w mieście ${cityName}`,
   };
 }
 
@@ -39,8 +41,6 @@ function buildFaqJsonLd(page) {
 
 function buildLocalBusinessJsonLd(page, snap, canonicalUrl) {
   if (!page) return null;
-  const count = snap?.providers?.count || page.statsSnapshot?.providerCount || 0;
-  const avgRating = snap?.providers?.avgRating ?? page.statsSnapshot?.avgRating;
 
   const ld = {
     '@context': 'https://schema.org',
@@ -56,16 +56,6 @@ function buildLocalBusinessJsonLd(page, snap, canonicalUrl) {
     priceRange: snap?.prices?.median ? `${snap.prices.min}-${snap.prices.max} PLN` : undefined
   };
 
-  if (avgRating != null && count >= 3) {
-    ld.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: avgRating,
-      reviewCount: count,
-      bestRating: 5,
-      worstRating: 1
-    };
-  }
-
   return ld;
 }
 
@@ -76,7 +66,7 @@ function buildBreadcrumbJsonLd(page, canonicalUrl) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Strona główna', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: page.serviceName, item: `${SITE_URL}/services` },
+      { '@type': 'ListItem', position: 2, name: page.serviceName, item: `${SITE_URL}/wykonawcy` },
       { '@type': 'ListItem', position: 3, name: page.cityName, item: canonicalUrl }
     ]
   };

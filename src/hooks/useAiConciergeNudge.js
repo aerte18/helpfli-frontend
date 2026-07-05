@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTelemetry } from "./useTelemetry";
 
 /**
  * Logika "AI Concierge" — hinty kontekstowe + follow-up do czatu.
@@ -466,6 +467,7 @@ export default function useAiConciergeNudge({
   isLoggedIn = false,
 } = {}) {
   const location = useLocation();
+  const { trackAiNudge } = useTelemetry();
   const [teaser, setTeaser] = useState(null);
   const [suggestionDot, setSuggestionDot] = useState(ssGet(SS_KEYS.suggestionDot) === "1");
 
@@ -513,15 +515,28 @@ export default function useAiConciergeNudge({
     ssSet(SS_KEYS.lastHintText, hint.text);
     pageLoadState.hintCount += 1;
     pageLoadState.lastHintAt = Date.now();
+    trackAiNudge("shown", {
+      kind,
+      role,
+      pathname: location.pathname,
+      hintText: hint.text
+    });
     clearTimer(hideTimer);
     hideTimer.current = setTimeout(() => {
+      trackAiNudge("dismissed", {
+        kind,
+        role,
+        pathname: location.pathname,
+        reason: "timeout",
+        hintText: hint.text
+      });
       setTeaser(null);
       if (kind === "proactive") {
         ssSet(SS_KEYS.suggestionDot, "1");
         setSuggestionDot(true);
       }
     }, HINT_VISIBLE_MS);
-  }, []);
+  }, [location.pathname, role, trackAiNudge]);
 
   const tryContextHint = useCallback(
     (kind) => {
@@ -549,18 +564,35 @@ export default function useAiConciergeNudge({
   }, [location.pathname, location.search, role, showHint]);
 
   /** Po otwarciu czatu — krótka przerwa, potem hinty wracają na kolejnych stronach. */
-  const markEngaged = useCallback(() => {
+  const markEngaged = useCallback((opts = {}) => {
+    const source = opts.source || "fab";
+    trackAiNudge("clicked", {
+      kind: opts.kind || teaser?.kind,
+      role,
+      pathname: location.pathname,
+      source,
+      hintText: teaser?.text
+    });
     pageLoadState.cooldownUntil = Date.now() + CHAT_COOLDOWN_MS;
     ssSet(SS_KEYS.suggestionDot, "0");
     setSuggestionDot(false);
     [hideTimer, routeTimer, idleTimer, proactiveTimer, resumeTimer].forEach(clearTimer);
     setTeaser(null);
-  }, []);
+  }, [location.pathname, role, teaser, trackAiNudge]);
 
   const dismissTeaser = useCallback(() => {
+    if (teaser?.text) {
+      trackAiNudge("dismissed", {
+        kind: teaser.kind,
+        role,
+        pathname: location.pathname,
+        reason: "manual",
+        hintText: teaser.text
+      });
+    }
     clearTimer(hideTimer);
     setTeaser(null);
-  }, []);
+  }, [location.pathname, role, teaser, trackAiNudge]);
 
   useEffect(() => {
     if (role !== "client") return;

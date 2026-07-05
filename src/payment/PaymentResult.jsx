@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiPost } from '../lib/api';
+import { useTelemetry } from '../hooks/useTelemetry';
 
 export default function PaymentResult() {
   const navigate = useNavigate();
@@ -8,6 +9,14 @@ export default function PaymentResult() {
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
   const [duplicatesReleased, setDuplicatesReleased] = useState(0);
+  const { trackPayment } = useTelemetry();
+  const paymentTracked = useRef(false);
+
+  const reportPayment = (orderId, success) => {
+    if (paymentTracked.current || !orderId) return;
+    paymentTracked.current = true;
+    trackPayment(orderId, null, 'stripe', success);
+  };
 
   useEffect(() => {
     const redirectStatus = searchParams.get('redirect_status');
@@ -23,6 +32,7 @@ export default function PaymentResult() {
     if (redirectStatus === 'succeeded') {
       setStatus('success');
       setMessage('Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.');
+      reportPayment(orderId, true);
     } else if (redirectStatus === 'processing') {
       setStatus('processing');
       setMessage('Płatność jest przetwarzana…');
@@ -30,6 +40,7 @@ export default function PaymentResult() {
     } else if (redirectStatus) {
       setStatus('error');
       setMessage('Płatność nie powiodła się.');
+      reportPayment(orderId, false);
       return;
     }
 
@@ -51,6 +62,7 @@ export default function PaymentResult() {
         if (data.success) {
           setStatus('success');
           setMessage(data.message || 'Płatność zakończona pomyślnie!');
+          reportPayment(orderId || data.orderId, true);
           if (data.duplicatesCanceled > 0) {
             setDuplicatesReleased(data.duplicatesCanceled);
           }
@@ -60,6 +72,7 @@ export default function PaymentResult() {
         } else {
           setStatus('error');
           setMessage(data.message || 'Nie udało się potwierdzić płatności.');
+          reportPayment(orderId, false);
         }
       } catch (error) {
         console.error('complete-return:', error);

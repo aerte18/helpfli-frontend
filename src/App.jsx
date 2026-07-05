@@ -56,7 +56,6 @@ const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const WhyPro = lazy(() => import("./pages/WhyPro"));
 const Boosts = lazy(() => import("./pages/Boosts"));
 const Wallet = lazy(() => import("./pages/Wallet"));
-const Verification = lazy(() => import("./pages/Verification"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const ConciergePage = lazy(() => import("./pages/ConciergePage"));
 const ProviderQuotes = lazy(() => import("./pages/ProviderQuotes"));
@@ -91,6 +90,7 @@ const AdminContent = lazy(() => import("./pages/admin/AdminContent"));
 const SeoArticlePage = lazy(() => import("./pages/SeoArticlePage"));
 const PoradnikiList = lazy(() => import("./pages/PoradnikiList"));
 const SeoLocalPage = lazy(() => import("./pages/SeoLocalPage"));
+const SeoLocalIndex = lazy(() => import("./pages/SeoLocalIndex"));
 const KycWizard = lazy(() => import("./pages/KycWizard"));
 const StripeProvider = lazy(() => import("./payment/StripeProvider"));
 const CheckoutPage = lazy(() => import("./payment/CheckoutPage"));
@@ -125,6 +125,19 @@ function LegacyOrderTabRedirect() {
   };
   const tab = tabMap[normalizedTab] || "details";
   return <Navigate to={`/orders/${orderId}?tab=${tab}`} replace />;
+}
+
+function LegacyUslugiRedirect() {
+  const { service, city } = useParams();
+  if (service && city) {
+    return <Navigate to={`/wykonawcy/${service}/${city}`} replace />;
+  }
+  return <Navigate to="/wykonawcy" replace />;
+}
+
+function LegacyUslugiCityRedirect() {
+  const { city } = useParams();
+  return <Navigate to={city ? `/wykonawcy/hydraulik/${city}` : '/wykonawcy'} replace />;
 }
 
 function App() {
@@ -234,7 +247,13 @@ function App() {
           <Route path="/poradniki" element={<PoradnikiList />} />
           <Route path="/poradnik/:slug" element={<SeoArticlePage />} />
           {/* PSEO – landing pages miasto×usługa */}
+          <Route path="/wykonawcy" element={<SeoLocalIndex />} />
           <Route path="/wykonawcy/:service/:city" element={<SeoLocalPage />} />
+          {/* Legacy PSEO URLs → 301 w aplikacji */}
+          <Route path="/uslugi" element={<Navigate to="/wykonawcy" replace />} />
+          <Route path="/uslugi/miasto/:city" element={<LegacyUslugiCityRedirect />} />
+          <Route path="/uslugi/:service/:city" element={<LegacyUslugiRedirect />} />
+          <Route path="/uslugi/:service" element={<Navigate to="/wykonawcy" replace />} />
 
         {/* Wymaga logowania */}
         <Route element={<PrivateRoute />}>
@@ -278,7 +297,7 @@ function App() {
             <Route path="/manage-services" element={<ManageServices />} />
             <Route path="/available-orders" element={<AvailableOrders />} />
             <Route path="/provider/sponsored" element={<ProviderSponsored />} />
-                      <Route path="/verification" element={<Verification />} />
+                      <Route path="/verification" element={<Navigate to="/kyc" replace />} />
             <Route path="/provider/quotes" element={<ProviderQuotes />} />
           </Route>
 

@@ -25,6 +25,8 @@
     }
   ],
   "redirects": [
+    { "source": "/uslugi", "destination": "/wykonawcy", "permanent": true },
+    { "source": "/uslugi/:service/:city", "destination": "/wykonawcy/:service/:city", "permanent": true },
     { "source": "/orders/:orderId/tab-offers", "destination": "/orders/:orderId?tab=offers", "permanent": false },
     { "source": "/orders/:orderId/tab-my-offer", "destination": "/orders/:orderId?tab=my_offer", "permanent": false },
     { "source": "/orders/:orderId/tab-chat", "destination": "/orders/:orderId?tab=chat", "permanent": false },
@@ -33,7 +35,7 @@
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "https://api.helpfli.pl/sitemap.xml" },
     { "source": "/robots.txt", "destination": "https://api.helpfli.pl/robots.txt" },
-    { "source": "/:key(\\w{8,128}).txt", "destination": "https://api.helpfli.pl/:key.txt" },
+    { "source": "/:key([a-zA-Z0-9-]{8,128}).txt", "destination": "https://api.helpfli.pl/:key.txt" },
     { "source": "/api/(.*)", "destination": "https://api.helpfli.pl/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

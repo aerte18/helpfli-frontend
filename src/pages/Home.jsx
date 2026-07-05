@@ -113,7 +113,7 @@ function matchesSelectedServiceLabel(selected, haystack) {
 export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({});
-  const { trackSearch, trackFilterApplied, trackCategorySelected, trackProviderView, trackClientApiError } = useTelemetry();
+  const { trackSearch, trackFilterApplied, trackCategorySelected, trackProviderView, trackProviderCompare, trackClientApiError } = useTelemetry();
   const [quick, setQuick] = useState(null);
   const [providers, setProviders] = useState([]);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
@@ -166,6 +166,26 @@ export default function Home() {
   const [mapLoading, setMapLoading] = useState(false);
   const { user } = useAuth();
   const compare = useCompare();
+
+  const toggleCompare = useCallback(
+    (p) => {
+      compare.toggle(p);
+      if (p?.id) trackProviderCompare([p.id]);
+    },
+    [compare, trackProviderCompare]
+  );
+
+  const handleCategorySelect = useCallback(
+    (sel) => {
+      setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
+      const slug = sel.subcategorySlug || sel.categorySlug;
+      if (slug) {
+        setSelectedServiceSlugs((prev) => Array.from(new Set([...(prev || []), String(slug)])));
+        trackCategorySelected(slug, sel.subcategory || sel.categoryName || sel.category);
+      }
+    },
+    [trackCategorySelected]
+  );
 
   // Fallback dla kropki „ja" na mapie, gdy GPS odmówi.
   const profileCoords = useMemo(() => {
@@ -695,14 +715,8 @@ export default function Home() {
   }, [updateFilters]);
 
   const handleMobileCategorySelect = useCallback((sel) => {
-    setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-    const slug = sel.subcategorySlug || sel.categorySlug;
-    if (slug) {
-      setSelectedServiceSlugs((prev) =>
-        Array.from(new Set([...(prev || []), String(slug)]))
-      );
-    }
-  }, []);
+    handleCategorySelect(sel);
+  }, [handleCategorySelect]);
 
   const mobileQuickFiltersActive =
     verifiedOnly || proOnly || activeFilters.length > 0 || (selectedServices?.length ?? 0) > 0;
@@ -775,9 +789,15 @@ export default function Home() {
             sortBy={sortBy}
             onSortChange={setSortBy}
             verifiedOnly={verifiedOnly}
-            onVerifiedOnlyChange={setVerifiedOnly}
+            onVerifiedOnlyChange={(v) => {
+              setVerifiedOnly(v);
+              trackFilterApplied("verified_only", v);
+            }}
             proOnly={proOnly}
-            onProOnlyChange={setProOnly}
+            onProOnlyChange={(v) => {
+              setProOnly(v);
+              trackFilterApplied("pro_only", v);
+            }}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             hideViewSwitcher
@@ -786,15 +806,7 @@ export default function Home() {
                 className="w-full sm:w-64"
                 placeholder="Kategoria"
                 clearTrigger={clearCategoryTrigger}
-                onCategorySelect={(sel) => {
-                  setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-                  const slug = sel.subcategorySlug || sel.categorySlug;
-                  if (slug) {
-                    setSelectedServiceSlugs((prev) =>
-                      Array.from(new Set([...(prev || []), String(slug)]))
-                    );
-                  }
-                }}
+                onCategorySelect={handleCategorySelect}
               />
             }
             showLeftInfo={false}
@@ -963,15 +975,7 @@ export default function Home() {
                       className="w-full sm:w-64"
                       placeholder="Kategoria"
                       clearTrigger={clearCategoryTrigger}
-                      onCategorySelect={(sel) => {
-                        setSelectedServices((prev) => Array.from(new Set([...(prev || []), sel.subcategory])));
-                        const slug = sel.subcategorySlug || sel.categorySlug;
-                        if (slug) {
-                          setSelectedServiceSlugs((prev) =>
-                            Array.from(new Set([...(prev || []), String(slug)]))
-                          );
-                        }
-                      }}
+                      onCategorySelect={handleCategorySelect}
                     />
                   }
                   showLeftInfo={false}
@@ -1018,7 +1022,7 @@ export default function Home() {
                 }}
                 onQuickView={handleQuickView}
                 onCompare={(p) => {
-                  compare.toggle(p);
+                  toggleCompare(p);
                 }}
                 profileCoords={profileCoords}
                 onViewportSearch={handleMapAreaSearch}
@@ -1121,7 +1125,7 @@ export default function Home() {
                   }}
                   onQuote={handleQuote}
                   onCompare={() => {
-                    compare.toggle(p);
+                    toggleCompare(p);
                   }}
                   isCompared={!!compare.items.find(c => c.id === p.id)}
                 />
@@ -1192,7 +1196,7 @@ export default function Home() {
                 }}
                 onQuickView={handleQuickView}
                 onCompare={(p) => {
-                  compare.toggle(p);
+                  toggleCompare(p);
                 }}
                 profileCoords={profileCoords}
                 onViewportSearch={handleMapAreaSearch}
@@ -1361,7 +1365,7 @@ export default function Home() {
         items={compare.items} 
         onClear={compare.clear}
         onCompare={() => setCompareModalOpen(true)}
-        onRemove={(i)=> compare.toggle(i)}
+        onRemove={(i) => toggleCompare(i)}
       />
 
       {/* Compare Modal */}

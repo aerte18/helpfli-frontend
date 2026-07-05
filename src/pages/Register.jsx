@@ -337,38 +337,38 @@ export default function Register() {
       setSuccess(true);
       setSuccessMessage(data.message || "Konto zostało utworzone! Sprawdź swój email.");
       
-      // Przekierowanie po rejestracji
-      // Sprawdź rolę użytkownika z odpowiedzi (może być company_owner jeśli rejestrował firmę)
-      const userRole = data.user?.role || snapshot.role;
-      const nextAfterAuth = safeNextPath(searchParams.get("next"), "");
+      // Przekierowanie tylko gdy mamy token (dev / auto-login) — w prod zostaw użytkownika na ekranie sukcesu
+      if (data.token) {
+        const userRole = data.user?.role || snapshot.role;
+        const nextAfterAuth = safeNextPath(searchParams.get("next"), "");
 
-      if (nextAfterAuth) {
-        storePostOnboardingNext(nextAfterAuth);
-      }
+        if (nextAfterAuth) {
+          storePostOnboardingNext(nextAfterAuth);
+        }
 
-      const redirectAfterRegister = (userData) => {
-        const path = getPostLoginPath(
-          userData || { role: userRole, onboardingCompleted: userRole === "client" },
-          nextAfterAuth || undefined
-        );
-        navigate(path);
-      };
+        const redirectAfterRegister = (userData) => {
+          const path = getPostLoginPath(
+            userData || { role: userRole, onboardingCompleted: userRole === "client" },
+            nextAfterAuth || undefined
+          );
+          navigate(path);
+        };
 
-      // Przekieruj na właściwą stronę w zależności od roli
-      if (userRole === "admin") {
-        setTimeout(() => redirectAfterRegister({ role: "admin", onboardingCompleted: true }), 2000);
-      } else if (userRole === "company_owner") {
-        setTimeout(() => redirectAfterRegister({ role: "company_owner", onboardingCompleted: true }), 2000);
-      } else if (userRole === "provider") {
-        setTimeout(() => redirectAfterRegister({ role: "provider", onboardingCompleted: false }), 2000);
-      } else if (userRole === "client") {
-        setTimeout(() => {
-          if (nextAfterAuth && !data.user?.onboardingCompleted) {
-            navigate("/onboarding");
-          } else {
-            redirectAfterRegister(data.user || { role: "client", onboardingCompleted: true });
-          }
-        }, 2000);
+        if (userRole === "admin") {
+          setTimeout(() => redirectAfterRegister({ role: "admin", onboardingCompleted: true }), 1500);
+        } else if (userRole === "company_owner") {
+          setTimeout(() => redirectAfterRegister(data.user || { role: "company_owner", onboardingCompleted: true }), 1500);
+        } else if (userRole === "provider") {
+          setTimeout(() => redirectAfterRegister(data.user || { role: "provider", onboardingCompleted: false }), 1500);
+        } else if (userRole === "client") {
+          setTimeout(() => {
+            if (nextAfterAuth && !data.user?.onboardingCompleted) {
+              navigate("/onboarding");
+            } else {
+              redirectAfterRegister(data.user || { role: "client", onboardingCompleted: true });
+            }
+          }, 1500);
+        }
       }
     } catch (err) {
       setError(err.message);

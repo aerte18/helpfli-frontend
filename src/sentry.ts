@@ -22,6 +22,9 @@ export function initSentry() {
     }
   });
   sentryInitialized = true;
+  if (typeof window !== "undefined") {
+    window.Sentry = Sentry;
+  }
 }
 
 

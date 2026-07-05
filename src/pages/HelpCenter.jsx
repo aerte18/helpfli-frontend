@@ -190,7 +190,7 @@ export default function HelpCenter() {
               <h3 className="font-semibold mb-2">Dla wykonawców</h3>
               <ul className="space-y-1">
                 <li><Link to="/register" className="text-indigo-600 hover:underline">Zostań wykonawcą</Link></li>
-                <li><Link to="/verification" className="text-indigo-600 hover:underline">Weryfikacja KYC</Link></li>
+                <li><Link to="/kyc" className="text-indigo-600 hover:underline">Weryfikacja KYC</Link></li>
                 <li><Link to="/provider-home" className="text-indigo-600 hover:underline">Panel wykonawcy</Link></li>
                 <li><Link to="/account/subscriptions" className="text-indigo-600 hover:underline">Subskrypcje</Link></li>
               </ul>

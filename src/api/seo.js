@@ -154,6 +154,16 @@ export async function adminDeleteLocalPage(id) {
   return jsonOrThrow(res);
 }
 
+/** Ręczne uruchomienie crona budowy brakujących stron PSEO (admin). */
+export async function adminRunPseoCron({ maxBuild = 8 } = {}) {
+  const res = await fetch(apiUrl('/api/seo/admin/local/run-pseo-cron'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify({ maxBuild })
+  });
+  return jsonOrThrow(res);
+}
+
 // -------- admin --------
 
 export async function adminListSeoArticles({ page = 1, limit = 30, q = '', category = '', published } = {}) {

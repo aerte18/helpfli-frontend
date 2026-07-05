@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { absoluteUrl, SITE_URL } from "../utils/siteUrl";
 import AutosuggestInput from "../components/AutosuggestInput";
 import PopularServices from "../components/PopularServices";
 import SeasonalBanner from "../components/SeasonalBanner";
@@ -267,8 +268,30 @@ export default function LandingStart() {
       <Helmet>
         <title>Helpfli — Znajdź pomoc w swojej okolicy</title>
         <meta name="description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <link rel="canonical" href={absoluteUrl('/')} />
         <meta property="og:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
         <meta property="og:description" content="Znajdź pomoc do codziennych spraw i zadań. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={absoluteUrl('/')} />
+        <meta property="og:site_name" content="Helpfli" />
+        <meta property="og:locale" content="pl_PL" />
+        <meta property="og:image" content={absoluteUrl('/icons/icon-192x192.png')} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
+        <meta name="twitter:description" content="Znajdź pomoc do codziennych spraw i zadań. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <meta name="twitter:image" content={absoluteUrl('/icons/icon-192x192.png')} />
+        <script type="application/ld+json">{JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Helpfli',
+          url: SITE_URL,
+          description: 'Marketplace usług lokalnych — hydraulik, elektryk, remont i więcej.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${SITE_URL}/providers?q={search_term_string}`,
+            'query-input': 'required name=search_term_string'
+          }
+        })}</script>
       </Helmet>
       {/* Pastelowe plamy gradientowe w tle */}
       <div className="fixed inset-0 pointer-events-none -z-10">

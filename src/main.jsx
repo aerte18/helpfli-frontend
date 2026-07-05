@@ -8,6 +8,7 @@ import { MobileHintProvider } from "./components/ui/MobileHintProvider.jsx"
 import './index.css'
 /* ui.css usunięty — zawierał drugi pełny @tailwind base (Preflight 2×), co potrafi zepsuć scroll / layout */
 import { initSentry } from './sentry'
+import { trackEvent } from './lib/googleAnalytics'
 import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 import { hasAnalyticsConsent } from './utils/consent';
 import { initGoogleAnalytics } from './lib/googleAnalytics';
@@ -37,6 +38,12 @@ normalizeLegacyOrderTabUrl();
 function sendToAnalytics(metric) {
   if (!hasAnalyticsConsent()) return;
   console.log("Web Vital:", metric);
+
+  trackEvent("web_vitals", {
+    metric_name: metric.name,
+    metric_value: Math.round(metric.value),
+    metric_rating: metric.rating,
+  });
 
   if (window.Sentry) {
     window.Sentry.addBreadcrumb({

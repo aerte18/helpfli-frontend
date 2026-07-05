@@ -1,5 +1,5 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ChatBox from "../components/ChatBox";
 import { useAuth } from "../context/AuthContext";
@@ -2725,7 +2725,8 @@ export default function OrderDetails() {
   const location = useLocation();
   const { user } = useAuth();
   const { push: toast } = useToast();
-  const { trackOrderAccepted } = useTelemetry();
+  const { trackOrderAccepted, trackOrderView } = useTelemetry();
+  const orderViewTracked = useRef(null);
   const [copiedId, setCopiedId] = useState(false);
   const tabFromUrl = new URLSearchParams(location.search).get("tab");
   const [tab, setTab] = useState(tabFromUrl === "offers" ? "offers" : (tabFromUrl === "chat" ? "chat" : (tabFromUrl === "my_offer" ? "my_offer" : "details")));
@@ -2795,6 +2796,14 @@ export default function OrderDetails() {
   const [videoSession, setVideoSession] = useState(null);
   const [aiFollowup, setAiFollowup] = useState(null);
   const [aiInsightsOpen, setAiInsightsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!order?._id || order.__demo) return;
+    const oid = String(order._id);
+    if (orderViewTracked.current === oid) return;
+    orderViewTracked.current = oid;
+    trackOrderView(oid, order.status || null);
+  }, [order?._id, order?.status, order?.__demo, trackOrderView]);
 
   // Chat state (multi-conversation per order)
   const [orderOffers, setOrderOffers] = useState([]);

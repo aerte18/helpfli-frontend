@@ -6,7 +6,8 @@ import {
   adminRebuildLocalPage,
   adminSuggestLocalPages,
   adminGetPseoTraffic,
-  adminDeleteLocalPage
+  adminDeleteLocalPage,
+  adminRunPseoCron
 } from '@/api/seo';
 import { PSEO_STARTER_SLUGS } from '@/constants/pseoStarterSlugs';
 
@@ -174,6 +175,46 @@ export default function AdminSeoLocalPages() {
 
   function insertStarterSlugs() {
     setBulkServices(PSEO_STARTER_SLUGS.join('\n'));
+  }
+
+  function selectTop12Cities() {
+    setBulkCities(cities.slice(0, 12).map((c) => c.slug));
+    setBuildSummary('Zaznaczono TOP 12 miast (wg populacji w katalogu).');
+  }
+
+  function applyStarterPack() {
+    setBulkServices(PSEO_STARTER_SLUGS.join('\n'));
+    setBulkCities(cities.slice(0, 12).map((c) => c.slug));
+    setBuildSummary(
+      `Preset: ${PSEO_STARTER_SLUGS.length} usług × ${Math.min(12, cities.length)} miast = do ${PSEO_STARTER_SLUGS.length * Math.min(12, cities.length)} stron.`
+    );
+  }
+
+  async function handleRunPseoCron() {
+    if (
+      !confirm(
+        'Uruchomić cron PSEO? Zbuduje do 8 brakujących stron (top miasta × usługi). Pomija strony już opublikowane.'
+      )
+    ) {
+      return;
+    }
+    setBuilding(true);
+    setBuildSummary('Cron PSEO w toku…');
+    try {
+      const out = await adminRunPseoCron({ maxBuild: 8 });
+      if (out.skipped) {
+        setBuildSummary(`Cron pominięty: ${out.reason || 'PSEO_CRON_ENABLED !== 1'}. Admin trigger i tak buduje (force).`);
+      } else {
+        setBuildSummary(
+          `Cron PSEO: zbudowano ${out.built ?? 0}, błędów ${out.failed ?? 0}, pozostało ${out.missingTotal ?? '?'} par.`
+        );
+      }
+      reload();
+    } catch (err) {
+      setBuildSummary(`Błąd crona PSEO: ${err.message}`);
+    } finally {
+      setBuilding(false);
+    }
   }
 
   function autoCorrectBulkSlugs() {
@@ -397,6 +438,13 @@ export default function AdminSeoLocalPages() {
               >
                 Wstaw TOP slugi
               </button>
+              <button
+                type="button"
+                className="text-indigo-600 underline"
+                onClick={applyStarterPack}
+              >
+                Preset: TOP 12 miast × slugi
+              </button>
               {correctedBulkMap.length > 0 && (
                 <button
                   type="button"
@@ -443,7 +491,14 @@ export default function AdminSeoLocalPages() {
                 </label>
               ))}
             </div>
-            <div className="mt-1 flex gap-2 text-xs">
+            <div className="mt-1 flex flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                className="text-indigo-600 underline"
+                onClick={selectTop12Cities}
+              >
+                TOP 12 miast
+              </button>
               <button
                 type="button"
                 className="text-indigo-600 underline"
@@ -477,6 +532,15 @@ export default function AdminSeoLocalPages() {
             className="ml-auto px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold disabled:opacity-50"
           >
             {building ? 'Buduję…' : 'Zbuduj macierz'}
+          </button>
+          <button
+            type="button"
+            onClick={handleRunPseoCron}
+            disabled={building}
+            className="px-4 py-2 rounded-lg border border-indigo-200 text-indigo-700 font-semibold disabled:opacity-50"
+            title="Buduje brakujące strony wg rankingu miast/usług (max 8 na przebieg)"
+          >
+            Cron PSEO (8 stron)
           </button>
         </div>
         {buildSummary && <div className="mt-2 text-sm text-slate-700">{buildSummary}</div>}

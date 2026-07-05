@@ -91,7 +91,7 @@ function Dashboard() {
             💳 Opłaty i korzyści
           </Link>
           {user.role === 'provider' && (
-            <Link to="/verification" className="block text-indigo-600 hover:underline font-medium">
+            <Link to="/kyc" className="block text-indigo-600 hover:underline font-medium">
               ✅ Zweryfikuj konto
             </Link>
           )}

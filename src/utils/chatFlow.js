@@ -20,7 +20,7 @@ export async function startQuoteFlow({ provider, token, navigate }) {
   const res = await fetch(apiUrl("/api/orders/quote-draft"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ providerId: provider._id || provider.id, serviceId }),
+    body: JSON.stringify({ providerId: provider._id || provider.id, serviceId, source: 'chat_flow' }),
   });
 
   if (!res.ok) {

@@ -30,7 +30,7 @@ export default function ProviderGettingStartedChecklist({ user, offersCount = 0,
       id: "profile",
       done: profileVerified,
       label: "Zweryfikuj profil wykonawcy",
-      to: "/verification",
+      to: "/kyc",
     },
     {
       id: "offer",

@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { hasAnalyticsConsent } from "../utils/consent";
+import { mirrorTelemetryToGA } from "../lib/googleAnalytics";
 
 // Event types (muszą być zgodne z backend)
 export const EVENT_TYPES = {
@@ -41,7 +42,10 @@ export const EVENT_TYPES = {
   ONBOARDING_COMPLETED: 'onboarding_completed',
   DISPUTE_REPORTED: 'dispute_reported',
   REFUND_REQUESTED: 'refund_requested',
-  CLIENT_API_ERROR: 'client_api_error'
+  CLIENT_API_ERROR: 'client_api_error',
+  AI_NUDGE_SHOWN: 'ai_nudge_shown',
+  AI_NUDGE_CLICKED: 'ai_nudge_clicked',
+  AI_NUDGE_DISMISSED: 'ai_nudge_dismissed'
 };
 
 function extractPageName(path) {
@@ -82,8 +86,9 @@ export function useTelemetry() {
     }
   }, []);
 
-  // Flush queue co 5 sekund lub gdy ma 10 eventów
-  const flushQueue = useCallback(async () => {
+  // Flush queue — opcjonalnie keepalive (unload / pagehide)
+  const flushQueue = useCallback(async (options = {}) => {
+    const { keepalive = false } = options;
     if (eventQueue.current.length === 0) return;
 
     const events = [...eventQueue.current];
@@ -103,18 +108,21 @@ export function useTelemetry() {
       await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ events })
+        body: JSON.stringify({ events }),
+        keepalive
       });
     } catch (error) {
-      console.error('Telemetry flush error:', error);
-      // Przywróć eventy do queue jeśli błąd
-      eventQueue.current.unshift(...events);
+      if (!keepalive) {
+        console.error('Telemetry flush error:', error);
+        eventQueue.current.unshift(...events);
+      }
     }
   }, []);
 
   // Track pojedynczego eventu
   const track = useCallback(async (eventType, properties = {}, metadata = {}) => {
     if (!hasAnalyticsConsent()) return;
+    mirrorTelemetryToGA(eventType, properties);
     // Dodaj do queue
     eventQueue.current.push({
       eventType,
@@ -216,6 +224,10 @@ export function useTelemetry() {
     });
   }, [track]);
 
+  const trackQuoteRequest = useCallback((providerId, serviceId, source = 'ui') => {
+    track(EVENT_TYPES.QUOTE_REQUEST, { providerId, serviceId, source });
+  }, [track]);
+
   // Track order created
   const trackOrderCreated = useCallback((orderId, service, orderType = 'manual') => {
     track(EVENT_TYPES.ORDER_CREATED, {
@@ -223,6 +235,14 @@ export function useTelemetry() {
       service,
       orderType
     });
+  }, [track]);
+
+  const trackOrderView = useCallback((orderId, status = null) => {
+    track(EVENT_TYPES.ORDER_VIEW, { orderId, status });
+  }, [track]);
+
+  const trackOnboardingCompleted = useCallback((role) => {
+    track(EVENT_TYPES.ONBOARDING_COMPLETED, { role });
   }, [track]);
 
   // Funnel: tworzenie zlecenia
@@ -283,14 +303,37 @@ export function useTelemetry() {
     });
   }, [track]);
 
-  // Cleanup na unmount
+  const trackAiNudge = useCallback((action, props = {}) => {
+    const map = {
+      shown: EVENT_TYPES.AI_NUDGE_SHOWN,
+      clicked: EVENT_TYPES.AI_NUDGE_CLICKED,
+      dismissed: EVENT_TYPES.AI_NUDGE_DISMISSED
+    };
+    const eventType = map[action];
+    if (!eventType) return;
+    track(eventType, {
+      kind: props.kind,
+      role: props.role,
+      pathname: props.pathname,
+      source: props.source,
+      reason: props.reason,
+      hintText: props.hintText
+    });
+  }, [track]);
+
+  // Cleanup + flush przy zamknięciu karty (keepalive)
   useEffect(() => {
+    const onPageHide = () => {
+      if (batchTimeout.current) clearTimeout(batchTimeout.current);
+      flushQueue({ keepalive: true });
+    };
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onPageHide);
     return () => {
-      if (batchTimeout.current) {
-        clearTimeout(batchTimeout.current);
-      }
-      // Flush pozostałe eventy
-      flushQueue();
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onPageHide);
+      if (batchTimeout.current) clearTimeout(batchTimeout.current);
+      flushQueue({ keepalive: true });
     };
   }, [flushQueue]);
 
@@ -304,7 +347,10 @@ export function useTelemetry() {
     trackProviderView,
     trackProviderContact,
     trackProviderCompare,
+    trackQuoteRequest,
     trackOrderCreated,
+    trackOrderView,
+    trackOnboardingCompleted,
     trackOrderFormStart,
     trackOrderStepView,
     trackOrderFormAbandon,
@@ -316,6 +362,7 @@ export function useTelemetry() {
     trackOfferFormPreflightOverride,
     trackOrderAccepted,
     trackPayment,
+    trackAiNudge,
     sessionId: sessionId.current
   };
 }

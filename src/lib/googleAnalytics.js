@@ -108,6 +108,57 @@ export function initGoogleAnalytics() {
 }
 
 /**
+ * Wyślij page_view przy nawigacji SPA (po zgodzie na analitykę).
+ */
+export function trackGaPageView(path, title) {
+  if (!initialized || !getConsent().analytics) return;
+  const pagePath = String(path || "/").split("?")[0] || "/";
+  gtag("event", "page_view", {
+    page_path: pagePath,
+    page_title: title || (typeof document !== "undefined" ? document.title : undefined),
+    page_location:
+      typeof window !== "undefined"
+        ? `${window.location.origin}${path || pagePath}`
+        : undefined,
+  });
+}
+
+/** Mapowanie wewnętrznej telemetrii → zdarzenia GA4 */
+const TELEMETRY_GA_MAP = {
+  search: (p) => ({ search_term: p.query, result_count: p.resultCount }),
+  provider_view: (p) => ({ provider_id: p.providerId, view_type: p.viewType }),
+  provider_contact: (p) => ({ provider_id: p.providerId, contact_type: p.contactType }),
+  provider_compare: (p) => ({ compare_count: p.compareCount }),
+  quote_request: (p) => ({ provider_id: p.providerId, source: p.source }),
+  order_form_start: (p) => ({ order_type: p.orderType }),
+  order_form_success: (p) => ({ order_id: p.orderId }),
+  order_created: (p) => ({ order_id: p.orderId }),
+  offer_form_submit: (p) => ({ order_id: p.orderId }),
+  payment_succeeded: (p) => ({ order_id: p.orderId }),
+  payment_failed: (p) => ({ order_id: p.orderId }),
+  login: () => ({}),
+  register: (p) => ({ method: p.role || "email" }),
+};
+
+export function mirrorTelemetryToGA(eventType, properties = {}) {
+  const map = TELEMETRY_GA_MAP[eventType];
+  if (!map) return;
+  const gaName =
+    eventType === "order_form_start"
+      ? "begin_checkout"
+      : eventType === "payment_succeeded"
+        ? "purchase"
+        : eventType === "register"
+          ? "sign_up"
+          : eventType === "provider_view"
+            ? "view_provider"
+            : eventType === "provider_contact"
+              ? "contact_provider"
+              : eventType;
+  trackEvent(gaName, map(properties));
+}
+
+/**
  * Wyślij niestandardowe zdarzenie do GA4 (np. order_created, provider_contacted).
  * No-op gdy GA nie zainicjalizowane lub gdy analityka odrzucona — bezpieczne wywołanie z dowolnego miejsca.
  */

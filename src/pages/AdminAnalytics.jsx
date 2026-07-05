@@ -15,6 +15,45 @@ function fmtRate(r) {
   return `${(Number(r) * 100).toFixed(2)}%`;
 }
 
+const FUNNEL_STEP_ORDER = [
+  "page_view",
+  "search",
+  "provider_view",
+  "provider_contact",
+  "quote_request",
+  "order_form_start",
+  "order_form_success",
+  "offer_form_start",
+  "offer_form_submit",
+  "order_accepted",
+  "payment_succeeded"
+];
+
+const FUNNEL_STEP_LABELS = {
+  page_view: "Odsłona strony",
+  search: "Wyszukiwanie",
+  provider_view: "Profil wykonawcy",
+  provider_contact: "Kontakt z wykonawcą",
+  quote_request: "Zapytanie o wycenę",
+  order_form_start: "Start formularza zlecenia",
+  order_form_success: "Sukces formularza zlecenia",
+  offer_form_start: "Start formularza oferty",
+  offer_form_submit: "Wysłana oferta",
+  order_accepted: "Zaakceptowane zlecenie",
+  payment_succeeded: "Płatność zakończona"
+};
+
+function sortFunnelRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const order = Object.fromEntries(FUNNEL_STEP_ORDER.map((k, i) => [k, i]));
+  return [...list].sort((a, b) => {
+    const ai = order[a?._id] ?? 999;
+    const bi = order[b?._id] ?? 999;
+    if (ai !== bi) return ai - bi;
+    return String(a?._id).localeCompare(String(b?._id));
+  });
+}
+
 function fmtDeltaPp(a, b) {
   if (a == null || b == null || !Number.isFinite(Number(a)) || !Number.isFinite(Number(b))) return "—";
   const delta = (Number(a) - Number(b)) * 100;
@@ -51,11 +90,14 @@ export default function AdminAnalytics() {
   const [from, setFrom] = useState(() => new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10));
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [summary, setSummary] = useState({});
-  const [funnel, setFunnel] = useState([]);
+  const [funnelData, setFunnelData] = useState({ overall: [], client: [], provider: [] });
+  const [funnelTab, setFunnelTab] = useState("overall");
   const [productInsights, setProductInsights] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
   const [aiInsights, setAiInsights] = useState(null);
   const [companyProCronHealth, setCompanyProCronHealth] = useState(null);
+  const [monetization, setMonetization] = useState(null);
+  const [proConversion, setProConversion] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -71,11 +113,20 @@ export default function AdminAnalytics() {
         apiUrl(`/api/telemetry/funnel?startDate=${from}T00:00:00.000Z&endDate=${to}T23:59:59.999Z`),
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const funnelJson = await fRes.json().catch(() => ([]));
-      if (Array.isArray(funnelJson)) setFunnel(funnelJson);
-      else setFunnel(Array.isArray(funnelJson?.overall) ? funnelJson.overall : []);
+      const funnelJson = await fRes.json().catch(() => ({}));
+      if (Array.isArray(funnelJson)) {
+        setFunnelData({ overall: funnelJson, client: [], provider: [] });
+      } else if (funnelJson && typeof funnelJson === "object") {
+        setFunnelData({
+          overall: Array.isArray(funnelJson.overall) ? funnelJson.overall : [],
+          client: Array.isArray(funnelJson.client) ? funnelJson.client : [],
+          provider: Array.isArray(funnelJson.provider) ? funnelJson.provider : []
+        });
+      } else {
+        setFunnelData({ overall: [], client: [], provider: [] });
+      }
 
-      const [piRes, healthRes, aiRes, cronHealthRes] = await Promise.all([
+      const [piRes, healthRes, aiRes, cronHealthRes, monetRes, proConvRes] = await Promise.all([
         fetch(apiUrl(`/api/admin/analytics/product-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -88,6 +139,12 @@ export default function AdminAnalytics() {
         fetch(apiUrl(`/api/admin/analytics/company-pro-cron-health`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch(apiUrl(`/api/admin/analytics/monetization-summary?from=${from}&to=${to}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl(`/api/admin/analytics/pro-conversion?from=${from}&to=${to}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
       const piJson = await piRes.json().catch(() => null);
       setProductInsights(piJson && typeof piJson === "object" ? piJson : null);
@@ -97,14 +154,20 @@ export default function AdminAnalytics() {
       setAiInsights(aiJson && typeof aiJson === "object" ? aiJson : null);
       const cronHealthJson = await cronHealthRes.json().catch(() => null);
       setCompanyProCronHealth(cronHealthJson && typeof cronHealthJson === "object" ? cronHealthJson : null);
+      const monetJson = await monetRes.json().catch(() => null);
+      setMonetization(monetJson && typeof monetJson === "object" ? monetJson : null);
+      const proConvJson = await proConvRes.json().catch(() => null);
+      setProConversion(proConvJson && typeof proConvJson === "object" ? proConvJson : null);
     } catch (error) {
       console.error("AdminAnalytics load error:", error);
       setSummary({});
-      setFunnel([]);
+      setFunnelData({ overall: [], client: [], provider: [] });
       setProductInsights(null);
       setApiHealth(null);
       setAiInsights(null);
       setCompanyProCronHealth(null);
+      setMonetization(null);
+      setProConversion(null);
     } finally {
       setLoading(false);
     }
@@ -113,12 +176,24 @@ export default function AdminAnalytics() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [from, to]);
 
   const kpi = summary?.kpi || {};
   const topServices = useMemo(() => (Array.isArray(summary?.topServices) ? summary.topServices : []), [summary]);
   const daily = useMemo(() => (Array.isArray(summary?.daily) ? summary.daily : []), [summary]);
-  const funnelRows = useMemo(() => (Array.isArray(funnel) ? funnel : []), [funnel]);
+  const funnelRows = useMemo(() => {
+    const raw = funnelData?.[funnelTab] || funnelData?.overall || [];
+    return sortFunnelRows(raw);
+  }, [funnelData, funnelTab]);
+  const aiNudge = productInsights?.aiNudge || {};
+  const aiNudgeByKind = useMemo(
+    () => (Array.isArray(aiNudge.byKind) ? aiNudge.byKind : []),
+    [aiNudge.byKind]
+  );
+  const aiNudgeClickSource = useMemo(
+    () => (Array.isArray(aiNudge.clickBySource) ? aiNudge.clickBySource : []),
+    [aiNudge.clickBySource]
+  );
   const traffic = productInsights?.traffic || {};
   const topPaths = useMemo(
     () => (Array.isArray(productInsights?.topPaths) ? productInsights.topPaths : []),
@@ -258,6 +333,36 @@ export default function AdminAnalytics() {
         <Card title="Opłacone" value={asText(num(kpi.ordersPaid))} />
         <Card title="Obrót (PLN)" value={asText(fmt2(num(kpi.revenue) / 100))} />
         <Card title="Średnia wartość (PLN)" value={asText(fmt2(num(kpi.avgOrder) / 100))} />
+      </div>
+
+      <h2 className="text-lg font-semibold text-slate-800 pt-2">Monetyzacja i PRO</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Aktywne subskrypcje" value={asText(num(monetization?.subscriptions?.activeCount))} />
+        <Card title="MRR subskrypcji (PLN)" value={asText(num(monetization?.subscriptions?.mrrPLN))} />
+        <Card title="Przychód promocji (PLN)" value={asText(num(monetization?.promotions?.revenuePLN))} />
+        <Card title="Wykonawcy PRO" value={asText(num(monetization?.subscriptions?.proProvidersCount))} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="Subskrypcje wg planu (aktywne)">
+          <SimpleTable
+            headers={["Plan", "Użytkowników"]}
+            rows={(monetization?.subscriptions?.byPlan || []).map((r) => [
+              asText(r?.planKey),
+              asText(num(r?.count)),
+            ])}
+          />
+        </Panel>
+        <Panel title="Konwersje PRO (okres)">
+          <SimpleTable
+            headers={["Segment", "Wartość"]}
+            rows={[
+              ["Nowi PRO (wykonawcy)", asText(num(proConversion?.conversions?.providers))],
+              ["Nowi PRO (klienci)", asText(num(proConversion?.conversions?.clients))],
+              ["Churn rate (%)", asText(proConversion?.churn?.rate ?? "—")],
+              ["Aktywne subskrypcje", asText(num(proConversion?.summary?.totalActive))],
+            ]}
+          />
+        </Panel>
       </div>
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">AI Concierge i automatyzacja</h2>
@@ -523,6 +628,28 @@ export default function AdminAnalytics() {
         <Card title="AI → zlecenie do providera" value={asText(num(aiPromptStats.aiProviderOrderCtas))} />
       </div>
 
+      <h3 className="text-base font-semibold text-slate-800 pt-1">AI Concierge — dymki (nudge widget)</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Nudge: wyświetlenia" value={asText(num(aiNudge.shown))} />
+        <Card title="Nudge: kliknięcia" value={asText(num(aiNudge.clicked))} />
+        <Card title="Nudge: zamknięcia" value={asText(num(aiNudge.dismissed))} />
+        <Card title="CTR nudge (klik / show)" value={fmtRate(aiNudge.clickRate)} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Panel title="Nudge: typ triggera (shown)">
+          <SimpleTable
+            headers={["Trigger", "Wyświetlenia"]}
+            rows={aiNudgeByKind.map((r) => [asText(r?.kind), asText(num(r?.count))])}
+          />
+        </Panel>
+        <Panel title="Nudge: źródło kliknięcia">
+          <SimpleTable
+            headers={["Źródło", "Kliknięcia"]}
+            rows={aiNudgeClickSource.map((r) => [asText(r?.source), asText(num(r?.count))])}
+          />
+        </Panel>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Panel title="AI: skuteczność promptów startowych">
           <SimpleTable
@@ -686,11 +813,39 @@ export default function AdminAnalytics() {
         </div>
       </Panel>
 
-      <Panel title="Lejek (raw)">
+      <Panel title="Lejek konwersji (telemetria)">
+        <div className="flex flex-wrap gap-2 mb-3">
+          {[
+            { id: "overall", label: "Ogółem" },
+            { id: "client", label: "Klient" },
+            { id: "provider", label: "Wykonawca" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFunnelTab(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
+                funnelTab === tab.id
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <SimpleTable
-          headers={["Typ", "Zdarzenia"]}
-          rows={funnelRows.map((r) => [asText(r?._id || "—"), asText(num(r?.count))])}
+          headers={["Etap", "Typ (raw)", "Zdarzenia", "Unikalni użytkownicy"]}
+          rows={funnelRows.map((r) => [
+            FUNNEL_STEP_LABELS[r?._id] || asText(r?._id),
+            asText(r?._id),
+            asText(num(r?.count)),
+            asText(num(r?.uniqueUsers))
+          ])}
         />
+        <p className="text-xs text-gray-500 mt-2">
+          Zakładka „Klient” / „Wykonawca” wymaga zalogowanych użytkowników z przypisaną rolą w bazie.
+        </p>
       </Panel>
 
       <Panel title="Top usługi">

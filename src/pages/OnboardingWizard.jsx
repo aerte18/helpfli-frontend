@@ -8,11 +8,13 @@ import ProviderOrderScopePicker from "../components/ProviderOrderScopePicker";
 import { resolveSelectionKeysToMongoIds } from "../utils/serviceSelectionKeys";
 import FoundingProviderBanner from "../components/FoundingProviderBanner";
 import { getPostLoginPath, consumePostOnboardingNext } from "../utils/authRedirect";
+import { useTelemetry } from "../hooks/useTelemetry";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, fetchMe } = useAuth();
+  const { trackOnboardingCompleted } = useTelemetry();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -196,6 +198,7 @@ export default function OnboardingWizard() {
 
       await fetchMe();
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      trackOnboardingCompleted(userData.role || user?.role || "unknown");
       const deferredNext = consumePostOnboardingNext();
       navigate(getPostLoginPath(userData, deferredNext || undefined));
     } catch (err) {

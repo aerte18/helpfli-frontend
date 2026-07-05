@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { CATEGORY_ICONS } from "../components/icons/HelpfliCategoryIcons";
 import Footer from "../components/Footer";
+import SEOHead from "../components/SEOHead";
 import PageBackground, { GlassCard } from "../components/PageBackground";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -24,10 +25,8 @@ export default function ServiceDetailPage() {
         setError(null);
 
         // Pobierz szczegóły usługi
-        console.log('ServiceDetailPage: fetching service for slug:', slug);
         const serviceResponse = await fetch(apiUrl(`/api/services?slug=${slug}&limit=1`));
         const serviceData = await serviceResponse.json();
-        console.log('ServiceDetailPage: service data:', serviceData);
         
         if (serviceData.items?.length) {
           setService(serviceData.items[0]);
@@ -138,8 +137,26 @@ export default function ServiceDetailPage() {
     ];
   };
 
+  const serviceName = service.name_pl || service.name_en || service.name || slug;
+
   return (
     <PageBackground className="py-6 md:py-8">
+      <SEOHead
+        title={`${serviceName} — wykonawcy i ceny | Helpfli`}
+        description={`Znajdź sprawdzonych wykonawców: ${serviceName}. Porównaj oferty, sprawdź ceny i zleć usługę na Helpfli.`}
+        canonical={`/service/${slug}`}
+      >
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: serviceName,
+            url: `https://helpfli.pl/service/${slug}`,
+            provider: { "@type": "Organization", name: "Helpfli" },
+            areaServed: { "@type": "Country", name: "Polska" }
+          })}
+        </script>
+      </SEOHead>
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         {/* Breadcrumb */}
         <nav className="mb-6">

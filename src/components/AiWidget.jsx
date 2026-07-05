@@ -36,10 +36,11 @@ export default function AiWidget() {
   }
 
   const handleOpen = () => {
-    // Follow-up: klik w dymek z podpowiedzią (lub z kropką sugestii)
-    // otwiera czat od razu w temacie tej podpowiedzi.
     const followUp = teaser?.prompt || (suggestionDot ? PROACTIVE_HINT.prompt : "");
-    markEngaged();
+    markEngaged({
+      source: teaser?.text ? "teaser" : suggestionDot ? "dot" : "fab",
+      kind: teaser?.kind || (suggestionDot ? "proactive" : undefined)
+    });
     setSeedQuery(followUp);
     setOpen(true);
   };
