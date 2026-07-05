@@ -8,7 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    // Jedna kopia Reacta — react-leaflet w osobnym chunku inaczej trafia na undefined createContext
+    dedupe: ['react', 'react-dom', 'react-leaflet', '@react-leaflet/core'],
   },
   define: {
     'process.env': {}, // Leaflet require()
@@ -18,7 +20,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/leaflet') || id.includes('react-leaflet')) {
+          // Tylko biblioteka leaflet — NIE react-leaflet (wymaga React z vendor w tym samym grafie)
+          if (/node_modules[/\\]leaflet[/\\]/.test(id)) {
             return 'leaflet';
           }
           if (id.includes('node_modules/recharts')) {
