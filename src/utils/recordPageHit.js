@@ -20,8 +20,8 @@ function markVisitRecordedThisSession() {
 }
 
 /**
- * Anonimowy licznik wejść (1× na sesję przeglądarki, dzienne sumy per landing, bez IP).
- * Działa bez zgody na cookies analityczne — uzupełnia telemetrię page_view (odsłony).
+ * Anonimowy licznik wejść (1× na sesję, dzienne sumy per landing).
+ * Wywoływany tylko po zgodzie na cookies analityczne (TelemetryRouteListener).
  */
 export function recordPageHit(path) {
   if (typeof window === 'undefined') return;

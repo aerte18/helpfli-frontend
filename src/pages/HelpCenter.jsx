@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import SEOHead from "../components/SEOHead";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function HelpCenter() {
@@ -83,6 +84,11 @@ export default function HelpCenter() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title="Centrum pomocy — Helpfli"
+        description="FAQ, porady i wsparcie dla klientów i wykonawców Helpfli."
+        canonical="/help"
+      />
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">Centrum pomocy</h1>
 

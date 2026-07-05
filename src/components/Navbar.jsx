@@ -110,7 +110,7 @@ export default function Navbar() {
   }, [showUserMenu, searchExpanded, showNotifications]);
 
   return (
-    <header className="qs-app-navbar sticky top-0 z-[70] relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+    <header id="navigation" tabIndex={-1} className="qs-app-navbar sticky top-0 z-[70] relative border-b pt-[env(safe-area-inset-top)] backdrop-blur-sm focus:outline-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="mx-auto max-w-7xl px-3 pr-2 sm:px-4 sm:pr-4 py-4">
         <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="flex items-center gap-8 min-w-0 shrink-0">

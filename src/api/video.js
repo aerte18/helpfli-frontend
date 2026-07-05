@@ -1,7 +1,7 @@
 // API helper dla wideo-wizyt
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-export async function createVideoSession({ providerId, orderId, scheduledAt, price }) {
+export async function createVideoSession({ providerId, orderId, scheduledAt, price, paymentIntentId }) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_URL}/api/video/sessions/create`, {
     method: 'POST',
@@ -13,7 +13,8 @@ export async function createVideoSession({ providerId, orderId, scheduledAt, pri
       providerId,
       orderId,
       scheduledAt,
-      price
+      price,
+      paymentIntentId,
     })
   });
 
@@ -23,6 +24,49 @@ export async function createVideoSession({ providerId, orderId, scheduledAt, pri
   }
 
   return res.json();
+}
+
+export async function createVideoPaymentIntent({ providerId, orderId, price }) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api/video/sessions/create-payment-intent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      providerId,
+      orderId,
+      price
+    })
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Błąd tworzenia płatności');
+  }
+
+  return res.json();
+}
+
+/** Przekierowanie do checkout Stripe przed utworzeniem sesji wideo */
+export async function beginVideoSessionCheckout({ providerId, orderId, scheduledAt, price }) {
+  const data = await createVideoPaymentIntent({ providerId, orderId, price });
+  if (!data?.clientSecret || !data?.paymentIntentId) {
+    throw new Error('Brak danych płatności');
+  }
+  const params = new URLSearchParams({
+    pi: data.paymentIntentId,
+    cs: data.clientSecret,
+    type: 'video',
+    providerId: String(providerId),
+    orderId: String(orderId),
+    price: String(price),
+  });
+  if (scheduledAt) {
+    params.set('scheduledAt', new Date(scheduledAt).toISOString());
+  }
+  window.location.href = `/checkout?${params.toString()}`;
 }
 
 export async function getVideoSessionToken(sessionId) {
@@ -91,29 +135,6 @@ export async function getVideoRecordings(sessionId) {
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || 'Błąd pobierania nagrań');
-  }
-
-  return res.json();
-}
-
-export async function createVideoPaymentIntent({ providerId, orderId, price }) {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`${API_URL}/api/video/sessions/create-payment-intent`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      providerId,
-      orderId,
-      price
-    })
-  });
-
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || 'Błąd tworzenia płatności');
   }
 
   return res.json();

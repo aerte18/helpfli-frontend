@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, MessageSquare, DollarSign, Clock } from "lucide-react";
+import ModalDialog from "./ui/ModalDialog";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -68,8 +69,12 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <ModalDialog
+      open={open}
+      onClose={onClose}
+      titleId="ask-quote-title"
+      panelClassName="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+    >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
           <div className="flex items-center justify-between">
@@ -78,7 +83,7 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
                 <MessageSquare className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">
+                <h3 id="ask-quote-title" className="text-xl font-bold text-white">
                   Zapytaj o wycenę
                 </h3>
                 <p className="text-sm text-blue-100 mt-0.5">
@@ -149,7 +154,11 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
 
             {/* Error message */}
             {error && (
-              <div className="rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4">
+              <div
+                role="alert"
+                aria-live="polite"
+                className="rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4"
+              >
                 <p className="text-sm font-medium text-red-700 dark:text-red-400">
                   {error}
                 </p>
@@ -186,7 +195,6 @@ export default function AskQuoteModal({ open, onClose, provider, service }) {
             </div>
           </form>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }

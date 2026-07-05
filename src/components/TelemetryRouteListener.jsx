@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { recordPageHit } from "../utils/recordPageHit";
 import { trackGaPageView } from "../lib/googleAnalytics";
+import { hasAnalyticsConsent } from "../utils/consent";
 
 /** Rejestruje wejście sesji (1×) i odsłony page_view — telemetria wymaga zgody cookies (useTelemetry). */
 export default function TelemetryRouteListener() {
@@ -11,7 +12,9 @@ export default function TelemetryRouteListener() {
 
   useEffect(() => {
     const path = `${location.pathname}${location.search || ""}`;
-    recordPageHit(location.pathname);
+    if (hasAnalyticsConsent()) {
+      recordPageHit(location.pathname);
+    }
     trackPageView(path);
     trackGaPageView(path);
   }, [location.pathname, location.search, trackPageView]);

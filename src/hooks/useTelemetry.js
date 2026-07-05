@@ -37,6 +37,9 @@ export const EVENT_TYPES = {
   PAYMENT_INTENT_CREATED: 'payment_intent_created',
   PAYMENT_SUCCEEDED: 'payment_succeeded',
   PAYMENT_FAILED: 'payment_failed',
+  CHECKOUT_STARTED: 'checkout_started',
+  CHECKOUT_ABANDONED: 'checkout_abandoned',
+  PAYMENT_FUNDED: 'payment_funded',
   LOGIN: 'login',
   REGISTER: 'register',
   ONBOARDING_COMPLETED: 'onboarding_completed',
@@ -303,6 +306,14 @@ export function useTelemetry() {
     });
   }, [track]);
 
+  const trackCheckoutStarted = useCallback((properties = {}) => {
+    track(EVENT_TYPES.CHECKOUT_STARTED, properties);
+  }, [track]);
+
+  const trackCheckoutAbandoned = useCallback((properties = {}) => {
+    track(EVENT_TYPES.CHECKOUT_ABANDONED, properties);
+  }, [track]);
+
   const trackAiNudge = useCallback((action, props = {}) => {
     const map = {
       shown: EVENT_TYPES.AI_NUDGE_SHOWN,
@@ -362,6 +373,8 @@ export function useTelemetry() {
     trackOfferFormPreflightOverride,
     trackOrderAccepted,
     trackPayment,
+    trackCheckoutStarted,
+    trackCheckoutAbandoned,
     trackAiNudge,
     sessionId: sessionId.current
   };

@@ -1,11 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import SEOHead from "../components/SEOHead";
 import { Zap, ShieldCheck, Star, Sparkles, Lightbulb, Target } from "lucide-react";
 
 export default function About() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title="O nas — Helpfli"
+        description="Helpfli to marketplace usług lokalnych w Polsce. Łączymy klientów z zweryfikowanymi wykonawcami."
+        canonical="/about"
+      />
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">O nas</h1>
 

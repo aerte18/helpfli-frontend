@@ -39,24 +39,33 @@ function buildFaqJsonLd(page) {
   };
 }
 
-function buildLocalBusinessJsonLd(page, snap, canonicalUrl) {
+function buildWebPageJsonLd(page, snap, canonicalUrl) {
   if (!page) return null;
 
-  const ld = {
+  return {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: `Helpfli – ${page.serviceName} ${page.cityName}`,
+    '@type': 'WebPage',
+    name: page.title?.trim() || `${page.serviceName} ${page.cityName} — Helpfli`,
     description: buildSeoMeta(page).description,
     url: canonicalUrl,
-    areaServed: {
-      '@type': 'City',
-      name: page.cityName
+    inLanguage: 'pl-PL',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Helpfli',
+      url: SITE_URL,
     },
-    image: `${SITE_URL}/icons/icon-192x192.png`,
-    priceRange: snap?.prices?.median ? `${snap.prices.min}-${snap.prices.max} PLN` : undefined
+    about: {
+      '@type': 'Service',
+      name: page.serviceName,
+      areaServed: {
+        '@type': 'City',
+        name: page.cityName,
+      },
+    },
+    ...(snap?.prices?.median
+      ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'PLN', lowPrice: snap.prices.min, highPrice: snap.prices.max } }
+      : {}),
   };
-
-  return ld;
 }
 
 function buildBreadcrumbJsonLd(page, canonicalUrl) {
@@ -140,7 +149,7 @@ export default function SeoLocalPage() {
 
   const faqLd = useMemo(() => buildFaqJsonLd(page), [page]);
   const localLd = useMemo(
-    () => (page ? buildLocalBusinessJsonLd(page, snap, `${SITE_URL}${canonicalPath}`) : null),
+    () => (page ? buildWebPageJsonLd(page, snap, `${SITE_URL}${canonicalPath}`) : null),
     [page, snap, canonicalPath]
   );
   const crumbLd = useMemo(

@@ -6,6 +6,7 @@ import StripeProvider from "../payment/StripeProvider";
 import CheckoutPage from "../payment/CheckoutPage";
 import { apiUrl } from "@/lib/apiUrl";
 import { getOrderPaymentFlow, isPaymentFlowLocked } from "../utils/paymentFlow";
+import { useTelemetry } from "../hooks/useTelemetry";
 
 const authHeaders = () => {
   const token = localStorage.getItem("token");
@@ -42,6 +43,7 @@ export default function Checkout() {
   const clientSecret = searchParams.get('cs');
   const checkoutKind = searchParams.get('kind'); // commission | contact_unlock | listing_addons
   const contactUnlockFeeParam = searchParams.get('fee');
+  const { trackCheckoutStarted } = useTelemetry();
   const lockedPaymentFlow = order ? getOrderPaymentFlow(order) : null;
   const paymentFlowLocked = order ? isPaymentFlowLocked(order) : false;
   const showMobilePayBar =
@@ -77,6 +79,16 @@ export default function Checkout() {
   useEffect(() => { 
     if (orderId) load(); 
   }, [orderId]);
+
+  useEffect(() => {
+    if (!order || loading) return;
+    trackCheckoutStarted({
+      orderId,
+      paymentMethod,
+      checkoutKind: checkoutKind || 'order_escrow',
+      orderStatus: order.status,
+    });
+  }, [order?._id, loading, orderId, paymentMethod, checkoutKind, trackCheckoutStarted]);
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">

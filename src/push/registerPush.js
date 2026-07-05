@@ -52,7 +52,7 @@ export async function registerPush({ token, vapidPublicKey, silent = false, reas
       applicationServerKey: urlBase64ToUint8Array(vapid),
     });
 
-    await fetch(apiUrl("/api/notifications/subscribe"), {
+    await fetch(apiUrl("/api/push/subscribe"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

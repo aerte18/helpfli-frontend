@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { openHowItWorksModal } from "../utils/openHowItWorksModal";
+import PromoPicture from "./PromoPicture";
 
 const ASSETS_VERSION = "20260604i";
 const BANNER_W = 2172;
@@ -98,14 +99,15 @@ export default function LandingTopPromoCarousel() {
             style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
           >
             <div className="relative w-full aspect-[2172/724]">
-              <img
+              <PromoPicture
                 key={slide.id}
-                src={slide.src}
+                pngSrc={slide.src}
                 alt={slide.alt}
                 width={BANNER_W}
                 height={BANNER_H}
                 className="block h-full w-full select-none"
-                draggable={false}
+                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={index === 0 ? "high" : "auto"}
               />
 
               <div className="absolute inset-0 z-20">

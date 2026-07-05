@@ -2,7 +2,9 @@ import { Routes, Route, Navigate, useLocation, useParams } from "react-router-do
 import { useEffect, Suspense, lazy } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { initOneSignal } from "./onesignal";
-import LandingStart from "./pages/LandingStart";
+import { hasMarketingConsent } from "./utils/consent";
+
+const LandingStart = lazy(() => import("./pages/LandingStart"));
 
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
@@ -145,19 +147,29 @@ function App() {
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   useEffect(() => {
-    console.log("App - useEffect - checking localStorage for user");
     try {
       const raw = localStorage.getItem("user");
       const u = raw ? JSON.parse(raw) : null;
-      console.log("App - useEffect - user from localStorage:", u);
-      if (u?.role === "provider") {
-        console.log("App - useEffect - initializing OneSignal for provider");
-        // Opóźnij inicjalizację OneSignal, żeby uniknąć konfliktów
+      if (u?.role === "provider" && hasMarketingConsent()) {
         setTimeout(() => initOneSignal(u), 1000);
       }
     } catch (error) {
       console.warn("App - useEffect - localStorage access blocked:", error);
     }
+
+    const onConsentChanged = () => {
+      try {
+        const raw = localStorage.getItem("user");
+        const u = raw ? JSON.parse(raw) : null;
+        if (u?.role === "provider" && hasMarketingConsent()) {
+          initOneSignal(u);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("qs-consent-changed", onConsentChanged);
+    return () => window.removeEventListener("qs-consent-changed", onConsentChanged);
   }, []);
 
   // Po zmianie trasy zdejmij ewentualne „zawieszone” style z blokady scrolla (HMR / stary useBodyScrollLock).
@@ -199,6 +211,7 @@ function App() {
         )}
 
         {/* Router */}
+        <main id="main-content" tabIndex={-1} className="focus:outline-none">
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
         {/* Landing page jako strona główna */}
@@ -341,6 +354,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </main>
 
         {/* Globalne widgety — lazy, nie blokują pierwszego paintu */}
         {!isAdminRoute && (

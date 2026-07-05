@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Footer from "../components/Footer";
 import PageBackground, { GlassCard } from "../components/PageBackground";
+import SEOHead from "../components/SEOHead";
 import { apiUrl } from "@/lib/apiUrl";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 import SocialMediaLinks from "../components/SocialMediaLinks";
@@ -50,6 +51,11 @@ export default function Contact() {
 
   return (
     <PageBackground className="py-10 md:py-14">
+      <SEOHead
+        title="Kontakt — Helpfli"
+        description="Skontaktuj się z zespołem Helpfli. Formularz kontaktowy, e-mail i wsparcie dla klientów oraz wykonawców."
+        path="/kontakt"
+      />
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <GlassCard className="p-6 md:p-8 mb-6">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 text-slate-900">

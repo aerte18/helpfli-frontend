@@ -13,9 +13,13 @@ export default function Boosts() {
 
   const onBuy = async (code) => {
     try {
-      await buyBoost(code, isPlatformInvoicingEnabled() ? requestInvoice : false);
-      alert("Aktywowano wyróżnienie / boost.");
-      setRequestInvoice(false); // Reset checkbox
+      const data = await buyBoost(code, isPlatformInvoicingEnabled() ? requestInvoice : false);
+      if (data?.requiresPayment && data?.clientSecret && data?.paymentIntentId) {
+        window.location.href = `/checkout?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}&type=boost`;
+        return;
+      }
+      alert(data?.usedFreeBoost ? "Aktywowano darmowy boost z pakietu." : "Aktywowano wyróżnienie / boost.");
+      setRequestInvoice(false);
     } catch (e) {
       alert(e.message);
     }
@@ -43,32 +47,4 @@ export default function Boosts() {
       </div>
     </div>
   );
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+};

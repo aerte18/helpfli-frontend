@@ -45,7 +45,7 @@ import { copyToClipboard } from "../utils/copyToClipboard";
 import { useToast } from "../components/toast/ToastProvider";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { Helmet } from "react-helmet-async";
-import { getVideoSessionByOrder } from "../api/video";
+import { getVideoSessionByOrder, beginVideoSessionCheckout } from "../api/video";
 import AIStepHint from "../components/AIStepHint";
 import FoundingFeeHint from "../components/FoundingFeeHint";
 import { serviceLabel } from "../utils/serviceLabels";
@@ -1668,8 +1668,34 @@ function OrderOffersStageView({ order, orderId, onAcceptOffer, onCancelOffer, on
 
 function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEscrow, CheckoutButton, onStartWork, onGoChat, isLoadingStartWork = false, isLoadingFundEscrow = false, videoSession = null, showAiHint = true }) {
   const navigate = useNavigate();
+  const { push: toast } = useToast();
+  const [videoCheckoutBusy, setVideoCheckoutBusy] = useState(false);
   const provider = order.provider || order.acceptedOffer?.providerMeta;
   const acceptedOffer = order.acceptedOffer || order.offers?.find(o => o._id === order.acceptedOfferId);
+  const videoProviderId =
+    acceptedOffer?.providerId?._id ?? acceptedOffer?.providerId ?? order.provider?._id ?? order.provider;
+  const videoPrice = Number(acceptedOffer?.amount ?? acceptedOffer?.price ?? 0);
+  const needsVideoPayment = isClient && order.consultationType === 'video' && !videoSession && videoPrice > 0;
+
+  const onPayForVideo = async () => {
+    if (!videoProviderId) return;
+    setVideoCheckoutBusy(true);
+    try {
+      await beginVideoSessionCheckout({
+        providerId: videoProviderId,
+        orderId,
+        scheduledAt: order.scheduledDateTime,
+        price: videoPrice,
+      });
+    } catch (e) {
+      toast({
+        title: 'Nie udało się rozpocząć płatności',
+        description: getErrorMessage(e),
+        variant: 'error',
+      });
+      setVideoCheckoutBusy(false);
+    }
+  };
   
   // Sprawdź czy płatność jest zewnętrzna (poza Helpfli)
   const isExternalPayment = order.paymentMethod === 'external' || order.paymentPreference === 'external';
@@ -1948,6 +1974,25 @@ function OrderAcceptedStageView({ order, orderId, isClient, isProvider, onFundEs
             )}
 
             {/* Sesja wideo (jeśli istnieje) */}
+            {needsVideoPayment && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600 text-xl">🎥</span>
+                  <h3 className="font-semibold text-blue-900">Spotkanie wideo</h3>
+                </div>
+                <p className="text-sm text-blue-800 mb-3">
+                  Opłać konsultację wideo, aby wygenerować link do rozmowy z wykonawcą.
+                </p>
+                <button
+                  type="button"
+                  onClick={onPayForVideo}
+                  disabled={videoCheckoutBusy}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
+                >
+                  {videoCheckoutBusy ? 'Przekierowanie…' : `Opłać spotkanie wideo (${videoPrice} zł)`}
+                </button>
+              </div>
+            )}
             {videoSession && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-3">

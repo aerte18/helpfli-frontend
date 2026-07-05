@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import SEOHead from "../components/SEOHead";
 import { companyPublicInfo } from "../legal/companyPublicInfo";
 
 export default function Privacy() {
@@ -8,8 +9,13 @@ export default function Privacy() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title={`Polityka prywatności — ${c.brand}`}
+        description="Zasady przetwarzania danych osobowych w Helpfli: RODO, cookies, analityka, Stripe, KYC i Twoje prawa."
+        path="/prywatnosc"
+      />
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">Polityka prywatności {c.brand}</h1>
+        <h1 className="text-3xl font-bold mb-6 text-slate-900">Polityka prywatności {c.brand}</h1>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-900">
           Niniejsza polityka opisuje zasady przetwarzania danych w serwisie {c.siteUrl.replace(/^https?:\/\//, "")}{" "}
@@ -65,7 +71,7 @@ export default function Privacy() {
           do autoryzacji transakcji odbywa się na podstawie umów powierzenia / klauzul standardowych zgodnie z
           dokumentacją operatora.
         </p>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-slate-700 mb-4">
           Szczegóły:{" "}
           <a
             href="https://stripe.com/privacy"
@@ -77,6 +83,26 @@ export default function Privacy() {
           </a>
           ; dla P24 — regulamin i polityka dostawcy widoczne przy płatności.
         </p>
+        <p className="text-gray-800 mb-3">
+          <strong>Narzędzia analityczne i marketingowe</strong> (włączane wyłącznie po zgodzie w banerze cookies):
+        </p>
+        <ul className="list-disc list-inside text-gray-800 space-y-1 mb-4">
+          <li>
+            <strong>Google Analytics 4</strong> — statystyki ruchu (Google Ireland Ltd. / Google LLC, USA — SCC).
+          </li>
+          <li>
+            <strong>Microsoft Clarity</strong> — mapy ciepła i UX (Microsoft Ireland Operations Ltd.).
+          </li>
+          <li>
+            <strong>Sentry</strong> — raportowanie błędów (Functional Software Inc., USA — SCC).
+          </li>
+          <li>
+            <strong>OneSignal</strong> — powiadomienia push dla wykonawców (OneSignal Inc., USA — SCC).
+          </li>
+          <li>
+            <strong>Telemetria Helpfli</strong> — anonimowe zdarzenia lejka (serwer EU, bez odsprzedaży danych).
+          </li>
+        </ul>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">§4 Okres przechowywania</h2>
         <p className="text-gray-800 mb-4">

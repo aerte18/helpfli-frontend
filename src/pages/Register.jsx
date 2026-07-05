@@ -394,14 +394,21 @@ export default function Register() {
         <p className="text-center text-sm text-slate-500 mb-4">Wybierz typ konta i uzupełnij dane.</p>
 
         {/* Wybór roli */}
-        <div className="mb-4">
-          <div className="flex bg-slate-100 rounded-xl p-1">
+        <fieldset className="mb-4 border-0 p-0 m-0">
+          <legend className="text-sm font-medium text-slate-700 mb-2">Typ konta</legend>
+          <div
+            role="radiogroup"
+            aria-label="Typ konta"
+            className="flex bg-slate-100 rounded-xl p-1"
+          >
             {ROLE_OPTIONS.map((opt) => {
               const active = form.role === opt.key;
               return (
                 <button
                   key={opt.key}
                   type="button"
+                  role="radio"
+                  aria-checked={active}
                   onClick={() => setForm((p) => ({ ...p, role: opt.key }))}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition
                     ${active ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"}`}
@@ -418,10 +425,14 @@ export default function Register() {
               ? "Założysz firmę wieloosobową. Jako właściciel będziesz mógł zarządzać zespołem wykonawców."
               : "Założysz konto klienta. Od razu możesz tworzyć zlecenia."}
           </div>
-        </div>
+        </fieldset>
 
         {/* Formularz */}
-        {error && <p className="text-red-500 text-center mb-3">{error}</p>}
+        {error && (
+          <p className="text-red-500 text-center mb-3" role="alert" aria-live="polite">
+            {error}
+          </p>
+        )}
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
             <div className="flex items-center">
@@ -449,25 +460,39 @@ export default function Register() {
         )}
 
         {!success && (
-          <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            name="name"
-            placeholder="Imię i nazwisko / nazwa"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
+          <form onSubmit={handleSubmit} className="space-y-3" aria-label="Formularz rejestracji">
+          <div>
+            <label htmlFor="reg-name" className="block text-sm font-medium text-slate-700 mb-1">
+              Imię i nazwisko / nazwa
+            </label>
+            <input
+              id="reg-name"
+              type="text"
+              name="name"
+              placeholder="Imię i nazwisko / nazwa"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              value={form.name}
+              onChange={handleChange}
+              autoComplete="name"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="reg-email" className="block text-sm font-medium text-slate-700 mb-1">
+              Email
+            </label>
+            <input
+              id="reg-email"
+              type="email"
+              name="email"
+              placeholder="Email"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              value={form.email}
+              onChange={handleChange}
+              autoComplete="email"
+              required
+            />
+          </div>
           {form.referralCode ? (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-sm text-indigo-900">
               <label htmlFor="referralCode" className="block font-medium text-indigo-950 mb-1">
@@ -487,25 +512,38 @@ export default function Register() {
               </p>
             </div>
           ) : (
-            <input
-              type="text"
-              name="referralCode"
-              placeholder="Kod polecający (opcjonalnie)"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
-              value={form.referralCode}
-              onChange={handleChange}
-              autoComplete="off"
-            />
+            <div>
+              <label htmlFor="reg-referral" className="block text-sm font-medium text-slate-700 mb-1">
+                Kod polecający (opcjonalnie)
+              </label>
+              <input
+                id="reg-referral"
+                type="text"
+                name="referralCode"
+                placeholder="Kod polecający (opcjonalnie)"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
+                value={form.referralCode}
+                onChange={handleChange}
+                autoComplete="off"
+              />
+            </div>
           )}
-          <input
-            type="tel"
-            name="phone"
-            placeholder="+48 123 456 789"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            value={form.phone}
-            onChange={handleChange}
-            required
-          />
+          <div>
+            <label htmlFor="reg-phone" className="block text-sm font-medium text-slate-700 mb-1">
+              Telefon
+            </label>
+            <input
+              id="reg-phone"
+              type="tel"
+              name="phone"
+              placeholder="+48 123 456 789"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              value={form.phone}
+              onChange={handleChange}
+              autoComplete="tel"
+              required
+            />
+          </div>
 
           {/* Pola firmy - dla rejestracji firmy wieloosobowej */}
           {form.role === "company" && (
@@ -728,20 +766,27 @@ export default function Register() {
           )}
 
           <div>
+            <label htmlFor="reg-password" className="block text-sm font-medium text-slate-700 mb-1">
+              Hasło
+            </label>
             <div className="relative">
               <input
+                id="reg-password"
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Hasło"
                 className="w-full p-3 pr-12 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 value={form.password}
                 onChange={handleChange}
+                autoComplete="new-password"
                 required
                 minLength={8}
+                aria-describedby="reg-password-strength"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
               >
                 {showPassword ? (
@@ -757,7 +802,7 @@ export default function Register() {
               </button>
             </div>
             {/* Miernik siły */}
-            <div className="mt-2">
+            <div className="mt-2" id="reg-password-strength">
               <div className="h-2 w-full bg-slate-100 rounded">
                 <div
                   className={`h-2 rounded ${
@@ -789,21 +834,28 @@ export default function Register() {
           </div>
 
           {/* Powtórz hasło */}
-          <div className="relative">
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              name="confirmPassword"
-              placeholder="Powtórz hasło"
-              className="w-full p-3 pr-12 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-            >
+          <div>
+            <label htmlFor="reg-confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
+              Powtórz hasło
+            </label>
+            <div className="relative">
+              <input
+                id="reg-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Powtórz hasło"
+                className="w-full p-3 pr-12 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                autoComplete="new-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Ukryj powtórzone hasło" : "Pokaż powtórzone hasło"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+              >
               {showConfirmPassword ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
@@ -815,6 +867,7 @@ export default function Register() {
                 </svg>
               )}
             </button>
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm select-none">

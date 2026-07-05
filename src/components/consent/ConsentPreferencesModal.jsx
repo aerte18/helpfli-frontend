@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Shield, BarChart3, Megaphone, Settings2 } from "lucide-react";
 import { setConsent } from "../../utils/consent";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 const CATEGORIES = [
   {
@@ -36,6 +37,7 @@ const CATEGORIES = [
 ];
 
 export default function ConsentPreferencesModal({ open, onClose, onSaved, initial }) {
+  const dialogRef = useFocusTrap(open);
   const [values, setValues] = useState(() => ({
     preferences: !!initial?.preferences,
     analytics: !!initial?.analytics,
@@ -91,8 +93,14 @@ export default function ConsentPreferencesModal({ open, onClose, onSaved, initia
       aria-modal="true"
       aria-labelledby="consent-prefs-title"
       className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 px-3 py-4 backdrop-blur-sm sm:items-center sm:px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
     >
-      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div
+        ref={dialogRef}
+        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             <h2 id="consent-prefs-title" className="text-lg font-semibold text-slate-900">

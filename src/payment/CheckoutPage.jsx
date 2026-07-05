@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import { useTelemetry } from '../hooks/useTelemetry';
 
 function stripePaymentErrorMessage(error) {
   if (!error) return 'Nie udało się zrealizować płatności.';
@@ -27,9 +28,20 @@ export default function CheckoutPage() {
   const clientSecret = params.get('cs');
   const checkoutType = params.get('type') || '';
   const isSubscriptionCheckout = checkoutType === 'subscription';
+  const isVideoCheckout = checkoutType === 'video';
+  const isSponsorRenewalCheckout = checkoutType === 'sponsor_ad_renewal';
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('');
   const [processing, setProcessing] = useState(false);
+  const { trackCheckoutStarted } = useTelemetry();
+
+  useEffect(() => {
+    if (!clientSecret) return;
+    trackCheckoutStarted({
+      checkoutType: checkoutType || 'generic',
+      hasClientSecret: true,
+    });
+  }, [clientSecret, checkoutType, trackCheckoutStarted]);
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
   // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.
@@ -128,9 +140,15 @@ export default function CheckoutPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold text-slate-900">Sposób płatności</h2>
+          <h2 className="text-xl font-semibold text-slate-900">
+            {isSponsorRenewalCheckout ? 'Przedłużenie kampanii reklamowej' : isVideoCheckout ? 'Płatność za spotkanie wideo' : 'Sposób płatności'}
+          </h2>
           <p className="text-sm text-slate-600 mt-1">
-            {isSubscriptionCheckout ? (
+            {isSponsorRenewalCheckout ? (
+              <>Opłać przedłużenie kampanii reklamowej. Po płatności kampania zostanie automatycznie przedłużona.</>
+            ) : isVideoCheckout ? (
+              <>Po opłacie utworzymy prywatny pokój wideo z wykonawcą.</>
+            ) : isSubscriptionCheckout ? (
               <>
                 Metody zależą od <strong>subskrypcji w Stripe</strong> (inny zestaw niż przy pojedynczej płatności za zlecenie).
                 Jeśli nie ma BLIK / P24, w Dashboard włącz je także dla <strong>faktur / Billing</strong> i sprawdź kwalifikację dla PLN.

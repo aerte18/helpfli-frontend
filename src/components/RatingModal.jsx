@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from 'react';
 import { useToast } from './toast/ToastProvider';
 import { getErrorMessage } from '../utils/errorMessages';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 export default function RatingModal({
   open,
@@ -16,6 +17,7 @@ export default function RatingModal({
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const { push: toast } = useToast();
+  const panelRef = useFocusTrap(open);
 
   // Keyboard: Esc zamyka modal
   useEffect(() => {
@@ -86,7 +88,10 @@ export default function RatingModal({
         onClick={onClose}
         aria-label="Zamknij modal"
       />
-      <div className="absolute inset-x-0 top-[15%] mx-auto max-w-md qs-card shadow-2xl p-8">
+      <div 
+        ref={panelRef}
+        className="absolute inset-x-0 top-[15%] mx-auto max-w-md qs-card shadow-2xl p-8"
+      >
         <h3 id="rating-modal-title" className="text-2xl font-bold text-[var(--qs-color-text)] mb-6">{heading}</h3>
         <div className="flex items-center gap-2 mb-5">
           {[1,2,3,4,5].map(n => (

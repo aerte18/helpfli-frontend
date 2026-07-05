@@ -772,6 +772,7 @@ export default function Home() {
         title="Szukaj wykonawców | Helpfli"
         description="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą."
         canonical="/home"
+        robots="noindex, follow"
       />
       {user?.role === 'client' && viewMode !== 'map' && !isMobileViewport && (
         <div className="max-w-7xl mx-auto px-4 pt-3 md:px-6 md:pt-4">

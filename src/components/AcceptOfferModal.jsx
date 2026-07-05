@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import FoundingFeeHint from './FoundingFeeHint';
+import ModalDialog from './ui/ModalDialog';
 
 export default function AcceptOfferModal({ 
   isOpen, 
@@ -118,15 +119,21 @@ export default function AcceptOfferModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <ModalDialog
+      open={isOpen}
+      onClose={onClose}
+      titleId="accept-offer-title"
+      panelClassName="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+    >
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Akceptuj ofertę</h2>
+            <h2 id="accept-offer-title" className="text-xl font-semibold">Akceptuj ofertę</h2>
             <button
+              type="button"
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-2xl"
+              aria-label="Zamknij"
             >
               ×
             </button>
@@ -470,8 +477,7 @@ export default function AcceptOfferModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 

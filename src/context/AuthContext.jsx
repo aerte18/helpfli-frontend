@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { createContext, useContext, useEffect, useState } from "react";
 import { subscribePush } from "../utils/push";
-import { setConsent } from "../utils/consent";
+import { mergeServerConsents, hasMarketingConsent } from "../utils/consent";
 
 const AuthContext = createContext(null);
 
@@ -52,19 +52,15 @@ export function AuthProvider({ children }) {
       if (!res.ok) throw new Error("unauthorized");
       const data = await res.json();
       setUser(data);
-      if (data?.consents) {
-        setConsent({
-          analytics: !!data.consents.analytics,
-          cookies: !!data.consents.cookies,
-          marketing: !!data.marketingConsent,
-        });
-      }
+      mergeServerConsents(data);
       try {
         localStorage.setItem("user", JSON.stringify(data));
       } catch (error) {
         console.warn("AuthContext - localStorage write blocked:", error);
       }
-      subscribePush().catch(() => {});
+      if (hasMarketingConsent()) {
+        subscribePush().catch(() => {});
+      }
     } catch (error) {
       if (error?.name !== "AbortError") {
         console.error("AuthContext - fetchMe - error:", error);

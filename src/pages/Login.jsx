@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import SEOHead from "../components/SEOHead";
 import Logo from "../components/Logo";
@@ -8,6 +8,8 @@ import TwoFactorModal from "../components/TwoFactorModal";
 import { getPostLoginPath } from "../utils/authRedirect";
 
 function Login() {
+  const errorId = useId();
+  const infoId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -123,28 +125,56 @@ function Login() {
         </div>
 
         <h2 className="text-2xl font-bold mb-4 text-center">Zaloguj się</h2>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        {info && <p className="text-green-600 text-center mb-4">{info}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Adres e-mail"
-            autoComplete="email"
-          />
-          <div className="relative">
+        {error && (
+          <p id={errorId} className="text-red-500 text-center mb-4" role="alert" aria-live="polite">
+            {error}
+          </p>
+        )}
+        {info && (
+          <p id={infoId} className="text-green-600 text-center mb-4" role="status" aria-live="polite">
+            {info}
+          </p>
+        )}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          aria-label="Formularz logowania"
+          aria-describedby={error ? errorId : info ? infoId : undefined}
+        >
+          <div>
+            <label htmlFor="login-email" className="block text-sm font-medium text-slate-700 mb-1">
+              Email
+            </label>
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Hasło"
-              className="w-full p-3 pr-12 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-label="Hasło"
-              autoComplete="current-password"
+              id="login-email"
+              type="email"
+              placeholder="Email"
+              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? errorId : undefined}
             />
+          </div>
+          <div>
+            <label htmlFor="login-password" className="block text-sm font-medium text-slate-700 mb-1">
+              Hasło
+            </label>
+            <div className="relative">
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Hasło"
+                className="w-full p-3 pr-12 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                aria-invalid={error ? "true" : undefined}
+                aria-describedby={error ? errorId : undefined}
+              />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -162,6 +192,7 @@ function Login() {
                 </svg>
               )}
             </button>
+            </div>
           </div>
           <button
             type="submit"

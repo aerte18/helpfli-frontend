@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiPost } from '../lib/api';
 import { useTelemetry } from '../hooks/useTelemetry';
+import { createVideoSession } from '../api/video';
 
 export default function PaymentResult() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function PaymentResult() {
   const [duplicatesReleased, setDuplicatesReleased] = useState(0);
   const { trackPayment } = useTelemetry();
   const paymentTracked = useRef(false);
+  const videoSessionCreated = useRef(false);
 
   const reportPayment = (orderId, success) => {
     if (paymentTracked.current || !orderId) return;
@@ -22,6 +24,32 @@ export default function PaymentResult() {
     const redirectStatus = searchParams.get('redirect_status');
     const paymentIntentId = searchParams.get('payment_intent');
     const orderId = searchParams.get('orderId') || searchParams.get('orderid');
+    const payType = searchParams.get('type');
+    const providerId = searchParams.get('providerId');
+    const price = searchParams.get('price');
+    const scheduledAt = searchParams.get('scheduledAt');
+
+    const finalizeVideoSession = async (piId) => {
+      if (payType !== 'video' || videoSessionCreated.current || !piId || !providerId || !orderId) return;
+      videoSessionCreated.current = true;
+      try {
+        const data = await createVideoSession({
+          providerId,
+          orderId,
+          scheduledAt: scheduledAt || undefined,
+          price: price ? Number(price) : undefined,
+          paymentIntentId: piId,
+        });
+        const sessionId = data?.session?._id;
+        if (sessionId) {
+          navigate(`/video/${sessionId}`);
+          return;
+        }
+      } catch (err) {
+        console.error('video session create:', err);
+        setMessage((prev) => `${prev} Nie udało się utworzyć sesji wideo — otwórz zlecenie i spróbuj ponownie.`);
+      }
+    };
 
     if (!paymentIntentId && !redirectStatus) {
       setStatus('error');
@@ -31,8 +59,16 @@ export default function PaymentResult() {
 
     if (redirectStatus === 'succeeded') {
       setStatus('success');
-      setMessage('Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.');
+      setMessage(
+        payType === 'sponsor_ad_renewal'
+          ? 'Płatność przyjęta — kampania zostanie przedłużona po potwierdzeniu przez system (zwykle w kilka sekund).'
+          : payType === 'video'
+            ? 'Płatność przyjęta — tworzymy sesję wideo…'
+            : 'Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.'
+      );
       reportPayment(orderId, true);
+      finalizeVideoSession(paymentIntentId);
+      return;
     } else if (redirectStatus === 'processing') {
       setStatus('processing');
       setMessage('Płatność jest przetwarzana…');
@@ -66,6 +102,7 @@ export default function PaymentResult() {
           if (data.duplicatesCanceled > 0) {
             setDuplicatesReleased(data.duplicatesCanceled);
           }
+          finalizeVideoSession(paymentIntentId);
         } else if (redirectStatus === 'succeeded') {
           setStatus('success');
           setMessage('Płatność przyjęta. Odśwież stronę zlecenia, jeśli status się nie zmienił.');
@@ -97,6 +134,14 @@ export default function PaymentResult() {
     const payType = searchParams.get('type');
     if (payType === 'subscription') {
       navigate('/account/subscriptions');
+      return;
+    }
+    if (payType === 'video' && orderId) {
+      navigate(`/orders/${orderId}`);
+      return;
+    }
+    if (payType === 'sponsor_ad_renewal') {
+      navigate('/');
       return;
     }
     if (orderId) {

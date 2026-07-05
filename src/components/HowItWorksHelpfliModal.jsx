@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { HOW_IT_WORKS_MODAL_CONTENT } from "../constants/howItWorksModalContent";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 function AudienceToggle({ audience, onChange }) {
   return (
@@ -43,6 +44,7 @@ function AudienceToggle({ audience, onChange }) {
 export default function HowItWorksHelpfliModal() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const panelRef = useFocusTrap(open);
   const [audience, setAudience] = useState("client");
 
   const content = HOW_IT_WORKS_MODAL_CONTENT[audience];
@@ -97,6 +99,7 @@ export default function HowItWorksHelpfliModal() {
       />
 
       <div
+        ref={panelRef}
         className="relative z-10 flex w-full max-h-[min(94vh,900px)] max-w-4xl flex-col overflow-hidden rounded-t-2xl border shadow-2xl sm:rounded-2xl"
         style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
       >

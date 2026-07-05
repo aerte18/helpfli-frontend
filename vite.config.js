@@ -14,6 +14,29 @@ export default defineConfig({
     'process.env': {}, // Leaflet require()
     // VITE_GATEWAY_AI_BASE i VITE_API_URL z .env – nie hardcoduj dla produkcji
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/leaflet') || id.includes('react-leaflet')) {
+            return 'leaflet';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'recharts';
+          }
+          if (id.includes('node_modules/@stripe')) {
+            return 'stripe';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'motion';
+          }
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 5174,
     strictPort: true,
