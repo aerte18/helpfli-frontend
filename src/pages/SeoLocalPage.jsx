@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { fetchSeoLocalPage } from '@/api/seo';
 import LiveStatsCard from '@/components/seo/LiveStatsCard';
 import ArticleConciergeCard from '@/components/seo/ArticleConciergeCard';
+import SEOHead from '@/components/SEOHead';
+import { SITE_URL } from '@/utils/siteUrl';
 
 /**
  * /wykonawcy/:service/:city – Programmatic SEO landing page (PSEO).
@@ -13,9 +14,15 @@ import ArticleConciergeCard from '@/components/seo/ArticleConciergeCard';
  * zwiększa pokrycie longtail keywordów (np. „hydraulik warszawa cena", „elektryk kraków na już").
  */
 
-const SITE_URL =
-  (typeof window !== 'undefined' && window.__HELPFLI_SITE_URL__) ||
-  'https://helpfli.pl';
+function buildSeoMeta(page) {
+  const serviceName = page.serviceName;
+  const cityName = page.cityName;
+  return {
+    title: `${serviceName} ${cityName} | Helpfli`,
+    description: `Znajdź sprawdzonych wykonawców: ${serviceName} w mieście ${cityName}. Porównaj oferty, opinie i wybierz fachowca w Helpfli.`,
+    h1: `${serviceName} w mieście ${cityName}`,
+  };
+}
 
 function buildFaqJsonLd(page) {
   if (!page?.faq?.length) return null;
@@ -39,7 +46,7 @@ function buildLocalBusinessJsonLd(page, snap, canonicalUrl) {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: `Helpfli – ${page.serviceName} ${page.cityName}`,
-    description: page.metaDescription,
+    description: buildSeoMeta(page).description,
     url: canonicalUrl,
     areaServed: {
       '@type': 'City',
@@ -49,7 +56,6 @@ function buildLocalBusinessJsonLd(page, snap, canonicalUrl) {
     priceRange: snap?.prices?.median ? `${snap.prices.min}-${snap.prices.max} PLN` : undefined
   };
 
-  // AggregateRating – tylko jeśli mamy realny sample
   if (avgRating != null && count >= 3) {
     ld.aggregateRating = {
       '@type': 'AggregateRating',
@@ -84,6 +90,33 @@ function buildCreateOrderHref(page) {
   return `/create-order?${params.toString()}`;
 }
 
+function buildFallbackSeoContent(page) {
+  const { serviceName, cityName } = page;
+  return [
+    `Szukasz ${serviceName.toLowerCase()} w ${cityName}? W Helpfli możesz szybko porównać dostępnych wykonawców, sprawdzić opinie i zamówić usługę online — bez dzwonienia do dziesiątek firm.`,
+    `Na tej stronie znajdziesz aktualne informacje o ${serviceName.toLowerCase()} w ${cityName}: średnie ceny, liczbę dostępnych fachowców oraz odpowiedzi na najczęstsze pytania. Dzięki temu łatwiej wybierzesz wykonawcę dopasowanego do Twojego problemu i budżetu.`,
+    `Helpfli łączy klientów ze sprawdzonymi wykonawcami w ${cityName}. Opisz swój problem, a my pomożemy Ci znaleźć odpowiedniego specjalistę — szybko, wygodnie i bezpiecznie.`,
+  ];
+}
+
+function buildFallbackFaq(page) {
+  const { serviceName, cityName } = page;
+  return [
+    {
+      question: `Ile kosztuje ${serviceName.toLowerCase()} w ${cityName}?`,
+      answer: `Cena zależy od zakresu prac i pilności zlecenia. W Helpfli możesz porównać oferty kilku wykonawców w ${cityName} i wybrać najlepszą opcję.`,
+    },
+    {
+      question: `Jak szybko znajdę wykonawcę w ${cityName}?`,
+      answer: `Po opisaniu problemu dopasowujemy dostępnych fachowców w Twojej okolicy. W wielu przypadkach pierwsze oferty pojawiają się w ciągu kilkunastu minut.`,
+    },
+    {
+      question: `Czy wykonawcy w Helpfli są weryfikowani?`,
+      answer: `Tak — na platformie możesz sprawdzić opinie innych klientów, oceny oraz profile wykonawców, zanim zdecydujesz się na współpracę.`,
+    },
+  ];
+}
+
 export default function SeoLocalPage() {
   const { service, city } = useParams();
   const [data, setData] = useState(null);
@@ -112,14 +145,18 @@ export default function SeoLocalPage() {
 
   const page = data?.page || null;
   const snap = data?.liveSnapshot || null;
-  const canonicalUrl = useMemo(
-    () => `${SITE_URL}/wykonawcy/${service}/${city}`,
-    [service, city]
-  );
+  const canonicalPath = `/wykonawcy/${service}/${city}`;
+  const seoMeta = useMemo(() => (page ? buildSeoMeta(page) : null), [page]);
 
   const faqLd = useMemo(() => buildFaqJsonLd(page), [page]);
-  const localLd = useMemo(() => buildLocalBusinessJsonLd(page, snap, canonicalUrl), [page, snap, canonicalUrl]);
-  const crumbLd = useMemo(() => buildBreadcrumbJsonLd(page, canonicalUrl), [page, canonicalUrl]);
+  const localLd = useMemo(
+    () => (page ? buildLocalBusinessJsonLd(page, snap, `${SITE_URL}${canonicalPath}`) : null),
+    [page, snap, canonicalPath]
+  );
+  const crumbLd = useMemo(
+    () => (page ? buildBreadcrumbJsonLd(page, `${SITE_URL}${canonicalPath}`) : null),
+    [page, canonicalPath]
+  );
 
   if (loading) {
     return (
@@ -128,9 +165,10 @@ export default function SeoLocalPage() {
       </div>
     );
   }
-  if (error || !page) {
+  if (error || !page || !seoMeta) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 py-10 text-center">
+        <SEOHead title="Nie znaleziono strony | Helpfli" robots="noindex,follow" />
         <h1 className="text-2xl font-bold text-slate-900 mb-3">Nie znaleziono strony</h1>
         <p className="text-slate-600 max-w-md mb-5">{error || 'Spróbuj wybrać inne miasto lub usługę.'}</p>
         <Link to="/poradniki" className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold">
@@ -141,25 +179,21 @@ export default function SeoLocalPage() {
   }
 
   const ctaHref = buildCreateOrderHref(page);
+  const fallbackParagraphs = buildFallbackSeoContent(page);
+  const faqItems = page.faq?.length ? page.faq : buildFallbackFaq(page);
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Helmet>
-        <title>{page.metaTitle || page.title}</title>
-        <meta name="description" content={page.metaDescription} />
-        <link rel="canonical" href={canonicalUrl} />
-
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={page.metaTitle || page.title} />
-        <meta property="og:description" content={page.metaDescription} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:locale" content="pl_PL" />
-        <meta name="twitter:card" content="summary_large_image" />
-
+      <SEOHead
+        title={seoMeta.title}
+        description={seoMeta.description}
+        canonical={canonicalPath}
+        ogImage="/icons/icon-192x192.png"
+      >
         {faqLd && <script type="application/ld+json">{JSON.stringify(faqLd)}</script>}
         {localLd && <script type="application/ld+json">{JSON.stringify(localLd)}</script>}
         {crumbLd && <script type="application/ld+json">{JSON.stringify(crumbLd)}</script>}
-      </Helmet>
+      </SEOHead>
 
       <header className="bg-gradient-to-r from-indigo-600 to-violet-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-10 sm:py-12">
@@ -171,7 +205,7 @@ export default function SeoLocalPage() {
             <span className="text-white">{page.cityName}</span>
           </nav>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">
-            {page.title || `${page.serviceName} ${page.cityName}`}
+            {seoMeta.h1}
           </h1>
           {page.intro && <p className="text-lg text-indigo-100 max-w-3xl">{page.intro}</p>}
 
@@ -193,22 +227,19 @@ export default function SeoLocalPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 sm:py-10 space-y-8">
-        {/* Live stats card — kluczowy dowód społeczny */}
         <LiveStatsCard
           service={page.serviceSlug}
           citySlug={page.citySlug}
           cityName={page.cityName}
         />
 
-        {/* AI Concierge embed */}
         <ArticleConciergeCard
           topic={`${page.serviceName} ${page.cityName}`}
           cityName={page.cityName}
           serviceCode={page.serviceSlug}
         />
 
-        {/* Content "Co warto wiedzieć" */}
-        {page.contentHtml && (
+        {page.contentHtml ? (
           <section className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
             <style>{`
               .pseo-content h2 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
@@ -220,16 +251,26 @@ export default function SeoLocalPage() {
               dangerouslySetInnerHTML={{ __html: page.contentHtml }}
             />
           </section>
+        ) : (
+          <section className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 space-y-4">
+            <h2 className="text-xl font-bold text-slate-900">
+              {page.serviceName} w {page.cityName} – co warto wiedzieć
+            </h2>
+            {fallbackParagraphs.map((paragraph, idx) => (
+              <p key={idx} className="text-slate-700 leading-relaxed">
+                {paragraph}
+              </p>
+            ))}
+          </section>
         )}
 
-        {/* FAQ */}
-        {page.faq?.length > 0 && (
+        {faqItems.length > 0 && (
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">
               Najczęstsze pytania – {page.serviceName} w {page.cityName}
             </h2>
             <div className="space-y-3">
-              {page.faq.map((f, idx) => (
+              {faqItems.map((f, idx) => (
                 <details
                   key={idx}
                   className="rounded-lg border bg-white p-4 shadow-sm open:shadow-md"
@@ -244,7 +285,6 @@ export default function SeoLocalPage() {
           </section>
         )}
 
-        {/* Final CTA */}
         <section className="rounded-2xl bg-gradient-to-br from-emerald-50 to-indigo-50 border border-indigo-100 p-6 sm:p-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             {page.serviceName} w {page.cityName} – zacznij od bezpłatnej wyceny

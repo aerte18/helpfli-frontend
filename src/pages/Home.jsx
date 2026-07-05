@@ -26,7 +26,7 @@ import ProviderPreview from "../components/ProviderPreview";
 import { useAuth } from "../context/AuthContext";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import useCompare from "../hooks/useCompare";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "../components/SEOHead";
 import { ShieldCheck, Star, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, SlidersHorizontal } from "lucide-react";
 import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
 
@@ -754,10 +754,11 @@ export default function Home() {
           : "min-h-screen bg-slate-50"
       }
     >
-      <Helmet>
-        <title>Szukaj wykonawców | Quicksy</title>
-        <meta name="description" content="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą." />
-      </Helmet>
+      <SEOHead
+        title="Szukaj wykonawców | Helpfli"
+        description="Znajdź sprawdzonych wykonawców w swojej okolicy. Hydraulik, elektryk, sprzątanie i inne usługi — porównaj oferty i wybierz najlepszą."
+        canonical="/home"
+      />
       {user?.role === 'client' && viewMode !== 'map' && !isMobileViewport && (
         <div className="max-w-7xl mx-auto px-4 pt-3 md:px-6 md:pt-4">
           <WelcomeCreditBanner variant="compact" />

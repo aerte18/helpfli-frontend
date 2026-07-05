@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "../components/SEOHead";
 import { LocateFixed } from "lucide-react";
 import Logo from "../components/Logo";
 import GeoSuggest from "../components/GeoSuggest";
@@ -379,10 +379,12 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F6FAFF] to-white flex items-center justify-center">
-      <Helmet>
-        <title>Rejestracja | Helpfli</title>
-        <meta name="description" content="Zarejestruj się w Helpfli jako klient, wykonawca lub firma. Znajdź pomoc w okolicy lub oferuj usługi." />
-      </Helmet>
+      <SEOHead
+        title="Rejestracja | Helpfli"
+        description="Zarejestruj się w Helpfli jako klient, wykonawca lub firma. Znajdź pomoc w okolicy lub oferuj usługi."
+        canonical="/register"
+        robots="noindex,follow"
+      />
       <div className="max-w-md w-full mx-auto p-6 border rounded-2xl shadow-lg bg-white">
         <div className="flex items-center justify-center mb-6">
           <Logo className="h-8 w-8" showText={true} textColor="text-indigo-800" clickable={true} />

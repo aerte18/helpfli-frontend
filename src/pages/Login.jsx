@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import SEOHead from "../components/SEOHead";
 import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 import { apiPost } from "../lib/api";
@@ -110,10 +110,12 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F6FAFF] to-white flex items-center justify-center">
-      <Helmet>
-        <title>Logowanie | Helpfli</title>
-        <meta name="description" content="Zaloguj się do Helpfli i znajdź pomoc w swojej okolicy lub oferuj usługi jako wykonawca." />
-      </Helmet>
+      <SEOHead
+        title="Logowanie | Helpfli"
+        description="Zaloguj się do Helpfli i znajdź pomoc w swojej okolicy lub oferuj usługi jako wykonawca."
+        canonical="/login"
+        robots="noindex,follow"
+      />
       <div className="max-w-md w-full mx-auto p-6 border rounded-lg shadow-lg bg-white text-black">
         {/* Logo Helpfli */}
         <div className="flex items-center justify-center mb-6">

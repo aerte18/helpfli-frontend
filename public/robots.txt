@@ -4,6 +4,9 @@ Allow: /poradniki
 Allow: /poradnik/
 Allow: /wykonawcy/
 
+Disallow: /login
+Disallow: /register
+Disallow: /home
 Disallow: /admin/
 Disallow: /account/
 Disallow: /orders/
