@@ -165,9 +165,9 @@ export default function SeasonalBanner() {
             Na {SEASON_ADJECTIVE_FEMININE[season]} porę roku — przesuń karty w bok
           </p>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
           {[1, 2, 3].map(i => (
-            <div key={i} className="w-[min(300px,86vw)] shrink-0 snap-start rounded-2xl border p-3 shadow-md animate-pulse md:w-auto md:rounded-xl md:p-6 md:shadow-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <div key={i} className="w-[min(340px,86vw)] shrink-0 snap-start rounded-2xl border p-3 shadow-md animate-pulse md:w-[340px] md:rounded-xl md:p-6 md:shadow-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
               <div className="mb-2 h-6 w-1/4 rounded" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="mb-2 h-5 w-4/5 rounded" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="mb-3 h-3 w-full rounded" style={{ backgroundColor: 'var(--muted)' }} />
@@ -204,11 +204,11 @@ export default function SeasonalBanner() {
         </p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:pb-0 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
         {services.map((svc, index) => (
           <div
             key={svc.slug || index}
-            className="flex h-[238px] w-[84vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:h-auto md:w-auto md:rounded-xl md:p-6 md:shadow-none"
+            className="flex h-[238px] w-[84vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:h-auto md:w-[340px] md:rounded-xl md:p-6 md:shadow-none"
             style={{
               backgroundColor: 'var(--card)',
               borderColor: 'var(--border)',
