@@ -4,12 +4,10 @@ export default function HeroMapAI() {
   return (
     <div className="hidden lg:flex relative w-full ml-auto justify-end -mr-4 sm:-mr-6 md:-mr-8">
       <div
-        className="relative w-full max-w-[560px] xl:max-w-[640px] rounded-3xl overflow-hidden flex items-center justify-end"
+        className="relative w-full max-w-[560px] xl:max-w-[640px] flex items-center justify-end"
         style={{
           minHeight: "400px",
           height: "clamp(380px, 42vh, 480px)",
-          background:
-            "linear-gradient(to bottom right, oklch(from var(--primary) l c h / 0.08), var(--secondary), oklch(from var(--accent) l c h / 0.12))",
         }}
       >
         <img
