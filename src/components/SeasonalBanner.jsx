@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 import { CategoryIcon } from "./icons/HelpfliCategoryIcons";
 import { resolveSeasonalServiceIcon } from "../utils/seasonalServiceIcon";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -72,10 +73,24 @@ function hydrateSeasonalServices(list) {
 
 export default function SeasonalBanner() {
   const season = useMemo(() => currentSeason(), []);
+  const railRef = useRef(null);
   const [services, setServices] = useState(() =>
     hydrateSeasonalServices(FALLBACK_BY_SEASON[season].services)
   );
   const [loading, setLoading] = useState(false);
+
+  const scrollRail = useCallback((delta) => {
+    if (!railRef.current) return;
+    railRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  }, []);
+
+  const handleWheelScroll = useCallback((e) => {
+    const el = railRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    el.scrollBy({ left: e.deltaY, behavior: "auto" });
+  }, []);
 
   useEffect(() => {
     const cacheKey = `seasonalBanner:v2:${season}`;
@@ -204,7 +219,33 @@ export default function SeasonalBanner() {
         </p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+      <div className="mb-2 hidden items-center justify-end gap-2 md:flex">
+        <button
+          type="button"
+          onClick={() => scrollRail(-360)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border bg-white/95 shadow-sm"
+          style={{ borderColor: "var(--border)" }}
+          aria-label="Przewiń usługi w lewo"
+        >
+          <ChevronLeft className="h-4 w-4" style={{ color: "var(--foreground)" }} />
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollRail(360)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border bg-white/95 shadow-sm"
+          style={{ borderColor: "var(--border)" }}
+          aria-label="Przewiń usługi w prawo"
+        >
+          <ChevronRight className="h-4 w-4" style={{ color: "var(--foreground)" }} />
+        </button>
+      </div>
+
+      <div
+        ref={railRef}
+        onWheel={handleWheelScroll}
+        className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide"
+        style={{ scrollBehavior: "smooth" }}
+      >
         {services.map((svc, index) => (
           <div
             key={svc.slug || index}
