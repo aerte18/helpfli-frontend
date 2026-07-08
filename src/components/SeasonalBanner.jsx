@@ -71,6 +71,61 @@ function hydrateSeasonalServices(list) {
   }));
 }
 
+const CAROUSEL_ARROW_CLASS =
+  "absolute top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border bg-white/95 shadow-md transition-all hover:scale-105 hover:bg-white md:h-11 md:w-11";
+
+function SeasonalServicesCarousel({ railRef, canScrollLeft, canScrollRight, onScrollBy, onWheel, children }) {
+  return (
+    <div className="group/carousel relative">
+      {canScrollLeft ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--card)] via-[var(--card)]/80 to-transparent md:w-16"
+          aria-hidden
+        />
+      ) : null}
+      {canScrollRight ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--card)] via-[var(--card)]/80 to-transparent md:w-16"
+          aria-hidden
+        />
+      ) : null}
+
+      {canScrollLeft ? (
+        <button
+          type="button"
+          onClick={() => onScrollBy(-1)}
+          className={`${CAROUSEL_ARROW_CLASS} left-0 md:left-1`}
+          style={{ borderColor: "var(--border)" }}
+          aria-label="Poprzednie usługi sezonowe"
+        >
+          <ChevronLeft className="h-5 w-5 text-slate-700" aria-hidden />
+        </button>
+      ) : null}
+
+      {canScrollRight ? (
+        <button
+          type="button"
+          onClick={() => onScrollBy(1)}
+          className={`${CAROUSEL_ARROW_CLASS} right-0 md:right-1`}
+          style={{ borderColor: "var(--border)" }}
+          aria-label="Następne usługi sezonowe"
+        >
+          <ChevronRight className="h-5 w-5 text-slate-700" aria-hidden />
+        </button>
+      ) : null}
+
+      <div
+        ref={railRef}
+        onWheel={onWheel}
+        className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide scroll-smooth md:gap-4"
+        style={{ scrollPaddingInline: "2.75rem" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function SeasonalBanner() {
   const season = useMemo(() => currentSeason(), []);
   const railRef = useRef(null);
@@ -78,10 +133,24 @@ export default function SeasonalBanner() {
     hydrateSeasonalServices(FALLBACK_BY_SEASON[season].services)
   );
   const [loading, setLoading] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const scrollRail = useCallback((delta) => {
-    if (!railRef.current) return;
-    railRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  const updateScrollState = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 8);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 8);
+  }, []);
+
+  const scrollByDirection = useCallback((direction) => {
+    const el = railRef.current;
+    if (!el) return;
+    const firstCard = el.querySelector("[data-seasonal-card]");
+    const gap = window.matchMedia("(min-width: 768px)").matches ? 16 : 12;
+    const step = firstCard ? firstCard.offsetWidth + gap : Math.round(el.clientWidth * 0.88);
+    el.scrollBy({ left: direction * step, behavior: "smooth" });
   }, []);
 
   const handleWheelScroll = useCallback((e) => {
@@ -91,6 +160,21 @@ export default function SeasonalBanner() {
     e.preventDefault();
     el.scrollBy({ left: e.deltaY, behavior: "auto" });
   }, []);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return undefined;
+
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      observer.disconnect();
+    };
+  }, [services.length, loading, updateScrollState]);
 
   useEffect(() => {
     const cacheKey = `seasonalBanner:v2:${season}`;
@@ -180,16 +264,22 @@ export default function SeasonalBanner() {
             Na {SEASON_ADJECTIVE_FEMININE[season]} porę roku — przesuń karty w bok
           </p>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide">
+        <SeasonalServicesCarousel
+          railRef={railRef}
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
+          onScrollBy={scrollByDirection}
+          onWheel={handleWheelScroll}
+        >
           {[1, 2, 3].map(i => (
-            <div key={i} className="w-[min(340px,86vw)] shrink-0 snap-start rounded-2xl border p-3 shadow-md animate-pulse md:w-[340px] md:rounded-xl md:p-6 md:shadow-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+            <div key={i} data-seasonal-card className="w-[min(340px,86vw)] shrink-0 snap-start rounded-2xl border p-3 shadow-md animate-pulse md:w-[340px] md:rounded-xl md:p-6 md:shadow-none" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
               <div className="mb-2 h-6 w-1/4 rounded" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="mb-2 h-5 w-4/5 rounded" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="mb-3 h-3 w-full rounded" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="h-10 w-full rounded-xl" style={{ backgroundColor: 'var(--muted)' }} />
             </div>
           ))}
-        </div>
+        </SeasonalServicesCarousel>
       </section>
     );
   }
@@ -219,36 +309,17 @@ export default function SeasonalBanner() {
         </p>
       </div>
 
-      <div className="mb-2 hidden items-center justify-end gap-2 md:flex">
-        <button
-          type="button"
-          onClick={() => scrollRail(-360)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border bg-white/95 shadow-sm"
-          style={{ borderColor: "var(--border)" }}
-          aria-label="Przewiń usługi w lewo"
-        >
-          <ChevronLeft className="h-4 w-4" style={{ color: "var(--foreground)" }} />
-        </button>
-        <button
-          type="button"
-          onClick={() => scrollRail(360)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border bg-white/95 shadow-sm"
-          style={{ borderColor: "var(--border)" }}
-          aria-label="Przewiń usługi w prawo"
-        >
-          <ChevronRight className="h-4 w-4" style={{ color: "var(--foreground)" }} />
-        </button>
-      </div>
-
-      <div
-        ref={railRef}
+      <SeasonalServicesCarousel
+        railRef={railRef}
+        canScrollLeft={canScrollLeft}
+        canScrollRight={canScrollRight}
+        onScrollBy={scrollByDirection}
         onWheel={handleWheelScroll}
-        className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:gap-4 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] scrollbar-hide"
-        style={{ scrollBehavior: "smooth" }}
       >
         {services.map((svc, index) => (
           <div
             key={svc.slug || index}
+            data-seasonal-card
             className="flex h-[238px] w-[84vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border p-3 shadow-md transition-all duration-300 md:h-auto md:w-[340px] md:rounded-xl md:p-6 md:shadow-none"
             style={{
               backgroundColor: 'var(--card)',
@@ -304,7 +375,7 @@ export default function SeasonalBanner() {
             </Link>
           </div>
         ))}
-      </div>
+      </SeasonalServicesCarousel>
     </section>
   );
 }
