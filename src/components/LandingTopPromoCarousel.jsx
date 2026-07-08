@@ -4,21 +4,21 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 import PromoPicture from "./PromoPicture";
 
-const ASSETS_VERSION = "20260604i";
-const BANNER_W = 2172;
-const BANNER_H = 724;
+const ASSETS_VERSION = "20260708a";
+const DEFAULT_BANNER_W = 2172;
+const DEFAULT_BANNER_H = 724;
 
 function promoImg(fileName) {
   return `/img/${encodeURIComponent(fileName)}?v=${ASSETS_VERSION}`;
 }
 
-/** Współrzędne z projektu grafiki 2172×724 → procenty (skalują się z banerem). */
-function btnRect(x, y, w, h) {
+/** Współrzędne z projektu grafiki → procenty (skalują się z banerem). */
+function btnRect(x, y, w, h, bannerW = DEFAULT_BANNER_W, bannerH = DEFAULT_BANNER_H) {
   return {
-    left: `${(x / BANNER_W) * 100}%`,
-    top: `${(y / BANNER_H) * 100}%`,
-    width: `${(w / BANNER_W) * 100}%`,
-    height: `${(h / BANNER_H) * 100}%`,
+    left: `${(x / bannerW) * 100}%`,
+    top: `${(y / bannerH) * 100}%`,
+    width: `${(w / bannerW) * 100}%`,
+    height: `${(h / bannerH) * 100}%`,
   };
 }
 
@@ -27,21 +27,37 @@ const SLIDES = [
     id: "client",
     audience: "client",
     alt: "Baner dla klienta",
+    bannerW: 2172,
+    bannerH: 724,
     src: promoImg("promo klient.png"),
     registerLink:
       "/register?role=client&utm_source=landing&utm_campaign=promo_strip_client",
-    registerArea: btnRect(52, 418, 498, 98),
-    howItWorksArea: btnRect(562, 418, 368, 98),
+    registerArea: btnRect(52, 418, 498, 98, 2172, 724),
+    howItWorksArea: btnRect(562, 418, 368, 98, 2172, 724),
   },
   {
     id: "provider",
     audience: "provider",
     alt: "Baner dla wykonawcy",
+    bannerW: 2172,
+    bannerH: 724,
     src: promoImg("promo provider.png"),
     registerLink:
       "/register?role=provider&utm_source=landing&utm_campaign=promo_strip_provider",
-    registerArea: btnRect(52, 418, 648, 98),
-    howItWorksArea: btnRect(712, 418, 368, 98),
+    registerArea: btnRect(52, 418, 648, 98, 2172, 724),
+    howItWorksArea: btnRect(712, 418, 368, 98, 2172, 724),
+  },
+  {
+    id: "start",
+    audience: "client",
+    alt: "Baner — dołącz do pierwszych użytkowników Helpfli",
+    bannerW: 1717,
+    bannerH: 916,
+    src: promoImg("baner start.png"),
+    registerLink:
+      "/register?utm_source=landing&utm_campaign=promo_strip_start",
+    registerArea: btnRect(55, 658, 465, 88, 1717, 916),
+    howItWorksArea: btnRect(530, 658, 415, 88, 1717, 916),
   },
 ];
 
@@ -84,6 +100,8 @@ export default function LandingTopPromoCarousel() {
   }, [paused, go]);
 
   const slide = SLIDES[index];
+  const bannerW = slide.bannerW ?? DEFAULT_BANNER_W;
+  const bannerH = slide.bannerH ?? DEFAULT_BANNER_H;
 
   return (
     <>
@@ -98,13 +116,16 @@ export default function LandingTopPromoCarousel() {
             className="group relative overflow-hidden rounded-xl border shadow-sm"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
           >
-            <div className="relative w-full aspect-[2172/724]">
+            <div
+              className="relative w-full"
+              style={{ aspectRatio: `${bannerW} / ${bannerH}` }}
+            >
               <PromoPicture
                 key={slide.id}
                 pngSrc={slide.src}
                 alt={slide.alt}
-                width={BANNER_W}
-                height={BANNER_H}
+                width={bannerW}
+                height={bannerH}
                 className="block h-full w-full select-none"
                 loading={index === 0 ? "eager" : "lazy"}
                 fetchPriority={index === 0 ? "high" : "auto"}
