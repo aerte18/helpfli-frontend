@@ -29,7 +29,8 @@ const SLIDES = [
     alt: "Baner dla klienta",
     bannerW: 2172,
     bannerH: 724,
-    src: promoImg("promo klient.png"),
+    src: promoImg("baner klient.png"),
+    webpSrc: null,
     registerLink:
       "/register?role=client&utm_source=landing&utm_campaign=promo_strip_client",
     registerArea: btnRect(52, 418, 498, 98, 2172, 724),
@@ -41,7 +42,8 @@ const SLIDES = [
     alt: "Baner dla wykonawcy",
     bannerW: 2172,
     bannerH: 724,
-    src: promoImg("promo provider.png"),
+    src: promoImg("baner wykonawcy.png"),
+    webpSrc: null,
     registerLink:
       "/register?role=provider&utm_source=landing&utm_campaign=promo_strip_provider",
     registerArea: btnRect(52, 418, 648, 98, 2172, 724),
@@ -51,13 +53,14 @@ const SLIDES = [
     id: "start",
     audience: "client",
     alt: "Baner — dołącz do pierwszych użytkowników Helpfli",
-    bannerW: 1717,
-    bannerH: 916,
+    bannerW: 2172,
+    bannerH: 724,
     src: promoImg("baner start.png"),
+    webpSrc: null,
     registerLink:
       "/register?utm_source=landing&utm_campaign=promo_strip_start",
-    registerArea: btnRect(55, 658, 465, 88, 1717, 916),
-    howItWorksArea: btnRect(530, 658, 415, 88, 1717, 916),
+    registerArea: btnRect(70, 520, 584, 66, 2172, 724),
+    howItWorksArea: btnRect(664, 520, 521, 66, 2172, 724),
   },
 ];
 
@@ -123,6 +126,7 @@ export default function LandingTopPromoCarousel() {
               <PromoPicture
                 key={slide.id}
                 pngSrc={slide.src}
+                webpSrc={slide.webpSrc}
                 alt={slide.alt}
                 width={bannerW}
                 height={bannerH}

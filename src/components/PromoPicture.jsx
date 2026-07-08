@@ -1,12 +1,24 @@
 /**
- * Baner promo z WebP + fallback PNG (mniejszy LCP na landing).
+ * Baner promo z opcjonalnym WebP + fallback PNG.
  */
-export default function PromoPicture({ pngSrc, alt, width, height, className, loading = 'lazy', fetchPriority }) {
-  const webpSrc = pngSrc.replace(/\.png(\?.*)?$/i, (_, q) => `.webp${q || ''}`);
+export default function PromoPicture({
+  pngSrc,
+  webpSrc,
+  alt,
+  width,
+  height,
+  className,
+  loading = "lazy",
+  fetchPriority,
+}) {
+  const resolvedWebpSrc =
+    webpSrc === undefined
+      ? pngSrc.replace(/\.png(\?.*)?$/i, (_, q) => `.webp${q || ""}`)
+      : webpSrc;
 
   return (
     <picture>
-      <source srcSet={webpSrc} type="image/webp" />
+      {resolvedWebpSrc ? <source srcSet={resolvedWebpSrc} type="image/webp" /> : null}
       <img
         src={pngSrc}
         alt={alt}
