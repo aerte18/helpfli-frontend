@@ -144,7 +144,9 @@ export default function SeoLocalPage() {
 
   const page = data?.page || null;
   const snap = data?.liveSnapshot || null;
-  const canonicalPath = `/wykonawcy/${service}/${city}`;
+  const canonicalPath = page
+    ? `/wykonawcy/${page.serviceSlug}/${page.citySlug}`
+    : `/wykonawcy/${service}/${city}`;
   const seoMeta = useMemo(() => (page ? buildSeoMeta(page) : null), [page]);
 
   const faqLd = useMemo(() => buildFaqJsonLd(page), [page]);
@@ -187,7 +189,7 @@ export default function SeoLocalPage() {
         title={seoMeta.title}
         description={seoMeta.description}
         canonical={canonicalPath}
-        ogImage="/icons/icon-192x192.png"
+        ogImage="/img/landing%20front.webp"
       >
         {faqLd && <script type="application/ld+json">{JSON.stringify(faqLd)}</script>}
         {localLd && <script type="application/ld+json">{JSON.stringify(localLd)}</script>}
@@ -225,7 +227,7 @@ export default function SeoLocalPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 sm:py-10 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:py-10 space-y-8">
         <LiveStatsCard
           service={page.serviceSlug}
           citySlug={page.citySlug}
@@ -298,7 +300,7 @@ export default function SeoLocalPage() {
             Zamów wykonawcę →
           </Link>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

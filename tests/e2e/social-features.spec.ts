@@ -1,4 +1,4 @@
-?import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { loginAsUser, loginAsProvider } from './helpers/auth';
 
 test.describe('Social Features', () => {

@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isImage, iconForMime, formatSize } from "../utils/fileIcons";
 import { getSocket } from "../lib/socket";
+import { useProtectedUploadUrl } from '@/hooks/useProtectedUploadUrl';
 
 /** Jeśli masz już własny hook useSocket – możesz go użyć zamiast createSocket */
 function createSocket(token) {
@@ -18,21 +19,24 @@ function createSocket(token) {
 
 /** Mała karta załącznika w wiadomości */
 function Attachment({ a }) {
+  const { url, loading, error } = useProtectedUploadUrl(a?.thumbnailUrl || a?.url);
   if (!a) return null;
-  const thumb = a.thumbnailUrl || a.url;
   const isImg = isImage(a.type);
+  if (loading) return <div className="rounded-lg border border-slate-200 p-2 text-xs">Pobieranie…</div>;
+  if (error || !url) return <div className="rounded-lg border border-red-200 p-2 text-xs text-red-600">Załącznik niedostępny</div>;
   return (
     <a
-      href={a.url}
+      href={url}
       target="_blank"
       rel="noreferrer"
+      download={a.name || undefined}
       className="group block rounded-lg border border-slate-200 p-2 hover:bg-slate-50"
       title={a.name}
     >
       <div className="flex items-center gap-2">
         {isImg ? (
           <img
-            src={thumb}
+            src={url}
             alt={a.name}
             className="h-12 w-12 rounded object-cover"
             loading="lazy"

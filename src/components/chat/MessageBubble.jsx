@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, CheckCheck, MoreVertical, Edit2, Trash2, Reply } from "lucide-react";
+import { useProtectedUploadUrl } from '@/hooks/useProtectedUploadUrl';
 
 export default function MessageBubble({ 
   message, 
@@ -196,18 +197,26 @@ export default function MessageBubble({
 }
 
 function Attachment({ attachment, isMine }) {
+  const { url, loading, error } = useProtectedUploadUrl(attachment.url);
   const isImage = attachment.type?.startsWith('image/') || attachment.url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
   const isVideo = attachment.type?.startsWith('video/') || attachment.url?.match(/\.(mp4|webm|ogg)$/i);
   const isPDF = attachment.type === 'application/pdf' || attachment.url?.match(/\.pdf$/i);
+
+  if (loading) {
+    return <div className="rounded-lg border px-3 py-2 text-xs opacity-70">Pobieranie załącznika…</div>;
+  }
+  if (error || !url) {
+    return <div className="rounded-lg border px-3 py-2 text-xs text-red-600">Załącznik jest niedostępny</div>;
+  }
 
   if (isImage) {
     return (
       <div className="rounded-lg overflow-hidden max-w-xs">
         <img 
-          src={attachment.url} 
+          src={url}
           alt={attachment.name || 'Załącznik'} 
           className="max-h-64 w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(attachment.url, '_blank')}
+          onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
         />
       </div>
     );
@@ -217,7 +226,7 @@ function Attachment({ attachment, isMine }) {
     return (
       <div className="rounded-lg overflow-hidden max-w-xs">
         <video 
-          src={attachment.url} 
+          src={url}
           controls 
           className="max-h-64 w-full"
         />
@@ -227,7 +236,8 @@ function Attachment({ attachment, isMine }) {
 
   return (
     <a
-      href={attachment.url}
+      href={url}
+      download={attachment.name || 'zalacznik'}
       target="_blank"
       rel="noopener noreferrer"
       className={`block px-3 py-2 rounded-lg border ${

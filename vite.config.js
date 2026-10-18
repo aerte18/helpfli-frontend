@@ -16,30 +16,8 @@ export default defineConfig({
     'process.env': {}, // Leaflet require()
     // VITE_GATEWAY_AI_BASE i VITE_API_URL z .env – nie hardcoduj dla produkcji
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Tylko biblioteka leaflet — NIE react-leaflet (wymaga React z vendor w tym samym grafie)
-          if (/node_modules[/\\]leaflet[/\\]/.test(id)) {
-            return 'leaflet';
-          }
-          if (id.includes('node_modules/recharts')) {
-            return 'recharts';
-          }
-          if (id.includes('node_modules/@stripe')) {
-            return 'stripe';
-          }
-          if (id.includes('node_modules/framer-motion')) {
-            return 'motion';
-          }
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        },
-      },
-    },
-  },
+  // Pozwalamy Rollupowi zachować granice dynamicznych importów. Globalny
+  // `vendor` chunk wciągał Leaflet do początkowego ładowania każdej trasy.
   server: {
     port: 5174,
     strictPort: true,

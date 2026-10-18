@@ -1,8 +1,8 @@
 import { apiUrl } from "@/lib/apiUrl";
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { MapPin, Filter, SortAsc, SortDesc, Grid, List, Star, Clock, CheckCircle, Building2, Zap, Heart, MessageCircle, Eye, X } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 import ProviderCard from '../components/ProviderCard';
 import CompareBar from '../components/CompareBar';
 import CompareModal from '../components/CompareModal';
@@ -725,19 +725,11 @@ const ProvidersPage = () => {
 
     return (
     <div className="min-h-screen bg-gray-50">
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="keywords" content={`wykonawcy, usługi, ${service}, ${city}, hydraulik, elektryk, złota rączka, remonty`} />
-        <link rel="canonical" href={`${window.location.origin}/providers${window.location.search}`} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:url" content={`${window.location.origin}/providers${window.location.search}`} />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-      </Helmet>
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical="/providers"
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

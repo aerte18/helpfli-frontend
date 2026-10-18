@@ -10,13 +10,23 @@ export default function HeroMapAI() {
           height: "clamp(380px, 42vh, 480px)",
         }}
       >
-        <img
-          src={`/img/landing%20front.png?v=${LANDING_HERO_VERSION}`}
-          alt="Znajdź pomoc w swojej okolicy — mapa usług Helpfli"
-          className="block h-full w-full max-w-none object-contain object-right select-none scale-[1.06] origin-right"
-          style={{ objectPosition: "right center" }}
-          draggable={false}
-        />
+        <picture className="block h-full w-full">
+          <source
+            srcSet={`/img/landing%20front.webp?v=${LANDING_HERO_VERSION}`}
+            type="image/webp"
+          />
+          <img
+            src={`/img/landing%20front.png?v=${LANDING_HERO_VERSION}`}
+            alt="Znajdź pomoc w swojej okolicy — mapa usług Helpfli"
+            width="1106"
+            height="731"
+            fetchPriority="high"
+            decoding="async"
+            className="block h-full w-full max-w-none object-contain object-right select-none scale-[1.06] origin-right"
+            style={{ objectPosition: "right center" }}
+            draggable={false}
+          />
+        </picture>
       </div>
     </div>
   );

@@ -1,5 +1,15 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from 'react';
+import { useProtectedUploadUrl } from '@/hooks/useProtectedUploadUrl';
+
+function DraftAttachment({ attachment }) {
+  const { url, loading, error } = useProtectedUploadUrl(attachment.url);
+  if (loading) return <div className="h-24 p-2 text-xs">Pobieranie…</div>;
+  if (error || !url) return <div className="h-24 p-2 text-xs text-red-600">Załącznik niedostępny</div>;
+  if (attachment.type === 'image') return <img src={url} alt={attachment.filename || 'Załącznik'} className="w-full h-24 object-cover rounded" />;
+  if (attachment.type === 'video') return <video src={url} className="w-full h-24 object-cover rounded" controls />;
+  return <a href={url} download={attachment.filename || 'zalacznik'} className="text-xs underline">{attachment.filename || 'Pobierz plik'}</a>;
+}
 
 export default function ProviderQuotes() {
   const API = import.meta.env.VITE_API_URL || '';
@@ -47,9 +57,7 @@ export default function ProviderQuotes() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
                 {q.draft.attachments.map(att => (
                   <div key={att._id} className="border rounded p-1">
-                    {att.type === 'image' ? <img src={att.url} className="w-full h-24 object-cover rounded" /> :
-                      att.type === 'video' ? <video src={att.url} className="w-full h-24 object-cover rounded" controls /> :
-                      <div className="text-xs">{att.filename}</div>}
+                    <DraftAttachment attachment={att} />
                   </div>
                 ))}
               </div>

@@ -136,7 +136,7 @@ export default function PoradnikiList() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Categories */}
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
@@ -218,7 +218,7 @@ export default function PoradnikiList() {
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

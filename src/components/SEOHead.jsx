@@ -41,6 +41,11 @@ export default function SEOHead({
       {ogLocale && <meta property="og:locale" content={ogLocale} />}
       {resolvedOgImage && <meta property="og:image" content={resolvedOgImage} />}
       {twitterCard && <meta name="twitter:card" content={twitterCard} />}
+      {resolvedOgTitle && <meta name="twitter:title" content={resolvedOgTitle} />}
+      {resolvedOgDescription && (
+        <meta name="twitter:description" content={resolvedOgDescription} />
+      )}
+      {resolvedOgImage && <meta name="twitter:image" content={resolvedOgImage} />}
 
       {children}
     </Helmet>

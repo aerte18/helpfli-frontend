@@ -25,32 +25,33 @@ export default function ServiceDetailPage() {
         setError(null);
 
         // Pobierz szczegóły usługi
-        const serviceResponse = await fetch(apiUrl(`/api/services?slug=${slug}&limit=1`));
-        const serviceData = await serviceResponse.json();
-        
-        if (serviceData.items?.length) {
-          setService(serviceData.items[0]);
-        } else {
+        const serviceResponse = await fetch(apiUrl(`/api/services/${encodeURIComponent(slug)}`));
+        if (!serviceResponse.ok) {
           setError("Usługa nie została znaleziona");
           return;
         }
+        const serviceData = await serviceResponse.json();
+        setService(serviceData);
+        if (serviceData.slug && serviceData.slug !== slug) {
+          navigate(`/service/${serviceData.slug}`, { replace: true });
+        }
 
         // Pobierz top providerów w kategorii
-        const providersResponse = await fetch(apiUrl(`/api/providers?service=${serviceData.items[0]._id}&limit=6`));
+        const providersResponse = await fetch(apiUrl(`/api/providers?service=${serviceData._id}&limit=6`));
         const providersData = await providersResponse.json();
         setTopProviders(providersData.items || []);
 
         // Pobierz statystyki (na razie mockowane)
         setStats({
-          averagePrice: serviceData.items[0].base_price_min && serviceData.items[0].base_price_max 
-            ? Math.round((serviceData.items[0].base_price_min + serviceData.items[0].base_price_max) / 2)
+          averagePrice: serviceData.base_price_min && serviceData.base_price_max
+            ? Math.round((serviceData.base_price_min + serviceData.base_price_max) / 2)
             : null,
-          priceRange: serviceData.items[0].base_price_min && serviceData.items[0].base_price_max
-            ? `${serviceData.items[0].base_price_min}-${serviceData.items[0].base_price_max} PLN`
+          priceRange: serviceData.base_price_min && serviceData.base_price_max
+            ? `${serviceData.base_price_min}-${serviceData.base_price_max} PLN`
             : "Do ustalenia",
           averageTime: "2-4 godziny",
           popularity: "Wysoka",
-          seasonality: serviceData.items[0].seasonal || "Cały rok"
+          seasonality: serviceData.seasonal || "Cały rok"
         });
 
       } catch (error) {
@@ -64,7 +65,7 @@ export default function ServiceDetailPage() {
     if (slug) {
       fetchServiceData();
     }
-  }, [slug]);
+  }, [navigate, slug]);
 
   if (loading) {
     return (
@@ -87,6 +88,7 @@ export default function ServiceDetailPage() {
   if (error || !service) {
     return (
       <PageBackground>
+        <SEOHead title="Nie znaleziono usługi | Helpfli" robots="noindex,follow" />
         <div className="max-w-7xl mx-auto px-6 md:px-8 py-10">
           <div className="text-center py-8">
             <div className="text-red-600 text-lg mb-2">Błąd</div>
@@ -144,14 +146,14 @@ export default function ServiceDetailPage() {
       <SEOHead
         title={`${serviceName} — wykonawcy i ceny | Helpfli`}
         description={`Znajdź sprawdzonych wykonawców: ${serviceName}. Porównaj oferty, sprawdź ceny i zleć usługę na Helpfli.`}
-        canonical={`/service/${slug}`}
+        canonical={`/service/${service.slug}`}
       >
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Service",
             name: serviceName,
-            url: `https://helpfli.pl/service/${slug}`,
+            url: `https://helpfli.pl/service/${service.slug}`,
             provider: { "@type": "Organization", name: "Helpfli" },
             areaServed: { "@type": "Country", name: "Polska" }
           })}

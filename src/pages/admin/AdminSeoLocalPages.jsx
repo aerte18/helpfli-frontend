@@ -7,6 +7,7 @@ import {
   adminSuggestLocalPages,
   adminGetPseoTraffic,
   adminDeleteLocalPage,
+  adminUpdateLocalPage,
   adminRunPseoCron
 } from '@/api/seo';
 import { PSEO_STARTER_SLUGS } from '@/constants/pseoStarterSlugs';
@@ -193,7 +194,7 @@ export default function AdminSeoLocalPages() {
   async function handleRunPseoCron() {
     if (
       !confirm(
-        'Uruchomić cron PSEO? Zbuduje do 8 brakujących stron (top miasta × usługi). Pomija strony już opublikowane.'
+        'Uruchomić cron PSEO? Zbuduje do 8 brakujących draftów (top miasta × usługi). Publikacja wymaga osobnej kontroli jakości.'
       )
     ) {
       return;
@@ -314,6 +315,27 @@ export default function AdminSeoLocalPages() {
       reload();
     } catch (err) {
       alert(err.message);
+    }
+  }
+
+  async function handlePublish(page) {
+    const nextPublished = !page.published;
+    if (nextPublished && !confirm('Opublikować stronę po automatycznej kontroli jakości?')) return;
+    try {
+      const out = await adminUpdateLocalPage(page._id, { published: nextPublished });
+      setBuildSummary(
+        out.page?.published
+          ? `Opublikowano: /wykonawcy/${out.page.serviceSlug}/${out.page.citySlug}`
+          : `Cofnięto publikację: ${page.serviceName} × ${page.cityName}`
+      );
+      reload();
+    } catch (err) {
+      const issues = err?.data?.quality?.issues;
+      setBuildSummary(
+        issues?.length
+          ? `Nie można opublikować: ${issues.join(' ')}`
+          : `Błąd publikacji: ${err.message}`
+      );
     }
   }
 
@@ -634,6 +656,7 @@ export default function AdminSeoLocalPages() {
                   <th className="text-left py-2 pr-3">Odsłony</th>
                   <th className="text-left py-2 pr-3">Mediana</th>
                   <th className="text-left py-2 pr-3">Build</th>
+                  <th className="text-left py-2 pr-3">Status</th>
                   <th className="text-right py-2">Akcje</th>
                 </tr>
               </thead>
@@ -659,7 +682,32 @@ export default function AdminSeoLocalPages() {
                     <td className="py-2 pr-3 text-xs text-slate-500">
                       {p.lastBuiltAt ? new Date(p.lastBuiltAt).toLocaleDateString('pl-PL') : '—'}
                     </td>
+                    <td className="py-2 pr-3 text-xs">
+                      <span
+                        className={
+                          p.published && p.quality?.indexable
+                            ? 'text-emerald-700'
+                            : p.published
+                              ? 'text-red-700'
+                              : 'text-amber-700'
+                        }
+                        title={p.quality?.issues?.join(' ') || undefined}
+                      >
+                        {p.published && p.quality?.indexable
+                          ? 'Opublikowana'
+                          : p.published
+                            ? 'Zablokowana przez jakość'
+                            : 'Draft'}
+                      </span>
+                    </td>
                     <td className="py-2 text-right space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handlePublish(p)}
+                        className={p.published ? 'text-xs text-amber-700 hover:underline' : 'text-xs text-emerald-700 hover:underline'}
+                      >
+                        {p.published ? 'Cofnij' : 'Opublikuj'}
+                      </button>
                       <button
                         type="button"
                         onClick={() => {

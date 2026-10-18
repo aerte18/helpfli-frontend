@@ -268,7 +268,7 @@ export default function SeoArticlePage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10">
+      <div className="max-w-3xl mx-auto px-4 py-8 sm:py-10">
         {/* AEO/GEO – TL;DR box: krótka, faktograficzna odpowiedź wprost.
             Cytowane przez ChatGPT/Perplexity i wyświetlane przez Google jako featured snippet. */}
         {article.tldr && (
@@ -408,7 +408,7 @@ export default function SeoArticlePage() {
             </ul>
           </section>
         )}
-      </main>
+      </div>
     </div>
   );
 }

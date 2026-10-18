@@ -205,21 +205,26 @@ export default function ProviderProfile() {
         description={providerDescription}
         canonical={`/provider/${id}`}
         ogType="profile"
+        robots={provider?.name && (provider?.bio || provider?.city) ? undefined : "noindex,follow"}
       >
         {provider?.name && (
           <script type="application/ld+json">
             {JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "LocalBusiness",
+              "@type": "Person",
               name: provider.name,
               url: `https://helpfli.pl/provider/${id}`,
               description: providerDescription,
-              ...(avgRating && avgRating > 0
+              jobTitle: "Wykonawca usług lokalnych",
+              ...(provider.city
+                ? { areaServed: { "@type": "City", name: provider.city } }
+                : {}),
+              ...(avgRating && avgRating > 0 && Number(providerData?.ratingCount) > 0
                 ? {
                     aggregateRating: {
                       "@type": "AggregateRating",
                       ratingValue: Number(avgRating.toFixed(1)),
-                      reviewCount: providerData?.ratingCount || 0
+                      reviewCount: Number(providerData.ratingCount)
                     }
                   }
                 : {})

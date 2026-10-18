@@ -1,4 +1,4 @@
-?/**
+/**
  * Helper functions dla testów E2E - autoryzacja
  */
 

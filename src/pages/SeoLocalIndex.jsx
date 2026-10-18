@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEOHead from '@/components/SEOHead';
-import { fetchSeoLocalServices, fetchSeoLocalCities } from '@/api/seoLocal';
+import { fetchSeoLocalServices, fetchSeoLocalCities, fetchSeoLocalIndex } from '@/api/seoLocal';
 
 /**
  * /wykonawcy — hub PSEO.
@@ -24,21 +24,53 @@ const CATEGORY_LABELS = {
 export default function SeoLocalIndex() {
   const [services, setServices] = useState([]);
   const [cities, setCities] = useState([]);
+  const [publishedPages, setPublishedPages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchSeoLocalServices().catch(() => null), fetchSeoLocalCities().catch(() => null)])
-      .then(([s, c]) => {
+    Promise.all([
+      fetchSeoLocalServices().catch(() => null),
+      fetchSeoLocalCities().catch(() => null),
+      fetchSeoLocalIndex().catch(() => null)
+    ])
+      .then(([s, c, index]) => {
         if (!active) return;
         setServices(s?.services || []);
         setCities(c?.cities || []);
+        setPublishedPages(index?.items || []);
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
 
-  const grouped = services.reduce((acc, s) => {
+  const pagesByService = publishedPages.reduce((acc, page) => {
+    if (!acc[page.serviceSlug]) acc[page.serviceSlug] = [];
+    acc[page.serviceSlug].push(page);
+    return acc;
+  }, {});
+  const cityLandingBySlug = publishedPages.reduce((acc, page) => {
+    if (!acc[page.citySlug]) acc[page.citySlug] = page;
+    return acc;
+  }, {});
+  const publishedServices = Object.values(
+    publishedPages.reduce((acc, page) => {
+      if (acc[page.serviceSlug]) return acc;
+      const catalogMatch = services.find(
+        (service) =>
+          service.slug === page.serviceSlug ||
+          page.serviceSlug.endsWith(`-${service.slug}`) ||
+          service.name.toLowerCase() === page.serviceName.toLowerCase()
+      );
+      acc[page.serviceSlug] = {
+        slug: page.serviceSlug,
+        name: page.serviceName,
+        category: catalogMatch?.category || 'inne'
+      };
+      return acc;
+    }, {})
+  );
+  const grouped = publishedServices.reduce((acc, s) => {
     const k = s.category || 'inne';
     if (!acc[k]) acc[k] = [];
     acc[k].push(s);
@@ -64,12 +96,12 @@ export default function SeoLocalIndex() {
             Wszyscy wykonawcy Helpfli w Twoim mieście
           </h1>
           <p className="text-lg text-indigo-100 max-w-2xl">
-            Hydraulik, elektryk, serwis AGD, remonty, sprzątanie — sprawdzeni wykonawcy w {cities.length || '…'} miastach w Polsce.
+            Hydraulik, elektryk, serwis AGD, remonty i inne usługi dostępne obecnie w {Object.keys(cityLandingBySlug).length || '…'} miastach w Polsce.
           </p>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-10">
+      <div className="max-w-5xl mx-auto px-4 py-10">
         {loading ? (
           <div className="text-center text-slate-500">Ładowanie…</div>
         ) : (
@@ -84,18 +116,29 @@ export default function SeoLocalIndex() {
                     <div key={s.slug} className="rounded-xl border bg-white p-4">
                       <div className="font-semibold text-slate-900 mb-2">{s.name}</div>
                       <ul className="text-sm space-y-1">
-                        {cities.slice(0, 6).map((c) => (
-                          <li key={c.slug}>
-                            <Link to={`/wykonawcy/${s.slug}/${c.slug}`} className="text-indigo-700 hover:underline">
-                              {s.name} {c.name}
+                        {(pagesByService[s.slug] || []).slice(0, 8).map((page) => (
+                          <li key={page.citySlug}>
+                            <Link to={`/wykonawcy/${page.serviceSlug}/${page.citySlug}`} className="text-indigo-700 hover:underline">
+                              {page.serviceName} {page.cityName}
                             </Link>
                           </li>
                         ))}
                       </ul>
-                      {cities.length > 6 && (
-                        <p className="mt-2 text-xs text-slate-500">
-                          + {cities.length - 6} innych miast
-                        </p>
+                      {(pagesByService[s.slug] || []).length > 8 && (
+                        <details className="mt-2 text-xs text-slate-600">
+                          <summary className="cursor-pointer text-indigo-700">
+                            Pokaż {(pagesByService[s.slug] || []).length - 8} pozostałych miast
+                          </summary>
+                          <ul className="mt-2 space-y-1">
+                            {(pagesByService[s.slug] || []).slice(8).map((page) => (
+                              <li key={page.citySlug}>
+                                <Link to={`/wykonawcy/${page.serviceSlug}/${page.citySlug}`} className="text-indigo-700 hover:underline">
+                                  {page.serviceName} {page.cityName}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
                       )}
                     </div>
                   ))}
@@ -106,20 +149,23 @@ export default function SeoLocalIndex() {
             <section className="mt-12">
               <h2 className="text-xl font-bold text-slate-900 mb-3">Miasta z Helpfli</h2>
               <div className="flex flex-wrap gap-2">
-                {cities.map((c) => (
+                {cities.filter((c) => cityLandingBySlug[c.slug]).map((c) => {
+                  const landing = cityLandingBySlug[c.slug];
+                  return (
                   <Link
                     key={c.slug}
-                    to={`/wykonawcy/hydraulik/${c.slug}`}
+                    to={`/wykonawcy/${landing.serviceSlug}/${c.slug}`}
                     className="text-sm rounded-full border bg-white px-3 py-1.5 hover:bg-slate-100 text-slate-700"
                   >
                     {c.name}
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }

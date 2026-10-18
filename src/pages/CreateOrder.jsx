@@ -13,6 +13,22 @@ import { openAI } from "../ai/chat/bus";
 import { formatPriceHint } from "../utils/orderMode";
 import OffersOnlyListingAddons from "../components/OffersOnlyListingAddons";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
+import { useProtectedUploadUrl } from '@/hooks/useProtectedUploadUrl';
+
+function ProtectedAttachmentThumbnail({ attachment }) {
+  const { url, loading, error } = useProtectedUploadUrl(attachment?.url);
+  if (loading) return <div className="w-12 h-12 rounded border animate-pulse bg-slate-100" />;
+  if (error || !url) return <div className="w-12 h-12 rounded border flex items-center justify-center text-xs text-red-600">Brak</div>;
+  return (
+    <img
+      src={url}
+      alt={attachment.filename || 'Załącznik'}
+      className="w-12 h-12 rounded object-cover border"
+      style={{ borderColor: 'var(--border)' }}
+      loading="lazy"
+    />
+  );
+}
 
 function useQuery() {
   const { search } = useLocation();
@@ -1421,13 +1437,7 @@ export default function CreateOrder() {
                   <div key={index} className="flex items-center justify-between rounded-lg p-3 border" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-3">
                       {isImageAttachment(attachment) ? (
-                        <img
-                          src={apiUrl(attachment.url)}
-                          alt={attachment.filename}
-                          className="w-12 h-12 rounded object-cover border"
-                          style={{ borderColor: 'var(--border)' }}
-                          loading="lazy"
-                        />
+                        <ProtectedAttachmentThumbnail attachment={attachment} />
                       ) : (
                         <div className="text-lg">📄</div>
                       )}

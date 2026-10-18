@@ -49,6 +49,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import SkipLinks from "./components/SkipLinks";
 import TelemetryRouteListener from "./components/TelemetryRouteListener";
 import ScrollToTop from "./components/ScrollToTop";
+import SEOHead from "./components/SEOHead";
 
 const Breadcrumbs = lazy(() => import("./components/Breadcrumbs"));
 const MobileAppTabBar = lazy(() => import("./components/MobileAppTabBar"));
@@ -115,6 +116,62 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" aria-label="Ładowanie" />
   </div>
 );
+
+const STATIC_ROUTE_SEO = Object.freeze({
+  "/why-pro": {
+    title: "Helpfli Pro — narzędzia dla wykonawców",
+    description: "Poznaj możliwości Helpfli Pro dla wykonawców usług lokalnych. Zarządzaj ofertami i rozwijaj swoją działalność."
+  },
+  "/regulamin": {
+    title: "Regulamin platformy Helpfli",
+    description: "Zasady korzystania z platformy Helpfli przez klientów i wykonawców."
+  },
+  "/cennik": {
+    title: "Cennik i opłaty Helpfli",
+    description: "Sprawdź informacje o opłatach, planach i rozliczeniach na platformie Helpfli."
+  },
+  "/dane-firmy": {
+    title: "Dane firmy Helpfli",
+    description: "Informacje o operatorze platformy Helpfli i dane kontaktowe firmy."
+  },
+  "/services": {
+    title: "Lista usług lokalnych | Helpfli",
+    description: "Sprawdź katalog usług Helpfli i znajdź wykonawcę dopasowanego do swojego zadania."
+  },
+  "/cooperation": {
+    title: "Współpraca z Helpfli",
+    description: "Poznaj możliwości współpracy biznesowej z platformą Helpfli."
+  },
+  "/reviews": {
+    title: "Opinie o wykonawcach | Helpfli",
+    description: "Sprawdź, jak działają opinie i oceny wykonawców na platformie Helpfli."
+  }
+});
+
+const PRIVATE_INDEX_PATTERNS = [
+  /^\/(?:login|register|forgot-password|reset-password|verify-email|home|search|onboarding|privacy)(?:\/|$)/,
+  /^\/(?:admin|account|orders|company)(?:\/|$)/,
+  /^\/(?:create-order|my-orders|dashboard|client-dashboard|provider-home|manage-services|available-orders)(?:\/|$)/,
+  /^\/(?:messages|inbox|notifications|checkout|payment-result|kyc|nearby-providers)(?:\/|$)/,
+  /^\/(?:wallet|billing|subscriptions|verification|ai|ai-public)(?:\/|$)/,
+  /^\/provider(?:\/(?:quotes|sponsored))?\/?$/,
+  /^\/(?:rate-user|user-ratings|integrations)(?:\/|$)/
+];
+
+function RouteSeoPolicy({ pathname }) {
+  if (PRIVATE_INDEX_PATTERNS.some((pattern) => pattern.test(pathname))) {
+    return <SEOHead robots="noindex,nofollow,noarchive" />;
+  }
+  const meta = STATIC_ROUTE_SEO[pathname.replace(/\/$/, '') || "/"];
+  if (!meta) return null;
+  return (
+    <SEOHead
+      title={meta.title}
+      description={meta.description}
+      canonical={pathname}
+    />
+  );
+}
 
 function LegacyOrderTabRedirect() {
   const { orderId, tabSlug } = useParams();
@@ -189,6 +246,7 @@ function App() {
   return (
     <HelmetProvider>
       <ErrorBoundary>
+        <RouteSeoPolicy pathname={location.pathname} />
         {/* Skip Links for Accessibility */}
         <SkipLinks />
         

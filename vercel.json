@@ -21,11 +21,37 @@
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
         { "key": "Service-Worker-Allowed", "value": "/" }
       ]
+    },
+    {
+      "source": "/(home|login|register|forgot-password|reset-password|verify-email|onboarding|privacy|create-order|my-orders|dashboard|client-dashboard|provider|provider-home|manage-services|available-orders|messages|inbox|notifications|checkout|payment-result|kyc|nearby-providers|wallet|billing|subscriptions|verification|ai|ai-public|admin|account|company)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/(admin|account|orders|company|onboarding)/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/(checkout|integrations|rate-user|user-ratings)/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/provider/(quotes|sponsored)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
     }
   ],
   "redirects": [
     { "source": "/uslugi", "destination": "/wykonawcy", "permanent": true },
+    { "source": "/uslugi/miasto/:city", "destination": "/wykonawcy/hydraulik/:city", "permanent": true },
     { "source": "/uslugi/:service/:city", "destination": "/wykonawcy/:service/:city", "permanent": true },
+    { "source": "/uslugi/:service", "destination": "/wykonawcy", "permanent": true },
     { "source": "/orders/:orderId/tab-offers", "destination": "/orders/:orderId?tab=offers", "permanent": false },
     { "source": "/orders/:orderId/tab-my-offer", "destination": "/orders/:orderId?tab=my_offer", "permanent": false },
     { "source": "/orders/:orderId/tab-chat", "destination": "/orders/:orderId?tab=chat", "permanent": false },
