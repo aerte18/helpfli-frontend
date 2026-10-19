@@ -1,11 +1,12 @@
 import { apiUrl } from "@/lib/apiUrl";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import SEOHead from "../components/SEOHead";
 import { LocateFixed } from "lucide-react";
 import Logo from "../components/Logo";
 import GeoSuggest from "../components/GeoSuggest";
 import { getPostLoginPath, storePostOnboardingNext, safeNextPath } from "../utils/authRedirect";
+import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
 
 const ROLE_OPTIONS = [
   { key: "client", label: "Klient" },
@@ -59,6 +60,8 @@ function getPasswordChecks(password, confirmPassword) {
 
 export default function Register() {
   const [searchParams] = useSearchParams();
+  const orderIntent = searchParams.get("intent") === "order";
+  const nextAfterAuth = safeNextPath(searchParams.get("next"), "");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -99,6 +102,8 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
+  const { track } = useTelemetry();
+  const registrationStarted = useRef(false);
   
   // Stany dla lokalizacji
   const [locationLoading, setLocationLoading] = useState(false);
@@ -113,12 +118,25 @@ export default function Register() {
       '';
     setForm((prev) => ({
       ...prev,
-      ...(roleFromUrl === 'provider' ? { role: 'provider' } : {}),
+      ...(orderIntent
+        ? { role: 'client' }
+        : roleFromUrl === 'provider'
+          ? { role: 'provider' }
+          : {}),
       ...(refFromUrl.trim()
         ? { referralCode: refFromUrl.trim().toUpperCase() }
         : {}),
     }));
-  }, [searchParams]);
+  }, [searchParams, orderIntent]);
+
+  useEffect(() => {
+    if (registrationStarted.current) return;
+    registrationStarted.current = true;
+    track(EVENT_TYPES.REGISTRATION_START, {
+      intent: orderIntent ? "order" : "account",
+      source: orderIntent ? "order_draft" : "register_page",
+    });
+  }, [orderIntent, track]);
 
   const score = useMemo(() => passwordScore(form.password), [form.password]);
   const passwordChecks = useMemo(
@@ -206,7 +224,11 @@ export default function Register() {
     if (name === "phone") {
       return setForm((p) => ({ ...p, phone: formatPhonePL(value) }));
     }
-    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+      ...(orderIntent && name === "password" ? { confirmPassword: value } : {}),
+    }));
   };
 
   const validateForm = (f) => {
@@ -220,7 +242,7 @@ export default function Register() {
     if (!passwordChecks.find((c) => c.key === "lowerUpper")?.ok) return "Hasło musi zawierać małą i dużą literę.";
     if (!passwordChecks.find((c) => c.key === "digit")?.ok) return "Hasło musi zawierać co najmniej jedną cyfrę.";
     if (!passwordChecks.find((c) => c.key === "special")?.ok) return "Hasło musi zawierać co najmniej jeden znak specjalny.";
-    if (f.password !== f.confirmPassword) return "Hasła nie są identyczne.";
+    if (!orderIntent && f.password !== f.confirmPassword) return "Hasła nie są identyczne.";
     if (!f.accept) return "Musisz zaakceptować regulamin.";
 
     if (f.role === "provider") {
@@ -327,6 +349,8 @@ export default function Register() {
             country: snapshot.billingCountry || "Polska",
           } : undefined,
           referralCode: snapshot.referralCode?.trim() || undefined,
+          registrationIntent: orderIntent ? "order" : "account",
+          continuePath: orderIntent ? nextAfterAuth : undefined,
         }),
       });
 
@@ -336,12 +360,14 @@ export default function Register() {
       // Pokaż komunikat sukcesu
       setSuccess(true);
       setSuccessMessage(data.message || "Konto zostało utworzone! Sprawdź swój email.");
+      track(EVENT_TYPES.REGISTRATION_SUCCESS, {
+        intent: orderIntent ? "order" : "account",
+        source: orderIntent ? "order_draft" : "register_page",
+      });
       
       // Przekierowanie tylko gdy mamy token (dev / auto-login) — w prod zostaw użytkownika na ekranie sukcesu
       if (data.token) {
         const userRole = data.user?.role || snapshot.role;
-        const nextAfterAuth = safeNextPath(searchParams.get("next"), "");
-
         if (nextAfterAuth) {
           storePostOnboardingNext(nextAfterAuth);
         }
@@ -390,10 +416,17 @@ export default function Register() {
           <Logo className="h-8 w-8" showText={true} textColor="text-indigo-800" clickable={true} />
         </div>
 
-        <h2 className="text-2xl font-bold mb-1 text-center">Rejestracja</h2>
-        <p className="text-center text-sm text-slate-500 mb-4">Wybierz typ konta i uzupełnij dane.</p>
+        <h2 className="text-2xl font-bold mb-1 text-center">
+          {orderIntent ? "Potwierdź dane i wyślij zlecenie" : "Rejestracja"}
+        </h2>
+        <p className="text-center text-sm text-slate-500 mb-4">
+          {orderIntent
+            ? "Zlecenie jest zapisane. Po potwierdzeniu e-mail wrócisz do gotowego formularza."
+            : "Wybierz typ konta i uzupełnij dane."}
+        </p>
 
         {/* Wybór roli */}
+        {!orderIntent && (
         <fieldset className="mb-4 border-0 p-0 m-0">
           <legend className="text-sm font-medium text-slate-700 mb-2">Typ konta</legend>
           <div
@@ -426,6 +459,7 @@ export default function Register() {
               : "Założysz konto klienta. Od razu możesz tworzyć zlecenia."}
           </div>
         </fieldset>
+        )}
 
         {/* Formularz */}
         {error && (
@@ -444,13 +478,17 @@ export default function Register() {
               <div>
                 <p className="text-green-800 font-medium">{successMessage}</p>
                 <p className="text-green-600 text-sm mt-1">
-                  Sprawdź swoją skrzynkę email i kliknij w link weryfikacyjny.
+                  {orderIntent
+                    ? "Sprawdź skrzynkę i kliknij link. Zalogujemy Cię i wrócisz do zapisanego zlecenia."
+                    : "Sprawdź swoją skrzynkę email i kliknij w link weryfikacyjny."}
                 </p>
               </div>
             </div>
             <div className="mt-3">
               <button
-                onClick={() => navigate("/login")}
+                onClick={() =>
+                  navigate(nextAfterAuth ? `/login?next=${encodeURIComponent(nextAfterAuth)}` : "/login")
+                }
                 className="text-green-700 hover:text-green-800 font-medium text-sm underline"
               >
                 Przejdź do logowania
@@ -493,7 +531,7 @@ export default function Register() {
               required
             />
           </div>
-          {form.referralCode ? (
+          {!orderIntent && (form.referralCode ? (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-sm text-indigo-900">
               <label htmlFor="referralCode" className="block font-medium text-indigo-950 mb-1">
                 Kod polecający
@@ -527,7 +565,7 @@ export default function Register() {
                 autoComplete="off"
               />
             </div>
-          )}
+          ))}
           <div>
             <label htmlFor="reg-phone" className="block text-sm font-medium text-slate-700 mb-1">
               Telefon
@@ -709,7 +747,7 @@ export default function Register() {
           )}
 
           {/* Pola lokalizacji - dla wykonawców (wymagane) i klientów (opcjonalne) */}
-          {(form.role === "provider" || form.role === "client") && (
+          {!orderIntent && (form.role === "provider" || form.role === "client") && (
             <>
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700">
@@ -834,6 +872,7 @@ export default function Register() {
           </div>
 
           {/* Powtórz hasło */}
+          {!orderIntent && (
           <div>
             <label htmlFor="reg-confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
               Powtórz hasło
@@ -869,6 +908,7 @@ export default function Register() {
             </button>
             </div>
           </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm select-none">
             <input
@@ -891,6 +931,7 @@ export default function Register() {
           </label>
 
           {/* Zgody marketingowe */}
+          {!orderIntent && (
           <div className="space-y-2 p-3 border border-slate-200 rounded-lg bg-slate-50">
             <p className="text-xs font-medium text-slate-700 mb-2">Powiadomienia i reklamy (opcjonalnie):</p>
             <label className="flex items-center gap-2 text-sm select-none">
@@ -934,13 +975,18 @@ export default function Register() {
               <span>Wyrażam zgodę na cookies analityczne (opcjonalnie)</span>
             </label>
           </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
             className="w-full p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-60"
           >
-            {loading ? "Rejestruję..." : "Zarejestruj"}
+            {loading
+              ? "Rejestruję..."
+              : orderIntent
+                ? "Potwierdź konto i wróć do zlecenia"
+                : "Zarejestruj"}
           </button>
         </form>
         )}
@@ -948,7 +994,12 @@ export default function Register() {
         {!success && (
           <p className="text-center text-sm text-slate-500 mt-3">
             Masz konto?{" "}
-            <Link to="/login" className="text-indigo-700 hover:underline">Zaloguj się</Link>
+            <Link
+              to={nextAfterAuth ? `/login?next=${encodeURIComponent(nextAfterAuth)}` : "/login"}
+              className="text-indigo-700 hover:underline"
+            >
+              Zaloguj się
+            </Link>
           </p>
         )}
       </div>

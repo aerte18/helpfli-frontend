@@ -24,11 +24,13 @@ import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight, Briefcase, ClipboardList } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
+import TrustSignals from "../components/TrustSignals";
+import { loadOrderDraft } from "../utils/orderDraft";
 
 const LANDING_FAQS = [
   {
     question: "Czy muszę zakładać konto, żeby korzystać?",
-    answer: "Nie — możesz przetestować Asystenta AI i wyszukiwanie wykonawców bez logowania. Konto jest potrzebne dopiero do utworzenia zlecenia lub płatności.",
+    answer: "Nie — możesz przetestować Asystenta AI, wyszukiwać wykonawców i wypełnić formularz zlecenia bez logowania. Konto potwierdzasz dopiero przy wysłaniu zlecenia.",
   },
   {
     question: "Czy dodanie zlecenia i porównanie ofert jest bezpłatne?",
@@ -259,6 +261,17 @@ export default function LandingStart() {
   const [aiOpen, setAiOpen] = useState(false);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [seed, setSeed] = useState("");
+  const [hasSavedDraft, setHasSavedDraft] = useState(() => Boolean(loadOrderDraft()));
+
+  useEffect(() => {
+    const syncDraftState = () => setHasSavedDraft(Boolean(loadOrderDraft()));
+    window.addEventListener("helpfli-order-draft-changed", syncDraftState);
+    window.addEventListener("storage", syncDraftState);
+    return () => {
+      window.removeEventListener("helpfli-order-draft-changed", syncDraftState);
+      window.removeEventListener("storage", syncDraftState);
+    };
+  }, []);
 
   const quickStart = useMemo(() => {
     const mode = user?.role === "provider" || audience === "provider" ? "provider" : "client";
@@ -303,10 +316,10 @@ export default function LandingStart() {
 
   const goToOrder = (source) => {
     track(EVENT_TYPES.QUOTE_REQUEST, { source, serviceId: query.trim() || undefined });
-    const destination = query.trim()
-      ? `/create-order?search=${encodeURIComponent(query.trim())}`
-      : "/create-order";
-    nav(user ? destination : `/login?next=${encodeURIComponent(destination)}`);
+    track(EVENT_TYPES.ORDER_CTA_CLICK, { source, service: query.trim() || undefined });
+    const params = new URLSearchParams({ source });
+    if (query.trim()) params.set("search", query.trim());
+    nav(`/create-order?${params.toString()}`);
   };
 
   return (
@@ -321,11 +334,11 @@ export default function LandingStart() {
         <meta property="og:url" content={absoluteUrl('/')} />
         <meta property="og:site_name" content="Helpfli" />
         <meta property="og:locale" content="pl_PL" />
-        <meta property="og:image" content={absoluteUrl('/icons/icon-192x192.png')} />
+        <meta property="og:image" content={absoluteUrl('/img/landing%20front.webp')} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Fachowcy i usługi lokalne w Twojej okolicy | Helpfli" />
         <meta name="twitter:description" content="Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
-        <meta name="twitter:image" content={absoluteUrl('/icons/icon-192x192.png')} />
+        <meta name="twitter:image" content={absoluteUrl('/img/landing%20front.webp')} />
         <script type="application/ld+json">{JSON.stringify({
           '@context': 'https://schema.org',
           '@graph': [
@@ -365,6 +378,23 @@ export default function LandingStart() {
         <div className="absolute top-[-200px] left-[-100px] w-[500px] h-[500px] rounded-full bg-[#A2B9FF] opacity-30 blur-[160px]" />
         <div className="absolute bottom-[-200px] right-[-100px] w-[500px] h-[500px] rounded-full bg-[#D4B3FF] opacity-30 blur-[160px]" />
       </div>
+
+      {hasSavedDraft && (
+        <div className="mx-auto max-w-7xl px-4 pt-3 sm:px-6 md:px-8">
+          <div className="flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">Masz zapisane zlecenie na tym urządzeniu</p>
+              <p className="mt-0.5 text-xs text-indigo-800">Wróć do formularza i dokończ je bez wpisywania wszystkiego od nowa.</p>
+            </div>
+            <Link
+              to="/create-order?resume=1&source=saved_draft"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
+            >
+              Dokończ zlecenie
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Kompaktowa karuzela promo (klient / wykonawca) — pod nagłówkiem, nad hero */}
       <Suspense fallback={<div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 pt-3"><div className="aspect-[2172/724] w-full rounded-xl bg-slate-100 animate-pulse" /></div>}>
@@ -500,6 +530,10 @@ export default function LandingStart() {
         </div>
       </section>
 
+      <div className="mx-auto w-full max-w-7xl px-4 pb-2 sm:px-6 md:px-8">
+        <TrustSignals compact />
+      </div>
+
       <div className="flex flex-col">
       {/* Popularne usługi */}
       <section className="order-1 pt-6 md:pt-8 pb-2 md:pb-3 md:order-none">
@@ -582,7 +616,7 @@ export default function LandingStart() {
 
                 <button
                   type="button"
-                  onClick={() => nav("/login?next=" + encodeURIComponent("/create-order"))}
+                  onClick={() => goToOrder("landing_trust")}
                   className="btn-helpfli-primary mt-4 w-full px-6 py-3 sm:w-auto"
                 >
                   Zacznij teraz

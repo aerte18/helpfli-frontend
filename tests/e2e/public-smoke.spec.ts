@@ -20,4 +20,27 @@ test.describe('Public smoke', () => {
     await page.goto('/prywatnosc', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText(/Google Analytics/i)).toBeVisible();
   });
+
+  test('guest can open and start the order form without a login redirect', async ({ page }) => {
+    await page.goto('/create-order?source=landing_hero', { waitUntil: 'domcontentloaded' });
+
+    await expect(page).toHaveURL(/\/create-order/);
+    await expect(page.getByText(/Najpierw opisz zadanie — bez logowania/i)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  });
+
+  test('order registration asks for one password and keeps the return path', async ({ page }) => {
+    await page.goto('/register?role=client&intent=order&next=%2Fcreate-order%3Fresume%3D1', {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await expect(page.getByRole('heading', { name: /Potwierdź dane i wyślij zlecenie/i })).toBeVisible();
+    await expect(page.locator('#reg-password')).toBeVisible();
+    await expect(page.locator('#reg-confirm-password')).toHaveCount(0);
+    await expect(page.getByRole('radiogroup', { name: /Typ konta/i })).toHaveCount(0);
+    await expect(page.locator('#main-content').getByRole('link', { name: /Zaloguj się/i })).toHaveAttribute(
+      'href',
+      /next=%2Fcreate-order/
+    );
+  });
 });

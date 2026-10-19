@@ -21,7 +21,12 @@ const FUNNEL_STEP_ORDER = [
   "provider_view",
   "provider_contact",
   "quote_request",
+  "order_cta_click",
   "order_form_start",
+  "order_auth_required",
+  "registration_start",
+  "registration_success",
+  "email_verification_success",
   "order_form_success",
   "offer_form_start",
   "offer_form_submit",
@@ -35,7 +40,12 @@ const FUNNEL_STEP_LABELS = {
   provider_view: "Profil wykonawcy",
   provider_contact: "Kontakt z wykonawcą",
   quote_request: "Zapytanie o wycenę",
+  order_cta_click: "Kliknięcie: dodaj zlecenie",
   order_form_start: "Start formularza zlecenia",
+  order_auth_required: "Brama potwierdzenia konta",
+  registration_start: "Start rejestracji klienta",
+  registration_success: "Utworzone konto klienta",
+  email_verification_success: "Potwierdzony e-mail",
   order_form_success: "Sukces formularza zlecenia",
   offer_form_start: "Start formularza oferty",
   offer_form_submit: "Wysłana oferta",
@@ -688,6 +698,11 @@ export default function AdminAnalytics() {
         <Card title="Konwersja: profil / wyszukiwanie" value={fmtRate(conversionRates.providerViewPerSearch)} />
         <Card title="Konwersja: zapytanie o wycenę / profil" value={fmtRate(conversionRates.quotePerProviderView)} />
         <Card title="Konwersja: sukces zlecenia / odsłona" value={fmtRate(conversionRates.orderSuccessPerPageView)} />
+        <Card title="Formularz / kliknięcie CTA" value={fmtRate(conversionRates.orderFormPerCta)} />
+        <Card title="Utworzone konto / start rejestracji" value={fmtRate(conversionRates.registrationSuccessPerStart)} />
+        <Card title="Zweryfikowany e-mail / utworzone konto" value={fmtRate(conversionRates.verificationPerRegistration)} />
+        <Card title="Wysłane zlecenie / start formularza" value={fmtRate(conversionRates.orderSuccessPerFormStart)} />
+        <Card title="Wysłane zlecenie / brama konta" value={fmtRate(conversionRates.orderSuccessAfterAuthGate)} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

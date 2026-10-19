@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { UI } from "../i18n/pl_ui";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/toast/ToastProvider";
-import { useTelemetry } from "../hooks/useTelemetry";
+import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
 import { Upload, Users, Briefcase, MapPin, FileText, Sparkles, CheckCircle, ShieldCheck, CreditCard, ShoppingCart, BarChart2, LocateFixed } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { openAI } from "../ai/chat/bus";
@@ -14,6 +14,8 @@ import { formatPriceHint } from "../utils/orderMode";
 import OffersOnlyListingAddons from "../components/OffersOnlyListingAddons";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import { useProtectedUploadUrl } from '@/hooks/useProtectedUploadUrl';
+import TrustSignals from "../components/TrustSignals";
+import { clearOrderDraft, loadOrderDraft, saveOrderDraft } from "../utils/orderDraft";
 
 function ProtectedAttachmentThumbnail({ attachment }) {
   const { url, loading, error } = useProtectedUploadUrl(attachment?.url);
@@ -39,12 +41,16 @@ export default function CreateOrder() {
   const q = useQuery();
   const API = import.meta.env.VITE_API_URL || '';
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const locationState = useLocation();
+  const savedDraft = useMemo(() => loadOrderDraft(), []);
 
   // parametry z URL i pre-wypełnione dane z profilu
-  const serviceFromUrl = q.get("service") || "";
+  const serviceFromUrl = q.get("service") || q.get("search") || "";
+  const locationFromUrl = q.get("location") || "";
   const descFromUrl = q.get("desc") || "";
+  const acquisitionSource =
+    q.get("source") || savedDraft?.acquisitionSource || "direct";
   const preFilled = locationState.state?.preFilled || locationState.state?.prefill || {};
   const aiBrief = preFilled.aiBrief || locationState.state?.aiBrief || null;
   const initialIsDirect = locationState.state?.direct || false;
@@ -52,16 +58,29 @@ export default function CreateOrder() {
   const diySteps = preFilled.diySteps || [];
   const diyParts = preFilled.parts || [];
 
-  const [orderType, setOrderType] = useState(initialIsDirect ? "direct" : "open"); // "open" | "direct"
-  const [service, setService] = useState(preFilled.service || serviceFromUrl);
-  const [serviceDetails, setServiceDetails] = useState(preFilled.serviceDetails || ""); // doprecyzowanie usługi (marka/model z AI)
-  const [isOtherSubcategory, setIsOtherSubcategory] = useState(false); // czy wybrana podkategoria to "Inne"
-  const [description, setDescription] = useState(preFilled.description || descFromUrl);
-  const [location, setLocation] = useState(preFilled.location || "");
-  const [selectedProvider, setSelectedProvider] = useState(preFilled.providerId ? {
-    id: preFilled.providerId,
-    name: preFilled.providerName
-  } : null);
+  const [orderType, setOrderType] = useState(
+    initialIsDirect ? "direct" : savedDraft?.orderType || "open"
+  ); // "open" | "direct"
+  const [service, setService] = useState(
+    preFilled.service || serviceFromUrl || savedDraft?.service || ""
+  );
+  const [serviceDetails, setServiceDetails] = useState(
+    preFilled.serviceDetails || savedDraft?.serviceDetails || ""
+  ); // doprecyzowanie usługi (marka/model z AI)
+  const [isOtherSubcategory, setIsOtherSubcategory] = useState(
+    Boolean(savedDraft?.isOtherSubcategory)
+  ); // czy wybrana podkategoria to "Inne"
+  const [description, setDescription] = useState(
+    preFilled.description || descFromUrl || savedDraft?.description || ""
+  );
+  const [location, setLocation] = useState(
+    preFilled.location || locationFromUrl || savedDraft?.location || ""
+  );
+  const [selectedProvider, setSelectedProvider] = useState(
+    preFilled.providerId
+      ? { id: preFilled.providerId, name: preFilled.providerName }
+      : savedDraft?.selectedProvider || null
+  );
   const [providerServices, setProviderServices] = useState([]); // usługi wybranego providera
 
   // Pobierz usługi wybranego providera (dla zleceń bezpośrednich)
@@ -94,16 +113,22 @@ export default function CreateOrder() {
   const [providerSearchQuery, setProviderSearchQuery] = useState("");
   const [providerSearchResults, setProviderSearchResults] = useState([]);
   const [showProviderSearch, setShowProviderSearch] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(savedDraft?.selectedCategory || null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [budget, setBudget] = useState(preFilled.budget ? String(preFilled.budget) : ""); // opcjonalny budżet
-  const [urgency, setUrgency] = useState(preFilled.urgency || ""); // pilność
-  const [contactPreference, setContactPreference] = useState(""); // preferencje kontaktu
-  const [paymentPreference, setPaymentPreference] = useState("system"); // preferencje płatności: "system" | "external"
-  const [requestInvoice, setRequestInvoice] = useState(false); // klient prosi o fakturę VAT od wykonawcy
+  const [budget, setBudget] = useState(
+    preFilled.budget ? String(preFilled.budget) : savedDraft?.budget || ""
+  ); // opcjonalny budżet
+  const [urgency, setUrgency] = useState(preFilled.urgency || savedDraft?.urgency || ""); // pilność
+  const [contactPreference, setContactPreference] = useState(
+    savedDraft?.contactPreference || ""
+  ); // preferencje kontaktu
+  const [paymentPreference, setPaymentPreference] = useState(
+    savedDraft?.paymentPreference || "system"
+  ); // preferencje płatności: "system" | "external"
+  const [requestInvoice, setRequestInvoice] = useState(Boolean(savedDraft?.requestInvoice)); // klient prosi o fakturę VAT od wykonawcy
   const [orderMode, setOrderMode] = useState(
-    preFilled.orderMode || (preFilled.suggestOffersOnly ? 'offers_only' : 'standard')
+    preFilled.orderMode || savedDraft?.orderMode || (preFilled.suggestOffersOnly ? 'offers_only' : 'standard')
   );
   const [serviceMeta, setServiceMeta] = useState(preFilled.serviceMeta || null);
   const [showOffersOnlyHint, setShowOffersOnlyHint] = useState(Boolean(preFilled.suggestOffersOnly));
@@ -124,8 +149,10 @@ export default function CreateOrder() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState(null);
   const [createdOrderDirect, setCreatedOrderDirect] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(Boolean(savedDraft));
   const { push: toast } = useToast();
   const {
+    track,
     trackOrderFormStart,
     trackOrderStepView,
     trackOrderFormAbandon,
@@ -134,6 +161,8 @@ export default function CreateOrder() {
   } = useTelemetry();
   const orderFormTrackedStep = useRef(0);
   const orderFormSubmitted = useRef(false);
+  const orderFormStarted = useRef(false);
+  const draftSaveTracked = useRef(false);
 
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(() =>
     Boolean(
@@ -142,6 +171,8 @@ export default function CreateOrder() {
         preFilled.providerId ||
         preFilled.orderMode ||
         preFilled.suggestOffersOnly ||
+        savedDraft?.orderMode === "offers_only" ||
+        Boolean(savedDraft?.budget || savedDraft?.urgency || savedDraft?.paymentPreference) ||
         (serviceFromUrl && descFromUrl)
     )
   );
@@ -188,13 +219,69 @@ export default function CreateOrder() {
 
   // Analityka: start formularza i krok 1
   useEffect(() => {
-    if (!user) return;
-    trackOrderFormStart();
+    if (authLoading || orderFormStarted.current) return;
+    orderFormStarted.current = true;
+    trackOrderFormStart({
+      audience: user ? "authenticated" : "guest",
+      source: acquisitionSource,
+      orderType,
+    });
     if (orderFormTrackedStep.current < 1) {
       orderFormTrackedStep.current = 1;
       trackOrderStepView(1);
     }
-  }, [user, trackOrderFormStart, trackOrderStepView]);
+  }, [authLoading, user, acquisitionSource, orderType, trackOrderFormStart, trackOrderStepView]);
+
+  // Zapis wersji roboczej na tym urządzeniu. Nie zapisujemy plików ani współrzędnych GPS.
+  useEffect(() => {
+    if (showSuccess) return undefined;
+    const timeout = window.setTimeout(() => {
+      const saved = saveOrderDraft({
+        service,
+        serviceDetails,
+        description,
+        location,
+        orderType,
+        budget,
+        urgency,
+        contactPreference,
+        paymentPreference,
+        requestInvoice,
+        orderMode,
+        selectedCategory,
+        selectedProvider,
+        isOtherSubcategory,
+        acquisitionSource,
+      });
+      if (saved && !draftSaveTracked.current) {
+        draftSaveTracked.current = true;
+        track(EVENT_TYPES.ORDER_DRAFT_SAVED, {
+          source: acquisitionSource,
+          service: String(service || "").slice(0, 120),
+          hasLocation: Boolean(String(location || "").trim()),
+        });
+      }
+    }, 450);
+    return () => window.clearTimeout(timeout);
+  }, [
+    showSuccess,
+    service,
+    serviceDetails,
+    description,
+    location,
+    orderType,
+    budget,
+    urgency,
+    contactPreference,
+    paymentPreference,
+    requestInvoice,
+    orderMode,
+    selectedCategory,
+    selectedProvider,
+    isOtherSubcategory,
+    acquisitionSource,
+    track,
+  ]);
 
   // Analityka: abandon (zamknięcie bez wysłania)
   useEffect(() => {
@@ -218,9 +305,13 @@ export default function CreateOrder() {
   // Funkcja do obsługi uploadu plików
   const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
-    
-    setUploadingFiles(true);
     const token = localStorage.getItem("token");
+    if (!token || !user) {
+      setError("Zdjęcia i dokumenty dodasz po potwierdzeniu konta. Pozostałe pola możesz wypełnić już teraz.");
+      return;
+    }
+
+    setUploadingFiles(true);
     
     try {
       const formData = new FormData();
@@ -285,7 +376,9 @@ export default function CreateOrder() {
       if (!res.ok) throw new Error(data.message || "Błąd pobierania rekomendacji");
       const list = data.providers || [];
       setRecommendedProviders(list);
-      if (list.length === 0) setError("Brak dopasowanych wykonawców w Twojej okolicy. Spróbuj zmienić lokalizację lub wybierz „Diagnozuj z AI”.");
+      if (list.length === 0) {
+        setError("Nie ma jeszcze dopasowanego profilu w tej okolicy. Nadal możesz wysłać zlecenie — trafi do dostępnych wykonawców i będzie widoczne dla zespołu Helpfli.");
+      }
     } catch (err) {
       setError(err.message || "Nie udało się pobrać rekomendacji");
     } finally {
@@ -332,14 +425,38 @@ export default function CreateOrder() {
       setError("Wybierając „Inne” jako usługę, opisz proszę dokładnie, czego potrzebujesz (np. naprawa drzwi, wymiana zawiasów).");
       return;
     }
-    setSubmitting(true);
-
     const token = localStorage.getItem("token");
     if (!token) {
-      setError("Brak tokenu — zaloguj się ponownie.");
-      setSubmitting(false);
+      saveOrderDraft({
+        service,
+        serviceDetails,
+        description,
+        location,
+        orderType,
+        budget,
+        urgency,
+        contactPreference,
+        paymentPreference,
+        requestInvoice,
+        orderMode,
+        selectedCategory,
+        selectedProvider,
+        isOtherSubcategory,
+        acquisitionSource,
+      });
+      track(EVENT_TYPES.ORDER_AUTH_REQUIRED, {
+        source: acquisitionSource,
+        service: String(service || "").slice(0, 120),
+        hasLocation: Boolean(String(location || "").trim()),
+      });
+      const resumePath = `/create-order?resume=1&source=${encodeURIComponent(acquisitionSource)}`;
+      navigate(
+        `/register?role=client&intent=order&next=${encodeURIComponent(resumePath)}`
+      );
       return;
     }
+
+    setSubmitting(true);
 
 
     try {
@@ -364,6 +481,7 @@ export default function CreateOrder() {
         type: orderType === "direct" ? "direct" : "open",
         status: "open", // zlecenie otwarte na propozycje (lub bezpośrednie do wykonawcy)
         priority: "normal", // zawsze normal, pilność jest w urgency
+        acquisitionSource,
       };
       if (aiBrief) {
         payload.aiBrief = aiBrief;
@@ -476,6 +594,8 @@ export default function CreateOrder() {
 
       setSubmitting(false);
       orderFormSubmitted.current = true;
+      clearOrderDraft();
+      setDraftRestored(false);
       setCreatedOrderId(orderId);
       setCreatedOrderDirect(orderType === "direct");
       setShowSuccess(true);
@@ -590,8 +710,38 @@ export default function CreateOrder() {
       <Helmet>
         <title>Utwórz zlecenie | Helpfli</title>
         <meta name="description" content="Opisz, w czym potrzebujesz pomocy. Wykonawcy z Twojej okolicy złożą oferty. Szybko i bezpiecznie przez Helpfli." />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
       <div className="container mx-auto px-4 pt-6 sm:pt-8 pb-32 md:pb-8 max-w-3xl">
+        {!authLoading && !user && (
+          <div className="mb-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700" aria-hidden />
+              <div>
+                <p className="font-semibold">Najpierw opisz zadanie — bez logowania</p>
+                <p className="mt-1 leading-relaxed text-indigo-800">
+                  Przy wysłaniu poprosimy tylko o utworzenie i potwierdzenie konta. Wersję roboczą zapisujemy na tym urządzeniu przez maksymalnie 7 dni.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {draftRestored && (
+          <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+            <div>
+              <p className="font-semibold">Przywróciliśmy zapisane zlecenie</p>
+              <p className="mt-1 text-emerald-800">Sprawdź dane i wyślij formularz, gdy będzie gotowy.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDraftRestored(false)}
+              className="shrink-0 text-xs font-medium text-emerald-800 hover:underline"
+            >
+              Ukryj
+            </button>
+          </div>
+        )}
+        <TrustSignals compact className="mb-4" />
         {user?.role !== 'provider' && user?.role !== 'company_owner' && (
           <WelcomeCreditBanner variant="compact" className="mb-4" />
         )}
@@ -1410,9 +1560,9 @@ export default function CreateOrder() {
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
               id="file-upload"
-              disabled={uploadingFiles}
+              disabled={uploadingFiles || !user}
             />
-            <label htmlFor="file-upload" className="cursor-pointer">
+            <label htmlFor="file-upload" className={user ? "cursor-pointer" : "cursor-not-allowed"}>
               {uploadingFiles ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2" style={{ borderColor: 'var(--primary)' }}></div>
@@ -1423,7 +1573,9 @@ export default function CreateOrder() {
                   <Upload className="h-8 w-8 mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
                   <p className="text-sm mb-1" style={{ color: 'var(--muted-foreground)' }}>Kliknij, aby dodać zdjęcia lub dokumenty</p>
                   <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    Obsługujemy pliki .JPG, .PNG, .WEBP, .HEIC/.HEIF, .PDF, .DOC, .DOCX, .XLS, .XLSX
+                    {user
+                      ? "Obsługujemy pliki .JPG, .PNG, .WEBP, .HEIC/.HEIF, .PDF, .DOC, .DOCX, .XLS, .XLSX"
+                      : "Załączniki dodasz po potwierdzeniu konta — pozostałe pola możesz wypełnić teraz."}
                   </p>
                 </>
               )}
@@ -1496,9 +1648,14 @@ export default function CreateOrder() {
                   {UI.orderCTA}
                 </>
               ) : (
-                UI.orderCTA
+                user ? UI.orderCTA : "Kontynuuj — potwierdź konto"
               )}
             </button>
+            {!user && !authLoading && (
+              <p className="mt-2 text-center text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                Twoje dane formularza nie znikną podczas potwierdzania adresu e-mail.
+              </p>
+            )}
             
             {(!service.trim() || !description.trim() || (isOtherSubcategory && !serviceDetails?.trim())) && (
               <p className="mt-2 text-center text-xs md:text-sm" style={{ color: 'var(--muted-foreground)' }}>

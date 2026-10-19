@@ -313,6 +313,8 @@ function App() {
           <Route path="/cooperation" element={<Cooperation />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/help" element={<HelpCenter />} />
+          {/* Formularz jest publiczny: logowanie jest wymagane dopiero przy wysłaniu. */}
+          <Route path="/create-order" element={<CreateOrder />} />
 
           {/* AI SEO Engine – publiczne poradniki */}
           <Route path="/poradniki" element={<PoradnikiList />} />
@@ -328,7 +330,6 @@ function App() {
 
         {/* Wymaga logowania */}
         <Route element={<PrivateRoute />}>
-          <Route path="/create-order" element={<CreateOrder />} />
           <Route path="/my-orders" element={<MyOrders />} />
           <Route path="/orders/my" element={<MyOrders />} />
           <Route path="/orders/:orderId" element={<OrderDetails />} />

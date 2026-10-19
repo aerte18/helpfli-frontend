@@ -2,6 +2,8 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Logo from "../components/Logo";
+import { safeNextPath } from "../utils/authRedirect";
+import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -10,6 +12,8 @@ export default function VerifyEmail() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [resending, setResending] = useState(false);
+  const { track } = useTelemetry();
+  const nextPath = safeNextPath(searchParams.get("next"), "");
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -34,12 +38,20 @@ export default function VerifyEmail() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+        }
+        track(EVENT_TYPES.EMAIL_VERIFICATION_SUCCESS, {
+          intent: nextPath ? "order" : "account",
+          source: nextPath ? "order_verification" : "verify_email",
+        });
         setStatus("success");
         setMessage(data.message);
-        // Automatycznie przekieruj do logowania po 3 sekundach
+        // Pełne przeładowanie pozwala AuthProviderowi od razu odczytać nową sesję.
         setTimeout(() => {
-          navigate("/login");
-        }, 3000);
+          window.location.replace(nextPath || "/home");
+        }, 1800);
       } else {
         setStatus("error");
         setMessage(data.message || "Błąd weryfikacji emaila");
@@ -64,14 +76,14 @@ export default function VerifyEmail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, continuePath: nextPath || undefined }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
         setMessage(data.message);
-        setStatus("success");
+        setStatus("resent");
       } else {
         setMessage(data.message || "Błąd wysyłania emaila");
       }
@@ -104,7 +116,22 @@ export default function VerifyEmail() {
             </div>
             <h2 className="text-xl font-semibold mb-2 text-green-800">Email zweryfikowany!</h2>
             <p className="text-gray-600 mb-4">{message}</p>
-            <p className="text-sm text-gray-500">Przekierowuję do logowania...</p>
+            <p className="text-sm text-gray-500">
+              {nextPath ? "Wracasz do zapisanego zlecenia..." : "Przekierowuję do Twojego konta..."}
+            </p>
+          </div>
+        );
+
+      case "resent":
+        return (
+          <div className="text-center">
+            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold mb-2 text-indigo-800">Nowy link został wysłany</h2>
+            <p className="text-gray-600">{message}</p>
           </div>
         );
 
@@ -140,7 +167,7 @@ export default function VerifyEmail() {
             </div>
 
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login")}
               className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
               Przejdź do logowania

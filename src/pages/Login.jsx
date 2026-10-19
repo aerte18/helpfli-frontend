@@ -5,7 +5,7 @@ import Logo from "../components/Logo";
 import { useAuth } from "../context/AuthContext";
 import { apiPost } from "../lib/api";
 import TwoFactorModal from "../components/TwoFactorModal";
-import { getPostLoginPath } from "../utils/authRedirect";
+import { getPostLoginPath, safeNextPath } from "../utils/authRedirect";
 
 function Login() {
   const errorId = useId();
@@ -79,7 +79,11 @@ function Login() {
     setInfo("");
     setResendingVerification(true);
     try {
-      const data = await apiPost("/api/auth/resend-verification", { email }, { credentials: "omit" });
+      const data = await apiPost(
+        "/api/auth/resend-verification",
+        { email, continuePath: safeNextPath(next, "") || undefined },
+        { credentials: "omit" }
+      );
       setInfo(data?.message || "Email weryfikacyjny został wysłany ponownie.");
     } catch (err) {
       setError(err.message || "Nie udało się ponownie wysłać emaila weryfikacyjnego.");

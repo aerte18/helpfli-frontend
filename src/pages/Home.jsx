@@ -29,6 +29,7 @@ import useCompare from "../hooks/useCompare";
 import SEOHead from "../components/SEOHead";
 import { ShieldCheck, Star, Sparkles, List, Map, LayoutGrid, Wallet, MapPin, Users, SlidersHorizontal } from "lucide-react";
 import MobileViewModeToggle from "../components/ui/MobileViewModeToggle";
+import NoProviderLeadCard from "../components/NoProviderLeadCard";
 
 const MOBILE_VIEW_STORAGE_KEY = "quicksy_home_mobile_view_mode";
 
@@ -1132,9 +1133,11 @@ export default function Home() {
                 />
               ))}
               {!list.length && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-                  Brak wyników dla wybranych filtrów.
-                </div>
+                <NoProviderLeadCard
+                  service={filters.search || selectedServiceSlugs[0] || ""}
+                  source="search_no_results"
+                  onClearFilters={clearHomeFilters}
+                />
               )}
               {/* Przycisk "Pokaż więcej" w trybie lista */}
               {viewMode === "list" && list.length > 20 && (
@@ -1337,9 +1340,11 @@ export default function Home() {
               </div>
             ))}
             {!list.length && (
-              <div className="text-center text-slate-500 text-sm py-8">
-                Brak wyników dla wybranych filtrów.
-              </div>
+              <NoProviderLeadCard
+                service={filters.search || selectedServiceSlugs[0] || ""}
+                source="search_no_results"
+                onClearFilters={clearHomeFilters}
+              />
             )}
             </div>
           )}

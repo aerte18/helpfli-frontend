@@ -24,6 +24,12 @@
       ]
     },
     {
+      "source": "/assets/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
       "source": "/(home|login|register|forgot-password|reset-password|verify-email|onboarding|privacy|create-order|my-orders|dashboard|client-dashboard|provider|provider-home|manage-services|available-orders|messages|inbox|notifications|checkout|payment-result|kyc|nearby-providers|wallet|billing|subscriptions|verification|ai|ai-public|admin|account|company)",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }

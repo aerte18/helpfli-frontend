@@ -10,6 +10,7 @@ import useCompare from '../hooks/useCompare';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
+import NoProviderLeadCard from '../components/NoProviderLeadCard';
 
 // Tylko dev: przykładowi wykonawcy przy pustej odpowiedzi API (jak Home.jsx)
 const DEMO_PROVIDERS = [
@@ -914,19 +915,12 @@ const ProvidersPage = () => {
                 )}
                 
                 {!loading && providers.length === 0 && (
-                  <div className="text-center py-12">
-                    <div className="text-gray-500 mb-4">
-                      <Filter size={48} className="mx-auto mb-4" />
-                      <h3 className="text-lg font-medium">Brak wyników</h3>
-                      <p className="text-sm">Spróbuj zmienić filtry lub poszerzyć promień wyszukiwania</p>
-                    </div>
-                    <button
-                      onClick={clearAllFilters}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Wyczyść filtry
-                    </button>
-                  </div>
+                  <NoProviderLeadCard
+                    service={filters.search || filters.service}
+                    location={filters.location || filters.city}
+                    source="providers_no_results"
+                    onClearFilters={clearAllFilters}
+                  />
                 )}
               </div>
             ) : (
@@ -948,13 +942,13 @@ const ProvidersPage = () => {
                   </div>
                 )}
                 {!loading && providers.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <div className="text-gray-500 mb-4">
-                      <Filter size={48} className="mx-auto mb-4" />
-                      <h3 className="text-lg font-medium">Brak wyników</h3>
-                      <p className="text-sm">Spróbuj zmienić filtry lub poszerzyć promień wyszukiwania</p>
-                    </div>
-                  </div>
+                  <NoProviderLeadCard
+                    className="col-span-full"
+                    service={filters.search || filters.service}
+                    location={filters.location || filters.city}
+                    source="providers_no_results"
+                    onClearFilters={clearAllFilters}
+                  />
                 )}
               </div>
             )}
