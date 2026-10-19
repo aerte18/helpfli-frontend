@@ -1,6 +1,6 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { absoluteUrl, SITE_URL } from "../utils/siteUrl";
 import AutosuggestInput from "../components/AutosuggestInput";
@@ -23,6 +23,43 @@ const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromo
 import { openHowItWorksModal } from "../utils/openHowItWorksModal";
 import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight, Briefcase, ClipboardList } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
+
+const LANDING_FAQS = [
+  {
+    question: "Czy muszę zakładać konto, żeby korzystać?",
+    answer: "Nie — możesz przetestować Asystenta AI i wyszukiwanie wykonawców bez logowania. Konto jest potrzebne dopiero do utworzenia zlecenia lub płatności.",
+  },
+  {
+    question: "Czy dodanie zlecenia i porównanie ofert jest bezpłatne?",
+    answer: "Tak — samo opisanie potrzeby i porównanie otrzymanych ofert jest bezpłatne i nie zobowiązuje Cię do wyboru wykonawcy.",
+  },
+  {
+    question: "Jak działa gwarancja Helpfli?",
+    answer: "Jeśli płacisz przez system, pieniądze są chronione do momentu zakończenia usługi. W razie problemów możesz zgłosić reklamację.",
+  },
+  {
+    question: "Czy mogę zostać wykonawcą?",
+    answer: "Tak. Zarejestruj się jako usługodawca, przejdź weryfikację KYC i zacznij pozyskiwać zlecenia w swojej okolicy.",
+  },
+  {
+    question: "Czy jako klient dostanę bonus za pierwsze zlecenie?",
+    answer: "Po potwierdzeniu odbioru pierwszego opłaconego zlecenia w Helpfli otrzymasz 20 zł w portfelu punktów (200 pkt, 1 pkt = 0,10 zł).",
+  },
+  {
+    question: "Jak działają polecenia?",
+    answer: "Udostępniasz swój link lub kod z konta. Po rejestracji zaproszonej osoby obie strony dostają punkty, a po spełnieniu warunków programu — dodatkowe nagrody.",
+  },
+];
+
+const POPULAR_SERVICE_LINKS = [
+  { slug: "hydraulika-naprawa-wycieku", label: "Hydraulik — naprawa wycieku" },
+  { slug: "elektryka-montaz-gniazdek-wlacznikow-oswietlenia-led", label: "Elektryk — gniazdka i oświetlenie" },
+  { slug: "agd-rtv-naprawa-agd", label: "Naprawa AGD" },
+  { slug: "remont-wykonczenia-malowanie", label: "Malowanie mieszkania" },
+  { slug: "sprzatanie-sprzatanie-mieszkania", label: "Sprzątanie mieszkania" },
+  { slug: "remont-wykonczenia-remont-lazienki", label: "Remont łazienki" },
+];
 
 const HERO_QUICK_START = {
   client: {
@@ -216,6 +253,7 @@ export default function LandingStart() {
   const nav = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { track } = useTelemetry();
   const [query, setQuery] = useState("");
   const [audience, setAudience] = useState("client");
   const [aiOpen, setAiOpen] = useState(false);
@@ -263,34 +301,63 @@ export default function LandingStart() {
     setAiOpen(true);
   };
 
+  const goToOrder = (source) => {
+    track(EVENT_TYPES.QUOTE_REQUEST, { source, serviceId: query.trim() || undefined });
+    const destination = query.trim()
+      ? `/create-order?search=${encodeURIComponent(query.trim())}`
+      : "/create-order";
+    nav(user ? destination : `/login?next=${encodeURIComponent(destination)}`);
+  };
+
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: 'var(--background)' }}>
       <Helmet>
-        <title>Helpfli — Znajdź pomoc w swojej okolicy</title>
-        <meta name="description" content="Znajdź pomoc do codziennych spraw i zadań — od drobnych przysług po profesjonalne usługi. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <title>Fachowcy i usługi lokalne w Twojej okolicy | Helpfli</title>
+        <meta name="description" content="Znajdź sprawdzonego hydraulika, elektryka, serwis AGD, ekipę remontową lub sprzątającą. Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
         <link rel="canonical" href={absoluteUrl('/')} />
-        <meta property="og:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
-        <meta property="og:description" content="Znajdź pomoc do codziennych spraw i zadań. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <meta property="og:title" content="Fachowcy i usługi lokalne w Twojej okolicy | Helpfli" />
+        <meta property="og:description" content="Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={absoluteUrl('/')} />
         <meta property="og:site_name" content="Helpfli" />
         <meta property="og:locale" content="pl_PL" />
         <meta property="og:image" content={absoluteUrl('/icons/icon-192x192.png')} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Helpfli — Znajdź pomoc w swojej okolicy" />
-        <meta name="twitter:description" content="Znajdź pomoc do codziennych spraw i zadań. Opisz potrzebę, a połączymy Cię z lokalnymi wykonawcami." />
+        <meta name="twitter:title" content="Fachowcy i usługi lokalne w Twojej okolicy | Helpfli" />
+        <meta name="twitter:description" content="Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
         <meta name="twitter:image" content={absoluteUrl('/icons/icon-192x192.png')} />
         <script type="application/ld+json">{JSON.stringify({
           '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Helpfli',
-          url: SITE_URL,
-          description: 'Marketplace usług lokalnych — hydraulik, elektryk, remont i więcej.',
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: `${SITE_URL}/providers?q={search_term_string}`,
-            'query-input': 'required name=search_term_string'
-          }
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              '@id': `${SITE_URL}/#website`,
+              name: 'Helpfli',
+              url: SITE_URL,
+              inLanguage: 'pl-PL',
+              description: 'Marketplace usług lokalnych — hydraulik, elektryk, remont, AGD i więcej.',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: `${SITE_URL}/providers?q={search_term_string}`,
+                'query-input': 'required name=search_term_string'
+              }
+            },
+            {
+              '@type': 'Organization',
+              '@id': `${SITE_URL}/#organization`,
+              name: 'Helpfli',
+              url: SITE_URL,
+              logo: `${SITE_URL}/icons/icon-192x192.png`
+            },
+            {
+              '@type': 'FAQPage',
+              mainEntity: LANDING_FAQS.map((item) => ({
+                '@type': 'Question',
+                name: item.question,
+                acceptedAnswer: { '@type': 'Answer', text: item.answer }
+              }))
+            }
+          ]
         })}</script>
       </Helmet>
       {/* Pastelowe plamy gradientowe w tle */}
@@ -329,7 +396,7 @@ export default function LandingStart() {
                 </div>
               )}
               <h1 className="mb-3 text-[1.65rem] font-bold leading-tight tracking-tight sm:mb-4 sm:text-3xl md:text-4xl lg:text-5xl whitespace-pre-line" style={{ color: 'var(--foreground)' }}>
-                {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź sprawdzoną pomoc\nw kilka minut"}
+                {audience === "provider" ? "Pozyskuj zlecenia\nw swojej okolicy" : "Znajdź lokalnego fachowca\ni porównaj oferty"}
               </h1>
 
               <div
@@ -377,9 +444,7 @@ export default function LandingStart() {
                   onClick={() => {
                     if (user?.role === "provider" || audience === "provider") {
                       nav("/provider-home");
-                    } else {
-                      nav("/home");
-                    }
+                    } else goToOrder("landing_hero");
                   }}
                   className="btn-helpfli-primary w-full min-h-[52px] rounded-2xl px-4 py-3.5 text-left shadow-md shadow-indigo-900/10 active:scale-[0.99] transition-transform md:flex-1 !inline-flex !items-center !justify-between gap-3"
                 >
@@ -388,7 +453,7 @@ export default function LandingStart() {
                       <MapPin className="h-5 w-5 shrink-0" aria-hidden />
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-tight">
-                      {user?.role === "provider" || audience === "provider" ? "Przejdź do zleceń" : "Znajdź pomoc"}
+                      {user?.role === "provider" || audience === "provider" ? "Przejdź do zleceń" : "Dodaj zlecenie bezpłatnie"}
                     </span>
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 opacity-85" aria-hidden />
@@ -536,15 +601,54 @@ export default function LandingStart() {
         </div>
       </section>
 
+      {/* Crawlable discovery hub: real service pages + main SEO collections. */}
+      <section className="order-3 py-6 md:py-8 md:order-none" aria-labelledby="popularne-uslugi-heading">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Usługi blisko Ciebie</p>
+                <h2 id="popularne-uslugi-heading" className="mt-1 text-xl font-bold text-slate-900 md:text-2xl">
+                  Najczęściej szukani fachowcy
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                  Sprawdź zakres usługi i orientacyjne ceny albo od razu opisz zadanie, aby otrzymać dopasowane oferty.
+                </p>
+              </div>
+              <Link to="/services" className="text-sm font-semibold text-indigo-700 hover:underline">
+                Zobacz wszystkie usługi →
+              </Link>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {POPULAR_SERVICE_LINKS.map((service) => (
+                <Link
+                  key={service.slug}
+                  to={`/service/${service.slug}`}
+                  className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-indigo-300 hover:bg-indigo-50"
+                >
+                  <span>{service.label}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+                </Link>
+              ))}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-100 pt-4 text-sm">
+              <Link to="/wykonawcy" className="font-medium text-indigo-700 hover:underline">Usługi w miastach</Link>
+              <Link to="/providers" className="font-medium text-indigo-700 hover:underline">Katalog wykonawców</Link>
+              <Link to="/poradniki" className="font-medium text-indigo-700 hover:underline">Poradniki i ceny usług</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Promo Carousel */}
-      <div className="order-3 md:order-none">
+      <div className="order-4 md:order-none">
         <Suspense fallback={<div className="w-full h-40 rounded-3xl bg-slate-100 animate-pulse" />}>
           <HelpfliPromoCarousel />
         </Suspense>
       </div>
 
       {/* Banner reklamowy */}
-      <section className="order-4 py-6 md:py-8 md:order-none">
+      <section className="order-5 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <Suspense fallback={null}>
             <SponsorAdBanner
@@ -557,7 +661,7 @@ export default function LandingStart() {
       </section>
 
       {/* Baner sezonowy — ciaśniejszy wrapper na mobile (aplikacyjny panel) */}
-      <section className="order-5 pt-1 pb-4 md:pt-3 md:pb-8 md:order-none">
+      <section className="order-6 pt-1 pb-4 md:pt-3 md:pb-8 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div
             className="rounded-2xl border p-3 sm:p-4 md:p-8 md:rounded-xl"
@@ -569,7 +673,7 @@ export default function LandingStart() {
       </section>
 
       {/* Program Founding Provider + CTA wykonawcy */}
-      <section className="order-6 py-4 md:py-8 md:order-none">
+      <section className="order-7 py-4 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 space-y-4">
           <Suspense fallback={null}>
             <FoundingProviderBanner variant="marketing" />
@@ -578,14 +682,14 @@ export default function LandingStart() {
       </section>
 
       {/* Featured Announcements */}
-      <div className="order-7 md:order-none">
+      <div className="order-8 md:order-none">
         <Suspense fallback={null}>
           <FeaturedAnnouncements />
         </Suspense>
       </div>
 
       {/* Mini FAQ */}
-      <section className="order-8 py-6 md:py-8 md:order-none">
+      <section className="order-9 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <div className="text-center mb-8">
@@ -595,42 +699,12 @@ export default function LandingStart() {
               </p>
             </div>
             <div className="space-y-4">
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Czy muszę zakładać konto, żeby korzystać?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Nie – możesz przetestować Asystenta AI i wyszukiwanie wykonawców bez logowania. Konto potrzebne jest dopiero do utworzenia zlecenia lub płatności.
-                </p>
-              </details>
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Jak działa gwarancja Helpfli?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Jeśli płacisz przez system, Twoje pieniądze są chronione do momentu zakończenia usługi. W razie problemów możesz zgłosić reklamację.
-                </p>
-              </details>
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Czy mogę zostać wykonawcą?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Tak! Zarejestruj się jako usługodawca, przejdź weryfikację KYC i zacznij pozyskiwać zlecenia w swojej okolicy.
-                </p>
-              </details>
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Co to jest program „Pierwszy wykonawca”?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Dla pierwszych 1000 wykonawców: 0% prowizji platformy przez 60 dni, badge na profilu, wyższa widoczność w wyszukiwaniu i 10 darmowych wyróżnień ofert. Program działa obok subskrypcji PRO — abonament PRO to osobna opłata za limity pakietu.
-                </p>
-              </details>
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Czy jako klient dostanę bonus za pierwsze zlecenie?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Tak — po potwierdzeniu odbioru pierwszego opłaconego zlecenia w Helpfli otrzymasz 20 zł w portfelu punktów (200 pkt, 1 pkt = 0,10 zł). Możesz też polecać znajomych i zbierać nagrody w programie poleceń.
-                </p>
-              </details>
-              <details className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
-                <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>Jak działają polecenia?</summary>
-                <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                  Udostępniasz swój link lub kod z konta (zakładka Polecenia). Po rejestracji zaproszonej osoby obie strony dostają punkty, a po spełnieniu warunku (pierwsze zlecenie klienta lub ukończenie profilu wykonawcy) — dodatkowe nagrody w portfelu lub przedłużenie PRO.
-                </p>
-              </details>
+              {LANDING_FAQS.map((item) => (
+                <details key={item.question} className="rounded-lg p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
+                  <summary className="cursor-pointer font-medium" style={{ color: 'var(--foreground)' }}>{item.question}</summary>
+                  <p className="mt-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>{item.answer}</p>
+                </details>
+              ))}
             </div>
           </div>
         </div>

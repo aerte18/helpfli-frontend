@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEOHead from '@/components/SEOHead';
 import { fetchSeoLocalServices, fetchSeoLocalCities, fetchSeoLocalIndex } from '@/api/seoLocal';
+import { SITE_URL } from '@/utils/siteUrl';
 
 /**
  * /wykonawcy — hub PSEO.
@@ -76,14 +77,30 @@ export default function SeoLocalIndex() {
     acc[k].push(s);
     return acc;
   }, {});
+  const itemListJsonLd = publishedPages.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'Usługi lokalne Helpfli w polskich miastach',
+        numberOfItems: publishedPages.length,
+        itemListElement: publishedPages.slice(0, 100).map((page, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: `${page.serviceName} — ${page.cityName}`,
+          url: `${SITE_URL}/wykonawcy/${page.serviceSlug}/${page.citySlug}`,
+        })),
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-50">
       <SEOHead
-        title="Wykonawcy Helpfli — hydraulik, elektryk, AGD, remont w Twoim mieście"
-        description="Pełen katalog usług Helpfli: hydraulik, elektryk, AGD, remont, sprzątanie. Sprawdź ceny i znajdź sprawdzonego wykonawcę w swoim mieście."
+        title="Usługi lokalne i fachowcy w polskich miastach | Helpfli"
+        description="Sprawdź dostępne usługi lokalne, orientacyjne ceny i wykonawców w obsługiwanych miastach. Hydraulik, elektryk, AGD, remont i sprzątanie."
         canonical="/wykonawcy"
-      />
+      >
+        {itemListJsonLd && <script type="application/ld+json">{JSON.stringify(itemListJsonLd)}</script>}
+      </SEOHead>
 
       <header className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white">
         <div className="max-w-5xl mx-auto px-4 py-10 sm:py-14">
@@ -93,10 +110,10 @@ export default function SeoLocalIndex() {
             <span>Wykonawcy</span>
           </nav>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">
-            Wszyscy wykonawcy Helpfli w Twoim mieście
+            Usługi lokalne w Twoim mieście
           </h1>
           <p className="text-lg text-indigo-100 max-w-2xl">
-            Hydraulik, elektryk, serwis AGD, remonty i inne usługi dostępne obecnie w {Object.keys(cityLandingBySlug).length || '…'} miastach w Polsce.
+            Wybierz usługę i miasto, sprawdź przydatne informacje, a następnie poproś lokalnych wykonawców o wycenę.
           </p>
         </div>
       </header>
@@ -106,6 +123,18 @@ export default function SeoLocalIndex() {
           <div className="text-center text-slate-500">Ładowanie…</div>
         ) : (
           <>
+            {publishedPages.length === 0 && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                <h2 className="text-xl font-bold text-slate-900">Katalog jest właśnie uzupełniany</h2>
+                <p className="mx-auto mt-2 max-w-xl text-slate-600">
+                  Nie musisz czekać na stronę swojego miasta — opisz zadanie, a Helpfli wyszuka pasujących wykonawców.
+                </p>
+                <Link to="/create-order" className="mt-4 inline-block rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700">
+                  Dodaj zlecenie bezpłatnie
+                </Link>
+              </section>
+            )}
+
             {Object.keys(grouped).map((cat) => (
               <section key={cat} className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-3">
@@ -161,6 +190,21 @@ export default function SeoLocalIndex() {
                   </Link>
                   );
                 })}
+              </div>
+            </section>
+
+            <section className="mt-10 rounded-2xl bg-indigo-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Nie widzisz swojej usługi lub miasta?</h2>
+                <p className="mt-1 text-sm text-slate-600">Dodaj zlecenie bez zobowiązań albo przejrzyj pełny katalog usług.</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3 sm:mt-0 sm:shrink-0">
+                <Link to="/create-order" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                  Poproś o wycenę
+                </Link>
+                <Link to="/services" className="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                  Wszystkie usługi
+                </Link>
               </div>
             </section>
           </>

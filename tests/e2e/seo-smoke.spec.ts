@@ -8,8 +8,14 @@ test.describe('SEO smoke', () => {
   test('landing page loads with Helpfli branding', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#root, body', { state: 'attached', timeout: 30000 });
-    await expect(page).toHaveTitle(/Helpfli/i);
+    await expect(page).toHaveTitle(/Fachowcy i usługi lokalne.*Helpfli/i);
     await expect(page.locator('body')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Najczęściej szukani fachowcy/i })).toBeVisible();
+    await expect(page.locator('a[href="/service/hydraulika-naprawa-wycieku"]')).toBeVisible();
+    const structuredData = await page
+      .locator('script[type="application/ld+json"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.textContent || '').join('\n'));
+    expect(structuredData).toContain('FAQPage');
   });
 
   test('PSEO hub /wykonawcy loads', async ({ page }) => {

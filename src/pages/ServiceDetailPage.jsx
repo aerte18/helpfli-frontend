@@ -1,13 +1,12 @@
 import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { CATEGORY_ICONS } from "../components/icons/HelpfliCategoryIcons";
 import Footer from "../components/Footer";
 import SEOHead from "../components/SEOHead";
 import PageBackground, { GlassCard } from "../components/PageBackground";
-
-const API = import.meta.env.VITE_API_URL || "";
+import { useTelemetry } from "../hooks/useTelemetry";
+import { SITE_URL } from "../utils/siteUrl";
 
 export default function ServiceDetailPage() {
   const { slug } = useParams();
@@ -17,6 +16,7 @@ export default function ServiceDetailPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { trackQuoteRequest } = useTelemetry();
 
   useEffect(() => {
     const fetchServiceData = async () => {
@@ -41,7 +41,7 @@ export default function ServiceDetailPage() {
         const providersData = await providersResponse.json();
         setTopProviders(providersData.items || []);
 
-        // Pobierz statystyki (na razie mockowane)
+        // Pokazuj wyłącznie dane z katalogu; bez sztucznych statystyk.
         setStats({
           averagePrice: serviceData.base_price_min && serviceData.base_price_max
             ? Math.round((serviceData.base_price_min + serviceData.base_price_max) / 2)
@@ -49,8 +49,8 @@ export default function ServiceDetailPage() {
           priceRange: serviceData.base_price_min && serviceData.base_price_max
             ? `${serviceData.base_price_min}-${serviceData.base_price_max} PLN`
             : "Do ustalenia",
-          averageTime: "2-4 godziny",
-          popularity: "Wysoka",
+          averageTime: serviceData.estimated_duration || "Zależy od zakresu prac",
+          popularity: serviceData.popularity || null,
           seasonality: serviceData.seasonal || "Cały rok"
         });
 
@@ -148,16 +148,26 @@ export default function ServiceDetailPage() {
         description={`Znajdź sprawdzonych wykonawców: ${serviceName}. Porównaj oferty, sprawdź ceny i zleć usługę na Helpfli.`}
         canonical={`/service/${service.slug}`}
       >
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Service",
-            name: serviceName,
-            url: `https://helpfli.pl/service/${service.slug}`,
-            provider: { "@type": "Organization", name: "Helpfli" },
-            areaServed: { "@type": "Country", name: "Polska" }
-          })}
-        </script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Service",
+              name: serviceName,
+              url: `${SITE_URL}/service/${service.slug}`,
+              provider: { "@type": "Organization", name: "Helpfli", url: SITE_URL },
+              areaServed: { "@type": "Country", name: "Polska" }
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Strona główna", item: SITE_URL },
+                { "@type": "ListItem", position: 2, name: "Katalog usług", item: `${SITE_URL}/services` },
+                { "@type": "ListItem", position: 3, name: serviceName, item: `${SITE_URL}/service/${service.slug}` }
+              ]
+            }
+          ]
+        })}</script>
       </SEOHead>
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         {/* Breadcrumb */}
@@ -165,7 +175,7 @@ export default function ServiceDetailPage() {
           <ol className="flex items-center space-x-2 text-sm text-slate-500">
             <li><Link to="/" className="hover:text-indigo-600">Strona główna</Link></li>
             <li>/</li>
-            <li><Link to="/home" className="hover:text-indigo-600">Usługi</Link></li>
+            <li><Link to="/services" className="hover:text-indigo-600">Usługi</Link></li>
             <li>/</li>
             <li className="text-slate-900">{service.name_pl || service.name_en}</li>
           </ol>
@@ -189,17 +199,19 @@ export default function ServiceDetailPage() {
                   <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                   {stats?.seasonality}
                 </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  {stats?.popularity}
-                </span>
+                {stats?.popularity && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    {stats.popularity}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex-shrink-0">
               <Link
                 to={`/create-order?service=${service.slug}`}
                 className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-[#4F46E5] via-[#7C3AED] to-[#EC4899] text-white font-semibold shadow-[0_12px_32px_rgba(79,70,229,0.5)] hover:shadow-[0_16px_40px_rgba(79,70,229,0.65)] transition-all"
-                onClick={() => console.log('ServiceDetailPage: clicking order button, service.slug:', service.slug)}
+                onClick={() => trackQuoteRequest(null, service.slug, 'service_detail_hero')}
               >
                 Zamów teraz
               </Link>
@@ -296,7 +308,8 @@ export default function ServiceDetailPage() {
                     Brak dostępnych providerów w tej chwili
                   </div>
                   <Link
-                    to="/create-order?service=${service.slug}"
+                    to={`/create-order?service=${service.slug}`}
+                    onClick={() => trackQuoteRequest(null, service.slug, 'service_detail_empty')}
                     className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
                     Złóż zlecenie
@@ -306,6 +319,15 @@ export default function ServiceDetailPage() {
             </GlassCard>
           </div>
         </div>
+
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 text-sm">
+          <h2 className="text-lg font-bold text-slate-900">Więcej sposobów na znalezienie pomocy</h2>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <Link to="/wykonawcy" className="font-semibold text-indigo-700 hover:underline">Usługi w miastach</Link>
+            <Link to="/providers" className="font-semibold text-indigo-700 hover:underline">Katalog wykonawców</Link>
+            <Link to="/poradniki" className="font-semibold text-indigo-700 hover:underline">Poradniki przed zleceniem pracy</Link>
+          </div>
+        </section>
       </div>
       <Footer />
     </PageBackground>

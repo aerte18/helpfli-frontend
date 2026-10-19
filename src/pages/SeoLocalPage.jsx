@@ -5,6 +5,7 @@ import LiveStatsCard from '@/components/seo/LiveStatsCard';
 import ArticleConciergeCard from '@/components/seo/ArticleConciergeCard';
 import SEOHead from '@/components/SEOHead';
 import { SITE_URL } from '@/utils/siteUrl';
+import { EVENT_TYPES, useTelemetry } from '@/hooks/useTelemetry';
 
 /**
  * /wykonawcy/:service/:city – Programmatic SEO landing page (PSEO).
@@ -26,12 +27,12 @@ function buildSeoMeta(page) {
   };
 }
 
-function buildFaqJsonLd(page) {
-  if (!page?.faq?.length) return null;
+function buildFaqJsonLd(items) {
+  if (!items?.length) return null;
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: page.faq.map((f) => ({
+    mainEntity: items.map((f) => ({
       '@type': 'Question',
       name: f.question,
       acceptedAnswer: { '@type': 'Answer', text: f.answer }
@@ -39,7 +40,7 @@ function buildFaqJsonLd(page) {
   };
 }
 
-function buildWebPageJsonLd(page, snap, canonicalUrl) {
+function buildWebPageJsonLd(page, canonicalUrl) {
   if (!page) return null;
 
   return {
@@ -54,7 +55,7 @@ function buildWebPageJsonLd(page, snap, canonicalUrl) {
       name: 'Helpfli',
       url: SITE_URL,
     },
-    about: {
+    mainEntity: {
       '@type': 'Service',
       name: page.serviceName,
       areaServed: {
@@ -62,9 +63,6 @@ function buildWebPageJsonLd(page, snap, canonicalUrl) {
         name: page.cityName,
       },
     },
-    ...(snap?.prices?.median
-      ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'PLN', lowPrice: snap.prices.min, highPrice: snap.prices.max } }
-      : {}),
   };
 }
 
@@ -75,7 +73,7 @@ function buildBreadcrumbJsonLd(page, canonicalUrl) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Strona główna', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: page.serviceName, item: `${SITE_URL}/wykonawcy` },
+      { '@type': 'ListItem', position: 2, name: 'Wykonawcy i usługi lokalne', item: `${SITE_URL}/wykonawcy` },
       { '@type': 'ListItem', position: 3, name: page.cityName, item: canonicalUrl }
     ]
   };
@@ -121,6 +119,7 @@ export default function SeoLocalPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { track } = useTelemetry();
 
   useEffect(() => {
     let active = true;
@@ -143,16 +142,19 @@ export default function SeoLocalPage() {
   }, [service, city]);
 
   const page = data?.page || null;
-  const snap = data?.liveSnapshot || null;
   const canonicalPath = page
     ? `/wykonawcy/${page.serviceSlug}/${page.citySlug}`
     : `/wykonawcy/${service}/${city}`;
   const seoMeta = useMemo(() => (page ? buildSeoMeta(page) : null), [page]);
 
-  const faqLd = useMemo(() => buildFaqJsonLd(page), [page]);
+  const faqItems = useMemo(
+    () => (page ? (page.faq?.length ? page.faq : buildFallbackFaq(page)) : []),
+    [page]
+  );
+  const faqLd = useMemo(() => buildFaqJsonLd(faqItems), [faqItems]);
   const localLd = useMemo(
-    () => (page ? buildWebPageJsonLd(page, snap, `${SITE_URL}${canonicalPath}`) : null),
-    [page, snap, canonicalPath]
+    () => (page ? buildWebPageJsonLd(page, `${SITE_URL}${canonicalPath}`) : null),
+    [page, canonicalPath]
   );
   const crumbLd = useMemo(
     () => (page ? buildBreadcrumbJsonLd(page, `${SITE_URL}${canonicalPath}`) : null),
@@ -181,7 +183,13 @@ export default function SeoLocalPage() {
 
   const ctaHref = buildCreateOrderHref(page);
   const fallbackParagraphs = buildFallbackSeoContent(page);
-  const faqItems = page.faq?.length ? page.faq : buildFallbackFaq(page);
+  const trackLeadClick = (source) => {
+    track(EVENT_TYPES.QUOTE_REQUEST, {
+      source,
+      serviceId: page.serviceSlug,
+      city: page.cityName,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -208,11 +216,12 @@ export default function SeoLocalPage() {
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">
             {seoMeta.h1}
           </h1>
-          {page.intro && <p className="text-lg text-indigo-100 max-w-3xl">{page.intro}</p>}
+          <p className="text-lg text-indigo-100 max-w-3xl">{page.intro || fallbackParagraphs[0]}</p>
 
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               to={ctaHref}
+              onClick={() => trackLeadClick('pseo_hero')}
               className="inline-block bg-white text-indigo-700 px-5 py-2.5 rounded-xl font-semibold shadow hover:bg-indigo-50 transition"
             >
               Znajdź wykonawcę w {page.cityName}
@@ -286,18 +295,34 @@ export default function SeoLocalPage() {
           </section>
         )}
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" aria-labelledby="pseo-related-heading">
+          <h2 id="pseo-related-heading" className="text-xl font-bold text-slate-900">Sprawdź też</h2>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <Link to="/services" className="font-semibold text-indigo-700 hover:underline">
+              Pełny katalog i zakres usług
+            </Link>
+            <Link to="/wykonawcy" className="font-semibold text-indigo-700 hover:underline">
+              Wszystkie usługi w miastach
+            </Link>
+            <Link to="/poradniki" className="font-semibold text-indigo-700 hover:underline">
+              Poradniki przed zleceniem pracy
+            </Link>
+          </div>
+        </section>
+
         <section className="rounded-2xl bg-gradient-to-br from-emerald-50 to-indigo-50 border border-indigo-100 p-6 sm:p-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
             {page.serviceName} w {page.cityName} – zacznij od bezpłatnej wyceny
           </h2>
           <p className="text-slate-700 max-w-xl mx-auto mb-5">
-            Opisz problem, my w kilka minut dopasujemy zaufanego wykonawcę z {page.cityName}.
+            Opisz problem bez zobowiązań. Poinformujemy dostępnych wykonawców z {page.cityName}, aby mogli przesłać oferty.
           </p>
           <Link
             to={ctaHref}
+            onClick={() => trackLeadClick('pseo_bottom')}
             className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow hover:bg-indigo-700 transition"
           >
-            Zamów wykonawcę →
+            Poproś o bezpłatną wycenę →
           </Link>
         </section>
       </div>

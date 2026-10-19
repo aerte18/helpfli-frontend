@@ -5,6 +5,7 @@ import { apiGet } from "../lib/api";
 import { IconByCategory } from "../components/icons/HelpfliCategoryIcons";
 import { sortCategoriesByOrder, sortSubcategories } from "../constants/categoryOrder";
 import { SERVICES_CATALOG } from "../constants/servicesCatalog";
+import SEOHead from "../components/SEOHead";
 
 export default function ServicesList() {
   const [categories, setCategories] = useState([]);
@@ -125,8 +126,19 @@ export default function ServicesList() {
 
   return (
     <div className="min-h-screen bg-[var(--qs-color-bg-soft)] py-4 md:py-5">
+      <SEOHead
+        title="Katalog usług lokalnych — znajdź fachowca | Helpfli"
+        description="Przeglądaj usługi lokalne: hydraulika, elektryka, AGD, remonty, sprzątanie i więcej. Sprawdź zakres usługi i poproś wykonawców o wycenę."
+        canonical="/services"
+        ogImage="/img/landing%20front.webp"
+      />
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <div className="bg-white shadow-[0_4px_30px_rgba(0,0,0,0.05)] border border-[#E9ECF5] p-8">
+          <nav aria-label="Breadcrumb" className="mb-5 text-sm text-slate-500">
+            <Link to="/" className="hover:text-indigo-700 hover:underline">Strona główna</Link>
+            <span className="mx-2">/</span>
+            <span>Katalog usług</span>
+          </nav>
           {!selectedCategory ? (
             <>
               <div className="flex items-center justify-between mb-8">
@@ -227,10 +239,10 @@ export default function ServicesList() {
                         </div>
 
                         <Link 
-                          to={`/home?service=${encodeURIComponent(serviceSlug)}`}
+                          to={`/service/${encodeURIComponent(serviceSlug)}`}
                           className="qs-btn qs-btn-primary w-full text-center"
                         >
-                          Znajdź wykonawcę
+                          Zobacz usługę i ceny
                         </Link>
                       </div>
                     );
