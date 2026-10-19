@@ -124,7 +124,9 @@ export default function Home() {
   const [sortBy, setSortBy] = useState('default');
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('split');
+  const [viewMode, setViewMode] = useState(
+    () => normalizeMobileViewMode(searchParams.get("view")) || "split"
+  );
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedServiceSlugs, setSelectedServiceSlugs] = useState([]);
@@ -340,13 +342,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!isMobileViewport) return;
+    // Jawny link (np. CTA z landing page) ma pierwszeństwo przed zapamiętanym widokiem.
+    if (normalizeMobileViewMode(searchParams.get("view"))) return;
     try {
       const savedView = normalizeMobileViewMode(localStorage.getItem(MOBILE_VIEW_STORAGE_KEY));
-      if (savedView && viewMode !== savedView) {
-        setViewMode(savedView);
-      }
+      if (savedView) setViewMode((current) => (current === savedView ? current : savedView));
     } catch (_) {}
-  }, [isMobileViewport]);
+  }, [isMobileViewport, searchParams]);
 
   useEffect(() => {
     if (isMobileViewport && viewMode === "split") {

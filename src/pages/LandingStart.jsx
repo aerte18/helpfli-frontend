@@ -21,7 +21,7 @@ const SponsorAdBanner = lazy(() => import("../components/SponsorAdBanner"));
 const FoundingProviderBanner = lazy(() => import("../components/FoundingProviderBanner"));
 const LandingTopPromoCarousel = lazy(() => import("../components/LandingTopPromoCarousel"));
 import { openHowItWorksModal } from "../utils/openHowItWorksModal";
-import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, MapPin, Search, ChevronRight, Briefcase, ClipboardList } from "lucide-react";
+import { Lightbulb, Target, Zap, Sparkles, ShieldCheck, Star, Users, CheckCircle, Map, MapPin, Search, ChevronRight, Briefcase, ClipboardList } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { EVENT_TYPES, useTelemetry } from "../hooks/useTelemetry";
 import TrustSignals from "../components/TrustSignals";
@@ -322,6 +322,10 @@ export default function LandingStart() {
     nav(`/create-order?${params.toString()}`);
   };
 
+  const goToProviderMap = () => {
+    nav("/home?view=map&source=landing_map");
+  };
+
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: 'var(--background)' }}>
       <Helmet>
@@ -519,6 +523,25 @@ export default function LandingStart() {
                   <ChevronRight className="h-5 w-5 shrink-0 opacity-45" style={{ color: 'var(--muted-foreground)' }} aria-hidden />
                 </button>
               </div>
+              {user?.role !== "provider" && audience !== "provider" && (
+                <button
+                  type="button"
+                  onClick={goToProviderMap}
+                  className="mt-3 flex min-h-[52px] w-full items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white/80 px-4 py-3 text-left shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/70 active:scale-[0.99] lg:max-w-2xl"
+                  aria-label="Najpierw zobacz mapę wykonawców"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                      <Map className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-slate-900">Najpierw zobacz mapę wykonawców</span>
+                      <span className="mt-0.5 block text-xs text-slate-600">Sprawdź, kto oferuje pomoc w Twojej okolicy</span>
+                    </span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-indigo-500" aria-hidden />
+                </button>
+              )}
             </div>
 
             {/* Right: Map Image */}

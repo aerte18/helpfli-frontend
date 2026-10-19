@@ -11,6 +11,16 @@ test.describe('Public smoke', () => {
     await expect(page).toHaveTitle(/Helpfli/i);
   });
 
+  test('landing map CTA opens Home directly in map view', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    await page.getByRole('button', { name: /Najpierw zobacz mapę wykonawców/i }).click();
+
+    await expect(page).toHaveURL(/\/home\?view=map&source=landing_map/);
+    await expect(page.locator('.leaflet-container')).toBeVisible();
+  });
+
   test('login page loads', async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /logowanie|zaloguj/i })).toBeVisible();
