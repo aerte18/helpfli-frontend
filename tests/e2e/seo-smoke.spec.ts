@@ -10,8 +10,8 @@ test.describe('SEO smoke', () => {
     await page.waitForSelector('#root, body', { state: 'attached', timeout: 30000 });
     await expect(page).toHaveTitle(/Fachowcy i usługi lokalne.*Helpfli/i);
     await expect(page.locator('body')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Najczęściej szukani fachowcy/i })).toBeVisible();
-    await expect(page.locator('a[href="/service/hydraulika-naprawa-wycieku"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Najczęściej szukani fachowcy/i })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /Zarządzaj zespołem wykonawców/i })).toHaveCount(0);
     const structuredData = await page
       .locator('script[type="application/ld+json"]')
       .evaluateAll((nodes) => nodes.map((node) => node.textContent || '').join('\n'));

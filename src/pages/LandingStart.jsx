@@ -13,7 +13,6 @@ import AIBubble from "../components/chat/AIBubble";
 const LiveCameraAI = lazy(() => import("../components/LiveCameraAI"));
 const UnifiedAIConcierge = lazy(() => import("../components/ai/UnifiedAIConcierge"));
 const FeaturedAnnouncements = lazy(() => import("../components/FeaturedAnnouncements"));
-const HelpfliPromoCarousel = lazy(() => import("../components/HelpfliPromoCarousel"));
 const HeroMapAI = lazy(() => import("../components/HeroMapAI"));
 const Footer = lazy(() => import("../components/Footer"));
 const FoundingProviderPopup = lazy(() => import("../components/FoundingProviderPopup"));
@@ -52,15 +51,6 @@ const LANDING_FAQS = [
     question: "Jak działają polecenia?",
     answer: "Udostępniasz swój link lub kod z konta. Po rejestracji zaproszonej osoby obie strony dostają punkty, a po spełnieniu warunków programu — dodatkowe nagrody.",
   },
-];
-
-const POPULAR_SERVICE_LINKS = [
-  { slug: "hydraulika-naprawa-wycieku", label: "Hydraulik — naprawa wycieku" },
-  { slug: "elektryka-montaz-gniazdek-wlacznikow-oswietlenia-led", label: "Elektryk — gniazdka i oświetlenie" },
-  { slug: "agd-rtv-naprawa-agd", label: "Naprawa AGD" },
-  { slug: "remont-wykonczenia-malowanie", label: "Malowanie mieszkania" },
-  { slug: "sprzatanie-sprzatanie-mieszkania", label: "Sprzątanie mieszkania" },
-  { slug: "remont-wykonczenia-remont-lazienki", label: "Remont łazienki" },
 ];
 
 const HERO_QUICK_START = {
@@ -659,54 +649,8 @@ export default function LandingStart() {
         </div>
       </section>
 
-      {/* Crawlable discovery hub: real service pages + main SEO collections. */}
-      <section className="order-3 py-6 md:py-8 md:order-none" aria-labelledby="popularne-uslugi-heading">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Usługi blisko Ciebie</p>
-                <h2 id="popularne-uslugi-heading" className="mt-1 text-xl font-bold text-slate-900 md:text-2xl">
-                  Najczęściej szukani fachowcy
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                  Sprawdź zakres usługi i orientacyjne ceny albo od razu opisz zadanie, aby otrzymać dopasowane oferty.
-                </p>
-              </div>
-              <Link to="/services" className="text-sm font-semibold text-indigo-700 hover:underline">
-                Zobacz wszystkie usługi →
-              </Link>
-            </div>
-            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {POPULAR_SERVICE_LINKS.map((service) => (
-                <Link
-                  key={service.slug}
-                  to={`/service/${service.slug}`}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-indigo-300 hover:bg-indigo-50"
-                >
-                  <span>{service.label}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
-                </Link>
-              ))}
-            </div>
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-100 pt-4 text-sm">
-              <Link to="/wykonawcy" className="font-medium text-indigo-700 hover:underline">Usługi w miastach</Link>
-              <Link to="/providers" className="font-medium text-indigo-700 hover:underline">Katalog wykonawców</Link>
-              <Link to="/poradniki" className="font-medium text-indigo-700 hover:underline">Poradniki i ceny usług</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Promo Carousel */}
-      <div className="order-4 md:order-none">
-        <Suspense fallback={<div className="w-full h-40 rounded-3xl bg-slate-100 animate-pulse" />}>
-          <HelpfliPromoCarousel />
-        </Suspense>
-      </div>
-
       {/* Banner reklamowy */}
-      <section className="order-5 py-6 md:py-8 md:order-none">
+      <section className="order-3 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <Suspense fallback={null}>
             <SponsorAdBanner
@@ -719,7 +663,7 @@ export default function LandingStart() {
       </section>
 
       {/* Baner sezonowy — ciaśniejszy wrapper na mobile (aplikacyjny panel) */}
-      <section className="order-6 pt-1 pb-4 md:pt-3 md:pb-8 md:order-none">
+      <section className="order-4 pt-1 pb-4 md:pt-3 md:pb-8 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
           <div
             className="rounded-2xl border p-3 sm:p-4 md:p-8 md:rounded-xl"
@@ -731,7 +675,7 @@ export default function LandingStart() {
       </section>
 
       {/* Program Founding Provider + CTA wykonawcy */}
-      <section className="order-7 py-4 md:py-8 md:order-none">
+      <section className="order-5 py-4 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 space-y-4">
           <Suspense fallback={null}>
             <FoundingProviderBanner variant="marketing" />
@@ -740,14 +684,14 @@ export default function LandingStart() {
       </section>
 
       {/* Featured Announcements */}
-      <div className="order-8 md:order-none">
+      <div className="order-6 md:order-none">
         <Suspense fallback={null}>
           <FeaturedAnnouncements />
         </Suspense>
       </div>
 
       {/* Mini FAQ */}
-      <section className="order-9 py-6 md:py-8 md:order-none">
+      <section className="order-7 py-6 md:py-8 md:order-none">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="rounded-xl p-6 md:p-8" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderWidth: '1px' }}>
             <div className="text-center mb-8">
