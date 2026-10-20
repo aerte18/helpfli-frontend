@@ -501,13 +501,13 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-3" aria-label="Formularz rejestracji">
           <div>
             <label htmlFor="reg-name" className="block text-sm font-medium text-slate-700 mb-1">
-              Imię i nazwisko / nazwa
+              {form.role === "company" ? "Imię i nazwisko właściciela" : "Imię i nazwisko / nazwa"}
             </label>
             <input
               id="reg-name"
               type="text"
               name="name"
-              placeholder="Imię i nazwisko / nazwa"
+              placeholder={form.role === "company" ? "Imię i nazwisko właściciela" : "Imię i nazwisko / nazwa"}
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               value={form.name}
               onChange={handleChange}
@@ -598,6 +598,9 @@ export default function Register() {
                   onChange={handleChange}
                   required
                 />
+                <p className="-mt-2 text-xs text-slate-500">
+                  Ta nazwa będzie widoczna klientom na mapie, w ofertach i na profilu firmy.
+                </p>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <input

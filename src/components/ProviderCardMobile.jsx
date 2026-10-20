@@ -11,6 +11,12 @@ export default function ProviderCardMobile({
   onQuickView,
   onCreateOrder
 }) {
+  const publicName = provider?.company?.name?.trim?.()
+    || provider?.companyName?.trim?.()
+    || provider?.displayName?.trim?.()
+    || provider?.name
+    || 'Wykonawca';
+
   return (
     <div className="qs-card p-4 transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex items-start justify-between gap-4">
@@ -21,7 +27,7 @@ export default function ProviderCardMobile({
               state={{ provider }}
               className="font-semibold text-slate-900 hover:underline truncate"
             >
-              {provider.name}
+              {publicName}
             </Link>
             {onQuickView && (
               <button 

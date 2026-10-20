@@ -28,6 +28,11 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
   const [fav, setFav] = useState(false);
   const navigate = useNavigate();
   const st = getStatusInfo(data?.provider_status);
+  const publicName = data?.company?.name?.trim?.()
+    || data?.companyName?.trim?.()
+    || data?.displayName?.trim?.()
+    || data?.name
+    || 'Wykonawca';
   const [ref, inView] = useInView({ threshold: 0.6 });
 
   // Sprawdź promocje (tylko efekty wizualne dla klientów)
@@ -190,7 +195,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
         <div className="p-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-start gap-3">
             <ProviderAvatar
-              name={data.name}
+              name={publicName}
               photoUrl={profilePhoto}
               className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
               style={{ borderColor: 'var(--border)' }}
@@ -202,7 +207,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 className="font-semibold hover:underline text-left block text-sm mb-1"
                 style={{ color: 'var(--foreground)' }}
               >
-                {data.name}
+                {publicName}
               </button>
               {/* Nagłówek z profilu (Konto → Profil) – pod nazwą zamiast listy usług */}
               <p className="text-sm text-muted-foreground line-clamp-2 mb-0" style={{ color: 'var(--muted-foreground)' }}>
@@ -296,7 +301,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
               onClick={() => {
                 const preFilledData = {
                   providerId: data._id || data.id,
-                  providerName: data.name,
+                  providerName: publicName,
                   service: data.service || data.allServices?.[0]?.name || data.allServices?.[0] || "usługa",
                   location: data.location?.address || data.city || "",
                 };
@@ -337,7 +342,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
             </div>
           ) : (
             <ProviderAvatar
-              name={data.name}
+              name={publicName}
               photoUrl={profilePhoto}
               className="w-14 h-14 rounded-full object-cover border-2 shadow-md"
               style={{ borderColor: 'var(--border)' }}
@@ -352,7 +357,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
             className="font-bold text-left text-base w-full mb-1"
             style={{ color: 'var(--foreground)' }}
           >
-            {data.name}
+            {publicName}
           </button>
           <p className="text-sm mb-0 line-clamp-3" style={{ color: 'var(--muted-foreground)' }}>
             {serviceDescription}
@@ -370,7 +375,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
             </div>
           ) : (
             <ProviderAvatar
-              name={data.name}
+              name={publicName}
               photoUrl={profilePhoto}
               className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
               fallbackTextClassName="text-2xl"
@@ -410,7 +415,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
           {/* Desktop: avatar + nazwa (na mobile już w nagłówku karty) */}
           <div className="hidden sm:flex items-start gap-3 mb-3">
             <ProviderAvatar
-              name={data.name}
+              name={publicName}
               photoUrl={profilePhoto}
               className="w-12 h-12 rounded-full object-cover border-2 flex-shrink-0"
               style={{ borderColor: 'var(--border)' }}
@@ -423,7 +428,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
                 className="font-bold hover:underline text-left block mb-2"
                 style={{ color: 'var(--foreground)' }}
               >
-                {data.name}
+                {publicName}
               </button>
               
               <p className="text-sm mb-0 line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>
@@ -537,7 +542,7 @@ export default function ProviderCard({ data, onSelect, onQuote, onCompare, isCom
               onClick={() => {
                 const preFilledData = {
                   providerId: data._id || data.id,
-                  providerName: data.name,
+                  providerName: publicName,
                   service: data.service || data.allServices?.[0]?.name || data.allServices?.[0] || "usługa",
                   location: data.location?.address || data.city || "",
                 };

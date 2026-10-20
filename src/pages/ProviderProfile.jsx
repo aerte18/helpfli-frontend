@@ -51,12 +51,21 @@ const apiPost = async (path, body) => {
   return data;
 };
 
+const withPublicProviderName = (provider) => {
+  if (!provider) return provider;
+  const name = provider?.company?.name?.trim?.()
+    || provider?.displayName?.trim?.()
+    || provider?.name
+    || 'Wykonawca';
+  return { ...provider, name, displayName: name };
+};
+
 export default function ProviderProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const { state } = useLocation(); // provider z listy / nawigacja z listy z openQuote
-  const [provider, setProvider] = useState(state?.provider || null);
+  const [provider, setProvider] = useState(() => withPublicProviderName(state?.provider || null));
   const [providerData, setProviderData] = useState(null);
   const [avgRating, setAvgRating] = useState(null);
   const [openQuote, setOpenQuote] = useState(!!state?.openQuote);
@@ -129,7 +138,7 @@ export default function ProviderProfile() {
     (async () => {
       try {
         const r = await apiGet(apiUrl(`/api/users/${id}`));
-        setProvider(r);
+        setProvider(withPublicProviderName(r));
       } catch (e) {
         if (!provider) setError("Nie udało się pobrać profilu wykonawcy.");
       }
