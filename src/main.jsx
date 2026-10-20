@@ -39,10 +39,22 @@ function sendToAnalytics(metric) {
   if (!hasAnalyticsConsent()) return;
   console.log("Web Vital:", metric);
 
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const value = metric.name === 'CLS'
+    ? Math.round(metric.value * 1000) / 1000
+    : Math.round(metric.value);
+
   trackEvent("web_vitals", {
     metric_name: metric.name,
-    metric_value: Math.round(metric.value),
+    metric_value: value,
     metric_rating: metric.rating,
+    metric_delta: metric.name === 'CLS'
+      ? Math.round(metric.delta * 1000) / 1000
+      : Math.round(metric.delta),
+    page_path: window.location.pathname,
+    navigation_type: metric.navigationType,
+    connection_type: connection?.effectiveType,
+    device_memory_gb: navigator.deviceMemory,
   });
 
   if (window.Sentry) {

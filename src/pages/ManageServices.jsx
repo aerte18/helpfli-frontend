@@ -12,6 +12,7 @@ import {
 } from "../utils/serviceSelectionKeys";
 import CollapsiblePanel from "../components/CollapsiblePanel";
 import { useBreakpointMd } from "../hooks/useBreakpointMd";
+import { useTelemetry } from "../hooks/useTelemetry";
 
 function serviceCountLabel(n) {
   if (n === 1) return "1 usługa";
@@ -21,6 +22,7 @@ function serviceCountLabel(n) {
 
 function ManageServices() {
   const isMdUp = useBreakpointMd();
+  const { trackProviderServicesUpdated } = useTelemetry();
   const [availableServices, setAvailableServices] = useState([]);
   const [userServices, setUserServices] = useState([]);
   const [servicePrices, setServicePrices] = useState({});
@@ -287,6 +289,7 @@ function ManageServices() {
       if (res.ok) {
         const data = await res.json();
         setUserServices(data.services);
+        trackProviderServicesUpdated("add", String(serviceId || serviceParam), "manage_services");
       } else {
         const err = await res.json().catch(() => ({}));
         console.error("Błąd dodawania usługi:", err);
@@ -314,6 +317,7 @@ function ManageServices() {
       if (res.ok) {
         const data = await res.json();
         setUserServices(data.services);
+        trackProviderServicesUpdated("remove", String(serviceId || serviceParam), "manage_services");
         const sid = String(serviceId || serviceParam);
         setServicePrices((prev) => {
           const next = { ...prev };
@@ -429,6 +433,7 @@ function ManageServices() {
               <div className="flex items-center gap-2.5 md:gap-3">
                 <input
                   type="checkbox"
+                  aria-label={`Zaznacz wszystkie usługi w kategorii ${category.name_pl}`}
                   checked={isSelected}
                   ref={(input) => {
                     if (input) input.indeterminate = isPartial;
@@ -477,6 +482,7 @@ function ManageServices() {
                     const isSubSelected = providerHasServiceForSub(userServices, sub);
                     const key = getServiceSelectionKey(sub);
                     const submitKey = isMongoObjectId(sub?._id) ? String(sub._id) : (sub?.slug ? String(sub.slug) : key);
+                    const inputId = `service-${String(submitKey || sub?.name_pl || '').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
                     return (
                       <div 
                         key={key || sub.slug || sub.name_pl} 
@@ -485,36 +491,20 @@ function ManageServices() {
                         }`}
                       >
                         <input
+                          id={inputId}
                           type="checkbox"
                           checked={isSubSelected}
                           disabled={!key}
                           onChange={() => {
                             if (!key) return;
-                            // Tymczasowy debug: co dokładnie wysyłamy do backendu.
-                            console.log("ManageServices sub click:", {
-                              label: sub?.name_pl,
-                              _id: sub?._id,
-                              slug: sub?.slug,
-                              keyUsedForSubmit: submitKey,
-                            });
                             if (isSubSelected) handleRemove(submitKey);
                             else handleAdd(submitKey);
                           }}
                           className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 cursor-pointer disabled:opacity-40"
                         />
-                        <label 
+                        <label
+                          htmlFor={inputId}
                           className="ml-3 text-sm text-slate-700 cursor-pointer flex-1" 
-                          onClick={() => {
-                            if (!key) return;
-                            console.log("ManageServices sub click:", {
-                              label: sub?.name_pl,
-                              _id: sub?._id,
-                              slug: sub?.slug,
-                              keyUsedForSubmit: submitKey,
-                            });
-                            if (isSubSelected) handleRemove(submitKey);
-                            else handleAdd(submitKey);
-                          }}
                         >
                           {sub.name_pl}
                         </label>
@@ -563,27 +553,29 @@ function ManageServices() {
                     >
                       <span className="text-sm font-medium text-slate-800">{service.name_pl}</span>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Od (zł)</label>
+                        <label htmlFor={`price-min-${sid}`} className="block text-xs text-slate-500 mb-1">Od (zł)</label>
                         <input
+                          id={`price-min-${sid}`}
                           type="number"
                           min="0"
                           inputMode="numeric"
                           value={row.min}
                           onChange={(e) => handlePriceChange(sid, 'min', e.target.value)}
                           placeholder="np. 80"
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-base md:text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-500 mb-1">Do (zł)</label>
+                        <label htmlFor={`price-max-${sid}`} className="block text-xs text-slate-500 mb-1">Do (zł)</label>
                         <input
+                          id={`price-max-${sid}`}
                           type="number"
                           min="0"
                           inputMode="numeric"
                           value={row.max}
                           onChange={(e) => handlePriceChange(sid, 'max', e.target.value)}
                           placeholder="np. 200"
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-base md:text-sm"
                         />
                       </div>
                     </div>

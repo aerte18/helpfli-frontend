@@ -16,6 +16,8 @@ export default function ServiceCategoryDropdown({
   showOnlyProviderServices = false, // czy pokazywać tylko usługi providera
   compact = false,
   menuPortal = false, // menu w portalu (mapa mobile — nad warstwą mapy)
+  id,
+  ariaLabel = "Wybierz kategorię i usługę",
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -515,6 +517,7 @@ export default function ServiceCategoryDropdown({
             <div className="mb-2 sticky top-6 bg-white pt-1">
               <input
                 type="text"
+                aria-label="Szukaj usługi w katalogu"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -590,11 +593,13 @@ export default function ServiceCategoryDropdown({
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         ref={buttonRef}
+        id={id}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`flex w-full items-center justify-between border border-gray-300 bg-white transition-colors hover:border-indigo-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 ${buttonSizeClass}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-label={ariaLabel}
       >
         <div className="flex min-w-0 items-center gap-2">
           {showIcon && selectedCategory && (

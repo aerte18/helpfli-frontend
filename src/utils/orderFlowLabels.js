@@ -5,12 +5,15 @@ export function getClientOrderPresentation(order) {
     order?.paymentMethod === "external" || order?.paymentPreference === "external";
   const platformFee = Number(order?.pricing?.platformFee || 0);
   const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
+  const isOffersOnly = order?.orderMode === "offers_only";
+  const contactUnlocked = ["succeeded", "waived"].includes(order?.contactUnlockStatus);
   const systemPaid =
     order?.paymentStatus === "succeeded" || order?.paidInSystem || order?.status === "funded";
   const needsExternalCommission = isExternalPayment && platformFee > 0 && !externalCommissionPaid;
+  const needsContactUnlock = isOffersOnly && !contactUnlocked;
   const needsSystemPayment = !isExternalPayment && status === "accepted" && !systemPaid;
 
-  if (status === "open" || status === "draft") {
+  if (["open", "draft", "quote", "matched"].includes(status)) {
     return {
       label: "Otwarte",
       badgeClass: "bg-blue-100 text-blue-800",
@@ -48,6 +51,18 @@ export function getClientOrderPresentation(order) {
         tone: "amber",
       };
     }
+    if (needsContactUnlock) {
+      return {
+        label: "Odblokuj kontakt",
+        badgeClass: "bg-amber-100 text-amber-800",
+        stageDescription: "Oferta zaakceptowana - odblokuj kontakt do wybranego wykonawcy",
+        nextStepLabel: "Odblokuj kontakt",
+        nextStepHint: "Po odblokowaniu kontaktu wykonawca będzie mógł rozpocząć realizację poza Helpfli.",
+        nextStepCta: "Dokończ odblokowanie",
+        nextStepHref: `/orders/${orderId}?tab=details`,
+        tone: "amber",
+      };
+    }
     if (needsExternalCommission) {
       return {
         label: "Oczekuje na działanie klienta",
@@ -71,7 +86,19 @@ export function getClientOrderPresentation(order) {
       tone: "emerald",
     };
   }
-  if (status === "funded") {
+  if (status === "awaiting_payment") {
+    return {
+      label: "Oczekuje na płatność",
+      badgeClass: "bg-orange-100 text-orange-800",
+      stageDescription: "Oferta zaakceptowana - oczekuje na płatność",
+      nextStepLabel: "Opłać teraz",
+      nextStepHint: "Dokończ płatność, aby wykonawca mógł rozpocząć pracę.",
+      nextStepCta: "Przejdź do płatności",
+      nextStepHref: `/checkout/${orderId}`,
+      tone: "amber",
+    };
+  }
+  if (status === "funded" || status === "paid") {
     return {
       label: "Oczekuje na realizację",
       badgeClass: "bg-green-100 text-green-800",
@@ -109,6 +136,18 @@ export function getClientOrderPresentation(order) {
       tone: "green",
     };
   }
+  if (status === "releasing") {
+    return {
+      label: "Rozliczenie w toku",
+      badgeClass: "bg-sky-100 text-sky-800",
+      stageDescription: "Potwierdzenie zostało przyjęte - trwa bezpieczne domykanie rozliczenia",
+      nextStepLabel: "Poczekaj na rozliczenie",
+      nextStepHint: "Nie ponawiaj płatności. Status odświeży się po zakończeniu operacji.",
+      nextStepCta: "Szczegóły",
+      nextStepHref: `/orders/${orderId}?tab=details`,
+      tone: "blue",
+    };
+  }
   if (status === "released" || status === "rated" || status === "done") {
     return {
       label: "Zakończone",
@@ -133,6 +172,18 @@ export function getClientOrderPresentation(order) {
       tone: "red",
     };
   }
+  if (status === "disputed") {
+    return {
+      label: "Spór w toku",
+      badgeClass: "bg-amber-100 text-amber-900",
+      stageDescription: "Zgłoszono spór - sprawa oczekuje na rozwiązanie",
+      nextStepLabel: "Przejdź do sprawy",
+      nextStepHint: "Odpowiadaj w sprawie i śledź propozycje rozwiązania.",
+      nextStepCta: "Otwórz sprawę",
+      nextStepHref: `/orders/${orderId}/sprawa`,
+      tone: "amber",
+    };
+  }
   return {
     label: status || "Nieznany",
     badgeClass: "bg-gray-100 text-gray-800",
@@ -147,6 +198,41 @@ export function getClientOrderPresentation(order) {
 
 export function getClientStatusLabel(order) {
   return getClientOrderPresentation(order).label;
+}
+
+export const CLIENT_ORDER_FILTERS = [
+  "all",
+  "open",
+  "collecting_offers",
+  "accepted",
+  "in_progress",
+  "completed",
+  "disputed",
+  "cancelled",
+];
+
+export const PROVIDER_ORDER_FILTERS = [
+  "all",
+  "offered",
+  "accepted",
+  "in_progress",
+  "completed",
+  "disputed",
+  "cancelled",
+  "inactive",
+];
+
+export function clientOrderMatchesFilter(order, filter) {
+  if (filter === "all") return true;
+  const status = order?.status;
+  if (filter === "open") return status === "open" || status === "draft" || status === "quote" || status === "matched";
+  if (filter === "collecting_offers") return status === "collecting_offers";
+  if (filter === "accepted") return ["accepted", "awaiting_payment"].includes(status);
+  if (filter === "in_progress") return ["in_progress", "funded", "paid"].includes(status);
+  if (filter === "completed") return ["completed", "releasing", "released", "rated", "done"].includes(status);
+  if (filter === "disputed") return status === "disputed";
+  if (filter === "cancelled") return status === "cancelled";
+  return false;
 }
 
 export function getProviderStageKey({ order, offer, viewerProviderId = null }) {
@@ -167,6 +253,10 @@ export function getProviderStageKey({ order, offer, viewerProviderId = null }) {
     String(acceptedProviderId) === String(viewerProviderId);
   const isAccepted = isAcceptedByOfferId || isAcceptedByProviderId || isAcceptedByViewerAssignment;
 
+  if (status === "cancelled") return "cancelled";
+  if (status === "disputed") return "disputed";
+  if (status === "releasing") return "releasing";
+
   if (isAccepted) {
     if (status === "in_progress") return "in_progress";
     if (status === "completed" || status === "rated" || status === "released" || status === "done") {
@@ -179,6 +269,10 @@ export function getProviderStageKey({ order, offer, viewerProviderId = null }) {
     return "lost";
   }
 
+  if (["expired", "withdrawn", "rejected"].includes(offer?.status)) {
+    return "inactive";
+  }
+
   return "offered";
 }
 
@@ -189,12 +283,76 @@ export function getProviderOrderPresentation({ order, offer, viewerProviderId = 
     order?.paymentMethod === "external" || order?.paymentPreference === "external";
   const platformFee = Number(order?.pricing?.platformFee || 0);
   const externalCommissionPaid = order?.externalCommissionStatus === "succeeded";
+  const isOffersOnly = order?.orderMode === "offers_only";
+  const contactUnlocked = ["succeeded", "waived"].includes(order?.contactUnlockStatus);
   const systemPaid =
     order?.paymentStatus === "succeeded" || order?.paidInSystem || order?.status === "funded";
   const waitingPayment =
     stage === "accepted" &&
     ((!isExternalPayment && !systemPaid) ||
-      (isExternalPayment && platformFee > 0 && !externalCommissionPaid));
+      (isExternalPayment && platformFee > 0 && !externalCommissionPaid) ||
+      (isOffersOnly && !contactUnlocked));
+
+  if (stage === "cancelled") {
+    return {
+      stage,
+      label: "Anulowane",
+      badgeClass: "bg-gray-100 text-gray-800",
+      nextStepLabel: "Zlecenie zamknięte",
+      nextStepHint: "Klient anulował zlecenie przed rozpoczęciem realizacji.",
+      nextStepCta: "Szczegóły",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
+      tone: "gray",
+    };
+  }
+
+  if (stage === "disputed") {
+    return {
+      stage,
+      label: "Spór w toku",
+      badgeClass: "bg-amber-100 text-amber-900",
+      nextStepLabel: "Odpowiedz w sprawie",
+      nextStepHint: "Sprawdź wiadomości i propozycje rozwiązania sporu.",
+      nextStepCta: "Otwórz sprawę",
+      nextStepHref: `/orders/${order?._id}/sprawa`,
+      bannerAction: "details",
+      tone: "amber",
+    };
+  }
+
+  if (stage === "releasing") {
+    return {
+      stage,
+      label: "Rozliczenie w toku",
+      badgeClass: "bg-sky-100 text-sky-800",
+      nextStepLabel: "Poczekaj na rozliczenie",
+      nextStepHint: "Klient potwierdził odbiór, a Helpfli kończy rozliczenie.",
+      nextStepCta: "Szczegóły",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
+      tone: "blue",
+    };
+  }
+
+  if (stage === "inactive") {
+    const inactiveLabel = offer?.status === "expired"
+      ? "Oferta wygasła"
+      : offer?.status === "withdrawn"
+        ? "Oferta wycofana"
+        : "Oferta odrzucona";
+    return {
+      stage,
+      label: inactiveLabel,
+      badgeClass: "bg-gray-100 text-gray-800",
+      nextStepLabel: "Oferta nieaktywna",
+      nextStepHint: "Ta oferta nie bierze już udziału w wyborze wykonawcy.",
+      nextStepCta: "Szczegóły",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
+      tone: "gray",
+    };
+  }
 
   if (stage === "offered") {
     return {
@@ -242,11 +400,12 @@ export function getProviderOrderPresentation({ order, offer, viewerProviderId = 
   if (stage === "accepted") {
     return {
       stage,
-      label: "Zlecenie opłacone",
+      label: isExternalPayment ? "Gotowe do realizacji" : "Zlecenie opłacone",
       badgeClass: "bg-emerald-100 text-emerald-800",
       nextStepLabel: "Twoja kolej — rozpocznij realizację",
-      nextStepHint:
-        "Środki są zabezpieczone. Kliknij poniżej, przejdź do sekcji na dole strony i potwierdź start — status zmieni się na „W realizacji”, a klient dostanie powiadomienie.",
+      nextStepHint: isExternalPayment
+        ? "Klient wybrał rozliczenie poza Helpfli i wymagane formalności są zakończone. Potwierdź start realizacji."
+        : "Środki są zabezpieczone. Kliknij poniżej, przejdź do sekcji na dole strony i potwierdź start — status zmieni się na „W realizacji”, a klient dostanie powiadomienie.",
       nextStepCta: "Rozpocznij realizację",
       nextStepHref: `/orders/${order?._id}?tab=details`,
       bannerAction: "start",
@@ -268,6 +427,20 @@ export function getProviderOrderPresentation({ order, offer, viewerProviderId = 
     };
   }
 
+  if (status === "completed") {
+    return {
+      stage,
+      label: "Czeka na potwierdzenie klienta",
+      badgeClass: "bg-amber-100 text-amber-800",
+      nextStepLabel: "Klient potwierdza odbiór",
+      nextStepHint: "Zakończenie zostało zgłoszone. Klient może potwierdzić odbiór albo zgłosić spór.",
+      nextStepCta: "Zobacz status",
+      nextStepHref: `/orders/${order?._id}?tab=details`,
+      bannerAction: "details",
+      tone: "amber",
+    };
+  }
+
   return {
     stage,
     label: "Zakończone",
@@ -279,4 +452,15 @@ export function getProviderOrderPresentation({ order, offer, viewerProviderId = 
     bannerAction: "details",
     tone: "green",
   };
+}
+
+export function providerOrderMatchesFilter(item, filter, viewerProviderId = null) {
+  if (filter === "all") return true;
+  const stage = getProviderStageKey({
+    order: item?.order,
+    offer: item?.offer,
+    viewerProviderId,
+  });
+  if (filter === "completed") return stage === "completed" || stage === "releasing";
+  return stage === filter;
 }

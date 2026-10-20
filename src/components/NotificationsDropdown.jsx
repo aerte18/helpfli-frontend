@@ -2,6 +2,7 @@ import { apiUrl } from "@/lib/apiUrl";
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getNotificationNavigateTarget } from "../utils/notificationNavigation";
+import { useTelemetry } from "../hooks/useTelemetry";
 
 function safeText(value, fallback = "") {
   if (value == null) return fallback;
@@ -27,6 +28,7 @@ export default function NotificationsDropdown({ userId, onClose }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { trackNotificationActionClick } = useTelemetry();
 
   useEffect(() => {
     if (!userId) return;
@@ -105,6 +107,11 @@ export default function NotificationsDropdown({ userId, onClose }) {
     }
 
     const target = getNotificationNavigateTarget(notification);
+    trackNotificationActionClick(
+      notification.type,
+      target ? `${target.pathname}${target.search || ''}` : 'none',
+      'dropdown'
+    );
     if (target) {
       navigate({
         pathname: target.pathname,

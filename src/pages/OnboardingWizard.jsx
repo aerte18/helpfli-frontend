@@ -14,7 +14,11 @@ export default function OnboardingWizard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, fetchMe } = useAuth();
-  const { trackOnboardingCompleted } = useTelemetry();
+  const {
+    trackOnboardingCompleted,
+    trackProviderProfileCompleted,
+    trackProviderServicesUpdated
+  } = useTelemetry();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -102,6 +106,10 @@ export default function OnboardingWizard() {
         throw new Error("Nie udało się zaktualizować profilu");
       }
 
+      if (role === "provider") {
+        trackProviderProfileCompleted("onboarding");
+      }
+
       setStep(3);
     } catch (err) {
       setError(err.message);
@@ -159,6 +167,8 @@ export default function OnboardingWizard() {
           errText || "Nie udało się zapisać usług. Spróbuj ponownie."
         );
       }
+
+      trackProviderServicesUpdated("set", mongoIds[0], "onboarding");
 
       if (mongoIds.length > 0) {
         const first = items.find((s) => String(s._id) === mongoIds[0]);
@@ -270,28 +280,30 @@ export default function OnboardingWizard() {
 
       <div className="max-w-md mx-auto space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="onboarding-name" className="block text-sm font-medium text-gray-700 mb-2">
             Imię i nazwisko *
           </label>
           <input
+            id="onboarding-name"
             type="text"
             value={profileData.name}
             onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Imię i nazwisko"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="onboarding-phone" className="block text-sm font-medium text-gray-700 mb-2">
             Numer telefonu
           </label>
           <input
+            id="onboarding-phone"
             type="tel"
             value={profileData.phone}
             onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="+48 123 456 789"
           />
         </div>
@@ -299,17 +311,18 @@ export default function OnboardingWizard() {
         {role === "provider" && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="onboarding-headline" className="block text-sm font-medium text-gray-700 mb-2">
                 Krótki nagłówek (do 60 znaków) *
               </label>
               <input
+                id="onboarding-headline"
                 type="text"
                 value={profileData.headline}
                 onChange={(e) => {
                   const value = e.target.value.slice(0, 60);
                   setProfileData(prev => ({ ...prev, headline: value }));
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="np. 10+ lat doświadczenia. Szybkie naprawy."
                 maxLength={60}
                 required
@@ -320,13 +333,14 @@ export default function OnboardingWizard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="onboarding-bio" className="block text-sm font-medium text-gray-700 mb-2">
                 Pełny opis usług *
               </label>
               <textarea
+                id="onboarding-bio"
                 value={profileData.bio}
                 onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Szczegółowy opis Twoich usług, doświadczenia i specjalizacji..."
                 rows={4}
                 required
@@ -337,14 +351,15 @@ export default function OnboardingWizard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="onboarding-price-note" className="block text-sm font-medium text-gray-700 mb-2">
                 Uwagi do cen
               </label>
               <input
+                id="onboarding-price-note"
                 type="text"
                 value={profileData.priceNote}
                 onChange={(e) => setProfileData(prev => ({ ...prev, priceNote: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Standardowe stawki wg cennika"
               />
             </div>
@@ -467,7 +482,7 @@ export default function OnboardingWizard() {
 
           {/* Error message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div role="alert" aria-live="assertive" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
               {error}
             </div>
           )}

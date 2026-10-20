@@ -18,9 +18,13 @@ import OrderStatsDashboard from "../components/OrderStatsDashboard";
 import WelcomeCreditBanner from "../components/WelcomeCreditBanner";
 import ProviderGrowthBenefitsPanel from "../components/ProviderGrowthBenefitsPanel";
 import {
+  CLIENT_ORDER_FILTERS,
+  PROVIDER_ORDER_FILTERS,
+  clientOrderMatchesFilter,
   getClientOrderPresentation,
   getProviderOrderPresentation,
   getProviderStageKey,
+  providerOrderMatchesFilter,
 } from "../utils/orderFlowLabels";
 import { formatRelativeTime } from "../utils/relativeTime";
 import { getStripeConnectStatus } from "../api/payments";
@@ -582,14 +586,11 @@ function OrdersTab({ user }) {
     const status = params.get('status');
     if (!status) return;
     if (user?.role === 'client') {
-      // Dla klienta akceptujemy tylko statusy z listy przycisków
-      const allowed = ['all', 'open', 'collecting_offers', 'accepted', 'in_progress', 'completed'];
-      if (allowed.includes(status) && status !== filter) {
+      if (CLIENT_ORDER_FILTERS.includes(status) && status !== filter) {
         setFilter(status);
       }
     } else if (user?.role === 'provider') {
-      const allowed = ['all', 'offered', 'accepted', 'in_progress', 'completed'];
-      if (allowed.includes(status) && status !== filter) {
+      if (PROVIDER_ORDER_FILTERS.includes(status) && status !== filter) {
         setFilter(status);
       }
     }
@@ -1051,7 +1052,7 @@ function OrdersTab({ user }) {
   const providerFilteredItems = (() => {
     if (user?.role !== 'provider') return [];
     if (filter === 'all') return providerItems;
-    return providerItems.filter((it) => getProviderStage(it) === filter);
+    return providerItems.filter((it) => providerOrderMatchesFilter(it, filter, user?._id));
   })();
 
   // Filtrowanie przykładowych zleceń DEMO dla providera (tylko dev)
@@ -1065,27 +1066,7 @@ function OrdersTab({ user }) {
   }, [showDemo, user?.role, filter]);
 
   // Funkcja pomocnicza do filtrowania zleceń
-  const filterOrderByStatus = (order, filterStatus) => {
-    if (filterStatus === 'all') return true;
-    
-    const status = order.status;
-    if (filterStatus === 'open') {
-      return status === 'open' || status === 'draft';
-    }
-    if (filterStatus === 'collecting_offers') {
-      return status === 'collecting_offers';
-    }
-    if (filterStatus === 'accepted') {
-      return status === 'accepted';
-    }
-    if (filterStatus === 'in_progress') {
-      return status === 'in_progress' || status === 'funded';
-    }
-    if (filterStatus === 'completed') {
-      return status === 'completed' || status === 'released' || status === 'rated' || status === 'done';
-    }
-    return true;
-  };
+  const filterOrderByStatus = (order, filterStatus) => clientOrderMatchesFilter(order, filterStatus);
 
   // Filtrowanie zleceń dla klienta
   const clientFilteredOrders = (() => {
@@ -1237,10 +1218,7 @@ function OrdersTab({ user }) {
         {/* Filtry + Zapytaj AI (dla providera) */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
-            {(user?.role === 'provider'
-              ? ['all', 'offered', 'accepted', 'in_progress', 'completed']
-              : ['all', 'open', 'collecting_offers', 'accepted', 'in_progress', 'completed']
-            ).map(status => (
+            {(user?.role === 'provider' ? PROVIDER_ORDER_FILTERS : CLIENT_ORDER_FILTERS).map(status => (
               <button
                 key={status}
                 onClick={() => {
@@ -1256,12 +1234,17 @@ function OrdersTab({ user }) {
                   ? (status === 'all' ? 'Wszystkie' :
                      status === 'offered' ? 'Złożone' :
                      status === 'accepted' ? 'Zaakceptowane' :
-                     status === 'in_progress' ? 'W realizacji' : 'Zakończone')
+                     status === 'in_progress' ? 'W realizacji' :
+                     status === 'completed' ? 'Zakończone' :
+                     status === 'disputed' ? 'Spory' :
+                     status === 'cancelled' ? 'Anulowane' : 'Nieaktywne')
                   : (status === 'all' ? 'Wszystkie' :
                      status === 'open' ? 'Otwarte' :
                      status === 'collecting_offers' ? 'Oferty złożone' :
                      status === 'accepted' ? 'Oferta zaakceptowana' :
-                     status === 'in_progress' ? 'W realizacji' : 'Zakończone')
+                     status === 'in_progress' ? 'W realizacji' :
+                     status === 'completed' ? 'Zakończone' :
+                     status === 'disputed' ? 'Spory' : 'Anulowane')
                 }
               </button>
             ))}

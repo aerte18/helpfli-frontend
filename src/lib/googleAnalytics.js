@@ -129,6 +129,7 @@ const TELEMETRY_GA_MAP = {
   provider_view: (p) => ({ provider_id: p.providerId, view_type: p.viewType }),
   provider_contact: (p) => ({ provider_id: p.providerId, contact_type: p.contactType }),
   provider_compare: (p) => ({ compare_count: p.compareCount }),
+  map_open: (p) => ({ source: p.source }),
   quote_request: (p) => ({ provider_id: p.providerId, source: p.source }),
   order_form_start: (p) => ({ order_type: p.orderType }),
   order_cta_click: (p) => ({ source: p.source }),
@@ -141,7 +142,18 @@ const TELEMETRY_GA_MAP = {
   registration_success: (p) => ({ method: p.intent || "email" }),
   email_verification_success: (p) => ({ method: p.intent || "email" }),
   offer_form_submit: (p) => ({ order_id: p.orderId }),
-  payment_succeeded: (p) => ({ order_id: p.orderId }),
+  provider_profile_completed: (p) => ({ source: p.source }),
+  provider_services_updated: (p) => ({ action: p.action, service_id: p.serviceId, source: p.source }),
+  provider_offer_created: (p) => ({ order_id: p.orderId, first_offer: Boolean(p.isFirstOffer) }),
+  notification_action_click: (p) => ({ notification_type: p.notificationType, target: p.target, source: p.source }),
+  order_accepted: (p) => ({ order_id: p.orderId, provider_id: p.providerId }),
+  checkout_started: (p) => ({ order_id: p.orderId, amount: p.amount, currency: p.currency || "PLN" }),
+  checkout_abandoned: (p) => ({ order_id: p.orderId, step: p.step }),
+  payment_succeeded: (p) => ({
+    transaction_id: p.orderId,
+    value: Number.isFinite(Number(p.amount)) ? Number(p.amount) : undefined,
+    currency: p.currency || "PLN"
+  }),
   payment_failed: (p) => ({ order_id: p.orderId }),
   login: () => ({}),
   register: (p) => ({ method: p.role || "email" }),
@@ -151,10 +163,14 @@ export function mirrorTelemetryToGA(eventType, properties = {}) {
   const map = TELEMETRY_GA_MAP[eventType];
   if (!map) return;
   const gaName =
-    eventType === "order_form_start"
+    eventType === "checkout_started"
       ? "begin_checkout"
       : eventType === "payment_succeeded"
         ? "purchase"
+        : eventType === "order_form_success"
+          ? "generate_lead"
+          : eventType === "registration_success"
+            ? "sign_up"
         : eventType === "register"
           ? "sign_up"
           : eventType === "provider_view"

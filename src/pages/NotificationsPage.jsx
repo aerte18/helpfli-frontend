@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNotificationNavigateTarget } from '../utils/notificationNavigation';
 import { useAuth } from '../context/AuthContext';
 import { Helmet } from 'react-helmet-async';
+import { useTelemetry } from '../hooks/useTelemetry';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -22,6 +23,7 @@ function safeText(value, fallback = "") {
 export default function NotificationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { trackNotificationActionClick } = useTelemetry();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -113,6 +115,11 @@ export default function NotificationsPage() {
     }
 
     const target = getNotificationNavigateTarget(notification);
+    trackNotificationActionClick(
+      notification.type,
+      target ? `${target.pathname}${target.search || ''}` : 'none',
+      'notifications_page'
+    );
     if (target) {
       navigate({
         pathname: target.pathname,

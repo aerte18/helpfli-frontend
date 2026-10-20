@@ -118,7 +118,7 @@ export default function Navbar() {
             to={!user ? "/" : (user.role === "provider" || user.role === "company_owner" || user.role === "company_manager") ? "/provider-home" : "/home"} 
             className="flex items-center"
           >
-            <Logo className="h-6 w-6" showText={true} textColor="text-primary" />
+            <Logo className="h-6 w-6" showText={true} textColor="text-primary" clickable={false} />
           </Link>
 
           {/* Linki nawigacyjne - tylko na LandingStart dla niezalogowanych */}
@@ -592,7 +592,7 @@ export default function Navbar() {
                 className="flex items-center gap-2"
                 onClick={() => setMobileOpen(false)}
               >
-                <Logo className="h-6 w-6" showText={true} textColor="text-primary" />
+                <Logo className="h-6 w-6" showText={true} textColor="text-primary" clickable={false} />
               </Link>
               <button className="p-2 -mr-2" onClick={() => setMobileOpen(false)} aria-label="Zamknij"><X className="w-5 h-5" aria-hidden /></button>
             </div>

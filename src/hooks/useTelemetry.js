@@ -14,6 +14,7 @@ export const EVENT_TYPES = {
   CATEGORY_SELECTED: 'category_selected',
   PROVIDER_CONTACT: 'provider_contact',
   PROVIDER_COMPARE: 'provider_compare',
+  MAP_OPEN: 'map_open',
   QUOTE_REQUEST: 'quote_request',
   ORDER_CREATED: 'order_created',
   ORDER_ACCEPTED: 'order_accepted',
@@ -50,6 +51,10 @@ export const EVENT_TYPES = {
   LOGIN: 'login',
   REGISTER: 'register',
   ONBOARDING_COMPLETED: 'onboarding_completed',
+  PROVIDER_PROFILE_COMPLETED: 'provider_profile_completed',
+  PROVIDER_SERVICES_UPDATED: 'provider_services_updated',
+  PROVIDER_OFFER_CREATED: 'provider_offer_created',
+  NOTIFICATION_ACTION_CLICK: 'notification_action_click',
   DISPUTE_REPORTED: 'dispute_reported',
   REFUND_REQUESTED: 'refund_requested',
   CLIENT_API_ERROR: 'client_api_error',
@@ -57,6 +62,37 @@ export const EVENT_TYPES = {
   AI_NUDGE_CLICKED: 'ai_nudge_clicked',
   AI_NUDGE_DISMISSED: 'ai_nudge_dismissed'
 };
+
+const TELEMETRY_SESSION_KEY = 'helpfli_telemetry_session_id';
+let fallbackSessionId = null;
+
+function getOrCreateTelemetrySessionId() {
+  if (fallbackSessionId) return fallbackSessionId;
+
+  try {
+    const stored = window.sessionStorage.getItem(TELEMETRY_SESSION_KEY);
+    if (stored) {
+      fallbackSessionId = stored;
+      return stored;
+    }
+  } catch {
+    // sessionStorage może być niedostępny w trybie prywatnym lub sandboxie.
+  }
+
+  const randomPart =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2, 12);
+  fallbackSessionId = `session_${Date.now()}_${randomPart}`;
+
+  try {
+    window.sessionStorage.setItem(TELEMETRY_SESSION_KEY, fallbackSessionId);
+  } catch {
+    // Id pozostaje wspólne dla hooków w bieżącej karcie dzięki wartości modułowej.
+  }
+
+  return fallbackSessionId;
+}
 
 function extractPageName(path) {
   const base = (path || '').split('?')[0] || '';
@@ -89,13 +125,6 @@ export function useTelemetry() {
   const eventQueue = useRef([]);
   const batchTimeout = useRef(null);
 
-  // Generuj sessionId przy pierwszym użyciu
-  useEffect(() => {
-    if (!sessionId.current) {
-      sessionId.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    }
-  }, []);
-
   // Flush queue — opcjonalnie keepalive (unload / pagehide)
   const flushQueue = useCallback(async (options = {}) => {
     const { keepalive = false } = options;
@@ -105,6 +134,7 @@ export function useTelemetry() {
     eventQueue.current = [];
 
     try {
+      sessionId.current = sessionId.current || getOrCreateTelemetrySessionId();
       const token = localStorage.getItem('token');
       const url = token
         ? apiUrl('/api/telemetry/batch')
@@ -132,6 +162,7 @@ export function useTelemetry() {
   // Track pojedynczego eventu
   const track = useCallback(async (eventType, properties = {}, metadata = {}) => {
     if (!hasAnalyticsConsent()) return;
+    sessionId.current = sessionId.current || getOrCreateTelemetrySessionId();
     mirrorTelemetryToGA(eventType, properties);
     // Dodaj do queue
     eventQueue.current.push({
@@ -234,6 +265,10 @@ export function useTelemetry() {
     });
   }, [track]);
 
+  const trackMapOpen = useCallback((source = 'ui') => {
+    track(EVENT_TYPES.MAP_OPEN, { source });
+  }, [track]);
+
   const trackQuoteRequest = useCallback((providerId, serviceId, source = 'ui') => {
     track(EVENT_TYPES.QUOTE_REQUEST, { providerId, serviceId, source });
   }, [track]);
@@ -253,6 +288,18 @@ export function useTelemetry() {
 
   const trackOnboardingCompleted = useCallback((role) => {
     track(EVENT_TYPES.ONBOARDING_COMPLETED, { role });
+  }, [track]);
+
+  const trackProviderProfileCompleted = useCallback((source = 'onboarding') => {
+    track(EVENT_TYPES.PROVIDER_PROFILE_COMPLETED, { source });
+  }, [track]);
+
+  const trackProviderServicesUpdated = useCallback((action, serviceId, source = 'settings') => {
+    track(EVENT_TYPES.PROVIDER_SERVICES_UPDATED, { action, serviceId, source });
+  }, [track]);
+
+  const trackNotificationActionClick = useCallback((notificationType, target, source = 'in_app') => {
+    track(EVENT_TYPES.NOTIFICATION_ACTION_CLICK, { notificationType, target, source });
   }, [track]);
 
   // Funnel: tworzenie zlecenia
@@ -365,10 +412,14 @@ export function useTelemetry() {
     trackProviderView,
     trackProviderContact,
     trackProviderCompare,
+    trackMapOpen,
     trackQuoteRequest,
     trackOrderCreated,
     trackOrderView,
     trackOnboardingCompleted,
+    trackProviderProfileCompleted,
+    trackProviderServicesUpdated,
+    trackNotificationActionClick,
     trackOrderFormStart,
     trackOrderStepView,
     trackOrderFormAbandon,

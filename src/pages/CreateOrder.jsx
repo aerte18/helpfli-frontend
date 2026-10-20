@@ -1045,10 +1045,11 @@ export default function CreateOrder() {
               </div>
             ) : (
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label htmlFor="provider-search" className="block text-sm font-medium text-blue-900 mb-2">
                   Wybierz wykonawcę
                 </label>
                 <input
+                  id="provider-search"
                   type="text"
                   value={providerSearchQuery}
                   onChange={(e) => {
@@ -1075,7 +1076,7 @@ export default function CreateOrder() {
                     }
                   }}
                   placeholder="Wpisz nazwę wykonawcy..."
-                  className="w-full rounded-lg border border-blue-300 px-4 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-lg border border-blue-300 px-4 py-2 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
                 {showProviderSearch && providerSearchResults.length > 0 && (
                   <div className="mt-2 border border-blue-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
@@ -1122,7 +1123,7 @@ export default function CreateOrder() {
 
         {/* Kategoria i usługa - jeden dropdown */}
         <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Rodzaj pomocy</label>
+          <label htmlFor="order-service" className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Rodzaj pomocy</label>
           {orderType === "direct" && selectedProvider && providerServices.length > 0 && (
             <div className="text-xs mb-2 p-2 rounded-lg" style={{ backgroundColor: 'oklch(0.95 0.05 240)', borderColor: 'oklch(0.7 0.1 240)', color: 'oklch(0.4 0.1 240)' }}>
               <strong>ℹ️</strong> Wyświetlane są tylko usługi wybranego wykonawcy: <strong>{selectedProvider.name}</strong>
@@ -1134,6 +1135,8 @@ export default function CreateOrder() {
             </div>
           )}
           <ServiceCategoryDropdown
+            id="order-service"
+            ariaLabel="Rodzaj pomocy — wybierz kategorię i usługę"
             onCategorySelect={(categoryData) => {
               setSelectedCategory(categoryData);
               setServiceMeta({
@@ -1169,6 +1172,7 @@ export default function CreateOrder() {
           {/* Pole z automatycznie wypełnioną usługą (tylko do odczytu) - pokazuje się TYLKO po wyborze z dropdowna */}
           {selectedCategory && service && (
             <input
+              aria-label="Wybrana usługa"
               value={service}
               readOnly
               className="w-full rounded-md border h-9 px-3 py-1 text-sm bg-gray-50 cursor-not-allowed mt-2"
@@ -1183,10 +1187,12 @@ export default function CreateOrder() {
           {selectedCategory && service && isOtherSubcategory && (
             <>
               <input
+                id="service-details"
+                aria-label="Doprecyzuj rodzaj usługi"
                 value={serviceDetails}
                 onChange={(e) => setServiceDetails(e.target.value)}
                 placeholder="np. naprawa drzwi przesuwnych szafy, wymiana zawiasów..."
-              className="w-full rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all mt-2"
+              className="w-full rounded-md border min-h-11 px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all mt-2"
               style={{ 
                 backgroundColor: 'var(--background)',
                 borderColor: 'var(--border)',
@@ -1204,9 +1210,11 @@ export default function CreateOrder() {
 
         <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 2 — Opisz problem</div>
         <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Opisz, w czym potrzebujesz pomocy</label>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Napisz m.in.: co nie działa, od kiedy, model sprzętu lub metraż, co już próbowałeś.</p>
+          <label htmlFor="order-description" className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Opisz, w czym potrzebujesz pomocy</label>
+          <p id="order-description-help" className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Napisz m.in.: co nie działa, od kiedy, model sprzętu lub metraż, co już próbowałeś.</p>
           <textarea
+            id="order-description"
+            aria-describedby="order-description-help order-description-count"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onFocus={(e) => { 
@@ -1218,7 +1226,7 @@ export default function CreateOrder() {
             }}
             rows={5}
             maxLength={2000}
-            className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-all resize-none min-h-[120px]"
+            className="w-full rounded-md border px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all resize-none min-h-[120px]"
             style={{ 
               backgroundColor: 'var(--background)',
               borderColor: 'var(--border)',
@@ -1228,7 +1236,7 @@ export default function CreateOrder() {
             placeholder="Napisz, jaka pomoc jest potrzebna..."
             required
           />
-          <p className="text-xs flex justify-between" style={{ color: 'var(--muted-foreground)' }}>
+          <p id="order-description-count" className="text-xs flex justify-between" style={{ color: 'var(--muted-foreground)' }}>
             <span>Minimum 20 znaków dla lepszych wycen. {description.length < 20 && description.length > 0 && <span className="text-amber-600">({20 - description.length} znaków brakuje)</span>}</span>
             <span>{description.length}/2000</span>
           </p>
@@ -1238,7 +1246,7 @@ export default function CreateOrder() {
         <>
         <div className="text-xs font-semibold uppercase tracking-wide pt-2" style={{ color: 'var(--muted-foreground)' }}>Krok 3 — Budżet i termin</div>
         <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+          <label htmlFor="order-budget" className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
             Szacowany budżet <span className="font-normal" style={{ color: 'var(--muted-foreground)' }}>(opcjonalnie)</span>
           </label>
           {priceHints && priceHints.multipliers && priceHints.multipliers.total > 1.05 && (
@@ -1248,6 +1256,7 @@ export default function CreateOrder() {
           )}
           <div className="flex gap-2 flex-wrap">
             <input
+              id="order-budget"
               type="number"
               min={0}
               step={10}
@@ -1261,7 +1270,7 @@ export default function CreateOrder() {
                 e.target.style.borderColor = 'var(--ring)';
               }}
               placeholder="np. 200"
-              className="flex-1 min-w-0 rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
+              className="flex-1 min-w-0 rounded-md border min-h-11 px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all"
               style={{ 
                 backgroundColor: 'var(--background)',
                 borderColor: 'var(--border)',
@@ -1431,14 +1440,15 @@ export default function CreateOrder() {
 
         {/* Pilność */}
         <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Kiedy ma nastąpić pomoc</label>
+          <label htmlFor="order-urgency" className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Kiedy ma nastąpić pomoc</label>
           <select
+            id="order-urgency"
             value={urgency}
             onChange={(e) => {
               const newUrgency = e.target.value;
               setUrgency(newUrgency);
             }}
-            className="w-full rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
+            className="w-full rounded-md border min-h-11 px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all"
             style={{ 
               backgroundColor: 'var(--background)',
               borderColor: 'var(--border)',
@@ -1461,11 +1471,12 @@ export default function CreateOrder() {
 
         {/* Preferencje kontaktu */}
         <div className="space-y-2">
-          <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Preferowana metoda kontaktu</label>
+          <label htmlFor="order-contact" className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Preferowana metoda kontaktu</label>
           <select
+            id="order-contact"
             value={contactPreference}
             onChange={(e) => setContactPreference(e.target.value)}
-            className="w-full rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
+            className="w-full rounded-md border min-h-11 px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all"
             style={{ 
               backgroundColor: 'var(--background)',
               borderColor: 'var(--border)',
@@ -1488,12 +1499,13 @@ export default function CreateOrder() {
           {showAdvancedOptions ? "Krok 5 — Lokalizacja" : "Krok 3 — Lokalizacja"}
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+          <label htmlFor="order-location" className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
             <MapPin className="h-4 w-4" />
             Lokalizacja
           </label>
           <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
             <input
+              id="order-location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               onFocus={(e) => { 
@@ -1504,7 +1516,7 @@ export default function CreateOrder() {
                 e.target.style.borderColor = 'var(--ring)';
               }}
               placeholder="np. Warszawa, Mokotów – zostaw puste, ustalimy później"
-              className="flex-1 rounded-md border h-9 px-3 py-1 text-sm focus:outline-none focus:ring-2 transition-all"
+              className="flex-1 rounded-md border min-h-11 px-3 py-2 text-base focus:outline-none focus:ring-2 transition-all"
               style={{ 
                 backgroundColor: 'var(--background)',
                 borderColor: 'var(--border)',
@@ -1626,7 +1638,7 @@ export default function CreateOrder() {
         )}
 
         {error && (
-          <div className="p-4 rounded-xl border text-sm md:text-base" style={{ backgroundColor: 'oklch(0.95 0.05 20)', borderColor: 'oklch(0.7 0.1 20)', color: 'oklch(0.4 0.1 20)' }}>
+          <div role="alert" aria-live="assertive" className="p-4 rounded-xl border text-sm md:text-base" style={{ backgroundColor: 'oklch(0.95 0.05 20)', borderColor: 'oklch(0.7 0.1 20)', color: 'oklch(0.4 0.1 20)' }}>
             {error}
           </div>
         )}

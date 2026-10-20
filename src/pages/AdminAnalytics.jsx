@@ -17,6 +17,7 @@ function fmtRate(r) {
 
 const FUNNEL_STEP_ORDER = [
   "page_view",
+  "map_open",
   "search",
   "provider_view",
   "provider_contact",
@@ -28,14 +29,22 @@ const FUNNEL_STEP_ORDER = [
   "registration_success",
   "email_verification_success",
   "order_form_success",
+  "onboarding_completed",
+  "provider_profile_completed",
+  "provider_services_updated",
   "offer_form_start",
   "offer_form_submit",
+  "provider_offer_created",
   "order_accepted",
+  "checkout_started",
+  "checkout_abandoned",
+  "payment_failed",
   "payment_succeeded"
 ];
 
 const FUNNEL_STEP_LABELS = {
   page_view: "Odsłona strony",
+  map_open: "Otwarcie mapy",
   search: "Wyszukiwanie",
   provider_view: "Profil wykonawcy",
   provider_contact: "Kontakt z wykonawcą",
@@ -47,9 +56,16 @@ const FUNNEL_STEP_LABELS = {
   registration_success: "Utworzone konto klienta",
   email_verification_success: "Potwierdzony e-mail",
   order_form_success: "Sukces formularza zlecenia",
+  onboarding_completed: "Ukończony onboarding",
+  provider_profile_completed: "Uzupełniony profil wykonawcy",
+  provider_services_updated: "Dodane usługi wykonawcy",
   offer_form_start: "Start formularza oferty",
   offer_form_submit: "Wysłana oferta",
+  provider_offer_created: "Pierwsza oferta wykonawcy",
   order_accepted: "Zaakceptowane zlecenie",
+  checkout_started: "Start płatności",
+  checkout_abandoned: "Porzucona płatność",
+  payment_failed: "Nieudana płatność",
   payment_succeeded: "Płatność zakończona"
 };
 
@@ -104,6 +120,8 @@ export default function AdminAnalytics() {
   const [funnelTab, setFunnelTab] = useState("overall");
   const [productInsights, setProductInsights] = useState(null);
   const [apiHealth, setApiHealth] = useState(null);
+  const [opsHealth, setOpsHealth] = useState(null);
+  const [notificationHealth, setNotificationHealth] = useState(null);
   const [aiInsights, setAiInsights] = useState(null);
   const [companyProCronHealth, setCompanyProCronHealth] = useState(null);
   const [monetization, setMonetization] = useState(null);
@@ -136,11 +154,17 @@ export default function AdminAnalytics() {
         setFunnelData({ overall: [], client: [], provider: [] });
       }
 
-      const [piRes, healthRes, aiRes, cronHealthRes, monetRes, proConvRes] = await Promise.all([
+      const [piRes, healthRes, opsRes, notificationRes, aiRes, cronHealthRes, monetRes, proConvRes] = await Promise.all([
         fetch(apiUrl(`/api/admin/analytics/product-insights?from=${from}&to=${to}`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(apiUrl(`/api/admin/analytics/api-health?from=${from}&to=${to}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl('/api/admin/analytics/ops-health'), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(apiUrl(`/api/admin/notifications/stats?startDate=${from}T00:00:00.000Z&endDate=${to}T23:59:59.999Z`), {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(apiUrl(`/api/admin/analytics/ai-insights?from=${from}&to=${to}`), {
@@ -160,6 +184,10 @@ export default function AdminAnalytics() {
       setProductInsights(piJson && typeof piJson === "object" ? piJson : null);
       const hJson = await healthRes.json().catch(() => null);
       setApiHealth(hJson && typeof hJson === "object" ? hJson : null);
+      const opsJson = await opsRes.json().catch(() => null);
+      setOpsHealth(opsJson && typeof opsJson === "object" ? opsJson : null);
+      const notificationJson = await notificationRes.json().catch(() => null);
+      setNotificationHealth(notificationJson?.stats || null);
       const aiJson = await aiRes.json().catch(() => null);
       setAiInsights(aiJson && typeof aiJson === "object" ? aiJson : null);
       const cronHealthJson = await cronHealthRes.json().catch(() => null);
@@ -174,6 +202,8 @@ export default function AdminAnalytics() {
       setFunnelData({ overall: [], client: [], provider: [] });
       setProductInsights(null);
       setApiHealth(null);
+      setOpsHealth(null);
+      setNotificationHealth(null);
       setAiInsights(null);
       setCompanyProCronHealth(null);
       setMonetization(null);
@@ -189,6 +219,8 @@ export default function AdminAnalytics() {
   }, [from, to]);
 
   const kpi = summary?.kpi || {};
+  const marketplace = summary?.marketplace || {};
+  const marketplaceRows = Array.isArray(marketplace?.markets) ? marketplace.markets : [];
   const topServices = useMemo(() => (Array.isArray(summary?.topServices) ? summary.topServices : []), [summary]);
   const daily = useMemo(() => (Array.isArray(summary?.daily) ? summary.daily : []), [summary]);
   const funnelRows = useMemo(() => {
@@ -343,6 +375,57 @@ export default function AdminAnalytics() {
         <Card title="Opłacone" value={asText(num(kpi.ordersPaid))} />
         <Card title="Obrót (PLN)" value={asText(fmt2(num(kpi.revenue) / 100))} />
         <Card title="Średnia wartość (PLN)" value={asText(fmt2(num(kpi.avgOrder) / 100))} />
+      </div>
+
+      <h2 className="text-lg font-semibold text-slate-800 pt-2">Marketplace i pokrycie ofertami</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Zlecenia bez oferty" value={asText(num(marketplace.ordersWithoutOffers))} />
+        <Card title="Pokrycie ofertami" value={fmtRate(marketplace.offerCoverageRate)} />
+        <Card title="Śr. czas do 1. oferty" value={marketplace.avgFirstOfferHours == null ? "—" : `${asText(marketplace.avgFirstOfferHours)} h`} />
+        <Card title="Konwersja do płatności Helpfli" value={fmtRate(marketplace.platformPaymentRate)} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Rynki bez aktywnego wykonawcy" value={asText(num(marketplace.marketsWithoutProviderSupply))} />
+      </div>
+      <Panel title="Popyt i skuteczność według usługi oraz miasta">
+        <SimpleTable
+          headers={["Usługa", "Miasto", "Wykonawcy", "Zlecenia", "Z ofertą", "Pokrycie", "Śr. 1. oferta", "Płatność Helpfli"]}
+          rows={marketplaceRows.map((row) => [
+            asText(row?.service || "—"),
+            asText(row?.city || "—"),
+            asText(num(row?.providersAvailable)),
+            asText(num(row?.orders)),
+            asText(num(row?.ordersWithOffers)),
+            fmtRate(num(row?.orders) ? num(row?.ordersWithOffers) / num(row?.orders) : null),
+            row?.avgFirstOfferHours == null ? "—" : `${asText(row.avgFirstOfferHours)} h`,
+            fmtRate(num(row?.orders) ? num(row?.paidOrders) / num(row?.orders) : null),
+          ])}
+        />
+      </Panel>
+
+      <h2 className="text-lg font-semibold text-slate-800 pt-2">Maile i powiadomienia</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Wysłane / dostarczone" value={asText(num(notificationHealth?.byStatus?.sent) + num(notificationHealth?.byStatus?.delivered))} />
+        <Card title="Nieudane" value={asText(num(notificationHealth?.failed))} />
+        <Card title="Skuteczność wysyłki" value={notificationHealth?.successRate == null ? "—" : `${asText(notificationHealth.successRate)}%`} />
+        <Card title="Wiadomości e-mail" value={asText(num(notificationHealth?.byChannel?.email))} />
+      </div>
+      <p className="text-xs text-slate-500">
+        Panel mierzy przyjęcie wiadomości przez dostawcę. Dostarczenie do skrzynki i reputację domeny trzeba dodatkowo kontrolować w panelu Resend/SMTP oraz DNS (SPF, DKIM, DMARC).
+      </p>
+
+      <h2 className="text-lg font-semibold text-slate-800 pt-2">Monitoring produkcji</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Stripe: błędne webhooki (24 h)" value={asText(num(opsHealth?.stripe?.failed24h))} />
+        <Card title="Stripe: zablokowane przetwarzanie" value={asText(num(opsHealth?.stripe?.staleProcessing))} />
+        <Card title="Nierozwiązane błędy płatności" value={asText(num(opsHealth?.stripe?.unresolvedPaymentErrors))} />
+        <Card title="Backup świeży (≤30 h)" value={opsHealth?.backup?.fresh ? "TAK" : "NIE"} />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <Card title="Ostatni backup" value={fmtDateTime(opsHealth?.backup?.latestBackupAt)} />
+        <Card title="Sentry" value={opsHealth?.configuration?.sentry ? "skonfigurowany" : "brak"} />
+        <Card title="Stripe webhook" value={opsHealth?.configuration?.stripeWebhook ? "skonfigurowany" : "brak"} />
+        <Card title="E-mail" value={asText(opsHealth?.configuration?.emailProvider || "brak")} />
       </div>
 
       <h2 className="text-lg font-semibold text-slate-800 pt-2">Monetyzacja i PRO</h2>

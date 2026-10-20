@@ -1048,18 +1048,24 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setViewMode("list")}
+            aria-label="Pokaż listę wykonawców"
+            aria-pressed={viewMode === "list"}
             className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
             title="Lista"
           ><List className="w-4 h-4" aria-hidden /></button>
           <button
             type="button"
             onClick={() => setViewMode("map")}
+            aria-label="Pokaż mapę wykonawców"
+            aria-pressed={viewMode === "map"}
             className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
             title="Mapa"
           ><Map className="w-4 h-4" aria-hidden /></button>
           <button
             type="button"
             onClick={() => setViewMode("split")}
+            aria-label="Pokaż listę i mapę"
+            aria-pressed={viewMode === "split"}
             className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
             title="Podział"
           ><LayoutGrid className="w-4 h-4" aria-hidden /></button>
@@ -1079,7 +1085,10 @@ export default function Home() {
               <div className="flex items-center gap-1 p-2 bg-slate-50 rounded-lg w-fit">
                 <span className="text-xs text-slate-500 mr-1">Widok:</span>
                 <button
+                  type="button"
                   onClick={() => setViewMode("list")}
+                  aria-label="Pokaż listę wykonawców"
+                  aria-pressed={viewMode === "list"}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                   }`}
@@ -1088,7 +1097,10 @@ export default function Home() {
                   <List className="w-4 h-4" aria-hidden />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode("map")}
+                  aria-label="Pokaż mapę wykonawców"
+                  aria-pressed={viewMode === "map"}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
                     viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                   }`}
@@ -1098,7 +1110,10 @@ export default function Home() {
                 </button>
                 {!isMobileViewport && (
                   <button
+                    type="button"
                     onClick={() => setViewMode("split")}
+                    aria-label="Pokaż listę i mapę"
+                    aria-pressed={viewMode === "split"}
                     className={`px-2 py-1 text-xs rounded transition-colors ${
                       viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
                     }`}
@@ -1155,7 +1170,10 @@ export default function Home() {
               {isCompactMobileSplit && list.length > 3 && (
                 <div className="flex justify-center pt-2">
                   <button
+                    type="button"
                     onClick={() => setViewMode("list")}
+                    aria-label="Pokaż listę wykonawców"
+                    aria-pressed={viewMode === "list"}
                     className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
                     Pokaż pełną listę ({list.length})
@@ -1176,12 +1194,18 @@ export default function Home() {
                     title="Lista"
                   ><List className="w-4 h-4" aria-hidden /></button>
                   <button
+                    type="button"
                     onClick={() => setViewMode("map")}
+                    aria-label="Pokaż mapę wykonawców"
+                    aria-pressed={viewMode === "map"}
                     className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
                     title="Mapa"
                   ><Map className="w-4 h-4" aria-hidden /></button>
                   <button
+                    type="button"
                     onClick={() => setViewMode("split")}
+                    aria-label="Pokaż listę i mapę"
+                    aria-pressed={viewMode === "split"}
                     className={`px-2 py-1 text-xs rounded transition-colors ${viewMode === "split" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
                     title="Podział"
                   ><LayoutGrid className="w-4 h-4" aria-hidden /></button>

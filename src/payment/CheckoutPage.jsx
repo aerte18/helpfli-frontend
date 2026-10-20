@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const params = new URLSearchParams(window.location.search);
   const clientSecret = params.get('cs');
   const checkoutType = params.get('type') || '';
+  const telemetryOrderId = params.get('orderId') || window.location.pathname.match(/^\/checkout\/([^/?#]+)/)?.[1] || undefined;
   const isSubscriptionCheckout = checkoutType === 'subscription';
   const isVideoCheckout = checkoutType === 'video';
   const isSponsorRenewalCheckout = checkoutType === 'sponsor_ad_renewal';
@@ -39,22 +40,24 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!clientSecret) return;
     trackCheckoutStarted({
+      orderId: telemetryOrderId,
       checkoutType: checkoutType || 'generic',
       hasClientSecret: true,
     });
-  }, [clientSecret, checkoutType, trackCheckoutStarted]);
+  }, [clientSecret, checkoutType, telemetryOrderId, trackCheckoutStarted]);
 
   useEffect(() => {
     if (!clientSecret) return undefined;
     return () => {
       if (!checkoutSubmitted.current) {
         trackCheckoutAbandoned({
+          orderId: telemetryOrderId,
           checkoutType: checkoutType || 'generic',
           stage: 'payment_form',
         });
       }
     };
-  }, [clientSecret, checkoutType, trackCheckoutAbandoned]);
+  }, [clientSecret, checkoutType, telemetryOrderId, trackCheckoutAbandoned]);
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
   // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.

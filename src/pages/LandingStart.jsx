@@ -323,6 +323,7 @@ export default function LandingStart() {
   };
 
   const goToProviderMap = () => {
+    track(EVENT_TYPES.MAP_OPEN, { source: "landing_map" });
     nav("/home?view=map&source=landing_map");
   };
 
@@ -330,7 +331,7 @@ export default function LandingStart() {
     <div className="min-h-screen relative" style={{ backgroundColor: 'var(--background)' }}>
       <Helmet>
         <title>Fachowcy i usługi lokalne w Twojej okolicy | Helpfli</title>
-        <meta name="description" content="Znajdź sprawdzonego hydraulika, elektryka, serwis AGD, ekipę remontową lub sprzątającą. Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
+        <meta name="description" content="Znajdź lokalnego hydraulika, elektryka, serwis AGD, ekipę remontową lub sprzątającą. Dodaj zlecenie bezpłatnie, porównaj oferty i sprawdź status weryfikacji wykonawcy." />
         <link rel="canonical" href={absoluteUrl('/')} />
         <meta property="og:title" content="Fachowcy i usługi lokalne w Twojej okolicy | Helpfli" />
         <meta property="og:description" content="Dodaj zlecenie bezpłatnie i porównaj oferty lokalnych wykonawców." />
