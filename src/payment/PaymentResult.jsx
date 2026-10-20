@@ -58,17 +58,10 @@ export default function PaymentResult() {
     }
 
     if (redirectStatus === 'succeeded') {
-      setStatus('success');
-      setMessage(
-        payType === 'sponsor_ad_renewal'
-          ? 'Płatność przyjęta — kampania zostanie przedłużona po potwierdzeniu przez system (zwykle w kilka sekund).'
-          : payType === 'video'
-            ? 'Płatność przyjęta — tworzymy sesję wideo…'
-            : 'Płatność przyjęta — środki są zabezpieczone w escrow do zakończenia zlecenia.'
-      );
-      reportPayment(orderId, true);
-      finalizeVideoSession(paymentIntentId);
-      return;
+      // redirect_status pochodzi z przeglądarki i nie jest dowodem rozliczenia.
+      // Zawsze potwierdzamy PaymentIntent po stronie backendu przed pokazaniem sukcesu.
+      setStatus('loading');
+      setMessage('Potwierdzamy płatność u operatora…');
     } else if (redirectStatus === 'processing') {
       setStatus('processing');
       setMessage('Płatność jest przetwarzana…');
@@ -103,9 +96,9 @@ export default function PaymentResult() {
             setDuplicatesReleased(data.duplicatesCanceled);
           }
           finalizeVideoSession(paymentIntentId);
-        } else if (redirectStatus === 'succeeded') {
-          setStatus('success');
-          setMessage('Płatność przyjęta. Odśwież stronę zlecenia, jeśli status się nie zmienił.');
+        } else if (data.status === 'processing' || data.status === 'requires_action') {
+          setStatus('processing');
+          setMessage(data.message || 'Płatność jest nadal przetwarzana przez operatora…');
         } else {
           setStatus('error');
           setMessage(data.message || 'Nie udało się potwierdzić płatności.');
@@ -115,8 +108,8 @@ export default function PaymentResult() {
         console.error('complete-return:', error);
         if (cancelled) return;
         if (redirectStatus === 'succeeded') {
-          setStatus('success');
-          setMessage('Płatność przyjęta. Odśwież stronę zlecenia za chwilę.');
+          setStatus('processing');
+          setMessage('Operator przyjął dyspozycję, ale nie udało się jeszcze potwierdzić jej na serwerze. Nie płać ponownie — sprawdź zlecenie za chwilę.');
         } else {
           setStatus('error');
           setMessage(error?.message || 'Błąd sprawdzania statusu płatności.');
@@ -189,7 +182,14 @@ export default function PaymentResult() {
           <>
             <motionlessSpinner />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Przetwarzanie płatności</h2>
-            <p className="text-gray-600">{message}</p>
+            <p className="text-gray-600 mb-4">{message}</p>
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="w-full bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
+            >
+              Przejdź do zlecenia
+            </button>
           </>
         )}
 

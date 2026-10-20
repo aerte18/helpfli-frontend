@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { useTelemetry } from '../hooks/useTelemetry';
@@ -33,7 +33,8 @@ export default function CheckoutPage() {
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState('');
   const [processing, setProcessing] = useState(false);
-  const { trackCheckoutStarted } = useTelemetry();
+  const { trackCheckoutStarted, trackCheckoutAbandoned } = useTelemetry();
+  const checkoutSubmitted = useRef(false);
 
   useEffect(() => {
     if (!clientSecret) return;
@@ -42,6 +43,18 @@ export default function CheckoutPage() {
       hasClientSecret: true,
     });
   }, [clientSecret, checkoutType, trackCheckoutStarted]);
+
+  useEffect(() => {
+    if (!clientSecret) return undefined;
+    return () => {
+      if (!checkoutSubmitted.current) {
+        trackCheckoutAbandoned({
+          checkoutType: checkoutType || 'generic',
+          stage: 'payment_form',
+        });
+      }
+    };
+  }, [clientSecret, checkoutType, trackCheckoutAbandoned]);
 
   // Musi być przed jakimkolwiek warunkowym return — inaczej React #185 (zmienna liczba hooków)
   // Lista metod bierze się WYŁĄCZNIE z PaymentIntent (backend) — paymentMethodOrder tylko porządkuje to, co Stripe już dopuścił.
@@ -106,6 +119,7 @@ export default function CheckoutPage() {
       const q = extra.toString();
       if (q) returnUrl += `?${q}`;
 
+      checkoutSubmitted.current = true;
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: { return_url: returnUrl },
@@ -113,6 +127,7 @@ export default function CheckoutPage() {
       });
 
       if (error) {
+        checkoutSubmitted.current = false;
         setMessage(stripePaymentErrorMessage(error));
         return;
       }
@@ -149,15 +164,9 @@ export default function CheckoutPage() {
             ) : isVideoCheckout ? (
               <>Po opłacie utworzymy prywatny pokój wideo z wykonawcą.</>
             ) : isSubscriptionCheckout ? (
-              <>
-                Metody zależą od <strong>subskrypcji w Stripe</strong> (inny zestaw niż przy pojedynczej płatności za zlecenie).
-                Jeśli nie ma BLIK / P24, w Dashboard włącz je także dla <strong>faktur / Billing</strong> i sprawdź kwalifikację dla PLN.
-              </>
+              <>Wybierz jedną z metod dostępnych dla tej subskrypcji.</>
             ) : (
-              <>
-                Wyświetlane są tylko metody dopuszczone do <strong>tej</strong> płatności. Przy accordionie reszta może być pod{' '}
-                <strong>„Więcej metod płatności”</strong>.
-              </>
+              <>Wybierz wygodną metodę. Wszystkie dostępne opcje zobaczysz poniżej.</>
             )}
           </p>
         </div>
@@ -192,12 +201,9 @@ export default function CheckoutPage() {
       </div>
       
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Dlaczego lista metod jest „inna niż gdzie indziej”?</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Bezpieczna obsługa płatności</h3>
         <p className="text-sm text-blue-800">
-          Stripe nie pokazuje „wszystkich włączonych w sklepie”, tylko metody <strong>dopuszczone do konkretnego PaymentIntent</strong>{' '}
-          (np. zlecenie vs subskrypcja = inna konfiguracja). Włączenie w Dashboard to krok pierwszy — drugi to{' '}
-          <strong>kwalifikacja</strong> (waluta PLN, kraj, typ płatności jednorazowej vs faktura subskrypcji). Revolut / Klarna mogą się pojawiać,
-          gdy Stripe uzna je za dostępne dla tej sesji, nawet jeśli BLIK nie przeszedł kwalifikacji.
+          Płatność jest obsługiwana przez Stripe. Jeśli wybranej metody nie ma na liście, wybierz inną albo skontaktuj się z pomocą Helpfli.
         </p>
       </div>
     </div>

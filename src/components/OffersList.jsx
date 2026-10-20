@@ -365,6 +365,9 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
       return;
     }
 
+    const systemUnavailable = offer?.providerMeta?.systemPaymentAvailable === false;
+    setForceExternalPayment(systemUnavailable);
+    setStripeBlockReason(systemUnavailable ? (offer?.providerMeta?.systemPaymentUnavailableReason || '') : '');
     setAcceptModal({ isOpen: true, offer, order: orderData });
   }
 
@@ -383,6 +386,7 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
         body: JSON.stringify({
           paymentMethod: acceptData.paymentMethod,
           includeGuarantee: acceptData.includeGuarantee,
+          requestInvoice: acceptData.requestInvoice,
           totalAmount: acceptData.totalAmount,
           breakdown: acceptData.breakdown,
           // Teleporada - dane konsultacji
@@ -450,16 +454,25 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
               body: JSON.stringify({ orderId }),
             });
             const unlockData = await unlockRes.json();
-            if (unlockRes.ok && unlockData.waived) {
+            if (!unlockRes.ok) {
+              throw new Error(unlockData.message || 'Nie udało się rozpocząć płatności za kontakt');
+            }
+            if (unlockData.waived || unlockData.contactUnlocked || unlockData.succeeded) {
               navigate(`/orders/${orderId}?tab=details`, { replace: true });
               return;
             }
-            if (unlockRes.ok && unlockData.clientSecret) {
+            if (unlockRes.status === 202 || unlockData.pending) {
+              setInfo(unlockData.message || 'Płatność za kontakt jest nadal przetwarzana. Nie płać ponownie.');
+              navigate(`/orders/${orderId}?tab=details`, { replace: true });
+              return;
+            }
+            if (unlockData.clientSecret && unlockData.paymentIntentId) {
               const pi = encodeURIComponent(unlockData.paymentIntentId);
               const cs = encodeURIComponent(unlockData.clientSecret);
               window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${pi}&cs=${cs}&kind=contact_unlock&fee=${unlockData.contactUnlockFeePln || 24}`;
               return;
             }
+            throw new Error('Brak danych potrzebnych do bezpiecznego rozpoczęcia płatności za kontakt');
           } catch (unlockErr) {
             setError(unlockErr.message || 'Nie udało się rozpocząć płatności za kontakt');
           }
@@ -485,6 +498,19 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
           const commissionData = await commissionRes.json();
           if (!commissionRes.ok) {
             throw new Error(commissionData.message || "Błąd tworzenia płatności za prowizję");
+          }
+
+          if (commissionRes.status === 202 || commissionData.pending) {
+            setInfo(commissionData.message || 'Płatność prowizji jest nadal przetwarzana. Nie płać ponownie.');
+            navigate(`/orders/${orderId}?tab=details`, { replace: true });
+            return;
+          }
+          if (commissionData.succeeded || commissionData.alreadyPaid) {
+            navigate(`/orders/${orderId}?tab=details`, { replace: true });
+            return;
+          }
+          if (!commissionData.paymentIntentId || !commissionData.clientSecret) {
+            throw new Error('Brak danych potrzebnych do bezpiecznego rozpoczęcia płatności prowizji');
           }
 
           const pi = encodeURIComponent(commissionData.paymentIntentId);
@@ -931,8 +957,8 @@ export default function OffersList({ orderId, recommendedOfferId, topOfferIds = 
             : (user.gamification.tier.icon || '💎')
         } : null}
         isFastTrack={Boolean(offers[0]?.orderIsFastTrack)}
-        disableSystemPayment={forceExternalPayment}
-        systemDisabledReason={stripeBlockReason}
+        disableSystemPayment={forceExternalPayment || acceptModal.offer?.providerMeta?.systemPaymentAvailable === false}
+        systemDisabledReason={stripeBlockReason || acceptModal.offer?.providerMeta?.systemPaymentUnavailableReason || ''}
       />
 
       {favoritePrompt && (

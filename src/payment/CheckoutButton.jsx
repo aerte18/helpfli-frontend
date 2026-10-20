@@ -21,11 +21,19 @@ export default function CheckoutButton({
         body: JSON.stringify({ orderId, ...(showInvoiceOption ? { requestInvoice } : {}) }),
       });
       const data = await res.json();
-      if (res.status === 409 && data.alreadyPaid) {
+      if (data.succeeded || data.alreadyPaid) {
+        window.location.href = `/orders/${encodeURIComponent(orderId)}`;
+        return;
+      }
+      if (res.status === 202 || data.pending) {
+        alert(data.message || 'Płatność jest nadal przetwarzana. Nie rozpoczynaj drugiej płatności.');
         window.location.href = `/orders/${encodeURIComponent(orderId)}`;
         return;
       }
       if (!res.ok) throw new Error(data.message || 'Błąd');
+      if (!data.paymentIntentId || !data.clientSecret) {
+        throw new Error('Brak danych potrzebnych do bezpiecznego rozpoczęcia płatności.');
+      }
       const qs = new URLSearchParams({
         pi: data.paymentIntentId,
         cs: data.clientSecret,

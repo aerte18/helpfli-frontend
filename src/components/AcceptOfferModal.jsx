@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import FoundingFeeHint from './FoundingFeeHint';
 import ModalDialog from './ui/ModalDialog';
+import { apiUrl } from '@/lib/apiUrl';
 
 export default function AcceptOfferModal({ 
   isOpen, 
@@ -16,19 +17,94 @@ export default function AcceptOfferModal({
 }) {
   // Metoda płatności jest już wybrana przez klienta przy tworzeniu zlecenia
   const paymentPreference = order?.paymentPreference || 'system';
-  const [paymentMethod, setPaymentMethod] = useState(paymentPreference); // Metoda płatności (system | external)
+  const systemPaymentUnavailable =
+    disableSystemPayment || offer?.providerMeta?.systemPaymentAvailable === false;
+  const [paymentMethod, setPaymentMethod] = useState(''); // Metoda płatności (system | external)
   const [includeGuarantee, setIncludeGuarantee] = useState(paymentPreference === 'system'); // Czy doliczyć gwarancję
   const [requestInvoice, setRequestInvoice] = useState(!!order?.requestInvoice); // Chcę fakturę VAT
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
+      let initialPaymentMethod = paymentPreference === 'both' ? '' : paymentPreference;
+      if (initialPaymentMethod === 'system' && systemPaymentUnavailable) {
+        initialPaymentMethod = 'external';
+      }
+      setPaymentMethod(initialPaymentMethod);
+      setIncludeGuarantee(initialPaymentMethod === 'system');
       setRequestInvoice(!!order?.requestInvoice);
+      setQuote(null);
+      setQuoteError('');
     }
-  }, [isOpen, order?.requestInvoice]);
-  
-  // Sprawdź, czy klient ma pakiet PRO (subskrypcja)
-  const clientPlanKey = order?.client?.subscription?.planKey || null;
-  const clientIsPro = clientPlanKey === 'CLIENT_PRO';
+  }, [isOpen, order?.requestInvoice, paymentPreference, systemPaymentUnavailable]);
+
+  useEffect(() => {
+    if (!isOpen || !offer?._id || !paymentMethod) {
+      setQuote(null);
+      setQuoteLoading(false);
+      return undefined;
+    }
+
+    if (offer.__demo) {
+      const demoBase = Number(offer.amount ?? offer.price ?? 0);
+      const demoPlatformFee = Math.round(demoBase * 0.05);
+      const demoGuaranteeFee = paymentMethod === 'system' && includeGuarantee
+        ? Math.round(demoBase * 0.07)
+        : 0;
+      setQuote({
+        paymentMethod,
+        paymentDueNow: paymentMethod === 'external' ? Math.max(demoPlatformFee, 2) : demoBase + demoPlatformFee + demoGuaranteeFee,
+        pricing: {
+          baseAmount: demoBase,
+          platformFee: demoPlatformFee,
+          platformFeeBeforeDiscount: demoPlatformFee,
+          commissionChargedPln: paymentMethod === 'external' ? Math.max(demoPlatformFee, 2) : 0,
+          guaranteeFee: demoGuaranteeFee,
+          total: demoBase + demoPlatformFee + demoGuaranteeFee,
+          includeGuarantee: demoGuaranteeFee > 0,
+        },
+        feeMeta: { platformFeePercent: 5, platformFeeBeforeDiscount: demoPlatformFee },
+      });
+      setQuoteError('');
+      setQuoteLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const loadQuote = async () => {
+      setQuoteLoading(true);
+      setQuoteError('');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(apiUrl(`/api/offers/${offer._id}/acceptance-quote`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            paymentMethod,
+            includeGuarantee: paymentMethod === 'system' && includeGuarantee,
+          }),
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Nie udało się obliczyć ceny');
+        setQuote(data);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setQuote(null);
+          setQuoteError(error.message || 'Nie udało się obliczyć ceny');
+        }
+      } finally {
+        if (!controller.signal.aborted) setQuoteLoading(false);
+      }
+    };
+    loadQuote();
+    return () => controller.abort();
+  }, [isOpen, offer?._id, offer?.__demo, paymentMethod, includeGuarantee]);
   
   // Teleporada - pola
   const [scheduledDate, setScheduledDate] = useState('');
@@ -51,37 +127,29 @@ export default function AcceptOfferModal({
   // Metoda płatności jest już ustalona przez klienta przy tworzeniu zlecenia
   // Nie ma potrzeby zmiany - klient wybrał już "Helpfli Protect" lub "Płatność poza systemem"
 
-  // Kalkulacja opłat
-  const baseAmount = offer.amount || 0;
-  const effectiveIncludeGuarantee = paymentMethod === 'system' && includeGuarantee;
-  const guaranteeFee = effectiveIncludeGuarantee ? Math.round(baseAmount * 0.07) : 0; // 7% za gwarancję tylko przy płatności przez system
-  
-  // Prowizja platformy – zawsze naliczana, chyba że klient ma PRO (0%)
-  const platformFeePercent = clientIsPro ? 0 : 5;
-  const basePlatformFee = Math.round(baseAmount * (platformFeePercent / 100));
-
-  // Zniżka za tier lojalnościowy (dotyczy tylko prowizji platformy)
-  const tierDiscountPercent = loyaltyTier?.discount || 0;
-  const tierDiscountAmount = tierDiscountPercent > 0
-    ? Math.round((basePlatformFee * tierDiscountPercent) / 100)
-    : 0;
-
-  let platformFee = Math.max(0, basePlatformFee - tierDiscountAmount);
+  // Kwoty zawsze pochodzą z serwerowego quote; frontend nie nalicza prowizji samodzielnie.
+  const pricing = quote?.pricing || null;
+  const baseAmount = Number(pricing?.baseAmount ?? offer.amount ?? offer.price ?? 0);
+  const effectiveIncludeGuarantee = Boolean(pricing?.includeGuarantee);
+  const guaranteeFee = Number(pricing?.guaranteeFee || 0);
+  const platformFee = Number(pricing?.platformFee || 0);
+  const basePlatformFee = Number(
+    quote?.feeMeta?.platformFeeBeforeDiscount ?? pricing?.platformFeeBeforeDiscount ?? platformFee
+  );
+  const platformFeePercent = Number(quote?.feeMeta?.platformFeePercent || 0);
   const providerMeta = offer?.providerMeta || {};
-  const foundingWaived = providerMeta.foundingCommissionWaived === true;
-  const platformFeeBeforeFounding = platformFee;
-  if (foundingWaived) {
-    platformFee = 0;
-  }
-  const STRIPE_MIN_PLN = 2;
-  const commissionChargedPln =
-    paymentMethod === "external" && platformFee > 0
-      ? Math.max(platformFee, STRIPE_MIN_PLN)
-      : platformFee;
-  const totalAmount = baseAmount + guaranteeFee + platformFee;
-  const payableNow = paymentMethod === "external" ? commissionChargedPln : totalAmount;
+  const foundingWaived = quote?.feeMeta?.foundingDiscountApplied === true;
+  const tierDiscountAmount = foundingWaived ? 0 : Math.max(0, basePlatformFee - platformFee);
+  const displayFeePercent = baseAmount > 0 && basePlatformFee > 0
+    ? Math.round((basePlatformFee / baseAmount) * 100)
+    : platformFeePercent;
+  const platformFeeBeforeFounding = basePlatformFee;
+  const commissionChargedPln = Number(pricing?.commissionChargedPln || 0);
+  const totalAmount = Number(pricing?.total || 0);
+  const payableNow = Number(quote?.paymentDueNow ?? 0);
 
   const handleAccept = () => {
+    if (!paymentMethod || !quote || quoteLoading) return;
     // Walidacja dla teleporad
     if (isTeleconsultation) {
       if (!scheduledDate || !scheduledTime) {
@@ -97,14 +165,9 @@ export default function AcceptOfferModal({
       requestInvoice,
       totalAmount: payableNow,
       breakdown: {
-        baseAmount,
-        guaranteeFee,
-        platformFee,
-        commissionChargedPln,
+        ...pricing,
         payableNow,
-        tierDiscountPercent,
-        tierDiscountAmount
-      }
+      },
     };
     
     // Dodaj dane teleporady jeśli to teleporada
@@ -165,9 +228,15 @@ export default function AcceptOfferModal({
                 <div>Klient wybrał rozliczenie bezpośrednio z wykonawcą (bez gwarancji Helpfli).</div>
               </div>
             )}
+            {order?.paymentPreference === 'both' && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                <div className="font-medium">Wybierz sposób rozliczenia</div>
+                <div>Przed akceptacją zdecyduj, czy chcesz ochronę Helpfli, czy płatność bezpośrednią.</div>
+              </div>
+            )}
             <div className="space-y-3">
               <label className={`flex flex-col gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                disableSystemPayment || order?.paymentPreference === 'external' ? "opacity-60 cursor-not-allowed" : ""
+                systemPaymentUnavailable ? "opacity-60 cursor-not-allowed" : ""
               }`}>
                 <div className="flex items-start gap-3">
                   <input
@@ -175,23 +244,18 @@ export default function AcceptOfferModal({
                     name="paymentMethod"
                     value="system"
                     checked={paymentMethod === 'system'}
-                    onChange={(e) => !disableSystemPayment && order?.paymentPreference !== 'external' && setPaymentMethod(e.target.value)}
+                    onChange={(e) => !systemPaymentUnavailable && setPaymentMethod(e.target.value)}
                     className="mt-1"
-                    disabled={disableSystemPayment || order?.paymentPreference === 'external'}
+                    disabled={systemPaymentUnavailable}
                   />
                   <div className="flex-1">
                     <div className="font-medium">Płatność przez Helpfli</div>
                     <div className="text-sm text-gray-600">
                       Bezpieczna płatność z Gwarancją Helpfli
                     </div>
-                    {disableSystemPayment && (
+                    {systemPaymentUnavailable && (
                       <div className="mt-1 text-xs text-amber-700">
-                        {systemDisabledReason || "Ten wykonawca nie ma jeszcze aktywowanych wypłat Stripe. Wybierz płatność poza systemem."}
-                      </div>
-                    )}
-                    {order?.paymentPreference === 'external' && (
-                      <div className="mt-1 text-xs text-amber-700">
-                        Klient wybrał płatność poza systemem - ta opcja nie jest dostępna.
+                        {systemDisabledReason || providerMeta.systemPaymentUnavailableReason || "Ten wykonawca nie ma jeszcze aktywowanych wypłat Stripe. Wybierz płatność poza systemem."}
                       </div>
                     )}
                   </div>
@@ -218,27 +282,22 @@ export default function AcceptOfferModal({
                 )}
               </label>
 
-              <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                order?.paymentPreference === 'system' ? "opacity-60 cursor-not-allowed" : ""
-              }`}>
+              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                 <input
                   type="radio"
                   name="paymentMethod"
                   value="external"
                   checked={paymentMethod === 'external'}
-                  onChange={(e) => order?.paymentPreference !== 'system' && setPaymentMethod(e.target.value)}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
                   className="mt-1"
-                  disabled={order?.paymentPreference === 'system'}
                 />
                 <div className="flex-1">
                   <div className="font-medium">Płatność poza systemem</div>
                   <div className="text-sm text-gray-600">
                     Bezpośrednio z wykonawcą (bez gwarancji)
                   </div>
-                  {order?.paymentPreference === 'system' && (
-                    <div className="mt-1 text-xs text-amber-700">
-                      Klient wybrał płatność przez Helpfli - ta opcja nie jest dostępna.
-                    </div>
+                  {order?.paymentPreference === 'system' && systemPaymentUnavailable && (
+                    <div className="mt-1 text-xs text-amber-700">Możesz bezpiecznie zmienić wcześniejszą preferencję na rozliczenie bezpośrednie.</div>
                   )}
                 </div>
               </label>
@@ -268,7 +327,23 @@ export default function AcceptOfferModal({
           )}
 
           {/* Podsumowanie kosztów */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          {!paymentMethod && (
+            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              Wybierz sposób płatności, aby zobaczyć ostateczną cenę.
+            </div>
+          )}
+          {quoteLoading && (
+            <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600" role="status">
+              Obliczamy ostateczną cenę…
+            </div>
+          )}
+          {quoteError && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+              {quoteError}
+            </div>
+          )}
+          {quote && !quoteLoading && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-medium mb-3">Podsumowanie kosztów</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -283,7 +358,7 @@ export default function AcceptOfferModal({
               )}
               {basePlatformFee > 0 && (
                 <div className="flex justify-between">
-                  <span>Prowizja platformy (5%):</span>
+                  <span>Prowizja platformy{displayFeePercent > 0 ? ` (${displayFeePercent}%)` : ''}:</span>
                   <span className={foundingWaived ? 'line-through text-slate-400' : ''}>
                     +{basePlatformFee} zł
                   </span>
@@ -297,7 +372,7 @@ export default function AcceptOfferModal({
               )}
               {tierDiscountAmount > 0 && (
                 <div className="flex justify-between text-emerald-700">
-                  <span>Zniżka za poziom lojalności ({tierDiscountPercent}%):</span>
+                  <span>Rabat platformy:</span>
                   <span>-{tierDiscountAmount} zł</span>
                 </div>
               )}
@@ -327,15 +402,16 @@ export default function AcceptOfferModal({
                 platformFee={platformFee}
               />
             )}
-          </div>
+            </div>
+          )}
 
           {/* Informacja o poziomie lojalności */}
-          {loyaltyTier && loyaltyTier.discount > 0 && (
+          {loyaltyTier && tierDiscountAmount > 0 && (
             <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
               <div className="font-medium">
-                {loyaltyTier.icon || '💎'} Twój poziom: {loyaltyTier.name} – {loyaltyTier.discount}% zniżki na prowizję Helpfli
+                {loyaltyTier.icon || '💎'} Twój poziom: {loyaltyTier.name}
               </div>
-              <div>Rabat został uwzględniony w podsumowaniu.</div>
+              <div>Rabat serwerowy został uwzględniony w podsumowaniu.</div>
             </div>
           )}
 
@@ -466,13 +542,19 @@ export default function AcceptOfferModal({
             </button>
             <button
               onClick={handleAccept}
-              disabled={isAccepting}
+              disabled={isAccepting || quoteLoading || !quote || !paymentMethod}
               className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               {isAccepting
                 ? 'Akceptuję...'
+                : !paymentMethod
+                  ? 'Wybierz płatność'
+                  : quoteLoading
+                    ? 'Obliczam cenę...'
                 : paymentMethod === 'external'
-                  ? `Akceptuj i opłać prowizję (${payableNow} zł)`
+                  ? payableNow > 0
+                    ? `Akceptuj i opłać prowizję (${payableNow} zł)`
+                    : 'Akceptuj ofertę'
                   : `Akceptuj i zapłać teraz (${payableNow} zł)`}
             </button>
           </div>

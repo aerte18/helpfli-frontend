@@ -68,6 +68,20 @@ export default function ClientCompletionReview({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || 'Nie udało się utworzyć płatności dopłaty');
+      if (res.status === 202 || data.pending) {
+        toast?.({
+          title: 'Płatność jest przetwarzana',
+          description: data.message || 'Nie rozpoczynaj drugiej płatności. Odśwież zlecenie za chwilę.',
+        });
+        return;
+      }
+      if (data.succeeded) {
+        window.location.href = `/orders/${encodeURIComponent(orderId)}`;
+        return;
+      }
+      if (!data.paymentIntentId || !data.clientSecret) {
+        throw new Error('Brak danych potrzebnych do bezpiecznego rozpoczęcia dopłaty');
+      }
       window.location.href = `/checkout/${encodeURIComponent(orderId)}?pi=${encodeURIComponent(data.paymentIntentId)}&cs=${encodeURIComponent(data.clientSecret)}`;
     } catch (error) {
       console.error('pay additional:', error);

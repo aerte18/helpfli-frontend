@@ -1,4 +1,4 @@
-/** Płatność poza Helpfli — bez escrow, bez akceptacji/sporu w platformie. */
+/** Płatność poza Helpfli — bez escrow i zwrotu finansowego w platformie. */
 export function isExternalOrderPayment(order) {
   return (
     order?.paymentPreference === 'external' ||
@@ -61,11 +61,10 @@ export function isOrderDisputeBlockingProgress(order) {
  */
 export function isAwaitingClientAfterProviderComplete(order) {
   if (!order) return false;
-  if (isExternalOrderPayment(order)) return false;
   if (isDisputeResolved(order)) return false;
   if (isOrderDisputeBlockingProgress(order)) return false;
   if (order.status === 'released' || order.status === 'rated') return false;
-  return order.status === 'completed';
+  return order.status === 'completed' && order.clientCompletionStatus === 'pending';
 }
 
 /** Ocena dopiero po domknięciu zlecenia (released), nie w trakcie oczekiwania na klienta. */
@@ -74,7 +73,7 @@ export function canUserRateOrder(order, { isClient = false, isProvider = false }
   if (isOrderDisputeBlockingProgress(order)) return false;
   if (order.status === 'disputed') return false;
   if (isExternalOrderPayment(order)) {
-    return ['completed', 'released', 'rated'].includes(order.status);
+    return ['released', 'rated'].includes(order.status);
   }
   if (isDisputeResolved(order)) {
     return ['released', 'rated', 'completed'].includes(order.status);

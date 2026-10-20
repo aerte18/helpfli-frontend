@@ -30,6 +30,11 @@ export default function OrderContactUnlockCard({ orderId, feePln = 24, onUnlocke
         return;
       }
 
+      if (res.status === 202 || data.pending) {
+        setError(data.message || "Płatność jest nadal przetwarzana. Nie rozpoczynaj drugiej płatności.");
+        return;
+      }
+
       if (data.clientSecret && data.paymentIntentId) {
         const pi = encodeURIComponent(data.paymentIntentId);
         const cs = encodeURIComponent(data.clientSecret);

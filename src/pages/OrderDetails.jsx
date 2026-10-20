@@ -2622,7 +2622,7 @@ function OrderCompletedStageView({
           </div>
         )}
 
-        {isProvider && awaitingClient && !disputeOpen && !disputeResolved && (
+        {isProvider && awaitingClient && !isExternalPayment && !disputeOpen && !disputeResolved && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm font-semibold text-blue-900">Oczekiwanie na akceptację klienta</p>
             <p className="mt-1 text-sm text-blue-800">
@@ -2661,13 +2661,19 @@ function OrderCompletedStageView({
         {order.status === 'released' && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-green-600 text-xl">💰</span>
-              <span className="font-semibold text-green-900">Środki wypłacone</span>
+              <span className="text-green-600 text-xl">✓</span>
+              <span className="font-semibold text-green-900">
+                {isExternalPayment ? 'Odbiór potwierdzony' : 'Środki rozliczone'}
+              </span>
             </div>
             <p className="text-sm text-green-800">
-              {isClient 
-                ? 'Potwierdziłeś odbiór - środki zostały wypłacone wykonawcy.'
-                : 'Klient potwierdził odbiór - środki zostały wypłacone do Twojego konta.'}
+              {isExternalPayment
+                ? isClient
+                  ? 'Potwierdziłeś wykonanie usługi. Ewentualne rozliczenie płatności odbywa się bezpośrednio z wykonawcą, poza Helpfli.'
+                  : 'Klient potwierdził wykonanie usługi. Ewentualne rozliczenie płatności odbywa się bezpośrednio, poza Helpfli.'
+                : isClient
+                  ? 'Potwierdziłeś odbiór — płatność w Helpfli została rozliczona.'
+                  : 'Klient potwierdził odbiór — płatność w Helpfli została rozliczona.'}
             </p>
           </div>
         )}
@@ -2690,17 +2696,26 @@ function OrderCompletedStageView({
           />
         )}
 
-        {isExternalPayment && order.status === "completed" && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Płatność poza Helpfli</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Wykonawca zakończył zlecenie. Rozliczenie było poza systemem — nie ma akceptacji ani sporu w
-              platformie. Możecie od razu wystawić oceny.
+        {isClient && isExternalPayment && order.status === "completed" && (
+          <ClientExternalCompletionPanel
+            order={order}
+            onConfirmReceipt={onConfirmReceipt}
+            onGoChat={onGoChat}
+            isLoadingConfirmReceipt={isLoadingConfirmReceipt}
+            sectionId="client-confirm-receipt"
+          />
+        )}
+
+        {isProvider && isExternalPayment && order.status === "completed" && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">Oczekiwanie na potwierdzenie klienta</p>
+            <p className="mt-1 text-sm text-blue-800">
+              Rozliczenie odbyło się poza Helpfli. Klient powinien teraz potwierdzić wykonanie usługi; dopiero potem obie strony mogą wystawić oceny.
             </p>
           </div>
         )}
 
-        {/* Ocena — escrow: po released; poza Helpfli: od razu po zakończeniu */}
+        {/* Ocena jest dostępna dopiero po potwierdzeniu odbioru i statusie released. */}
         {!mayRate && !hasMyRating && !isExternalPayment && !disputeResolved && (awaitingClient || disputeOpen || order.status === "completed") && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
             {disputeOpen
@@ -3874,18 +3889,16 @@ export default function OrderDetails() {
 
   const confirmReceipt = async () => {
     setConfirmingReceipt(true);
+    const extPay = isExternalOrderPayment(order);
     
     // Optymistyczna aktualizacja
     const previousOrder = { ...order };
     const optimisticOrder = {
       ...order,
       status: 'released',
-      paymentStatus: 'succeeded',
+      ...(extPay ? {} : { paymentStatus: 'succeeded' }),
     };
     setOrder(optimisticOrder);
-
-    const extPay =
-      order?.paymentMethod === "external" || order?.paymentPreference === "external";
     
     toast({ 
       title: "Odbiór potwierdzony", 
@@ -4556,14 +4569,19 @@ export default function OrderDetails() {
               <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-950">
                 <strong>Tryb: tylko oferty.</strong> Zbierasz wyceny i kontakt od wykonawców — rozliczenie za roboty poza Helpfli.
               </div>
-              {order.contactLocked && isClient && (
+              {order.contactLocked && isClient && order.status === 'accepted' && order.acceptedOfferId && order.provider && (
                 <OrderContactUnlockCard
                   orderId={order._id || order.id}
                   feePln={order.contactUnlockFeePln || 24}
                   onUnlocked={() => window.location.reload()}
                 />
               )}
-              {order.contactLocked && isProvider && (
+              {order.contactLocked && isClient && (!order.acceptedOfferId || !order.provider || order.status !== 'accepted') && (
+                <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+                  Najpierw zaakceptuj ofertę wykonawcy. Dopiero potem będzie można odblokować kontakt.
+                </p>
+              )}
+              {order.contactLocked && isProvider && order.status === 'accepted' && (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
                   Dane kontaktowe klienta będą widoczne po opłacie odblokowania kontaktu przez klienta.
                 </p>
